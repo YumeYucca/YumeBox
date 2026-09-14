@@ -39,6 +39,7 @@ import io.ktor.http.content.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.time.Instant
