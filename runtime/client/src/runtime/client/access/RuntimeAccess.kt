@@ -43,6 +43,18 @@ object RuntimeAccess {
     private var initialized = false
     private var coreApi: CoreApi? = null
     private var profileApi: ProfileApi? = null
+    private var remoteStore: RemoteControllerStore? = null
+    private var remoteApi: CoreController? = null
+
+    private fun ensureRemoteController(): CoreController {
+        val store =
+            remoteStore
+                ?: RemoteControllerStore(MMKVProvider().getMMKV(RemoteControllerStore.MMKV_ID)).also {
+                    remoteStore = it
+                }
+        return remoteApi
+            ?: CoreController(backendProvider = { store.activeBackend() }).also { remoteApi = it }
+    }
 
     @Suppress("TooGenericExceptionCaught")
     suspend fun connect(ctx: Context) {
@@ -56,19 +68,14 @@ object RuntimeAccess {
                 val startedAt = System.currentTimeMillis()
                 try {
                     initializeServiceGlobal(appContext)
-                    val remoteStore =
-                        RemoteControllerStore(MMKVProvider().getMMKV("remote_controller"))
-                    val remote = CoreController(backendProvider = { remoteStore.activeBackend() })
+                    val remote = ensureRemoteController()
                     coreApi =
                         CoreRouter(
                             local =
                                 com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess
                                     .controller(appContext),
                             remote = remote,
-                            isRemoteControllerActive = {
-                                remoteStore.controllerEnabled.value &&
-                                    remoteStore.activeBackend() != null
-                            },
+                            isRemoteControllerActive = { RemoteControllerStore.isActive() },
                         )
                     profileApi = ProfileService(appContext)
                     initialized = true
@@ -86,6 +93,16 @@ object RuntimeAccess {
             }
         }
     }
+
+    /**
+     * Probe the configured remote backend without routing through [CoreRouter]. Safe to call before
+     * [connect]; does not attach local unix-socket state.
+     */
+    suspend fun probeRemoteController(): Boolean =
+        withContext(Dispatchers.IO) {
+            val remote = mutex.withLock { ensureRemoteController() }
+            remote.probe()
+        }
 
     suspend fun disconnect() {
         withContext(Dispatchers.IO) {

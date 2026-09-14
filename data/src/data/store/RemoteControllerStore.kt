@@ -26,20 +26,42 @@ import com.github.yumeyucca.yumebox.data.model.RemoteBackend
 import com.tencent.mmkv.MMKV
 
 /**
+ * Local runtime that was paused so the app could attach to an external controller. Names are stored
+ * as strings so this store stays independent of runtime-api types.
+ */
+data class PausedLocalRuntime(
+    val ownerName: String,
+    val modeName: String,
+)
+
+/**
  * Persists external-controller mode state: whether the app should act as a pure remote controller,
  * the list of saved backends, and which backend is active.
  *
  * Stored in its own MMKV file (`remote_controller`) using [MMKV.MULTI_PROCESS_MODE] so both the UI
  * and service processes observe the same configuration.
+ *
+ * [controllerEnabled] is the user preference. The app only takes over as a remote controller when
+ * [isActive] is true (preference on, backend selected, and the backend is currently attached).
  */
 class RemoteControllerStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = externalMmkv) {
     private val backendCodec = RemoteBackendStorageCodec()
 
     /**
-     * Master switch — when on (and an active backend exists) the app runs in remote-controller
-     * mode.
+     * Master switch — when on (and an active backend exists) the app *wants* remote-controller
+     * mode. Takeover still requires a reachable backend; see [isActive].
      */
     val controllerEnabled by boolFlow(false)
+
+    /**
+     * True only while the session is actually attached to a reachable remote backend. Service
+     * processes read this via [isActive] so they do not skip local start when the preference is on
+     * but the controller is down.
+     */
+    val controllerAttached by boolFlow(false)
+
+    val pausedLocalOwner by strFlow("")
+    val pausedLocalMode by strFlow("")
 
     /** All saved backends. Secrets are encrypted at this persistence boundary. */
     val backends by
@@ -66,12 +88,35 @@ class RemoteControllerStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = 
         return backends.value.firstOrNull { it.id == id }
     }
 
+    /** Preference is on and a backend is selected — does not mean we have taken over. */
+    fun isWanted(): Boolean = controllerEnabled.value && activeBackend() != null
+
+    /** Currently attached to a reachable remote controller. */
+    fun isActive(): Boolean = isWanted() && controllerAttached.value
+
+    fun rememberPausedLocal(
+        ownerName: String,
+        modeName: String,
+    ) {
+        if (pausedLocalOwner.value.isNotBlank()) return
+        pausedLocalOwner.set(ownerName)
+        pausedLocalMode.set(modeName)
+    }
+
+    fun takePausedLocal(): PausedLocalRuntime? {
+        val ownerName = pausedLocalOwner.value
+        val modeName = pausedLocalMode.value
+        if (ownerName.isBlank() || modeName.isBlank()) return null
+        pausedLocalOwner.set("")
+        pausedLocalMode.set("")
+        return PausedLocalRuntime(ownerName = ownerName, modeName = modeName)
+    }
+
     companion object {
         const val MMKV_ID = "remote_controller"
 
         private val gate by lazy { RemoteControllerStore(MMKVProvider().getMMKV(MMKV_ID)) }
 
-        /** Live, cross-process check of whether remote-controller mode is active. */
-        fun isActive(): Boolean = gate.controllerEnabled.value && gate.activeBackend() != null
+        fun isActive(): Boolean = gate.isActive()
     }
 }

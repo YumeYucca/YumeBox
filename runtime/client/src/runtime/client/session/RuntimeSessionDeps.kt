@@ -47,4 +47,5 @@ internal data class RuntimeSessionDeps(
     val onGroupTick: suspend () -> Unit = {},
     val onTrafficTickExtra: suspend (tick: Int) -> Unit = {},
     val onClearGroups: (Boolean) -> Unit = {},
+    val probeRemote: suspend () -> Boolean = { false },
 )

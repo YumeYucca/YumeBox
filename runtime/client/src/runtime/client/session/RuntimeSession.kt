@@ -41,8 +41,9 @@ import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 
 /**
- * High-cohesion runtime host: snapshot/traffic/profile state, lifecycle, remote switch, event
- * bridge and traffic polling. Platform differences go through seams.
+ * High-cohesion runtime host: snapshot/traffic/profile state, lifecycle, event bridge and traffic
+ * polling. Remote-controller takeover lives in [RuntimeRemoteSwitch]. Platform differences go
+ * through seams.
  */
 internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
     private val context
@@ -93,7 +94,6 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
 
     private val appContext = context.appContextOrSelf
     private val operationMutex = Mutex()
-    private val controllerSwitchMutex = Mutex()
     private var generationCounter = 0L
 
     private val _runtimeSnapshot =
@@ -161,6 +161,27 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
             onRootFailed = { error -> scope.launch { handleFailure(error) } },
         )
 
+    private val remoteSwitch =
+        RuntimeRemoteSwitch(
+            deps = deps,
+            ownership = ownership,
+            operationMutex = operationMutex,
+            snapshot = { _runtimeSnapshot.value },
+            publishRemoteRunning = {
+                publishSnapshot(
+                    ownership.remoteRunningSnapshot(
+                        runMode = networkSettingsStorage.runMode.value,
+                        generation = nextGeneration(),
+                    )
+                )
+            },
+            reconcile = { reconcile() },
+            startLocal = { owner, mode -> start(RuntimeStartRequest(owner = owner, mode = mode)) },
+            startTrafficPolling = { startTrafficPolling() },
+            stopTrafficPolling = { stopTrafficPolling() },
+            connectBackend = { connectBackend() },
+        )
+
     fun bootstrap() {
         eventBridge.register()
         scope.launch {
@@ -169,9 +190,7 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
         }
     }
 
-    fun isRemoteControllerActive(): Boolean =
-        remoteControllerStore.controllerEnabled.value &&
-            remoteControllerStore.activeBackend() != null
+    fun isRemoteControllerActive(): Boolean = remoteControllerStore.isActive()
 
     fun snapshotValue(): RuntimeSnapshot = _runtimeSnapshot.value
 
@@ -230,47 +249,7 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
         }
     }
 
-    fun applyRemoteControllerState() {
-        scope.launch { controllerSwitchMutex.withLock { applyRemoteControllerStateLocked() } }
-    }
-
-    private suspend fun applyRemoteControllerStateLocked() {
-        if (isRemoteControllerActive()) {
-            val snapshot = _runtimeSnapshot.value
-            if (
-                snapshot.owner != RuntimeOwner.RemoteController ||
-                    snapshot.phase != RuntimePhase.Running
-            ) {
-                stopLocalRuntimeForControllerSwitch()
-                publishSnapshot(
-                    ownership.remoteRunningSnapshot(
-                        runMode = networkSettingsStorage.runMode.value,
-                        generation = nextGeneration(),
-                    )
-                )
-            }
-            startTrafficPolling()
-            onAfterRunning()
-        } else if (_runtimeSnapshot.value.owner == RuntimeOwner.RemoteController) {
-            reconcile()
-        }
-    }
-
-    private suspend fun stopLocalRuntimeForControllerSwitch() {
-        runCatching {
-            val owner = ownership.detectActiveOwner()
-            if (owner == RuntimeOwner.VpnService || owner == RuntimeOwner.RootDaemon) {
-                Timber.i("Controller switch: stopping local runtime owner=$owner")
-                launcher.stop(owner)
-                stopTrafficPolling()
-                statusStore.reconcilePersistedRuntimeState()
-            }
-        }
-            .onFailure { error ->
-                if (error is CancellationException) throw error
-                Timber.w(error, "Failed to stop local runtime on controller switch")
-            }
-    }
+    fun applyRemoteControllerState() = remoteSwitch.apply()
 
     suspend fun reconcile() {
         if (isRemoteControllerActive()) {
@@ -365,6 +344,10 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
         }
 
         operationMutex.withLock {
+            if (isRemoteControllerActive()) {
+                Timber.i("Ignoring startProxy: remote controller mode active")
+                return
+            }
             val targetOwner =
                 request.owner.takeIf { it != RuntimeOwner.None } ?: ownership.ownerForMode(mode)
             val currentOwner =
@@ -464,8 +447,10 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
     }
 
     private fun initializeSnapshot() {
-        if (isRemoteControllerActive()) {
+        if (remoteControllerStore.isWanted()) {
             applyRemoteControllerState()
+        }
+        if (isRemoteControllerActive()) {
             return
         }
         val configuredMode = networkSettingsStorage.runMode.value

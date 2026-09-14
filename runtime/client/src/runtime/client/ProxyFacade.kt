@@ -131,6 +131,7 @@ class ProxyFacade(
                         }
                     },
                     onClearGroups = { reset -> groups.clear(reset) },
+                    probeRemote = { RuntimeAccess.probeRemoteController() },
                 )
             )
         groups =

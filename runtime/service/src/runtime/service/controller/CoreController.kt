@@ -99,6 +99,24 @@ class CoreController(
     private fun requireBackend(): RemoteBackend =
         backendProvider() ?: error("No active remote controller backend")
 
+    /**
+     * Reachability probe for a remote backend (`GET /configs`). Always hits [backendProvider]; do
+     * not call this on a local unix-socket controller.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    suspend fun probe(): Boolean {
+        if (local != null) return false
+        return try {
+            queryTunnelStateAsync()
+            true
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Timber.d(error, "Remote controller probe failed")
+            false
+        }
+    }
+
     /** Absolute URL under the active endpoint base. */
     private fun buildUrl(
         vararg pathSegments: String,
