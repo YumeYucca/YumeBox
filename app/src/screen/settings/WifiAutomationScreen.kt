@@ -499,10 +499,10 @@ private fun WifiRuleEditSheet(
     LaunchedEffect(show) {
         if (show) selectedSsid = null
     }
-    LaunchedEffect(selectedRule, profiles) {
+    LaunchedEffect(selectedRule) {
         selectedRule?.let { rule ->
             action = rule.action
-            profileUuid = rule.profileUuid.takeIf { id -> profiles.any { it.uuid.toString() == id } }
+            profileUuid = rule.profileUuid
         }
     }
 

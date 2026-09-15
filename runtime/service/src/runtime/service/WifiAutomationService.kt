@@ -129,7 +129,7 @@ class WifiAutomationService : Service() {
     private suspend fun switchProfileIfNeeded(profileUuid: String?) {
         if (profileUuid == null) return
         val uuid = runCatching { UUID.fromString(profileUuid) }.getOrNull() ?: return
-        profileService.queryByUUID(uuid)?.let { profileService.setActive(it) }
+        profileService.queryByUUID(uuid)?.takeUnless { it.active }?.let { profileService.setActive(it) }
     }
 
     private suspend fun applyFallbackAction(action: WifiAutomationFallbackAction, profileUuid: String?) {
