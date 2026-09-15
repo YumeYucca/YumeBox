@@ -18,27 +18,35 @@ import com.github.yumeyucca.yumebox.data.model.WifiAutomationAction
 import com.github.yumeyucca.yumebox.data.model.WifiAutomationFallbackAction
 import com.github.yumeyucca.yumebox.data.model.WifiAutomationRule
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
+import com.github.yumeyucca.yumebox.runtime.api.Profile
+import com.github.yumeyucca.yumebox.runtime.client.ProfilesRepository
 import com.github.yumeyucca.yumebox.runtime.service.WifiAutomationService
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidObservation
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidObserver
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidScanResult
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidScanner
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidNetwork
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class WifiAutomationViewModel(
     application: Application,
     private val settings: NetworkSettingsStore,
+    private val profilesRepository: ProfilesRepository,
 ) : AndroidViewModel(application) {
     data class UiState(
         val enabled: Boolean = false,
         val rules: List<WifiAutomationRule> = emptyList(),
+        val profiles: List<Profile> = emptyList(),
         val runMode: RunMode = RunMode.VpnService,
         val locationRequested: Boolean = false,
         val otherWifiAction: WifiAutomationFallbackAction = WifiAutomationFallbackAction.Keep,
         val noWifiAction: WifiAutomationFallbackAction = WifiAutomationFallbackAction.Keep,
+        val otherWifiProfileUuid: String? = null,
+        val noWifiProfileUuid: String? = null,
         val isScanning: Boolean = false,
         val scanCompleted: Boolean = false,
         val scannedNetworks: List<WifiSsidNetwork> = emptyList(),
@@ -67,6 +75,12 @@ class WifiAutomationViewModel(
     private val scanState = MutableStateFlow(ScanState())
     private var scanJob: Job? = null
 
+    private val profiles = MutableStateFlow<List<Profile>>(emptyList())
+
+    init {
+        refreshProfiles()
+    }
+
     private val settingsState =
         combine(
             settings.wifiAutomationEnabled.state,
@@ -74,7 +88,12 @@ class WifiAutomationViewModel(
             settings.runMode.state,
             settings.wifiAutomationLocationRequested.state,
         ) { enabled, rules, runMode, locationRequested ->
-            UiState(enabled, rules, runMode, locationRequested)
+            UiState(
+                enabled = enabled,
+                rules = rules,
+                runMode = runMode,
+                locationRequested = locationRequested,
+            )
         }
 
     val uiState: StateFlow<UiState> =
@@ -82,9 +101,20 @@ class WifiAutomationViewModel(
             settingsState,
             settings.wifiAutomationOtherWifiAction.state,
             settings.wifiAutomationNoWifiAction.state,
-        ) { state, otherWifiAction, noWifiAction ->
-            state.copy(otherWifiAction = otherWifiAction, noWifiAction = noWifiAction)
+            profiles,
+        ) { state, otherWifiAction, noWifiAction, profiles ->
+            state.copy(
+                otherWifiAction = otherWifiAction,
+                noWifiAction = noWifiAction,
+                profiles = profiles,
+            )
         }
+            .combine(settings.wifiAutomationOtherWifiProfileUuid.state) { state, profileUuid ->
+                state.copy(otherWifiProfileUuid = profileUuid.ifBlank { null })
+            }
+            .combine(settings.wifiAutomationNoWifiProfileUuid.state) { state, profileUuid ->
+                state.copy(noWifiProfileUuid = profileUuid.ifBlank { null })
+            }
             .combine(scanState) { state, scan ->
                 state.copy(
                     isScanning = scan.isScanning,
@@ -102,6 +132,8 @@ class WifiAutomationViewModel(
                     locationRequested = settings.wifiAutomationLocationRequested.value,
                     otherWifiAction = settings.wifiAutomationOtherWifiAction.value,
                     noWifiAction = settings.wifiAutomationNoWifiAction.value,
+                    otherWifiProfileUuid = settings.wifiAutomationOtherWifiProfileUuid.value.ifBlank { null },
+                    noWifiProfileUuid = settings.wifiAutomationNoWifiProfileUuid.value.ifBlank { null },
                 ),
             )
 
@@ -123,12 +155,25 @@ class WifiAutomationViewModel(
         settings.wifiAutomationLocationRequested.set(true)
     }
 
+    @Suppress("TooGenericExceptionCaught")
+    fun refreshProfiles() {
+        viewModelScope.launch {
+            try {
+                profiles.value = profilesRepository.queryAllProfiles()
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.w(error, "Failed to load profiles for Wi-Fi automation")
+            }
+        }
+    }
+
     fun addManualSsid(
         rawSsid: String,
         action: WifiAutomationAction = WifiAutomationAction.Start,
+        profileUuid: String? = null,
     ) {
         val ssid = WifiSsidObserver.normalizeSsid(rawSsid) ?: return
-        addRule(ssid, action)
+        addRule(ssid, action, profileUuid)
     }
 
     fun scanWifi() {
@@ -164,10 +209,10 @@ class WifiAutomationViewModel(
         }
     }
 
-    fun changeRuleAction(ssid: String, action: WifiAutomationAction) {
+    fun changeRuleAction(ssid: String, action: WifiAutomationAction, profileUuid: String?) {
         settings.wifiAutomationRules.set(
             settings.wifiAutomationRules.value.map { rule ->
-                if (rule.ssid == ssid) rule.copy(action = action) else rule
+                if (rule.ssid == ssid) rule.copy(action = action, profileUuid = profileUuid) else rule
             }
         )
         refreshAutomationIfEnabled()
@@ -188,16 +233,27 @@ class WifiAutomationViewModel(
         refreshAutomationIfEnabled()
     }
 
+    fun changeOtherWifiProfileUuid(profileUuid: String?) {
+        settings.wifiAutomationOtherWifiProfileUuid.set(profileUuid.orEmpty())
+        refreshAutomationIfEnabled()
+    }
+
+    fun changeNoWifiProfileUuid(profileUuid: String?) {
+        settings.wifiAutomationNoWifiProfileUuid.set(profileUuid.orEmpty())
+        refreshAutomationIfEnabled()
+    }
+
     private fun addRule(
         ssid: String,
         action: WifiAutomationAction = WifiAutomationAction.Start,
+        profileUuid: String? = null,
     ) {
         if (settings.wifiAutomationRules.value.any { it.ssid == ssid }) {
             viewModelScope.launch { _effects.emit(Effect.SsidAlreadyExists) }
             return
         }
         settings.wifiAutomationRules.set(
-            settings.wifiAutomationRules.value + WifiAutomationRule(ssid, action)
+            settings.wifiAutomationRules.value + WifiAutomationRule(ssid, action, profileUuid)
         )
         refreshAutomationIfEnabled()
         viewModelScope.launch { _effects.emit(Effect.AddedCurrentSsid) }

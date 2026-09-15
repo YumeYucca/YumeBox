@@ -88,4 +88,8 @@ class NetworkSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = e
     val wifiAutomationOtherWifiAction by enumFlow(WifiAutomationFallbackAction.Keep)
     val wifiAutomationNoWifiAction by enumFlow(WifiAutomationFallbackAction.Keep)
 
+    // Empty string means "do not switch" when the corresponding fallback action is Start.
+    val wifiAutomationOtherWifiProfileUuid by strFlow("")
+    val wifiAutomationNoWifiProfileUuid by strFlow("")
+
 }

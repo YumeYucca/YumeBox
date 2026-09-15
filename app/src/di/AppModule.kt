@@ -66,7 +66,7 @@ val appViewModelModule = module {
     viewModel { NetworkSettingsViewModel(androidApplication(), get(), get()) }
     viewModel { RemoteControllerViewModel(androidApplication(), get(), get()) }
     viewModel { AccessControlViewModel(androidApplication(), get(), get()) }
-    viewModel { WifiAutomationViewModel(androidApplication(), get()) }
+    viewModel { WifiAutomationViewModel(androidApplication(), get(), get()) }
     viewModel { LogViewModel(androidApplication()) }
     viewModel { RulesViewModel(androidApplication()) }
     viewModel { BackupRestoreViewModel(androidApplication(), get()) }

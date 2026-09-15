@@ -27,11 +27,13 @@ import com.github.yumeyucca.yumebox.data.store.MMKVProvider
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
+import com.github.yumeyucca.yumebox.runtime.service.profile.ProfileService
 import com.github.yumeyucca.yumebox.runtime.service.session.RuntimeServiceLauncher
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidObservation
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidObserver
 import kotlinx.coroutines.*
 import timber.log.Timber
+import java.util.UUID
 
 /**
  * User-started foreground service that keeps SSID monitoring alive when the VPN is stopped.
@@ -42,6 +44,7 @@ class WifiAutomationService : Service() {
     private val settings by lazy {
         NetworkSettingsStore(MMKVProvider().getMMKV(NETWORK_SETTINGS_STORE))
     }
+    private val profileService by lazy { ProfileService(this) }
     private var observer: WifiSsidObserver? = null
     private var applyJob: Job? = null
 
@@ -83,39 +86,60 @@ class WifiAutomationService : Service() {
             }
     }
 
-    private fun applyRule(observation: WifiSsidObservation) {
+    private suspend fun applyRule(observation: WifiSsidObservation) {
         if (!settings.wifiAutomationEnabled.value || settings.runMode.value != RunMode.VpnService) return
         if (RemoteControllerStore.isActive()) return
 
         when (observation) {
             is WifiSsidObservation.Connected -> {
-                val action =
-                    settings.wifiAutomationRules.value.firstOrNull { it.ssid == observation.ssid }?.action
-                if (action == null) {
-                    applyFallbackAction(settings.wifiAutomationOtherWifiAction.value)
+                val rule =
+                    settings.wifiAutomationRules.value.firstOrNull { it.ssid == observation.ssid }
+                if (rule == null) {
+                    applyFallbackAction(
+                        settings.wifiAutomationOtherWifiAction.value,
+                        settings.wifiAutomationOtherWifiProfileUuid.value.ifBlank { null },
+                    )
                 } else {
-                    applySsidAction(action)
+                    applySsidAction(rule.action, rule.profileUuid)
                 }
             }
 
-            WifiSsidObservation.NoWifi -> applyFallbackAction(settings.wifiAutomationNoWifiAction.value)
+            WifiSsidObservation.NoWifi ->
+                applyFallbackAction(
+                    settings.wifiAutomationNoWifiAction.value,
+                    settings.wifiAutomationNoWifiProfileUuid.value.ifBlank { null },
+                )
             // A revoked permission, disabled system location, redacted SSID, or concurrent Wi-Fi
             // connections must never be treated as a switch to mobile data.
             WifiSsidObservation.Unavailable -> Unit
         }
     }
 
-    private fun applySsidAction(action: WifiAutomationAction) {
+    private suspend fun applySsidAction(action: WifiAutomationAction, profileUuid: String?) {
         when (action) {
-            WifiAutomationAction.Start -> startVpnIfPossible()
+            WifiAutomationAction.Start -> {
+                switchProfileIfNeeded(profileUuid)
+                startVpnIfPossible()
+            }
+
             WifiAutomationAction.Stop -> stopVpn()
         }
     }
 
-    private fun applyFallbackAction(action: WifiAutomationFallbackAction) {
+    private suspend fun switchProfileIfNeeded(profileUuid: String?) {
+        if (profileUuid == null) return
+        val uuid = runCatching { UUID.fromString(profileUuid) }.getOrNull() ?: return
+        profileService.queryByUUID(uuid)?.let { profileService.setActive(it) }
+    }
+
+    private suspend fun applyFallbackAction(action: WifiAutomationFallbackAction, profileUuid: String?) {
         when (action) {
             WifiAutomationFallbackAction.Keep -> Unit
-            WifiAutomationFallbackAction.Start -> startVpnIfPossible()
+            WifiAutomationFallbackAction.Start -> {
+                switchProfileIfNeeded(profileUuid)
+                startVpnIfPossible()
+            }
+
             WifiAutomationFallbackAction.Stop -> stopVpn()
         }
     }

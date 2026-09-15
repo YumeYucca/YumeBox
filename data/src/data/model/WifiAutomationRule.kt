@@ -30,4 +30,6 @@ enum class WifiAutomationFallbackAction {
 data class WifiAutomationRule(
     val ssid: String,
     val action: WifiAutomationAction,
+    /** Profile UUID to switch to when [action] is [WifiAutomationAction.Start]; null means keep. */
+    val profileUuid: String? = null,
 )
