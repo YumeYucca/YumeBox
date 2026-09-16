@@ -86,14 +86,7 @@ class SessionRuntimeSpecFactory(
                                 profileDir,
                             )
                         )
-                // VpnService still injects tun.stack after user overrides (and under disable-all)
-                // so a profile mixed/system stack cannot leak into the fd-backed userspace TUN.
-                else ->
-                    userOverrides +
-                        TunOverride.materializeVpnStack(
-                            networkSettings.tunStack.value.forVpnService().toCoreStack(),
-                            profileDir,
-                        )
+                else -> userOverrides
             }
         val overrideSpecs =
             if (runMode == RunMode.Ebpf) modeOverrides

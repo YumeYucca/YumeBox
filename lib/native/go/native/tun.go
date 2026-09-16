@@ -14,27 +14,16 @@ import (
 // configureTun injects the VpnService TUN fd into the parsed config before ApplyConfig. Routes
 // and the portal address are the VpnService.Builder's business; the core only needs the gateway
 // prefixes and the DNS hijack targets.
-func configureTun(cfg *config.Config, fd int, gateway, dns string) error {
+func configureTun(cfg *config.Config, fd int, gateway, dns, stackName string) error {
 	prefix4, prefix6, err := splitGatewayPrefixes(gateway)
 	if err != nil {
 		return err
 	}
 
-	// Routes and addresses are the VpnService.Builder's business. The compiled YAML still owns
-	// tun.stack: the compiler overlays the app's userspace choice (gVisor or MIPS) and forces
-	// enable=false so Parse does not open /dev/net/tun. Copy that stack here instead of
-	// replacing the whole block with a hardcoded gVisor TUN. System/Mixed need a kernel TUN,
-	// which this fd path does not have, so they fall back to gVisor.
-	stack := cfg.General.Tun.Stack
-	switch stack {
-	case C.TunSystem, C.TunMixed:
-		stack = C.TunGvisor
-	}
-
 	cfg.General.Tun = LC.Tun{
 		Enable:    true,
 		Device:    sing_tun.InterfaceName,
-		Stack:     stack,
+		Stack:     vpnTunStack(stackName),
 		DNSHijack: splitDNSHijack(dns),
 		AutoRoute: false, // routes are set by the VpnService.Builder
 		// Core sockets are protected through the launcher, so the TUN must not pick an interface.
@@ -46,6 +35,22 @@ func configureTun(cfg *config.Config, fd int, gateway, dns string) error {
 	}
 
 	return nil
+}
+
+// vpnTunStack maps the launcher --stack flag onto a TUNStack after config.Parse. Unknown names
+// (including mips on a core that has not added it yet) fall back to gVisor so YAML never has
+// to carry a value Parse would reject. System/Mixed need a kernel TUN this fd path does not have.
+func vpnTunStack(name string) C.TUNStack {
+	var stack C.TUNStack
+	if err := stack.UnmarshalText([]byte(strings.TrimSpace(name))); err != nil {
+		return C.TunGvisor
+	}
+	switch stack {
+	case C.TunSystem, C.TunMixed:
+		return C.TunGvisor
+	default:
+		return stack
+	}
 }
 
 // splitGatewayPrefixes parses "172.19.0.1/30" or "172.19.0.1/30,fdfe:dcba:9876::1/126" into

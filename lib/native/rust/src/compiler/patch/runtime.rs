@@ -88,16 +88,17 @@ pub fn patch_static_runtime(root: &mut JsonValue, profile_dir: &Path, run_mode: 
     backfill_enabled_dns_without_nameserver(object);
 
     // In the VpnService path the TUN is attached at runtime via a file descriptor; a config-provided
-    // tun block must never open its own /dev/net/tun. Keep tun.stack (and any other geometry) so
-    // the Go launcher can copy the compiled userspace stack (gVisor or MIPS) onto the fd TUN.
-    // Native eBPF and Root Tun keep their profile authoritative because their downloaded mihomo
-    // kernels own traffic attachment.
+    // tun block must never open its own /dev/net/tun. Drop tun.stack here so Parse cannot reject
+    // an unknown value (mips on a core that has not added it yet). The Go launcher applies the
+    // userspace stack from --stack after Parse. Native eBPF and Root Tun keep their profile
+    // authoritative because their downloaded mihomo kernels own traffic attachment.
     if run_mode == RunMode::Vpn
         && let Some(tun) = object.get_mut("tun").and_then(JsonValue::as_object_mut)
     {
         tun.insert("enable".to_string(), JsonValue::Bool(false));
         tun.insert("auto-route".to_string(), JsonValue::Bool(false));
         tun.insert("auto-detect-interface".to_string(), JsonValue::Bool(false));
+        tun.remove("stack");
     }
 
     patch_listeners(object);
@@ -362,7 +363,7 @@ mod tests {
     }
 
     #[test]
-    fn vpn_patch_disables_tun_but_keeps_compiled_stack() {
+    fn vpn_patch_disables_tun_and_strips_stack() {
         let mut root = json!({
             "tun": {
                 "enable": true,
@@ -379,7 +380,7 @@ mod tests {
         assert_eq!(tun["enable"], false);
         assert_eq!(tun["auto-route"], false);
         assert_eq!(tun["auto-detect-interface"], false);
-        assert_eq!(tun["stack"], "mips");
+        assert!(tun.get("stack").is_none());
         assert_eq!(tun["device"], "Yume");
     }
 }

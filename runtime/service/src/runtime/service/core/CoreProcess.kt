@@ -69,6 +69,7 @@ class CoreProcess(private val context: Context) {
         gateway: String,
         dns: String,
         config: String,
+        stack: String,
     ): CoreEndpoint {
         val home = context.runtimeHomeDir.apply { mkdirs() }
         prepareSelectorCache(home)
@@ -91,6 +92,8 @@ class CoreProcess(private val context: Context) {
                 gateway,
                 "--dns",
                 dns,
+                "--stack",
+                stack,
                 "--mode",
                 "vpn",
                 "--sdk",

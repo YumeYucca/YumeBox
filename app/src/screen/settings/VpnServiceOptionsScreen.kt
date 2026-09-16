@@ -35,7 +35,7 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 
 /**
  * The VpnService "service config" sub-page (reached from the network-settings Advanced section).
- * Holds every knob the userspace VpnService path exposes, including the shared TUN stack picker.
+ * Holds every knob the userspace VpnService path exposes, including the gVisor/MIPS stack picker.
  * Shares [NetworkSettingsViewModel] with the picker screen.
  */
 @Composable
@@ -63,15 +63,13 @@ fun VpnServiceOptionsScreen() {
                 AppCard {
                     PreferenceEnumItem(
                         title = YumeTxt.NetworkSettings.TunOptions.StackTitle,
-                        currentValue = stack,
+                        currentValue = stack.forVpnService(),
                         items =
                             listOf(
-                                YumeTxt.NetworkSettings.TunOptions.StackSystem,
                                 YumeTxt.NetworkSettings.TunOptions.StackGVisor,
-                                YumeTxt.NetworkSettings.TunOptions.StackMixed,
                                 YumeTxt.NetworkSettings.TunOptions.StackMips,
                             ),
-                        values = TunStack.entries,
+                        values = listOf(TunStack.GVisor, TunStack.Mips),
                         onValueChange = viewModel::onTunStackChange,
                     )
                     PreferenceSwitchItem(

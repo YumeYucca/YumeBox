@@ -32,10 +32,6 @@ import java.io.File
  * flag), so all geometry — interface, MTU, stack, auto-route/redirect, uid scoping — is chosen here
  * in the app.
  *
- * VpnService does not own a kernel TUN; [materializeVpnStack] only writes `tun.stack` so the
- * compiler can overlay it onto the profile, then the VPN runtime patch forces `enable: false`
- * (the Go launcher re-enables TUN with the app-owned fd and reads this stack).
- *
  * A partial `dns:` block flips `dns.enable` on and SUPPRESSES the compiler's full fake-ip injection
  * (`patch_static_runtime`); the compiler backfills the nameserver whenever this leaves DNS empty,
  * so Tun and VpnService resolve identically and the resolver is never left crippled.
@@ -47,7 +43,6 @@ import java.io.File
  */
 object TunOverride {
     const val FILE_NAME = "__tun_override__.yaml"
-    const val VPN_STACK_FILE_NAME = "__vpn_stack_override__.yaml"
 
     fun buildYaml(config: TunConfig): String {
         val tun =
@@ -106,22 +101,6 @@ object TunOverride {
         dir.mkdirs()
         val file = File(dir, FILE_NAME)
         file.writeText(buildYaml(config))
-        return OverrideSpec(path = file.absolutePath, ext = "yaml")
-    }
-
-    /**
-     * VpnService overlay: only `tun.stack`. Placed after user overrides so the app's userspace
-     * stack wins over a profile `tun.stack: mixed` (which cannot attach to the VpnService fd).
-     * The VPN runtime patch still forces enable/auto-route off; Go copies this stack onto the
-     * fd-backed TUN.
-     */
-    fun buildVpnStackYaml(stack: String): String =
-        YamlCodec.dumpMap(linkedMapOf<String, Any?>("tun" to linkedMapOf("stack" to stack)))
-
-    fun materializeVpnStack(stack: String, dir: File): OverrideSpec {
-        dir.mkdirs()
-        val file = File(dir, VPN_STACK_FILE_NAME)
-        file.writeText(buildVpnStackYaml(stack))
         return OverrideSpec(path = file.absolutePath, ext = "yaml")
     }
 }

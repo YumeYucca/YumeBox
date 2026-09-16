@@ -34,6 +34,7 @@ type options struct {
 	mode       string
 	configPath string
 	channel    string
+	stack      string
 	sdk        int
 	test       bool
 }
@@ -48,6 +49,7 @@ func parseOptions(args []string) options {
 	flags.StringVar(&o.gateway, "gateway", "", "tun gateway CIDR(s)")
 	flags.StringVar(&o.dns, "dns", "", "tun DNS hijack address(es)")
 	flags.StringVar(&o.mode, "mode", "vpn", "run mode: vpn | tun | ebpf | preview")
+	flags.StringVar(&o.stack, "stack", "gvisor", "vpn tun stack: gvisor | mips")
 	flags.StringVar(&o.configPath, "config", "", "compiled config path; root modes read the config here instead of the channel")
 	flags.IntVar(&o.sdk, "sdk", 0, "android platform SDK int")
 	flags.BoolVar(&o.test, "test", false, "parse config and exit (mihomo -t equivalent); requires --config")

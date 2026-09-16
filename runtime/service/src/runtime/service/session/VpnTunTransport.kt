@@ -131,6 +131,7 @@ class VpnTunTransport(
             gateway = device.gateway,
             dns = device.dns,
             config = config,
+            stack = vpnTunStack(store.tunStackMode),
         )
         log.i(RuntimeLog.Type.Transport, "success: tun attached and core launched")
     }
@@ -252,6 +253,9 @@ class VpnTunTransport(
     )
 
     private companion object {
+        fun vpnTunStack(mode: String): String =
+            if (mode.equals("mips", ignoreCase = true)) "mips" else "gvisor"
+
         // Keep in lockstep with the core's tun MTU (native/tun/tun.go). 1500 is the standard value;
         // a jumbo 9000 MTU broke path-MTU on some paths, so both sides pin 1500.
         private const val TUN_MTU = 1500

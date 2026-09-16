@@ -49,7 +49,7 @@ func run(opts options) {
 		cfg.Controller.ExternalControllerUnix = opts.controller
 	}
 	if tunFd >= 0 {
-		if err := configureTun(cfg, tunFd, opts.gateway, opts.dns); err != nil {
+		if err := configureTun(cfg, tunFd, opts.gateway, opts.dns, opts.stack); err != nil {
 			fatal("configure tun: %v", err)
 		}
 	}

@@ -126,21 +126,17 @@ fn tun_override_keeps_profile_nameservers_intact() {
 }
 
 #[test]
-fn vpn_stack_override_wins_over_profile_and_survives_runtime_patch() {
-    let temp_dir = temp_dir("compiler-test-vpn-mips-stack");
+fn vpn_runtime_patch_strips_tun_stack_before_parse() {
+    let temp_dir = temp_dir("compiler-test-vpn-strip-stack");
     let profile_path = temp_dir.join("config.yaml");
     std::fs::write(
         &profile_path,
-        "mode: rule\ntun:\n  enable: true\n  stack: mixed\n  auto-route: true\n  device: profile\n  include-uid:\n    - 1000\n",
+        "mode: rule\ntun:\n  enable: true\n  stack: mips\n  auto-route: true\n  device: profile\n",
     )
     .expect("write profile yaml");
 
-    let override_path = temp_dir.join("__vpn_stack_override__.yaml");
-    std::fs::write(&override_path, "tun:\n  stack: mips\n").expect("write vpn stack override");
-
     let mut request = test_request(&temp_dir, &profile_path);
     request.run_mode = RunMode::Vpn;
-    request.overrides = vec![override_spec(&override_path, "yaml")];
 
     let result = r#override::compile_request(request, false).expect("compile should succeed");
     assert!(result.success, "compile failed: {:?}", result.error);
@@ -151,24 +147,13 @@ fn vpn_stack_override_wins_over_profile_and_survives_runtime_patch() {
         .expect("tun block");
     assert_eq!(tun.get("enable"), Some(&JsonValue::Bool(false)));
     assert_eq!(tun.get("auto-route"), Some(&JsonValue::Bool(false)));
-    assert_eq!(
-        tun.get("auto-detect-interface"),
-        Some(&JsonValue::Bool(false))
-    );
-    assert_eq!(
-        tun.get("stack"),
-        Some(&JsonValue::String("mips".to_string())),
-        "app vpn stack overlay must beat the profile stack"
+    assert!(
+        tun.get("stack").is_none(),
+        "vpn compiled yaml must not carry tun.stack; the launcher applies it after parse"
     );
     assert_eq!(
         tun.get("device"),
-        Some(&JsonValue::String("profile".to_string())),
-        "unrelated tun geometry must survive the stack overlay"
-    );
-    assert_eq!(
-        tun.get("include-uid"),
-        Some(&JsonValue::Array(vec![JsonValue::from(1000)])),
-        "uid lists outside the overlay must survive generic tun merge"
+        Some(&JsonValue::String("profile".to_string()))
     );
 
     let _ = std::fs::remove_dir_all(&temp_dir);
