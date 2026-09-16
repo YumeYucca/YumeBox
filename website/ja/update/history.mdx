@@ -7,6 +7,32 @@ icon: clock
 
 <Card title="GitHub Releases" icon="download" horizontal href="https://github.com/YumeYucca/YumeBox/releases" />
 
+<Update label="2026-9-17" tags={["機能更新","最適化","修正"]} description="v0.6.3">
+  ## 変更
+
+  - 新規: Wi-Fi 自動化で指定プロファイルへの切り替えに対応。対象 Wi-Fi、その他の Wi-Fi、未接続時に VPN を起動して設定を切り替え可能
+  - 新規: カスタムカーネルの取り込み。HTTPS リンクまたはプラグイン ZIP からインストールしてすぐ有効化
+  - 新規: Smart カーネル向け GeoX `Model.bin`（LightGBM モデル）のダウンロード
+  - 新規: VpnService に MIPS プロトコルスタックを追加し、gVisor / MIPS を切り替え可能
+  - 新規: 外部コントローラーで HTTP / HTTPS を選択可能。到達確認に失敗が続くとローカル実行へフォールバック
+  - 新規: 外部パネルのプロトコル選択と起動入口。現在のコントローラー接続情報を URL に付与
+  - 新規: Android 17 のローカルネットワーク権限に対応。ローカル以外のパネルを開くときに `ACCESS_LOCAL_NETWORK` を要求
+  - 新規: eBPF モードに「中国大陸 IP をカーネルでバイパス」オプションを追加
+  - 新規: Moe ホームに壁紙下部の暗転スイッチを追加
+  - 新規: タブレットの分割表示でプロキシ詳細から直接遅延テスト可能
+  - 最適化: カーネル選択をボトムシートに変更。eBPF 実行モードは利用可能な場合のみ表示
+  - 最適化: 最短辺でタブレット / スマホを判定し、スマホ縦向きで分割レイアウトに入らないように調整
+  - 最適化: 角丸、ボトムバー余白、壁紙グラデーション、メインナビの長距離ジャンプ
+  - 更新: サブスクのデフォルト User-Agent を `ClashMetaForAndroid/2.11.33` に変更
+  - 更新: ドキュメントトップのプレビューを自動再生ループ動画に変更
+  - 修正: VpnService のコンパイル設定に `tun.stack` が書き込まれ、カーネルが拒否する問題
+  - 修正: JS オーバーライドコンパイラの panic が JNI を越えてアプリをクラッシュさせる問題
+  - 修正: アクセス制御リスト再入時のスクロール位置と選択優先ソートのずれ
+  - 更新: mihomo / gVisor / mipstack / Tailscale とオーバーライドコンパイラの `boa_engine` を追従
+
+  **Full Changelog**: [https://github.com/YumeYucca/YumeBox/compare/v0.6.2...v0.6.3](https://github.com/YumeYucca/YumeBox/compare/v0.6.2...v0.6.3)
+</Update>
+
 <Update label="2026-8-19" tags={["機能更新","修正"]} description="v0.6.2">
   ## 変更
 

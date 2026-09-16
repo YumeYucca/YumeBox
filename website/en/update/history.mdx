@@ -7,6 +7,31 @@ icon: clock
 
 <Card title="GitHub Releases" icon="download" horizontal href="https://github.com/YumeYucca/YumeBox/releases" />
 
+<Update label="2026-9-17" tags={["Feature updates","optimization","repair"]} description="v0.6.3">
+## Change
+
+- Wi-Fi automation can now switch to a specific profile when connecting to a matching network, other Wi-Fi, or no Wi-Fi
+- Added custom kernel import from a HTTPS URL or a plugin ZIP, then install and enable it immediately
+- Added GeoX `Model.bin` (LightGBM model) download for the Smart kernel
+- Added the MIPS TUN stack for VpnService, selectable alongside gVisor
+- Remote controller backends now support HTTP/HTTPS, with reachability probing and fallback to the local runtime
+- External panels support HTTP/HTTPS, open with the active controller connection, and request Android 17 local-network permission when needed
+- Added an eBPF option to bypass mainland China IPs in the kernel
+- Added a Moe Home toggle to dim the bottom of the wallpaper
+- Tablet split-view proxy details can now run a delay test from the top bar
+- Kernel selection now uses a bottom sheet; eBPF mode is shown only when available
+- Window layout now uses the shortest side, so phones no longer get the tablet shell in portrait
+- Improved rounded corners, bottom-bar padding, wallpaper fade, and long-distance pager jumps
+- Default subscription User-Agent is now `ClashMetaForAndroid/2.11.33`
+- Documentation homepage preview now uses an autoplay looping video
+- Fixed VpnService compiled YAML carrying `tun.stack`, which could make the core reject the config
+- Fixed override-compiler panics crossing JNI and crashing the Android process
+- Fixed access-control list scroll and selected-first order after leaving and re-entering the screen
+- Updated mihomo, gVisor, mipstack, Tailscale, and the `boa_engine` used by the override compiler
+
+  **Full Changelog**: [https://github.com/YumeYucca/YumeBox/compare/v0.6.2...v0.6.3](https://github.com/YumeYucca/YumeBox/compare/v0.6.2...v0.6.3)
+</Update>
+
 <Update label="2026-8-19" tags={["Feature updates","repair"]} description="v0.6.2">
 ## Change
 

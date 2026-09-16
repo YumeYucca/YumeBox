@@ -7,6 +7,32 @@ icon: clock
 
 <Card title="GitHub Releases" icon="download" horizontal href="https://github.com/YumeYucca/YumeBox/releases" />
 
+<Update label="2026-9-17" tags={["功能更新","优化","修复"]} description="v0.6.3">
+  ## 更改
+
+  - 新增 Wi-Fi 自动化切换配置：连接指定 Wi-Fi、其他 Wi-Fi 或未连接 Wi-Fi 时，可启动 VPN 并切换到指定配置
+  - 新增自定义内核导入：支持填写内核链接或上传插件 ZIP，安装后直接启用
+  - 新增 GeoX `Model.bin`（LightGBM 模型）下载，供 Smart 内核使用
+  - VpnService 新增 MIPS 协议栈，可在 gVisor / MIPS 之间切换
+  - 外部控制器支持选择 HTTP / HTTPS，并增加连通性探测；连续失败后回退本地运行时
+  - 外部面板支持选择面板协议，并新增打开入口；面板 URL 会带上当前控制器的连接信息
+  - 适配 Android 17 局域网权限，打开非本机外部面板时会请求 `ACCESS_LOCAL_NETWORK`
+  - eBPF 模式新增「国内 IP 不过核心」
+  - Moe 首页新增「壁纸底部渐暗」开关
+  - 平板双栏代理详情页支持直接测速
+  - 优化内核选择交互，改为底部弹窗；eBPF 运行模式仅在设备可用时显示
+  - 优化窗口布局判断：按最短边区分平板 / 手机，避免手机竖屏进入双栏
+  - 优化圆角、底栏内边距、首页壁纸渐变，以及主导航长距离跳转
+  - 订阅默认 User-Agent 改为 `ClashMetaForAndroid/2.11.33`
+  - 文档首页预览改为自动播放循环视频
+  - 修复 VpnService 编译配置写入 `tun.stack` 导致内核解析失败
+  - 修复 JS 覆写编译器 panic 穿过 JNI 导致应用崩溃
+  - 修复访问控制列表重新进入后滚动位置和已选优先排序不同步
+  - 跟进 mihomo / gVisor / mipstack / Tailscale 等依赖，以及覆写编译器使用的 `boa_engine`
+
+  **Full Changelog**: [https://github.com/YumeYucca/YumeBox/compare/v0.6.2...v0.6.3](https://github.com/YumeYucca/YumeBox/compare/v0.6.2...v0.6.3)
+</Update>
+
 <Update label="2026-8-19" tags={["功能更新","修复"]} description="v0.6.2">
   ## 更改
 
