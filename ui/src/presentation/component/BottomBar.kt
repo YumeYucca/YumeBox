@@ -190,7 +190,7 @@ val LocalBottomBarHazeState = compositionLocalOf<HazeState?> { null }
 val LocalBottomBarHazeStyle = compositionLocalOf<HazeBlurStyle?> { null }
 
 object MainBottomBarDefaults {
-    val HorizontalPadding = UiDp.dp48
+    val HorizontalPadding = UiDp.dp36
     val TopPadding = UiDp.dp6
     val FloatingBottomPadding = UiDp.dp12
     val ExitOffset = UiDp.dp84
