@@ -43,6 +43,7 @@ NetworkSettings = {
         StackSystem = "System"
         StackGVisor = "gVisor"
         StackMixed = "Mixed"
+        StackMips = "MIPS"
         AutoRouteTitle = "自動ルート"
         StrictRouteTitle = "厳密ルート"
         AutoRedirectTitle = "自動リダイレクト"

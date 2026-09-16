@@ -26,6 +26,7 @@ package com.github.yumeyucca.yumebox.screen.settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import com.github.yumeyucca.yumebox.data.model.TunStack
 import com.github.yumeyucca.yumebox.presentation.component.*
 import org.koin.androidx.compose.koinViewModel
 import tf.gal.yumebox.locale.YumeTxt
@@ -34,14 +35,15 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 
 /**
  * The VpnService "service config" sub-page (reached from the network-settings Advanced section).
- * Holds every knob the userspace VpnService/gVisor path exposes; the TCP/IP stack is fixed to
- * gVisor so there is no stack picker. Shares [NetworkSettingsViewModel] with the picker screen.
+ * Holds every knob the userspace VpnService path exposes, including the shared TUN stack picker.
+ * Shares [NetworkSettingsViewModel] with the picker screen.
  */
 @Composable
 fun VpnServiceOptionsScreen() {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<NetworkSettingsViewModel>()
     val tunOptions by viewModel.tunServiceOptionsUiState.collectAsState()
+    val stack by viewModel.tunStack.state.collectAsState()
 
     Scaffold(
         topBar = {
@@ -59,6 +61,19 @@ fun VpnServiceOptionsScreen() {
             item {
                 Title(YumeTxt.NetworkSettings.RunMode.VpnServiceTitle)
                 AppCard {
+                    PreferenceEnumItem(
+                        title = YumeTxt.NetworkSettings.TunOptions.StackTitle,
+                        currentValue = stack,
+                        items =
+                            listOf(
+                                YumeTxt.NetworkSettings.TunOptions.StackSystem,
+                                YumeTxt.NetworkSettings.TunOptions.StackGVisor,
+                                YumeTxt.NetworkSettings.TunOptions.StackMixed,
+                                YumeTxt.NetworkSettings.TunOptions.StackMips,
+                            ),
+                        values = TunStack.entries,
+                        onValueChange = viewModel::onTunStackChange,
+                    )
                     PreferenceSwitchItem(
                         title = YumeTxt.NetworkSettings.VpnOptions.BypassPrivateTitle,
                         checked = tunOptions.common.bypassPrivateNetwork,

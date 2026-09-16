@@ -43,6 +43,7 @@ NetworkSettings = {
         StackSystem = "System"
         StackGVisor = "gVisor"
         StackMixed = "Mixed"
+        StackMips = "MIPS"
         AutoRouteTitle = "自動路由"
         StrictRouteTitle = "嚴格路由"
         AutoRedirectTitle = "自動重新導向"

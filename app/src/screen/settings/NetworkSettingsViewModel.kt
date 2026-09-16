@@ -41,8 +41,8 @@ import kotlinx.coroutines.withContext
 
 /**
  * Backs both the run-mode picker ([NetworkSettingsScreen]) and the VpnService options page
- * ([VpnServiceOptionsScreen]). The TCP/IP stack is fixed to gVisor and the parallel HTTP run mode
- * is gone, so this only exposes the configured mode plus the VpnService knobs.
+ * ([VpnServiceOptionsScreen]). The parallel HTTP run mode is gone, so this exposes the
+ * configured mode plus the VpnService knobs.
  */
 class NetworkSettingsViewModel(
     application: Application,

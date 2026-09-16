@@ -54,8 +54,8 @@ data class CoreEndpoint(val sock: String, val secret: String)
  * from nativeLibraryDir and dlopens the compressed `libmihomocore.so` payload, then the existing
  * socketpair and REST protocols operate unchanged.
  *
- * Egress: the tun uses the userspace gVisor stack, so excluding the app's own uid from the
- * VpnService tunnel keeps the core's egress off it — no per-socket protect needed.
+ * Egress: the tun uses a userspace stack (gVisor or MIPS), so excluding the app's own uid from
+ * the VpnService tunnel keeps the core's egress off it — no per-socket protect needed.
  */
 class CoreProcess(private val context: Context) {
 

@@ -88,8 +88,10 @@ pub fn patch_static_runtime(root: &mut JsonValue, profile_dir: &Path, run_mode: 
     backfill_enabled_dns_without_nameserver(object);
 
     // In the VpnService path the TUN is attached at runtime via a file descriptor; a config-provided
-    // tun block must never open its own /dev/net/tun. Native eBPF and Root Tun keep their profile
-    // authoritative because their downloaded mihomo kernels own traffic attachment.
+    // tun block must never open its own /dev/net/tun. Keep tun.stack (and any other geometry) so
+    // the Go launcher can copy the compiled userspace stack (gVisor or MIPS) onto the fd TUN.
+    // Native eBPF and Root Tun keep their profile authoritative because their downloaded mihomo
+    // kernels own traffic attachment.
     if run_mode == RunMode::Vpn
         && let Some(tun) = object.get_mut("tun").and_then(JsonValue::as_object_mut)
     {
@@ -320,9 +322,12 @@ fn provider_extension(provider: &JsonMap<String, JsonValue>, prefix: &str) -> &'
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use serde_json::json;
 
-    use super::patch_preview_runtime;
+    use super::{patch_preview_runtime, patch_static_runtime};
+    use crate::model::RunMode;
 
     #[test]
     fn preview_patch_removes_all_traffic_entry_points() {
@@ -354,5 +359,27 @@ mod tests {
         assert_eq!(object["tun"]["enable"], false);
         assert_eq!(object["tun"]["auto-route"], false);
         assert_eq!(object["tun"]["auto-redirect"], false);
+    }
+
+    #[test]
+    fn vpn_patch_disables_tun_but_keeps_compiled_stack() {
+        let mut root = json!({
+            "tun": {
+                "enable": true,
+                "stack": "mips",
+                "auto-route": true,
+                "auto-detect-interface": true,
+                "device": "Yume"
+            }
+        });
+
+        patch_static_runtime(&mut root, Path::new("/tmp"), RunMode::Vpn);
+
+        let tun = root["tun"].as_object().expect("tun block");
+        assert_eq!(tun["enable"], false);
+        assert_eq!(tun["auto-route"], false);
+        assert_eq!(tun["auto-detect-interface"], false);
+        assert_eq!(tun["stack"], "mips");
+        assert_eq!(tun["device"], "Yume");
     }
 }

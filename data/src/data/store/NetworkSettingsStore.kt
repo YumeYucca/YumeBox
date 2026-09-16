@@ -46,7 +46,8 @@ class NetworkSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = e
     // injection and compiler runtime patches (skipRuntimePatches).
     val disableAllOverride by boolFlow(false)
 
-    // Network stack selected for Root Tun. Root provides the virtual network interface and routes.
+    // Network stack for both Root Tun and VpnService. VpnService cannot attach System/Mixed to its
+    // app-owned fd, so the start path maps those onto gVisor.
     val tunStack by enumFlow(TunStack.GVisor)
     val tunRouteExcludeAddress by stringListFlow(emptyList())
     val tunIfName by strFlow("Yume")

@@ -91,8 +91,9 @@ fun TunServiceOptionsScreen() {
                                 YumeTxt.NetworkSettings.TunOptions.StackSystem,
                                 YumeTxt.NetworkSettings.TunOptions.StackGVisor,
                                 YumeTxt.NetworkSettings.TunOptions.StackMixed,
+                                YumeTxt.NetworkSettings.TunOptions.StackMips,
                             ),
-                        values = listOf(TunStack.System, TunStack.GVisor, TunStack.Mixed),
+                        values = TunStack.entries,
                         onValueChange = viewModel::onTunStackChange,
                     )
                     PreferenceEnumItem(

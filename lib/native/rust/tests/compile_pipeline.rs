@@ -126,6 +126,55 @@ fn tun_override_keeps_profile_nameservers_intact() {
 }
 
 #[test]
+fn vpn_stack_override_wins_over_profile_and_survives_runtime_patch() {
+    let temp_dir = temp_dir("compiler-test-vpn-mips-stack");
+    let profile_path = temp_dir.join("config.yaml");
+    std::fs::write(
+        &profile_path,
+        "mode: rule\ntun:\n  enable: true\n  stack: mixed\n  auto-route: true\n  device: profile\n  include-uid:\n    - 1000\n",
+    )
+    .expect("write profile yaml");
+
+    let override_path = temp_dir.join("__vpn_stack_override__.yaml");
+    std::fs::write(&override_path, "tun:\n  stack: mips\n").expect("write vpn stack override");
+
+    let mut request = test_request(&temp_dir, &profile_path);
+    request.run_mode = RunMode::Vpn;
+    request.overrides = vec![override_spec(&override_path, "yaml")];
+
+    let result = r#override::compile_request(request, false).expect("compile should succeed");
+    assert!(result.success, "compile failed: {:?}", result.error);
+    let root: JsonValue = serde_yaml::from_str(&result.final_yaml).expect("parse final yaml");
+    let tun = root
+        .get("tun")
+        .and_then(JsonValue::as_object)
+        .expect("tun block");
+    assert_eq!(tun.get("enable"), Some(&JsonValue::Bool(false)));
+    assert_eq!(tun.get("auto-route"), Some(&JsonValue::Bool(false)));
+    assert_eq!(
+        tun.get("auto-detect-interface"),
+        Some(&JsonValue::Bool(false))
+    );
+    assert_eq!(
+        tun.get("stack"),
+        Some(&JsonValue::String("mips".to_string())),
+        "app vpn stack overlay must beat the profile stack"
+    );
+    assert_eq!(
+        tun.get("device"),
+        Some(&JsonValue::String("profile".to_string())),
+        "unrelated tun geometry must survive the stack overlay"
+    );
+    assert_eq!(
+        tun.get("include-uid"),
+        Some(&JsonValue::Array(vec![JsonValue::from(1000)])),
+        "uid lists outside the overlay must survive generic tun merge"
+    );
+
+    let _ = std::fs::remove_dir_all(&temp_dir);
+}
+
+#[test]
 fn ebpf_mode_keeps_profile_config_authoritative() {
     let temp_dir = temp_dir("compiler-test-ebpf-profile");
     let profile_path = temp_dir.join("config.yaml");

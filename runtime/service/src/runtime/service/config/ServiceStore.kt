@@ -207,6 +207,9 @@ class ServiceStore {
                     "Mixed",
                     "mixed" -> "mixed"
 
+                    "Mips",
+                    "mips" -> "mips"
+
                     else -> "system"
                 }
             }
@@ -221,6 +224,7 @@ class ServiceStore {
                     "system" -> "System"
                     "gvisor" -> "GVisor"
                     "mixed" -> "Mixed"
+                    "mips" -> "Mips"
                     else -> "System"
                 },
             )

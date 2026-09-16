@@ -24,7 +24,6 @@ import android.content.Context
 import com.github.yumeyucca.yumebox.core.model.OverrideSpec
 import com.github.yumeyucca.yumebox.core.model.RunMode
 import com.github.yumeyucca.yumebox.core.model.TunConfig
-import com.github.yumeyucca.yumebox.data.model.TunStack
 import com.github.yumeyucca.yumebox.data.store.MMKVProvider
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
@@ -87,7 +86,14 @@ class SessionRuntimeSpecFactory(
                                 profileDir,
                             )
                         )
-                else -> userOverrides
+                // VpnService still injects tun.stack after user overrides (and under disable-all)
+                // so a profile mixed/system stack cannot leak into the fd-backed userspace TUN.
+                else ->
+                    userOverrides +
+                        TunOverride.materializeVpnStack(
+                            networkSettings.tunStack.value.forVpnService().toCoreStack(),
+                            profileDir,
+                        )
             }
         val overrideSpecs =
             if (runMode == RunMode.Ebpf) modeOverrides
@@ -123,12 +129,7 @@ class SessionRuntimeSpecFactory(
         return TunConfig(
             ifName = networkSettings.tunIfName.value,
             mtu = networkSettings.tunMtu.value,
-            stack =
-                when (networkSettings.tunStack.value) {
-                    TunStack.System -> "system"
-                    TunStack.GVisor -> "gvisor"
-                    TunStack.Mixed -> "mixed"
-                },
+            stack = networkSettings.tunStack.value.toCoreStack(),
             autoRoute = networkSettings.tunAutoRoute.value,
             strictRoute = networkSettings.tunStrictRoute.value,
             autoRedirect = networkSettings.tunAutoRedirect.value,

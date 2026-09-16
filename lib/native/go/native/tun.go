@@ -20,10 +20,21 @@ func configureTun(cfg *config.Config, fd int, gateway, dns string) error {
 		return err
 	}
 
+	// Routes and addresses are the VpnService.Builder's business. The compiled YAML still owns
+	// tun.stack: the compiler overlays the app's userspace choice (gVisor or MIPS) and forces
+	// enable=false so Parse does not open /dev/net/tun. Copy that stack here instead of
+	// replacing the whole block with a hardcoded gVisor TUN. System/Mixed need a kernel TUN,
+	// which this fd path does not have, so they fall back to gVisor.
+	stack := cfg.General.Tun.Stack
+	switch stack {
+	case C.TunSystem, C.TunMixed:
+		stack = C.TunGvisor
+	}
+
 	cfg.General.Tun = LC.Tun{
 		Enable:    true,
 		Device:    sing_tun.InterfaceName,
-		Stack:     C.TunGvisor,
+		Stack:     stack,
 		DNSHijack: splitDNSHijack(dns),
 		AutoRoute: false, // routes are set by the VpnService.Builder
 		// Core sockets are protected through the launcher, so the TUN must not pick an interface.

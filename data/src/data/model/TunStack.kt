@@ -24,4 +24,25 @@ enum class TunStack {
     System,
     GVisor,
     Mixed,
+    /** Mihomo IP stack (MIPS): userspace replacement for gVisor. */
+    Mips;
+
+    /** Value written to mihomo `tun.stack`. */
+    fun toCoreStack(): String =
+        when (this) {
+            System -> "system"
+            GVisor -> "gvisor"
+            Mixed -> "mixed"
+            Mips -> "mips"
+        }
+
+    /**
+     * VpnService attaches an app-owned TUN fd, so only userspace stacks work. System/Mixed need a
+     * kernel TUN and fall back to gVisor.
+     */
+    fun forVpnService(): TunStack =
+        when (this) {
+            Mips -> Mips
+            System, GVisor, Mixed -> GVisor
+        }
 }

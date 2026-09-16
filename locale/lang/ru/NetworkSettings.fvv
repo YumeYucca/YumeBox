@@ -43,6 +43,7 @@ NetworkSettings = {
         StackSystem = "System"
         StackGVisor = "gVisor"
         StackMixed = "Mixed"
+        StackMips = "MIPS"
         AutoRouteTitle = "Автомаршрут"
         StrictRouteTitle = "Строгий маршрут"
         AutoRedirectTitle = "Автоперенаправление"
