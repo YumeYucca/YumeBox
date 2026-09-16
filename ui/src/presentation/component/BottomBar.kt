@@ -74,11 +74,13 @@ import kotlinx.coroutines.launch
 import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
 private const val BottomBarLayoutAnimationDurationMillis = 380
 private const val ProxyDestinationRevealDurationMillis = 300
+private const val PagerAnimateScrollPreJumpThreshold = 3
 
 class MainPagerState(
     val pagerState: PagerState,
@@ -102,12 +104,22 @@ class MainPagerState(
         navJob = coroutineScope.launch {
             val myJob = coroutineContext.job
             try {
-                // PagerState resolves the target after layout. A hand-calculated pixel distance
-                // can be zero when the first composition has not been measured yet.
-                pagerState.animateScrollToPage(
-                    page = boundedTarget,
-                    animationSpec = MainBottomBarDefaults.PagerNavigationAnimationSpec,
-                )
+                val hops = abs(boundedTarget - pagerState.currentPage)
+                val animationSpec = MainBottomBarDefaults.pagerNavigationAnimationSpec(hops)
+                if (
+                    hops >= PagerAnimateScrollPreJumpThreshold &&
+                        pagerState.layoutInfo.pageSize > 0
+                ) {
+                    pagerState.animateScrollToPageUninterrupted(
+                        page = boundedTarget,
+                        animationSpec = animationSpec,
+                    )
+                } else {
+                    pagerState.animateScrollToPage(
+                        page = boundedTarget,
+                        animationSpec = animationSpec,
+                    )
+                }
             } finally {
                 if (navJob == myJob) {
                     isNavigating = false
@@ -122,6 +134,26 @@ class MainPagerState(
     fun syncPage() {
         if (!isNavigating && selectedPage != pagerState.currentPage) {
             selectedPage = pagerState.currentPage
+        }
+    }
+}
+
+private suspend fun PagerState.animateScrollToPageUninterrupted(
+    page: Int,
+    animationSpec: AnimationSpec<Float>,
+) {
+    val target = page.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
+    val pageSizeWithSpacing = layoutInfo.pageSize + layoutInfo.pageSpacing
+    if (pageSizeWithSpacing <= 0) {
+        animateScrollToPage(page = target, animationSpec = animationSpec)
+        return
+    }
+    scroll {
+        updateTargetPage(target)
+        val distance = (target - currentPage - currentPageOffsetFraction) * pageSizeWithSpacing
+        var previous = 0f
+        animate(0f, distance, animationSpec = animationSpec) { value, _ ->
+            previous += scrollBy(value - previous)
         }
     }
 }
@@ -163,13 +195,23 @@ object MainBottomBarDefaults {
     val FloatingBottomPadding = UiDp.dp12
     val ExitOffset = UiDp.dp84
     val FloatingReservedHeight = UiDp.dp68
+    private const val PagerNavigationDurationMillis = 360
     val PagerAnimationSpec: AnimationSpec<Float> =
         spring(
             stiffness = Spring.StiffnessMediumLow,
             visibilityThreshold = Int.VisibilityThreshold.toFloat(),
         )
-    val PagerNavigationAnimationSpec: AnimationSpec<Float> =
-        tween(durationMillis = 360, easing = AnimationSpecs.Legacy)
+
+    fun pagerNavigationAnimationSpec(pageHops: Int): AnimationSpec<Float> {
+        val hops = pageHops.coerceAtLeast(1)
+        val durationMillis =
+            if (hops <= 2) {
+                PagerNavigationDurationMillis
+            } else {
+                PagerNavigationDurationMillis * hops / 2
+            }
+        return tween(durationMillis = durationMillis, easing = AnimationSpecs.Legacy)
+    }
 }
 
 @Composable

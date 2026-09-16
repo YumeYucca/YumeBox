@@ -243,7 +243,7 @@ private fun MainPagerHost(
                     }
                 },
             state = mainPagerState.pagerState,
-            beyondViewportPageCount = 2,
+            beyondViewportPageCount = (visibleDestinations.size - 1).coerceAtLeast(0),
             flingBehavior = pagerFlingBehavior,
             userScrollEnabled = true,
             overscrollEffect = null,
