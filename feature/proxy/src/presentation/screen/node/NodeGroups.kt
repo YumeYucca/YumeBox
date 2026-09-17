@@ -71,6 +71,7 @@ internal fun LazyListScope.nodeGroupItems(
     onGroupClick: (ProxyGroupInfo) -> Unit,
     onGroupTest: (ProxyGroupInfo) -> Unit,
     testingGroupNames: Set<String> = emptySet(),
+    interactionEnabled: Boolean = true,
     itemVerticalPadding: Dp = UiDp.dp6,
 ) {
     items(
@@ -82,6 +83,7 @@ internal fun LazyListScope.nodeGroupItems(
             group = group,
             allGroups = groups,
             isDelayTesting = testingGroupNames.contains(group.name),
+            interactionEnabled = interactionEnabled,
             onClick = onGroupClick,
             onTestClick = onGroupTest,
             modifier = Modifier
@@ -96,6 +98,7 @@ internal fun NodeGroupCard(
     group: ProxyGroupInfo,
     allGroups: List<ProxyGroupInfo> = listOf(group),
     isDelayTesting: Boolean,
+    interactionEnabled: Boolean = true,
     onClick: (ProxyGroupInfo) -> Unit,
     onTestClick: (ProxyGroupInfo) -> Unit,
     modifier: Modifier = Modifier,
@@ -137,7 +140,16 @@ internal fun NodeGroupCard(
             modifier
                 // Keep the original press motion, but put it outside the card's visual layers so
                 // the shadow, shape, background, and content move as a single card.
-                .pressable(interactionSource = interactionSource, indication = SinkFeedback())
+                .let { modifier ->
+                    if (interactionEnabled) {
+                        modifier.pressable(
+                            interactionSource = interactionSource,
+                            indication = SinkFeedback(),
+                        )
+                    } else {
+                        modifier
+                    }
+                }
                 .shadow(
                     elevation = UiDp.dp4,
                     shape = cardShape,
@@ -149,6 +161,7 @@ internal fun NodeGroupCard(
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
+                    enabled = interactionEnabled,
                     onClick = { onClick(group) },
                 )
                 .padding(horizontal = UiDp.dp16, vertical = UiDp.dp10),
@@ -206,7 +219,7 @@ internal fun NodeGroupCard(
                                 .clickable(
                                     interactionSource = testInteractionSource,
                                     indication = null,
-                                    enabled = !isDelayTesting,
+                                    enabled = interactionEnabled && !isDelayTesting,
                                     onClick = { onTestClick(group) },
                                 ),
                         contentAlignment = Alignment.CenterEnd,

@@ -89,6 +89,7 @@ class ProxyFacade(
     private var previewWarmupJob: Job? = null
     private val syncPriorityRequests =
         MutableStateFlow<Map<String, ProxyGroupSyncPriority>>(emptyMap())
+    private val syncPauseSources = MutableStateFlow<Set<String>>(emptySet())
 
     val runtimeSnapshot: StateFlow<RuntimeSnapshot>
     val isRunning: StateFlow<Boolean>
@@ -125,6 +126,7 @@ class ProxyFacade(
                     onTrafficTickExtra = { tick ->
                         if (
                             tick % RUNTIME_PAYLOAD_REFRESH_TICKS == 0 &&
+                                syncPauseSources.value.isEmpty() &&
                                 session.shouldRefreshRuntimePayload(groups.isGroupsEmpty())
                         ) {
                             refreshAllSafely()
@@ -173,6 +175,17 @@ class ProxyFacade(
             } else {
                 current + (source to priority)
             }
+        }
+    }
+
+    /**
+     * Temporarily stops background group refreshes while an explicit delay test owns the controller.
+     * This prevents the polling request from competing with the probe and publishing an intermediate
+     * remote-controller snapshot.
+     */
+    fun setProxyGroupSyncPaused(paused: Boolean, source: String) {
+        syncPauseSources.update { sources ->
+            if (paused) sources + source else sources - source
         }
     }
 
@@ -360,9 +373,15 @@ class ProxyFacade(
             combine(
                 session.runtimeSnapshot,
                 syncPriorityRequests,
+                syncPauseSources,
                 AppVisibilityTracker.isForeground,
-            ) { snapshot, requests, isForeground ->
-                    resolveEffectiveProxyGroupSyncPriority(snapshot, requests, isForeground)
+            ) { snapshot, requests, pauseSources, isForeground ->
+                    resolveEffectiveProxyGroupSyncPriority(
+                        snapshot = snapshot,
+                        requests = requests,
+                        pauseSources = pauseSources,
+                        isForeground = isForeground,
+                    )
                 }
                 .distinctUntilChanged()
                 .collect { priority -> session.startGroupPolling(priority) }
@@ -490,10 +509,12 @@ class ProxyFacade(
     private fun resolveEffectiveProxyGroupSyncPriority(
         snapshot: RuntimeSnapshot,
         requests: Map<String, ProxyGroupSyncPriority>,
+        pauseSources: Set<String>,
         isForeground: Boolean,
     ): ProxyGroupSyncPriority {
         if (
             !isForeground ||
+            pauseSources.isNotEmpty() ||
             snapshot.phase != RuntimePhase.Running &&
                 snapshot.owner != RuntimeOwner.RemoteController
         ) {

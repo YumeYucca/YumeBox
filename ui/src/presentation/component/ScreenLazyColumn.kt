@@ -57,6 +57,7 @@ fun ScreenLazyColumn(
     bottomPadding: Dp = UiDp.dp0,
     topPadding: Dp = UiDp.dp0,
     enableGlobalScroll: Boolean = true,
+    userScrollEnabled: Boolean = true,
     lazyListState: LazyListState = rememberLazyListState(),
     onScrollDirectionChanged: ((Boolean) -> Unit)? = null,
     content: LazyListScope.() -> Unit,
@@ -121,6 +122,7 @@ fun ScreenLazyColumn(
 
     LazyColumn(
         state = lazyListState,
+        userScrollEnabled = userScrollEnabled,
         modifier =
             modifier
                 .fillMaxSize()

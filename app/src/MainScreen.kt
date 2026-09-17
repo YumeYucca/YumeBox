@@ -82,11 +82,16 @@ fun MainScreen(
     // Providers is opened above a freshly-created Main(Proxy) route on compact layouts.
     val initialProxyRequested = remember { initialDestination == BottomBarDestination.Proxy }
     var proxyDestinationCommitted by remember { mutableStateOf(initialProxyRequested) }
+    // A remote controller may briefly report no groups during a refresh. Once opened, keep Proxy
+    // in the dynamic pager so its fallback cannot replace the active destination with Config.
+    var proxyDestinationVisited by remember { mutableStateOf(initialProxyRequested) }
     var pendingDestination by remember { mutableStateOf<BottomBarDestination?>(null) }
     val visibleDestinations =
-        remember(proxyDestinationCommitted) {
+        remember(proxyDestinationCommitted, proxyDestinationVisited) {
             BottomBarDestination.entries.filter { destination ->
-                destination != BottomBarDestination.Proxy || proxyDestinationCommitted
+                destination != BottomBarDestination.Proxy ||
+                    proxyDestinationCommitted ||
+                    proxyDestinationVisited
             }
         }
     val initialMainPage =
@@ -217,7 +222,12 @@ fun MainScreen(
 
     LaunchedEffect(mainPagerState.pagerState.currentPage) { mainPagerState.syncPage() }
 
-    LaunchedEffect(settledDestination) { onMainPageChanged(settledDestination.ordinal) }
+    LaunchedEffect(settledDestination) {
+        if (settledDestination == BottomBarDestination.Proxy) {
+            proxyDestinationVisited = true
+        }
+        onMainPageChanged(settledDestination.ordinal)
+    }
 
     LaunchedEffect(
         mainPagerState.pagerState.currentPage,
@@ -244,7 +254,18 @@ fun MainScreen(
 
     val handlePageChange: (BottomBarDestination) -> Unit =
         remember(mainPagerState, visibleDestinations) {
-            { destination ->
+            pageChange@{ destination ->
+                if (
+                    destination == BottomBarDestination.Proxy &&
+                        destination !in visibleDestinations
+                ) {
+                    proxyDestinationVisited = true
+                    pendingDestination = destination
+                    return@pageChange
+                }
+                if (destination == BottomBarDestination.Proxy) {
+                    proxyDestinationVisited = true
+                }
                 if (destination !in visibleDestinations) {
                     pendingDestination = destination
                 } else {

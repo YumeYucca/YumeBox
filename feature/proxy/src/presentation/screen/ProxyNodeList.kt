@@ -48,6 +48,8 @@ import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.LocalSpacing
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.KeepLazyListTopAnchorOnReorder
+import com.github.yumeyucca.yumebox.presentation.util.ProxyDelayPullToRefresh
+import com.github.yumeyucca.yumebox.presentation.util.rememberCurrentGroupPullToRefreshTexts
 import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
@@ -91,7 +93,8 @@ internal fun NodeListPage(
 ) {
     if (group == null) return
     val spacing = LocalSpacing.current
-    val isTesting = testingGroupNames.contains(group.name)
+    val isGroupTesting = testingGroupNames.contains(group.name)
+    val isInteractionLocked = isGroupTesting || testingProxyNames.isNotEmpty()
     val visibleProxies = remember(group.proxies, searchQuery) { group.filterNodes(searchQuery) }
     val listItemKeys = remember(group.proxies) { group.proxies.map { it.name } }
 
@@ -101,18 +104,6 @@ internal fun NodeListPage(
         enabled = sortMode == ProxySortMode.BY_LATENCY && !useAdaptiveGrid,
         scrollToTopOnEnabled = true,
     )
-
-    LaunchedEffect(isTesting, useAdaptiveGrid, gridState) {
-        if (!isTesting) return@LaunchedEffect
-        if (useAdaptiveGrid) {
-            val state = gridState ?: return@LaunchedEffect
-            if (state.isScrolledFromTop()) {
-                state.animateScrollToItem(0)
-            }
-        } else if (listState.isScrolledFromTop()) {
-            listState.animateScrollToItem(0)
-        }
-    }
 
     val contentPadding =
         PaddingValues(
@@ -162,17 +153,24 @@ internal fun NodeListPage(
             latestScrollDirectionCallback(false)
             lastHiddenState = false
         }
-        Box(Modifier
-            .fillMaxSize()
-            .nestedScroll(fabScrollObserver)) {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = PaneWidths.NodeGridAdaptiveMin),
-                state = resolvedGridState,
-                contentPadding = contentPadding,
-                horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
-                verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
-                modifier = Modifier.fillMaxSize(),
-            ) {
+        ProxyDelayPullToRefresh(
+            isRefreshing = isGroupTesting,
+            onRefresh = onTestDelay,
+            refreshTexts = rememberCurrentGroupPullToRefreshTexts(),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = outerInnerPadding.calculateTopPadding()),
+            scrollBehavior = scrollBehavior,
+        ) {
+            Box(Modifier.fillMaxSize().nestedScroll(fabScrollObserver)) {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = PaneWidths.NodeGridAdaptiveMin),
+                    state = resolvedGridState,
+                    userScrollEnabled = !isInteractionLocked,
+                    contentPadding = contentPadding,
+                    horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
+                    verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
                 item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
                     NodeSearchField(
                         query = searchQuery,
@@ -182,7 +180,7 @@ internal fun NodeListPage(
                 }
                 item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
                     AnimatedVisibility(
-                        visible = isTesting,
+                        visible = isGroupTesting,
                         enter =
                             expandVertically(
                                 animationSpec =
@@ -236,101 +234,120 @@ internal fun NodeListPage(
                     NodeCard(
                         proxy = proxy,
                         isSelected = proxy.name == group.now,
-                        onClick = { proxyName ->
-                            if (group.isSelectable) {
-                                onSelectProxy(group.name, proxyName)
+                        onClick =
+                            if (isInteractionLocked) {
+                                null
                             } else {
-                                onTestDelay()
-                            }
-                        },
-                        onTestClick = onTestProxyDelay,
+                                { proxyName ->
+                                    if (group.isSelectable) {
+                                        onSelectProxy(group.name, proxyName)
+                                    } else {
+                                        onTestDelay()
+                                    }
+                                }
+                            },
+                        onTestClick = onTestProxyDelay.takeUnless { isInteractionLocked },
                         isDelayTesting = testingProxyNames.contains(proxy.name),
                         showCountryFlag = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                }
                 }
             }
         }
         return
     }
 
-    ScreenLazyColumn(
-        lazyListState = listState,
+    ProxyDelayPullToRefresh(
+        isRefreshing = isGroupTesting,
+        onRefresh = onTestDelay,
+        refreshTexts = rememberCurrentGroupPullToRefreshTexts(),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = outerInnerPadding.calculateTopPadding()),
         scrollBehavior = scrollBehavior,
-        innerPadding = outerInnerPadding,
-        enableGlobalScroll = true,
-        onScrollDirectionChanged = onScrollDirectionChanged,
-        contentPadding = contentPadding,
     ) {
-        item(key = "__node_search__") {
-            NodeSearchField(
-                query = searchQuery,
-                visible = showSearch,
-                onQueryChange = onSearchQueryChange,
-            )
-        }
-        item(key = "__refresh_indicator__") {
-            AnimatedVisibility(
-                visible = isTesting,
-                enter =
-                    expandVertically(
-                        animationSpec =
-                            tween(durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration),
-                        expandFrom = Alignment.Top,
-                    ) +
-                            fadeIn(
-                                animationSpec =
-                                    tween(
-                                        durationMillis =
-                                            AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
-                                    )
-                            ),
-                exit =
-                    shrinkVertically(
-                        animationSpec =
-                            tween(durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration),
-                        shrinkTowards = Alignment.Top,
-                    ) +
-                            fadeOut(
-                                animationSpec =
-                                    tween(
-                                        durationMillis =
-                                            AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
-                                    )
-                            ),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = UiDp.dp12),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+        ScreenLazyColumn(
+            lazyListState = listState,
+            scrollBehavior = scrollBehavior,
+            innerPadding = outerInnerPadding,
+            enableGlobalScroll = true,
+            userScrollEnabled = !isInteractionLocked,
+            onScrollDirectionChanged = onScrollDirectionChanged,
+            contentPadding = contentPadding,
+        ) {
+            item(key = "__node_search__") {
+                NodeSearchField(
+                    query = searchQuery,
+                    visible = showSearch,
+                    onQueryChange = onSearchQueryChange,
+                )
+            }
+            item(key = "__refresh_indicator__") {
+                AnimatedVisibility(
+                    visible = isGroupTesting,
+                    enter =
+                        expandVertically(
+                            animationSpec =
+                                tween(durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration),
+                            expandFrom = Alignment.Top,
+                        ) +
+                                fadeIn(
+                                    animationSpec =
+                                        tween(
+                                            durationMillis =
+                                                AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
+                                        )
+                                ),
+                    exit =
+                        shrinkVertically(
+                            animationSpec =
+                                tween(durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration),
+                            shrinkTowards = Alignment.Top,
+                        ) +
+                                fadeOut(
+                                    animationSpec =
+                                        tween(
+                                            durationMillis =
+                                                AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
+                                        )
+                                ),
                 ) {
-                    InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
-                    Text(
-                        text = YumeTxt.Proxy.Testing.InProgress,
-                        style = MiuixTheme.textStyles.subtitle,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = UiDp.dp12),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+                    ) {
+                        InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
+                        Text(
+                            text = YumeTxt.Proxy.Testing.InProgress,
+                            style = MiuixTheme.textStyles.subtitle,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
                 }
             }
-        }
 
-        nodeGridItems(
-            proxies = visibleProxies,
-            selectedProxyName = group.now,
-            onProxyClick = { proxyName ->
-                if (group.isSelectable) {
-                    onSelectProxy(group.name, proxyName)
-                } else {
-                    onTestDelay()
-                }
-            },
-            onProxyTest = onTestProxyDelay,
-            testingProxyNames = testingProxyNames,
-            outerHorizontalPadding = UiDp.dp0,
-            itemVerticalPadding = UiDp.dp6,
-        )
+            nodeGridItems(
+                proxies = visibleProxies,
+                selectedProxyName = group.now,
+                onProxyClick =
+                    if (isInteractionLocked) {
+                        null
+                    } else {
+                        { proxyName ->
+                            if (group.isSelectable) {
+                                onSelectProxy(group.name, proxyName)
+                            } else {
+                                onTestDelay()
+                            }
+                        }
+                    },
+                onProxyTest = onTestProxyDelay.takeUnless { isInteractionLocked },
+                testingProxyNames = testingProxyNames,
+                outerHorizontalPadding = UiDp.dp0,
+                itemVerticalPadding = UiDp.dp6,
+            )
+        }
     }
 }
 

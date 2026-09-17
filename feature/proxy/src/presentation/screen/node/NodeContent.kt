@@ -47,6 +47,9 @@ import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze.chromeEffect
+import com.github.yumeyucca.yumebox.presentation.util.ProxyDelayPullToRefresh
+import com.github.yumeyucca.yumebox.presentation.util.rememberAllGroupsPullToRefreshTexts
+import com.github.yumeyucca.yumebox.presentation.util.rememberCurrentGroupPullToRefreshTexts
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeProgressive
@@ -55,13 +58,9 @@ import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollHorizontal
-import top.yukonga.miuix.kmp.utils.overScrollVertical
 
 val NodeSheetContentPadding =
     PaddingValues(start = UiDp.dp0, end = UiDp.dp0, top = UiDp.dp8, bottom = UiDp.dp16)
-
-private fun LazyListState.isScrolledFromTop(): Boolean =
-    firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 0
 
 private fun Modifier.nodeTabHaze(state: HazeState?, style: HazeBlurStyle?): Modifier =
     chromeEffect(
@@ -151,33 +150,34 @@ internal fun NodeGroupSheetContent(
     sheetHeightFraction: Float,
     onGroupClick: (ProxyGroupInfo) -> Unit,
     onGroupTest: (ProxyGroupInfo) -> Unit,
+    onTestAllGroups: () -> Unit,
     listState: LazyListState = rememberLazyListState(),
 ) {
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
 
-    LaunchedEffect(testingGroupNames) {
-        if (testingGroupNames.isNotEmpty() && listState.isScrolledFromTop()) {
-            listState.animateScrollToItem(0)
-        }
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(sheetHeight)
-            .overScrollVertical(),
-        state = listState,
-        verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
-        contentPadding = NodeSheetContentPadding,
-        overscrollEffect = null,
+    ProxyDelayPullToRefresh(
+        isRefreshing = testingGroupNames.isNotEmpty(),
+        onRefresh = onTestAllGroups,
+        refreshTexts = rememberAllGroupsPullToRefreshTexts(),
+        modifier = Modifier.fillMaxWidth().height(sheetHeight),
     ) {
-        nodeGroupItems(
-            groups = groups,
-            onGroupClick = onGroupClick,
-            onGroupTest = onGroupTest,
-            testingGroupNames = testingGroupNames,
-            itemVerticalPadding = UiDp.dp0,
-        )
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            state = listState,
+            userScrollEnabled = testingGroupNames.isEmpty(),
+            verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
+            contentPadding = NodeSheetContentPadding,
+            overscrollEffect = null,
+        ) {
+            nodeGroupItems(
+                groups = groups,
+                onGroupClick = onGroupClick,
+                onGroupTest = onGroupTest,
+                testingGroupNames = testingGroupNames,
+                interactionEnabled = testingGroupNames.isEmpty(),
+                itemVerticalPadding = UiDp.dp0,
+            )
+        }
     }
 }
 
@@ -193,66 +193,69 @@ fun NodeSheetContent(
     listState: LazyListState = rememberLazyListState(),
 ) {
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
+    val isInteractionLocked = isDelayTesting || testingProxyNames.isNotEmpty()
 
-    LaunchedEffect(isDelayTesting) {
-        if (isDelayTesting && listState.isScrolledFromTop()) {
-            listState.animateScrollToItem(0)
-        }
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(sheetHeight)
-            .overScrollVertical(),
-        state = listState,
-        verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
-        contentPadding = NodeSheetContentPadding,
-        overscrollEffect = null,
+    ProxyDelayPullToRefresh(
+        isRefreshing = isDelayTesting,
+        onRefresh = onTestDelay,
+        refreshTexts = rememberCurrentGroupPullToRefreshTexts(),
+        modifier = Modifier.fillMaxWidth().height(sheetHeight),
     ) {
-        item(key = "__refresh_indicator__") {
-            AnimatedVisibility(
-                visible = isDelayTesting,
-                enter =
-                    expandVertically(
-                        animationSpec = tween(durationMillis = 200),
-                        expandFrom = Alignment.Top,
-                    ) + fadeIn(animationSpec = tween(durationMillis = 150)),
-                exit =
-                    shrinkVertically(
-                        animationSpec = tween(durationMillis = 200),
-                        shrinkTowards = Alignment.Top,
-                    ) + fadeOut(animationSpec = tween(durationMillis = 150)),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = UiDp.dp12),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            state = listState,
+            userScrollEnabled = !isInteractionLocked,
+            verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
+            contentPadding = NodeSheetContentPadding,
+            overscrollEffect = null,
+        ) {
+            item(key = "__refresh_indicator__") {
+                AnimatedVisibility(
+                    visible = isDelayTesting,
+                    enter =
+                        expandVertically(
+                            animationSpec = tween(durationMillis = 200),
+                            expandFrom = Alignment.Top,
+                        ) + fadeIn(animationSpec = tween(durationMillis = 150)),
+                    exit =
+                        shrinkVertically(
+                            animationSpec = tween(durationMillis = 200),
+                            shrinkTowards = Alignment.Top,
+                        ) + fadeOut(animationSpec = tween(durationMillis = 150)),
                 ) {
-                    InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
-                    Text(
-                        text = YumeTxt.Proxy.Testing.InProgress,
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = UiDp.dp12),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+                    ) {
+                        InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
+                        Text(
+                            text = YumeTxt.Proxy.Testing.InProgress,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
                 }
             }
-        }
 
-        nodeGridItems(
-            proxies = group.proxies,
-            selectedProxyName = group.now,
-            onProxyClick = { proxyName ->
-                if (group.isSelectable) {
-                    onSelectProxy(proxyName)
-                } else {
-                    onTestDelay()
-                }
-            },
-            onProxyTest = onTestProxyDelay,
-            testingProxyNames = testingProxyNames,
-        )
+            nodeGridItems(
+                proxies = group.proxies,
+                selectedProxyName = group.now,
+                onProxyClick =
+                    if (isInteractionLocked) {
+                        null
+                    } else {
+                        { proxyName ->
+                            if (group.isSelectable) {
+                                onSelectProxy(proxyName)
+                            } else {
+                                onTestDelay()
+                            }
+                        }
+                    },
+                onProxyTest = onTestProxyDelay.takeUnless { isInteractionLocked },
+                testingProxyNames = testingProxyNames,
+            )
+        }
     }
 }

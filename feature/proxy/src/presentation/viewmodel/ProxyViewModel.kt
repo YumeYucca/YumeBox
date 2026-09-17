@@ -57,6 +57,7 @@ class ProxyViewModel(
 
     private var groupDelayTestInProgress = false
     private val pendingProxyDelayTests = mutableSetOf<String>()
+    private var activeDelayTestCount = 0
 
     /** UI selection shared between the left group list and shell right-pane node list. */
     private val _uiSelectedGroupName = MutableStateFlow<String?>(null)
@@ -140,8 +141,9 @@ class ProxyViewModel(
     }
 
     fun testDelay(groupName: String? = null) {
-        if (groupDelayTestInProgress) return
+        if (groupDelayTestInProgress || pendingProxyDelayTests.isNotEmpty()) return
         groupDelayTestInProgress = true
+        beginDelayTest()
         viewModelScope.launch {
             try {
                 setLoading(true)
@@ -182,6 +184,7 @@ class ProxyViewModel(
             } finally {
                 setLoading(false)
                 groupDelayTestInProgress = false
+                endDelayTest()
             }
         }
     }
@@ -211,7 +214,8 @@ class ProxyViewModel(
     }
 
     fun testProxyDelay(groupName: String, proxyName: String) {
-        if (!pendingProxyDelayTests.add(proxyName)) return
+        if (groupDelayTestInProgress || !pendingProxyDelayTests.add(proxyName)) return
+        beginDelayTest()
         viewModelScope.launch {
             _testingProxyNames.update { it + proxyName }
             try {
@@ -223,7 +227,21 @@ class ProxyViewModel(
             } finally {
                 _testingProxyNames.update { it - proxyName }
                 pendingProxyDelayTests.remove(proxyName)
+                endDelayTest()
             }
+        }
+    }
+
+    private fun beginDelayTest() {
+        if (activeDelayTestCount++ == 0) {
+            proxyFacade.setProxyGroupSyncPaused(paused = true, source = DELAY_TEST_SYNC_PAUSE_SOURCE)
+        }
+    }
+
+    private fun endDelayTest() {
+        check(activeDelayTestCount > 0) { "Delay-test pause count underflow" }
+        if (--activeDelayTestCount == 0) {
+            proxyFacade.setProxyGroupSyncPaused(paused = false, source = DELAY_TEST_SYNC_PAUSE_SOURCE)
         }
     }
 
@@ -255,5 +273,9 @@ class ProxyViewModel(
         data class ShowMessage(val message: String) : ProxyUiEffect
 
         data class ShowError(val message: String) : ProxyUiEffect
+    }
+
+    private companion object {
+        const val DELAY_TEST_SYNC_PAUSE_SOURCE = "proxy_delay_test"
     }
 }

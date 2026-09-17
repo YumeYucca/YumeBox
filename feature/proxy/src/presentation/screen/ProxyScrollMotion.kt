@@ -31,12 +31,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import kotlin.math.abs
 
-internal fun LazyListState.isScrolledFromTop(): Boolean =
-    firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 0
-
-internal fun LazyGridState.isScrolledFromTop(): Boolean =
-    firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 0
-
 private suspend fun animateLocateScroll(
     targetIndex: Int,
     isEmpty: Boolean,

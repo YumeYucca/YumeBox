@@ -46,7 +46,6 @@ import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
@@ -57,14 +56,13 @@ import top.yukonga.miuix.kmp.window.WindowBottomSheet
 
 private const val NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION = 0.55f
 
-private fun LazyListState.isScrolledFromTop(): Boolean =
-    firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 0
-
 @Composable
 fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsState()
+    val testingGroupNames by proxyViewModel.testingGroupNames.collectAsState()
     val testingProxyNames by proxyViewModel.testingProxyNames.collectAsState()
     val sortMode by proxyViewModel.sortMode.collectAsState()
+    val isInteractionLocked = testingGroupNames.isNotEmpty() || testingProxyNames.isNotEmpty()
 
     val showSheet = remember { mutableStateOf(true) }
     val showSortPopup = remember { mutableStateOf(false) }
@@ -76,7 +74,6 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
         )
     val selectedGroupName = groupSelection.selectedGroupName
     val selectedGroup = groupSelection.selectedGroup
-    val coroutineScope = rememberCoroutineScope()
     val groupListState = rememberLazyListState()
     val nodeListState =
         rememberSaveable(selectedGroupName, saver = LazyListState.Saver) { LazyListState() }
@@ -94,26 +91,12 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
             }
         }
     val triggerTopDelayTest =
-        remember(coroutineScope, groupListState, proxyViewModel) {
-            {
-                coroutineScope.launch {
-                    if (groupListState.isScrolledFromTop()) {
-                        groupListState.animateScrollToItem(0)
-                    }
-                    proxyViewModel.testDelay()
-                }
-            }
-        }
+        remember(proxyViewModel) { { proxyViewModel.testDelay() } }
     val triggerSelectedGroupDelayTest =
-        remember(coroutineScope, nodeListState, proxyViewModel, selectedGroupName) {
+        remember(proxyViewModel, selectedGroupName) {
             {
                 val groupName = selectedGroupName ?: return@remember
-                coroutineScope.launch {
-                    if (nodeListState.isScrolledFromTop()) {
-                        nodeListState.animateScrollToItem(0)
-                    }
-                    proxyViewModel.testDelay(groupName)
-                }
+                proxyViewModel.testDelay(groupName)
             }
         }
     LaunchedEffect(showSheet.value) {
@@ -193,6 +176,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                                 AppBottomSheetAction(
                                     icon = Yume.ListChevronsUpDown,
                                     contentDescription = YumeTxt.Proxy.Action.Sort,
+                                    enabled = !isInteractionLocked,
                                     onClick = { showSortPopup.value = true },
                                 )
                         )
@@ -213,6 +197,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                     AppBottomSheetAction(
                         icon = Yume.Speed,
                         contentDescription = YumeTxt.Proxy.Action.Test,
+                        enabled = !isInteractionLocked,
                         onClick = {
                             if (selectedGroup == null) {
                                 triggerTopDelayTest()
@@ -297,11 +282,11 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                         ?: groupSelection.displayGroup?.takeIf { group -> group.name == name }
                 }
             if (targetGroup == null) {
-                val testingGroupNames by proxyViewModel.testingGroupNames.collectAsState()
                 NodeGroupSheetContent(
                     groups = proxyGroups,
                     onGroupClick = groupSelection.selectGroup,
                     onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
+                    onTestAllGroups = triggerTopDelayTest,
                     testingGroupNames = testingGroupNames,
                     sheetHeightFraction = NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION,
                     listState = groupListState,

@@ -41,6 +41,8 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.Speed
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSortPopup
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGroupItems
 import com.github.yumeyucca.yumebox.presentation.theme.*
+import com.github.yumeyucca.yumebox.presentation.util.ProxyDelayPullToRefresh
+import com.github.yumeyucca.yumebox.presentation.util.rememberAllGroupsPullToRefreshTexts
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
@@ -137,15 +139,10 @@ fun ProxyPager(
     }
 
     val requestSelectedGroupDelayTest =
-        remember(coroutineScope, nodeListState, selectedGroupName, proxyViewModel) {
+        remember(selectedGroupName, proxyViewModel) {
             {
                 val groupName = selectedGroupName ?: return@remember
-                coroutineScope.launch {
-                    if (nodeListState.isScrolledFromTop()) {
-                        nodeListState.animateScrollToItem(0)
-                    }
-                    proxyViewModel.testDelay(groupName)
-                }
+                proxyViewModel.testDelay(groupName)
             }
         }
     val locateCurrentProxy =
@@ -189,6 +186,8 @@ fun ProxyPager(
                     onLocateCurrentProxy = locateCurrentProxy,
                     onTestDelay = null,
                     isDelayTesting = false,
+                    interactionsEnabled =
+                        testingGroupNames.isEmpty() && testingProxyNames.isEmpty(),
                     searchEnabled = showNodeSearch,
                     onSearchToggle =
                         selectedGroupName?.let {
@@ -221,6 +220,7 @@ fun ProxyPager(
                         testingGroupNames = testingGroupNames,
                         onGroupClick = groupSelection.selectGroup,
                         onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
+                        onTestAllGroups = { proxyViewModel.testDelay() },
                         listState = groupListState,
                     )
                     }
@@ -292,6 +292,7 @@ fun ProxyPager(
                                 testingGroupNames = testingGroupNames,
                                 onGroupClick = groupSelection.selectGroup,
                                 onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
+                                onTestAllGroups = { proxyViewModel.testDelay() },
                                 listState = groupListState,
                             )
                         }
@@ -335,30 +336,42 @@ private fun ProxyContent(
     mainInnerPadding: PaddingValues,
     onGroupClick: (ProxyGroupInfo) -> Unit,
     onGroupTest: (ProxyGroupInfo) -> Unit,
+    onTestAllGroups: () -> Unit,
     testingGroupNames: Set<String>,
     listState: LazyListState,
 ) {
     val spacing = LocalSpacing.current
-    ScreenLazyColumn(
-        lazyListState = listState,
+    ProxyDelayPullToRefresh(
+        isRefreshing = testingGroupNames.isNotEmpty(),
+        onRefresh = onTestAllGroups,
+        refreshTexts = rememberAllGroupsPullToRefreshTexts(),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = innerPadding.calculateTopPadding()),
         scrollBehavior = scrollBehavior,
-        innerPadding = innerPadding,
-        enableGlobalScroll = true,
-        contentPadding =
-            PaddingValues(
-                start = UiDp.dp12,
-                end = UiDp.dp12,
-                top = innerPadding.calculateTopPadding() + UiDp.dp14,
-                bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
-            ),
     ) {
-        nodeGroupItems(
-            groups = proxyGroups,
-            onGroupClick = onGroupClick,
-            onGroupTest = onGroupTest,
-            testingGroupNames = testingGroupNames,
-            itemVerticalPadding = UiDp.dp6,
-        )
+        ScreenLazyColumn(
+            lazyListState = listState,
+            scrollBehavior = scrollBehavior,
+            innerPadding = innerPadding,
+            enableGlobalScroll = true,
+            userScrollEnabled = testingGroupNames.isEmpty(),
+            contentPadding =
+                PaddingValues(
+                    start = UiDp.dp12,
+                    end = UiDp.dp12,
+                    top = innerPadding.calculateTopPadding() + UiDp.dp14,
+                    bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
+                ),
+        ) {
+            nodeGroupItems(
+                groups = proxyGroups,
+                onGroupClick = onGroupClick,
+                onGroupTest = onGroupTest,
+                testingGroupNames = testingGroupNames,
+                interactionEnabled = testingGroupNames.isEmpty(),
+                itemVerticalPadding = UiDp.dp6,
+            )
+        }
     }
 }
 
@@ -428,15 +441,10 @@ internal fun ProxyShellNodeDetailContent(
         val nodeGridState =
             rememberSaveable(groupName, saver = LazyGridState.Saver) { LazyGridState() }
         val requestSelectedGroupDelayTest =
-            remember(coroutineScope, nodeGridState, groupName, proxyViewModel) {
+            remember(groupName, proxyViewModel) {
                 {
                     val targetGroupName = groupName ?: return@remember
-                    coroutineScope.launch {
-                        if (nodeGridState.isScrolledFromTop()) {
-                            nodeGridState.animateScrollToItem(0)
-                        }
-                        proxyViewModel.testDelay(targetGroupName)
-                    }
+                    proxyViewModel.testDelay(targetGroupName)
                 }
             }
         val locateCurrentProxy =
@@ -469,6 +477,8 @@ internal fun ProxyShellNodeDetailContent(
                         onLocateCurrentProxy = locateCurrentProxy,
                         onTestDelay = requestSelectedGroupDelayTest,
                         isDelayTesting = groupName != null && groupName in testingGroupNames,
+                        interactionsEnabled =
+                            testingGroupNames.isEmpty() && testingProxyNames.isEmpty(),
                         searchEnabled = showNodeSearch,
                         onSearchToggle = {
                             val nextVisible = !showNodeSearch
@@ -523,6 +533,7 @@ private fun ProxyTopBar(
     onLocateCurrentProxy: (() -> Unit)?,
     onTestDelay: (() -> Unit)?,
     isDelayTesting: Boolean,
+    interactionsEnabled: Boolean,
     searchEnabled: Boolean,
     onSearchToggle: (() -> Unit)?,
     showSortPopup: Boolean,
@@ -549,7 +560,7 @@ private fun ProxyTopBar(
                 // The detail pane has no back arrow; use the leading slot for one-tap delay
                 // testing instead of forcing users back to the list's small test button
                 // (issue #151 item 10).
-                IconButton(onClick = onTestDelay) {
+                IconButton(onClick = onTestDelay, enabled = interactionsEnabled) {
                     if (isDelayTesting) {
                         InfiniteProgressIndicator(
                             modifier = Modifier.size(UiDp.dp22),
@@ -568,12 +579,16 @@ private fun ProxyTopBar(
                 IconButton(
                     modifier = Modifier.padding(end = spacing.space12),
                     onClick = onLocateCurrentProxy,
+                    enabled = interactionsEnabled,
                 ) {
                     Icon(Yume.Eye, contentDescription = YumeTxt.Proxy.Action.LocateCurrent)
                 }
             }
             Box {
-                IconButton(onClick = { onShowSortPopupChange(true) }) {
+                IconButton(
+                    onClick = { onShowSortPopupChange(true) },
+                    enabled = interactionsEnabled,
+                ) {
                     Icon(
                         Yume.ListChevronsUpDown,
                         contentDescription = YumeTxt.Proxy.Action.Sort,
