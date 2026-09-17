@@ -30,12 +30,10 @@ internal fun MoeHomeSettingsSheet(
     classicHomeEnabled: Boolean,
     sidebarExpanded: Boolean,
     useSystemWallpaper: Boolean,
-    wallpaperScrimEnabled: Boolean,
     onQuoteChange: (String) -> Unit,
     onClassicHomeEnabledChange: (Boolean) -> Unit,
     onSidebarExpandedChange: (Boolean) -> Unit,
     onUseSystemWallpaperChange: (Boolean) -> Unit,
-    onWallpaperScrimEnabledChange: (Boolean) -> Unit,
     onChangeWallpaper: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -46,15 +44,10 @@ internal fun MoeHomeSettingsSheet(
         mutableStateOf(classicHomeEnabled)
     }
     var draftSidebarExpanded by remember(show, sidebarExpanded) { mutableStateOf(sidebarExpanded) }
-    var draftWallpaperScrimEnabled by
-    remember(show, wallpaperScrimEnabled) {
-        mutableStateOf(wallpaperScrimEnabled)
-    }
     val save = {
         onQuoteChange(draftQuote)
         onClassicHomeEnabledChange(draftClassicHomeEnabled)
         onSidebarExpandedChange(draftSidebarExpanded)
-        onWallpaperScrimEnabledChange(draftWallpaperScrimEnabled)
         onDismiss()
     }
 
@@ -102,11 +95,6 @@ internal fun MoeHomeSettingsSheet(
                         SystemWallpaperPreferenceItem(
                             checked = useSystemWallpaper,
                             onCheckedChange = onUseSystemWallpaperChange,
-                        )
-                        PreferenceSwitchItem(
-                            title = YumeTxt.Home.Settings.WallpaperScrim,
-                            checked = draftWallpaperScrimEnabled,
-                            onCheckedChange = { draftWallpaperScrimEnabled = it },
                         )
                         PreferenceArrowItem(
                             title = YumeTxt.Home.Settings.ChangeWallpaper,

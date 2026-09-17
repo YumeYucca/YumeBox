@@ -50,7 +50,6 @@ Home = {
         ClassicHome = "クラシックホームを使用"
         ExpandSidebar = "サイドバーを展開"
         ChangeWallpaper = "壁紙を変更"
-        WallpaperScrim = "壁紙の下部を暗くする"
     }
 
     Control = {

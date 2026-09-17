@@ -69,7 +69,6 @@ internal data class MoeHomeLayoutState(
     val canLaunch: Boolean,
     val isRemoteController: Boolean,
     val usesTabletLayout: Boolean = false,
-    val wallpaperScrimEnabled: Boolean = true,
 )
 
 internal class MoeHomeActions(
@@ -217,24 +216,22 @@ private fun BoxScope.MoeHero(state: MoeHomeLayoutState, scale: Float) {
             qualityMode = MoeWallpaperQualityMode.Foreground,
             modifier = Modifier.matchParentSize(),
         )
-        if (state.wallpaperScrimEnabled) {
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            // Fully opaque from 0.90 so the rounded corner band never lets the
-                            // wallpaper bleed through as a colored line (issue #151 item 6); the
-                            // longer fade avoids the hard mid-way cut (item 5).
-                            0f to Color.Transparent,
-                            0.45f to Color.Transparent,
-                            0.78f to state.contentSurface.copy(alpha = 0.88f),
-                            0.90f to state.contentSurface,
-                            1f to state.contentSurface,
-                        )
+        Box(
+            Modifier
+                .matchParentSize()
+                .background(
+                    Brush.verticalGradient(
+                        // Fully opaque from 0.90 so the rounded corner band never lets the
+                        // wallpaper bleed through as a colored line (issue #151 item 6); the
+                        // longer fade avoids the hard mid-way cut (item 5).
+                        0f to Color.Transparent,
+                        0.45f to Color.Transparent,
+                        0.78f to state.contentSurface.copy(alpha = 0.88f),
+                        0.90f to state.contentSurface,
+                        1f to state.contentSurface,
                     )
-            )
-        }
+                )
+        )
         AnimatedVisibility(
             visible = state.isRunning,
             modifier =
@@ -355,21 +352,19 @@ private fun MoeTabletHomeLayout(
                     qualityMode = MoeWallpaperQualityMode.Foreground,
                     modifier = Modifier.matchParentSize(),
                 )
-                if (state.wallpaperScrimEnabled) {
-                    Box(
-                        Modifier
-                            .matchParentSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    0f to Color.Transparent,
-                                    0.45f to Color.Transparent,
-                                    0.78f to state.contentSurface.copy(alpha = 0.88f),
-                                    0.90f to state.contentSurface,
-                                    1f to state.contentSurface,
-                                )
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Transparent,
+                                0.45f to Color.Transparent,
+                                0.78f to state.contentSurface.copy(alpha = 0.88f),
+                                0.90f to state.contentSurface,
+                                1f to state.contentSurface,
                             )
-                    )
-                }
+                        )
+                )
                 Row(
                     modifier =
                         Modifier

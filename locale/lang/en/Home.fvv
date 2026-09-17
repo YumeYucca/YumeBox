@@ -50,7 +50,6 @@ Home = {
         ClassicHome = "Use classic Home"
         ExpandSidebar = "Expand sidebar"
         ChangeWallpaper = "Change wallpaper"
-        WallpaperScrim = "Bottom dimming on wallpaper"
     }
 
     Control = {

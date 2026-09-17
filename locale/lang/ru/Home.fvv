@@ -50,7 +50,6 @@ Home = {
         ClassicHome = "Использовать классическую главную"
         ExpandSidebar = "Развернуть боковую панель"
         ChangeWallpaper = "Сменить обои"
-        WallpaperScrim = "Затемнение нижней части обоев"
     }
 
     Control = {
