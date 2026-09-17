@@ -44,17 +44,20 @@ import com.github.yumeyucca.yumebox.presentation.component.PaneWidths
 import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeCard
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGridItems
+import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.LocalSpacing
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.KeepLazyListTopAnchorOnReorder
-import com.github.yumeyucca.yumebox.presentation.util.ProxyDelayPullToRefresh
 import tf.gal.yumebox.locale.YumeTxt
+import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.Search
 import top.yukonga.miuix.kmp.icon.basic.SearchCleanup
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
     val normalizedQuery = query.trim()
@@ -111,131 +114,223 @@ internal fun NodeListPage(
         }
     }
 
-    val listTopPadding =
-        if (showSearch) {
-            UiDp.dp0
-        } else {
-            outerInnerPadding.calculateTopPadding() + UiDp.dp20
-        }
     val contentPadding =
         PaddingValues(
             start = UiDp.dp12,
             end = UiDp.dp12,
-            top = listTopPadding,
+            top = outerInnerPadding.calculateTopPadding() + UiDp.dp20,
             bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
         )
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        NodeSearchField(
-            query = searchQuery,
-            visible = showSearch,
-            onQueryChange = onSearchQueryChange,
-            modifier = Modifier.padding(top = outerInnerPadding.calculateTopPadding() + UiDp.dp20),
-        )
-        ProxyDelayPullToRefresh(
-            isRefreshing = isTesting,
-            onRefresh = onTestDelay,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            contentPadding = PaddingValues(top = listTopPadding),
-            scrollBehavior = scrollBehavior,
-        ) {
-            if (useAdaptiveGrid) {
-                val resolvedGridState = gridState ?: rememberLazyGridState()
-                val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
-                var lastHiddenState by remember(resolvedGridState) { mutableStateOf(false) }
-                val fabScrollObserver =
-                    remember(resolvedGridState) {
-                        object : NestedScrollConnection {
-                            override fun onPreScroll(
-                                available: Offset,
-                                source: NestedScrollSource,
-                            ): Offset {
-                                val hiddenState =
-                                    when {
-                                        available.y < -1f -> true
-                                        available.y > 1f -> false
-                                        else -> return Offset.Zero
-                                    }
-                                if (hiddenState != lastHiddenState) {
-                                    lastHiddenState = hiddenState
-                                    latestScrollDirectionCallback(hiddenState)
-                                }
-                                return Offset.Zero
+    if (useAdaptiveGrid) {
+        val resolvedGridState = gridState ?: rememberLazyGridState()
+        val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
+        var lastHiddenState by remember(resolvedGridState) { mutableStateOf(false) }
+        val fabScrollObserver =
+            remember(resolvedGridState) {
+                object : NestedScrollConnection {
+                    override fun onPreScroll(
+                        available: Offset,
+                        source: NestedScrollSource,
+                    ): Offset {
+                        val hiddenState =
+                            when {
+                                available.y < -1f -> true
+                                available.y > 1f -> false
+                                else -> return Offset.Zero
                             }
-
-                            override suspend fun onPostFling(
-                                consumed: Velocity,
-                                available: Velocity,
-                            ): Velocity {
-                                if (consumed.y > 1f || available.y > 1f) {
-                                    latestScrollDirectionCallback(false)
-                                    lastHiddenState = false
-                                }
-                                return Velocity.Zero
-                            }
+                        if (hiddenState != lastHiddenState) {
+                            lastHiddenState = hiddenState
+                            latestScrollDirectionCallback(hiddenState)
                         }
+                        return Offset.Zero
                     }
-                LaunchedEffect(resolvedGridState) {
-                    latestScrollDirectionCallback(false)
-                    lastHiddenState = false
+
+                    override suspend fun onPostFling(
+                        consumed: Velocity,
+                        available: Velocity,
+                    ): Velocity {
+                        if (consumed.y > 1f || available.y > 1f) {
+                            latestScrollDirectionCallback(false)
+                            lastHiddenState = false
+                        }
+                        return Velocity.Zero
+                    }
                 }
-                Box(
-                    Modifier.fillMaxSize().nestedScroll(fabScrollObserver)
-                ) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = PaneWidths.NodeGridAdaptiveMin),
-                        state = resolvedGridState,
-                        contentPadding = contentPadding,
-                        horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
-                        verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
-                        modifier = Modifier.fillMaxSize(),
+            }
+        LaunchedEffect(resolvedGridState) {
+            latestScrollDirectionCallback(false)
+            lastHiddenState = false
+        }
+        Box(Modifier
+            .fillMaxSize()
+            .nestedScroll(fabScrollObserver)) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = PaneWidths.NodeGridAdaptiveMin),
+                state = resolvedGridState,
+                contentPadding = contentPadding,
+                horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
+                verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
+                    NodeSearchField(
+                        query = searchQuery,
+                        visible = showSearch,
+                        onQueryChange = onSearchQueryChange,
+                    )
+                }
+                item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
+                    AnimatedVisibility(
+                        visible = isTesting,
+                        enter =
+                            expandVertically(
+                                animationSpec =
+                                    tween(
+                                        durationMillis =
+                                            AnimationSpecs.Proxy.RefreshIndicatorDuration
+                                    ),
+                                expandFrom = Alignment.Top,
+                            ) +
+                                    fadeIn(
+                                        animationSpec =
+                                            tween(
+                                                durationMillis =
+                                                    AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
+                                            )
+                                    ),
+                        exit =
+                            shrinkVertically(
+                                animationSpec =
+                                    tween(
+                                        durationMillis =
+                                            AnimationSpecs.Proxy.RefreshIndicatorDuration
+                                    ),
+                                shrinkTowards = Alignment.Top,
+                            ) +
+                                    fadeOut(
+                                        animationSpec =
+                                            tween(
+                                                durationMillis =
+                                                    AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
+                                            )
+                                    ),
                     ) {
-                        items(items = visibleProxies, key = { it.name }) { proxy ->
-                            NodeCard(
-                                proxy = proxy,
-                                isSelected = proxy.name == group.now,
-                                onClick = { proxyName ->
-                                    if (group.isSelectable) {
-                                        onSelectProxy(group.name, proxyName)
-                                    } else {
-                                        onTestDelay()
-                                    }
-                                },
-                                onTestClick = onTestProxyDelay,
-                                isDelayTesting = testingProxyNames.contains(proxy.name),
-                                showCountryFlag = true,
-                                modifier = Modifier.fillMaxWidth(),
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = UiDp.dp12),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+                        ) {
+                            InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
+                            Text(
+                                text = YumeTxt.Proxy.Testing.InProgress,
+                                style = MiuixTheme.textStyles.subtitle,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
                         }
                     }
                 }
-            } else {
-                ScreenLazyColumn(
-                    lazyListState = listState,
-                    scrollBehavior = scrollBehavior,
-                    innerPadding = outerInnerPadding,
-                    enableGlobalScroll = true,
-                    onScrollDirectionChanged = onScrollDirectionChanged,
-                    contentPadding = contentPadding,
-                ) {
-                    nodeGridItems(
-                        proxies = visibleProxies,
-                        selectedProxyName = group.now,
-                        onProxyClick = { proxyName ->
+                items(items = visibleProxies, key = { it.name }) { proxy ->
+                    NodeCard(
+                        proxy = proxy,
+                        isSelected = proxy.name == group.now,
+                        onClick = { proxyName ->
                             if (group.isSelectable) {
                                 onSelectProxy(group.name, proxyName)
                             } else {
                                 onTestDelay()
                             }
                         },
-                        onProxyTest = onTestProxyDelay,
-                        testingProxyNames = testingProxyNames,
-                        outerHorizontalPadding = UiDp.dp0,
-                        itemVerticalPadding = UiDp.dp6,
+                        onTestClick = onTestProxyDelay,
+                        isDelayTesting = testingProxyNames.contains(proxy.name),
+                        showCountryFlag = true,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
         }
+        return
+    }
+
+    ScreenLazyColumn(
+        lazyListState = listState,
+        scrollBehavior = scrollBehavior,
+        innerPadding = outerInnerPadding,
+        enableGlobalScroll = true,
+        onScrollDirectionChanged = onScrollDirectionChanged,
+        contentPadding = contentPadding,
+    ) {
+        item(key = "__node_search__") {
+            NodeSearchField(
+                query = searchQuery,
+                visible = showSearch,
+                onQueryChange = onSearchQueryChange,
+            )
+        }
+        item(key = "__refresh_indicator__") {
+            AnimatedVisibility(
+                visible = isTesting,
+                enter =
+                    expandVertically(
+                        animationSpec =
+                            tween(durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration),
+                        expandFrom = Alignment.Top,
+                    ) +
+                            fadeIn(
+                                animationSpec =
+                                    tween(
+                                        durationMillis =
+                                            AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
+                                    )
+                            ),
+                exit =
+                    shrinkVertically(
+                        animationSpec =
+                            tween(durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration),
+                        shrinkTowards = Alignment.Top,
+                    ) +
+                            fadeOut(
+                                animationSpec =
+                                    tween(
+                                        durationMillis =
+                                            AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
+                                    )
+                            ),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = UiDp.dp12),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+                ) {
+                    InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
+                    Text(
+                        text = YumeTxt.Proxy.Testing.InProgress,
+                        style = MiuixTheme.textStyles.subtitle,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                }
+            }
+        }
+
+        nodeGridItems(
+            proxies = visibleProxies,
+            selectedProxyName = group.now,
+            onProxyClick = { proxyName ->
+                if (group.isSelectable) {
+                    onSelectProxy(group.name, proxyName)
+                } else {
+                    onTestDelay()
+                }
+            },
+            onProxyTest = onTestProxyDelay,
+            testingProxyNames = testingProxyNames,
+            outerHorizontalPadding = UiDp.dp0,
+            itemVerticalPadding = UiDp.dp6,
+        )
     }
 }
 
@@ -244,7 +339,6 @@ private fun NodeSearchField(
     query: String,
     visible: Boolean,
     onQueryChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -292,7 +386,7 @@ private fun NodeSearchField(
                 }
             },
             modifier =
-                modifier
+                Modifier
                     .fillMaxWidth()
                     .padding(top = UiDp.dp4, bottom = UiDp.dp8),
             )

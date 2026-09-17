@@ -54,5 +54,7 @@ object AnimationSpecs {
         const val SheetSlideOutDuration = 300
         const val SheetFadeInDuration = 140
         const val SheetFadeOutDuration = 140
+        const val RefreshIndicatorDuration = 200
+        const val RefreshIndicatorFadeDuration = 150
     }
 }
