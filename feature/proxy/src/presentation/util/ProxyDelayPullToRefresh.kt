@@ -24,7 +24,6 @@ package com.github.yumeyucca.yumebox.presentation.util
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import tf.gal.yumebox.locale.YumeTxt
@@ -33,48 +32,24 @@ import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 
 @Composable
-internal fun rememberAllGroupsPullToRefreshTexts(): List<String> =
-    remember {
-        listOf(
-            YumeTxt.Proxy.PullToRefresh.PullToTestAllGroups,
-            YumeTxt.Proxy.PullToRefresh.ReleaseToTestAllGroups,
-            YumeTxt.Proxy.PullToRefresh.TestingAllGroups,
-            YumeTxt.Proxy.Testing.RequestSent,
-        )
-    }
-
-@Composable
-internal fun rememberCurrentGroupPullToRefreshTexts(): List<String> =
-    remember {
-        listOf(
-            YumeTxt.Proxy.PullToRefresh.PullToTestCurrentGroup,
-            YumeTxt.Proxy.PullToRefresh.ReleaseToTestCurrentGroup,
-            YumeTxt.Proxy.PullToRefresh.TestingCurrentGroup,
-            YumeTxt.Proxy.Testing.RequestSent,
-        )
-    }
-
-@Composable
 internal fun ProxyDelayPullToRefresh(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
-    refreshTexts: List<String>,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     scrollBehavior: ScrollBehavior? = null,
     content: @Composable () -> Unit,
 ) {
+    val texts = YumeTxt.Proxy.PullToRefresh
     PullToRefresh(
         isRefreshing = isRefreshing,
-        onRefresh = {
-            if (isRefreshing) return@PullToRefresh
-            onRefresh()
-        },
+        onRefresh = onRefresh,
         modifier = modifier,
         pullToRefreshState = rememberPullToRefreshState(),
         contentPadding = contentPadding,
         topAppBarScrollBehavior = scrollBehavior,
-        refreshTexts = refreshTexts,
+        refreshTexts =
+            listOf(texts.Pulling, texts.Release, texts.Refreshing, texts.Complete),
         content = content,
     )
 }

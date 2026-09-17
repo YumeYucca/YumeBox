@@ -52,11 +52,9 @@ Proxy = {
     }
 
     PullToRefresh = {
-        PullToTestAllGroups = "下拉測試全部節點組"
-        ReleaseToTestAllGroups = "鬆開測試全部節點組"
-        TestingAllGroups = "正在測試全部節點組..."
-        PullToTestCurrentGroup = "下拉測試目前節點組"
-        ReleaseToTestCurrentGroup = "鬆開測試目前節點組"
-        TestingCurrentGroup = "正在測試目前節點組..."
+        Pulling = "下拉刷新"
+        Release = "鬆開刷新"
+        Refreshing = "正在刷新…"
+        Complete = "刷新成功"
     }
 }

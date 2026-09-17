@@ -52,11 +52,9 @@ Proxy = {
     }
 
     PullToRefresh = {
-        PullToTestAllGroups = "下に引いて全グループをテスト"
-        ReleaseToTestAllGroups = "離して全グループをテスト"
-        TestingAllGroups = "すべてのノードグループをテスト中..."
-        PullToTestCurrentGroup = "下に引いて現在のグループをテスト"
-        ReleaseToTestCurrentGroup = "離して現在のグループをテスト"
-        TestingCurrentGroup = "現在のノードグループをテスト中..."
+        Pulling = "下に引いて更新"
+        Release = "離して更新"
+        Refreshing = "更新中…"
+        Complete = "更新に成功しました"
     }
 }

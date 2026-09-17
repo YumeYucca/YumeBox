@@ -41,8 +41,6 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.Speed
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSortPopup
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGroupItems
 import com.github.yumeyucca.yumebox.presentation.theme.*
-import com.github.yumeyucca.yumebox.presentation.util.ProxyDelayPullToRefresh
-import com.github.yumeyucca.yumebox.presentation.util.rememberAllGroupsPullToRefreshTexts
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
@@ -223,7 +221,6 @@ fun ProxyPager(
                         testingGroupNames = testingGroupNames,
                         onGroupClick = groupSelection.selectGroup,
                         onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
-                        onPullRefresh = { proxyViewModel.testDelay() },
                         listState = groupListState,
                     )
                     }
@@ -295,7 +292,6 @@ fun ProxyPager(
                                 testingGroupNames = testingGroupNames,
                                 onGroupClick = groupSelection.selectGroup,
                                 onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
-                                onPullRefresh = { proxyViewModel.testDelay() },
                                 listState = groupListState,
                             )
                         }
@@ -339,42 +335,30 @@ private fun ProxyContent(
     mainInnerPadding: PaddingValues,
     onGroupClick: (ProxyGroupInfo) -> Unit,
     onGroupTest: (ProxyGroupInfo) -> Unit,
-    onPullRefresh: () -> Unit,
     testingGroupNames: Set<String>,
     listState: LazyListState,
 ) {
     val spacing = LocalSpacing.current
-    ProxyDelayPullToRefresh(
-        isRefreshing = testingGroupNames.isNotEmpty(),
-        onRefresh = onPullRefresh,
-        refreshTexts = rememberAllGroupsPullToRefreshTexts(),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = innerPadding.calculateTopPadding()),
+    ScreenLazyColumn(
+        lazyListState = listState,
         scrollBehavior = scrollBehavior,
+        innerPadding = innerPadding,
+        enableGlobalScroll = true,
+        contentPadding =
+            PaddingValues(
+                start = UiDp.dp12,
+                end = UiDp.dp12,
+                top = innerPadding.calculateTopPadding() + UiDp.dp14,
+                bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
+            ),
     ) {
-        ScreenLazyColumn(
-            lazyListState = listState,
-            scrollBehavior = scrollBehavior,
-            innerPadding = innerPadding,
-            enableGlobalScroll = true,
-            enableOverScroll = false,
-            enableTopBarNestedScroll = false,
-            contentPadding =
-                PaddingValues(
-                    start = UiDp.dp12,
-                    end = UiDp.dp12,
-                    top = innerPadding.calculateTopPadding() + UiDp.dp14,
-                    bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
-                ),
-        ) {
-            nodeGroupItems(
-                groups = proxyGroups,
-                onGroupClick = onGroupClick,
-                onGroupTest = onGroupTest,
-                testingGroupNames = testingGroupNames,
-                itemVerticalPadding = UiDp.dp6,
-            )
-        }
+        nodeGroupItems(
+            groups = proxyGroups,
+            onGroupClick = onGroupClick,
+            onGroupTest = onGroupTest,
+            testingGroupNames = testingGroupNames,
+            itemVerticalPadding = UiDp.dp6,
+        )
     }
 }
 

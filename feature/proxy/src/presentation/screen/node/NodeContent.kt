@@ -22,10 +22,7 @@
 
 package com.github.yumeyucca.yumebox.presentation.screen.node
 
-
 import android.annotation.SuppressLint
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -35,7 +32,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
@@ -49,16 +45,13 @@ import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze.chromeEffect
 import com.github.yumeyucca.yumebox.presentation.util.ProxyDelayPullToRefresh
-import com.github.yumeyucca.yumebox.presentation.util.rememberAllGroupsPullToRefreshTexts
-import com.github.yumeyucca.yumebox.presentation.util.rememberCurrentGroupPullToRefreshTexts
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeProgressive
-import tf.gal.yumebox.locale.YumeTxt
-import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollHorizontal
+import top.yukonga.miuix.kmp.utils.overScrollVertical
 
 val NodeSheetContentPadding =
     PaddingValues(start = UiDp.dp0, end = UiDp.dp0, top = UiDp.dp8, bottom = UiDp.dp16)
@@ -154,7 +147,6 @@ internal fun NodeGroupSheetContent(
     sheetHeightFraction: Float,
     onGroupClick: (ProxyGroupInfo) -> Unit,
     onGroupTest: (ProxyGroupInfo) -> Unit,
-    onTestAllGroups: () -> Unit,
     listState: LazyListState = rememberLazyListState(),
 ) {
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
@@ -165,29 +157,23 @@ internal fun NodeGroupSheetContent(
         }
     }
 
-    ProxyDelayPullToRefresh(
-        isRefreshing = testingGroupNames.isNotEmpty(),
-        onRefresh = onTestAllGroups,
-        refreshTexts = rememberAllGroupsPullToRefreshTexts(),
+    LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .height(sheetHeight),
+            .height(sheetHeight)
+            .overScrollVertical(),
+        state = listState,
+        verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
+        contentPadding = NodeSheetContentPadding,
+        overscrollEffect = null,
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            state = listState,
-            verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
-            contentPadding = NodeSheetContentPadding,
-            overscrollEffect = null,
-        ) {
-            nodeGroupItems(
-                groups = groups,
-                onGroupClick = onGroupClick,
-                onGroupTest = onGroupTest,
-                testingGroupNames = testingGroupNames,
-                itemVerticalPadding = UiDp.dp0,
-            )
-        }
+        nodeGroupItems(
+            groups = groups,
+            onGroupClick = onGroupClick,
+            onGroupTest = onGroupTest,
+            testingGroupNames = testingGroupNames,
+            itemVerticalPadding = UiDp.dp0,
+        )
     }
 }
 
@@ -213,7 +199,6 @@ fun NodeSheetContent(
     ProxyDelayPullToRefresh(
         isRefreshing = isDelayTesting,
         onRefresh = onTestDelay,
-        refreshTexts = rememberCurrentGroupPullToRefreshTexts(),
         modifier = Modifier
             .fillMaxWidth()
             .height(sheetHeight),
@@ -225,50 +210,19 @@ fun NodeSheetContent(
             contentPadding = NodeSheetContentPadding,
             overscrollEffect = null,
         ) {
-        item(key = "__refresh_indicator__") {
-            AnimatedVisibility(
-                visible = isDelayTesting,
-                enter =
-                    expandVertically(
-                        animationSpec = tween(durationMillis = 200),
-                        expandFrom = Alignment.Top,
-                    ) + fadeIn(animationSpec = tween(durationMillis = 150)),
-                exit =
-                    shrinkVertically(
-                        animationSpec = tween(durationMillis = 200),
-                        shrinkTowards = Alignment.Top,
-                    ) + fadeOut(animationSpec = tween(durationMillis = 150)),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = UiDp.dp12),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
-                ) {
-                    InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
-                    Text(
-                        text = YumeTxt.Proxy.Testing.InProgress,
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                }
-            }
+            nodeGridItems(
+                proxies = group.proxies,
+                selectedProxyName = group.now,
+                onProxyClick = { proxyName ->
+                    if (group.isSelectable) {
+                        onSelectProxy(proxyName)
+                    } else {
+                        onTestDelay()
+                    }
+                },
+                onProxyTest = onTestProxyDelay,
+                testingProxyNames = testingProxyNames,
+            )
         }
-
-        nodeGridItems(
-            proxies = group.proxies,
-            selectedProxyName = group.now,
-            onProxyClick = { proxyName ->
-                if (group.isSelectable) {
-                    onSelectProxy(proxyName)
-                } else {
-                    onTestDelay()
-                }
-            },
-            onProxyTest = onTestProxyDelay,
-            testingProxyNames = testingProxyNames,
-        )
-    }
     }
 }

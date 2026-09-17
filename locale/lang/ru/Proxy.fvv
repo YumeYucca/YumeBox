@@ -52,11 +52,9 @@ Proxy = {
     }
 
     PullToRefresh = {
-        PullToTestAllGroups = "Потяните, чтобы протестировать все группы"
-        ReleaseToTestAllGroups = "Отпустите, чтобы протестировать все группы"
-        TestingAllGroups = "Тестирование всех групп узлов..."
-        PullToTestCurrentGroup = "Потяните, чтобы протестировать текущую группу"
-        ReleaseToTestCurrentGroup = "Отпустите, чтобы протестировать текущую группу"
-        TestingCurrentGroup = "Тестирование текущей группы узлов..."
+        Pulling = "Потяните, чтобы обновить"
+        Release = "Отпустите, чтобы обновить"
+        Refreshing = "Обновление…"
+        Complete = "Успешно обновлено"
     }
 }
