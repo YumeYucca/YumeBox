@@ -175,7 +175,7 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
                     )
                 )
             },
-            reconcile = { reconcile() },
+            reconcile = { reconcile(refreshPayload = false) },
             startLocal = { owner, mode -> start(RuntimeStartRequest(owner = owner, mode = mode)) },
             startTrafficPolling = { startTrafficPolling() },
             stopTrafficPolling = { stopTrafficPolling() },
@@ -251,7 +251,7 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
 
     fun applyRemoteControllerState() = remoteSwitch.apply()
 
-    suspend fun reconcile() {
+    suspend fun reconcile(refreshPayload: Boolean = true) {
         if (isRemoteControllerActive()) {
             applyRemoteControllerState()
             return
@@ -270,7 +270,7 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
                         lastError = statusStore.queryRuntimeLastError(configuredMode.name),
                     )
                 )
-                onAfterIdle()
+                if (refreshPayload) onAfterIdle()
                 return
             }
 
@@ -285,10 +285,10 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
 
             if (_runtimeSnapshot.value.phase.running) {
                 startTrafficPolling()
-                onAfterRunning()
+                if (refreshPayload) onAfterRunning()
             } else {
                 stopTrafficPolling()
-                onAfterIdle()
+                if (refreshPayload) onAfterIdle()
             }
         }
     }
