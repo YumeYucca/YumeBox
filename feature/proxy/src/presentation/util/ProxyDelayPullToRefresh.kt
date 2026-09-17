@@ -35,9 +35,9 @@ import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 internal fun rememberAllGroupsPullToRefreshTexts(): List<String> =
     remember {
         listOf(
-            YumeTxt.Proxy.PullToRefresh.PullToTestAllGroups,
-            YumeTxt.Proxy.PullToRefresh.ReleaseToTestAllGroups,
-            YumeTxt.Proxy.PullToRefresh.TestingAllGroups,
+            YumeTxt.Proxy.PullToRefresh.Pulling,
+            YumeTxt.Proxy.PullToRefresh.Release,
+            YumeTxt.Proxy.PullToRefresh.Refreshing,
             YumeTxt.Proxy.Testing.RequestSent,
         )
     }
@@ -46,9 +46,9 @@ internal fun rememberAllGroupsPullToRefreshTexts(): List<String> =
 internal fun rememberCurrentGroupPullToRefreshTexts(): List<String> =
     remember {
         listOf(
-            YumeTxt.Proxy.PullToRefresh.PullToTestCurrentGroup,
-            YumeTxt.Proxy.PullToRefresh.ReleaseToTestCurrentGroup,
-            YumeTxt.Proxy.PullToRefresh.TestingCurrentGroup,
+            YumeTxt.Proxy.PullToRefresh.Pulling,
+            YumeTxt.Proxy.PullToRefresh.Release,
+            YumeTxt.Proxy.PullToRefresh.Refreshing,
             YumeTxt.Proxy.Testing.RequestSent,
         )
     }
