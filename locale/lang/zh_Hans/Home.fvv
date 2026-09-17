@@ -50,7 +50,6 @@ Home = {
         ClassicHome = "回退经典首页"
         ExpandSidebar = "展开侧边栏"
         ChangeWallpaper = "更换壁纸"
-        WallpaperScrim = "壁纸底部渐暗"
     }
 
     Control = {

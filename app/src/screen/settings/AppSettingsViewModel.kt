@@ -71,7 +71,6 @@ class AppSettingsViewModel(
     val moeWallpaperBiasY: Preference<Float> = settings.moeWallpaperBiasY
     val moeHomeQuote: Preference<String> = settings.moeHomeQuote
     val moeSidebarExpanded: Preference<Boolean> = settings.moeSidebarExpanded
-    val moeWallpaperScrimEnabled: Preference<Boolean> = settings.moeWallpaperScrimEnabled
     val splitLeftRatio: Preference<Float> = settings.splitLeftRatio
     val pageScale: Preference<Float> = settings.pageScale
     val predictiveBackEnabled: Preference<Boolean> = settings.predictiveBackEnabled
@@ -232,28 +231,24 @@ class AppSettingsViewModel(
         val useSystemWallpaper: Boolean = true,
         val moeHomeQuote: String = "",
         val sidebarExpanded: Boolean = false,
-        val wallpaperScrimEnabled: Boolean = true,
     )
 
     val moeHomeSectionState: StateFlow<MoeHomeSectionState> =
         combine(
-            combine(
-                themeMode.state,
-                classicHomeEnabled.state,
-                useSystemWallpaper.state,
-                moeHomeQuote.state,
-                moeSidebarExpanded.state,
-            ) { theme, classic, systemWallpaper, quote, sidebar ->
-                MoeHomeSectionState(
-                    themeMode = theme,
-                    classicHomeEnabled = classic,
-                    useSystemWallpaper = systemWallpaper,
-                    moeHomeQuote = quote,
-                    sidebarExpanded = sidebar,
-                )
-            },
-            moeWallpaperScrimEnabled.state,
-        ) { base, scrim -> base.copy(wallpaperScrimEnabled = scrim) }
+            themeMode.state,
+            classicHomeEnabled.state,
+            useSystemWallpaper.state,
+            moeHomeQuote.state,
+            moeSidebarExpanded.state,
+        ) { theme, classic, systemWallpaper, quote, sidebar ->
+            MoeHomeSectionState(
+                themeMode = theme,
+                classicHomeEnabled = classic,
+                useSystemWallpaper = systemWallpaper,
+                moeHomeQuote = quote,
+                sidebarExpanded = sidebar,
+            )
+        }
             .stateInWhileSubscribed(
                 viewModelScope,
                 MoeHomeSectionState(
@@ -262,7 +257,6 @@ class AppSettingsViewModel(
                     useSystemWallpaper = useSystemWallpaper.value,
                     moeHomeQuote = moeHomeQuote.value,
                     sidebarExpanded = moeSidebarExpanded.value,
-                    wallpaperScrimEnabled = moeWallpaperScrimEnabled.value,
                 ),
             )
 
@@ -325,8 +319,6 @@ class AppSettingsViewModel(
 
 
     fun onMoeSidebarExpandedChange(expanded: Boolean) = moeSidebarExpanded.set(expanded)
-
-    fun onMoeWallpaperScrimEnabledChange(enabled: Boolean) = moeWallpaperScrimEnabled.set(enabled)
 
     fun onSplitLeftRatioChange(ratio: Float) =
         splitLeftRatio.set(ratio.coerceIn(0.05f, 0.95f))

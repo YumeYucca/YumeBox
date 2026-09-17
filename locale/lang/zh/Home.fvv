@@ -50,7 +50,6 @@ Home = {
         ClassicHome = "使用經典首頁"
         ExpandSidebar = "展開側邊欄"
         ChangeWallpaper = "更換桌布"
-        WallpaperScrim = "桌布底部漸暗"
     }
 
     Control = {
