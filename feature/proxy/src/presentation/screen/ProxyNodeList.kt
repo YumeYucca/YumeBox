@@ -111,137 +111,141 @@ internal fun NodeListPage(
         }
     }
 
+    val listTopPadding =
+        if (showSearch) {
+            UiDp.dp0
+        } else {
+            outerInnerPadding.calculateTopPadding() + UiDp.dp20
+        }
     val contentPadding =
         PaddingValues(
             start = UiDp.dp12,
             end = UiDp.dp12,
-            top = outerInnerPadding.calculateTopPadding() + UiDp.dp20,
+            top = listTopPadding,
             bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
         )
 
-    ProxyDelayPullToRefresh(
-        isRefreshing = isTesting,
-        onRefresh = onTestDelay,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = outerInnerPadding.calculateTopPadding()),
-        scrollBehavior = scrollBehavior,
-    ) {
-        if (useAdaptiveGrid) {
-            val resolvedGridState = gridState ?: rememberLazyGridState()
-            val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
-            var lastHiddenState by remember(resolvedGridState) { mutableStateOf(false) }
-            val fabScrollObserver =
-                remember(resolvedGridState) {
-                    object : NestedScrollConnection {
-                        override fun onPreScroll(
-                            available: Offset,
-                            source: NestedScrollSource,
-                        ): Offset {
-                            val hiddenState =
-                                when {
-                                    available.y < -1f -> true
-                                    available.y > 1f -> false
-                                    else -> return Offset.Zero
+    Column(modifier = Modifier.fillMaxSize()) {
+        NodeSearchField(
+            query = searchQuery,
+            visible = showSearch,
+            onQueryChange = onSearchQueryChange,
+            modifier = Modifier.padding(top = outerInnerPadding.calculateTopPadding() + UiDp.dp20),
+        )
+        ProxyDelayPullToRefresh(
+            isRefreshing = isTesting,
+            onRefresh = onTestDelay,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            contentPadding = PaddingValues(top = listTopPadding),
+            scrollBehavior = scrollBehavior,
+        ) {
+            if (useAdaptiveGrid) {
+                val resolvedGridState = gridState ?: rememberLazyGridState()
+                val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
+                var lastHiddenState by remember(resolvedGridState) { mutableStateOf(false) }
+                val fabScrollObserver =
+                    remember(resolvedGridState) {
+                        object : NestedScrollConnection {
+                            override fun onPreScroll(
+                                available: Offset,
+                                source: NestedScrollSource,
+                            ): Offset {
+                                val hiddenState =
+                                    when {
+                                        available.y < -1f -> true
+                                        available.y > 1f -> false
+                                        else -> return Offset.Zero
+                                    }
+                                if (hiddenState != lastHiddenState) {
+                                    lastHiddenState = hiddenState
+                                    latestScrollDirectionCallback(hiddenState)
                                 }
-                            if (hiddenState != lastHiddenState) {
-                                lastHiddenState = hiddenState
-                                latestScrollDirectionCallback(hiddenState)
+                                return Offset.Zero
                             }
-                            return Offset.Zero
-                        }
 
-                        override suspend fun onPostFling(
-                            consumed: Velocity,
-                            available: Velocity,
-                        ): Velocity {
-                            if (consumed.y > 1f || available.y > 1f) {
-                                latestScrollDirectionCallback(false)
-                                lastHiddenState = false
+                            override suspend fun onPostFling(
+                                consumed: Velocity,
+                                available: Velocity,
+                            ): Velocity {
+                                if (consumed.y > 1f || available.y > 1f) {
+                                    latestScrollDirectionCallback(false)
+                                    lastHiddenState = false
+                                }
+                                return Velocity.Zero
                             }
-                            return Velocity.Zero
+                        }
+                    }
+                LaunchedEffect(resolvedGridState) {
+                    latestScrollDirectionCallback(false)
+                    lastHiddenState = false
+                }
+                Box(
+                    Modifier.fillMaxSize().nestedScroll(fabScrollObserver)
+                ) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = PaneWidths.NodeGridAdaptiveMin),
+                        state = resolvedGridState,
+                        contentPadding = contentPadding,
+                        horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
+                        verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(items = visibleProxies, key = { it.name }) { proxy ->
+                            NodeCard(
+                                proxy = proxy,
+                                isSelected = proxy.name == group.now,
+                                onClick = { proxyName ->
+                                    if (group.isSelectable) {
+                                        onSelectProxy(group.name, proxyName)
+                                    } else {
+                                        onTestDelay()
+                                    }
+                                },
+                                onTestClick = onTestProxyDelay,
+                                isDelayTesting = testingProxyNames.contains(proxy.name),
+                                showCountryFlag = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
                     }
                 }
-            LaunchedEffect(resolvedGridState) {
-                latestScrollDirectionCallback(false)
-                lastHiddenState = false
-            }
-            Box(
-                Modifier.fillMaxSize().nestedScroll(fabScrollObserver)
-            ) {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = PaneWidths.NodeGridAdaptiveMin),
-                state = resolvedGridState,
-                contentPadding = contentPadding,
-                horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
-                verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
-                    NodeSearchField(
-                        query = searchQuery,
-                        visible = showSearch,
-                        onQueryChange = onSearchQueryChange,
-                    )
-                }
-                items(items = visibleProxies, key = { it.name }) { proxy ->
-                    NodeCard(
-                        proxy = proxy,
-                        isSelected = proxy.name == group.now,
-                        onClick = { proxyName ->
+            } else {
+                ScreenLazyColumn(
+                    lazyListState = listState,
+                    scrollBehavior = scrollBehavior,
+                    innerPadding = outerInnerPadding,
+                    enableGlobalScroll = true,
+                    onScrollDirectionChanged = onScrollDirectionChanged,
+                    contentPadding = contentPadding,
+                ) {
+                    nodeGridItems(
+                        proxies = visibleProxies,
+                        selectedProxyName = group.now,
+                        onProxyClick = { proxyName ->
                             if (group.isSelectable) {
                                 onSelectProxy(group.name, proxyName)
                             } else {
                                 onTestDelay()
                             }
                         },
-                        onTestClick = onTestProxyDelay,
-                        isDelayTesting = testingProxyNames.contains(proxy.name),
-                        showCountryFlag = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        onProxyTest = onTestProxyDelay,
+                        testingProxyNames = testingProxyNames,
+                        outerHorizontalPadding = UiDp.dp0,
+                        itemVerticalPadding = UiDp.dp6,
                     )
                 }
-            }
-            }
-        } else {
-            ScreenLazyColumn(
-                lazyListState = listState,
-                scrollBehavior = scrollBehavior,
-                innerPadding = outerInnerPadding,
-                enableGlobalScroll = true,
-                onScrollDirectionChanged = onScrollDirectionChanged,
-                contentPadding = contentPadding,
-            ) {
-                item(key = "__node_search__") {
-                    NodeSearchField(
-                        query = searchQuery,
-                        visible = showSearch,
-                        onQueryChange = onSearchQueryChange,
-                    )
-                }
-
-                nodeGridItems(
-                    proxies = visibleProxies,
-                    selectedProxyName = group.now,
-                    onProxyClick = { proxyName ->
-                        if (group.isSelectable) {
-                            onSelectProxy(group.name, proxyName)
-                        } else {
-                            onTestDelay()
-                        }
-                    },
-                    onProxyTest = onTestProxyDelay,
-                    testingProxyNames = testingProxyNames,
-                    outerHorizontalPadding = UiDp.dp0,
-                    itemVerticalPadding = UiDp.dp6,
-                )
             }
         }
     }
 }
 
 @Composable
-private fun NodeSearchField(query: String, visible: Boolean, onQueryChange: (String) -> Unit) {
+private fun NodeSearchField(
+    query: String,
+    visible: Boolean,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     AnimatedVisibility(
@@ -288,7 +292,7 @@ private fun NodeSearchField(query: String, visible: Boolean, onQueryChange: (Str
                 }
             },
             modifier =
-                Modifier
+                modifier
                     .fillMaxWidth()
                     .padding(top = UiDp.dp4, bottom = UiDp.dp8),
             )

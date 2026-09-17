@@ -72,7 +72,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
         rememberProxyGroupSelectionState(
             proxyGroups = proxyGroups,
             onRefreshGroup = proxyViewModel::refreshGroup,
-            retainLastKnownGroup = false,
+            retainLastKnownGroup = true,
         )
     val selectedGroupName = groupSelection.selectedGroupName
     val selectedGroup = groupSelection.selectedGroup
@@ -291,9 +291,11 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
             },
             label = "notification_node_sheet_content",
         ) { targetGroupName ->
-            val targetGroup = targetGroupName?.let { name ->
-                proxyGroups.firstOrNull { group -> group.name == name }
-            }
+            val targetGroup =
+                targetGroupName?.let { name ->
+                    proxyGroups.firstOrNull { group -> group.name == name }
+                        ?: groupSelection.displayGroup?.takeIf { group -> group.name == name }
+                }
             if (targetGroup == null) {
                 val testingGroupNames by proxyViewModel.testingGroupNames.collectAsState()
                 NodeGroupSheetContent(
