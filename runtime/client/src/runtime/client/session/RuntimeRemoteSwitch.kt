@@ -30,6 +30,7 @@ import com.github.yumeyucca.yumebox.runtime.api.RuntimePhase
 import com.github.yumeyucca.yumebox.runtime.api.RuntimeSnapshot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -68,13 +69,9 @@ internal class RuntimeRemoteSwitch(
 
     private fun configuredMode(): RunMode = deps.networkSettingsStorage.runMode.value
 
-    private companion object {
-        const val PROBE_FAILURE_THRESHOLD = 3
-    }
-
     private val mutex = Mutex()
     private var probeJob: Job? = null
-    private var consecutiveFailures = 0
+    private var refreshJob: Job? = null
 
     fun apply() {
         scope.launch { mutex.withLock { applyLocked() } }
@@ -82,46 +79,39 @@ internal class RuntimeRemoteSwitch(
 
     private suspend fun applyLocked() {
         if (!store.isWanted()) {
-            consecutiveFailures = 0
             detachIfHolding()
             stopWatch()
             return
         }
         startWatch()
-        if (reachable()) {
-            consecutiveFailures = 0
-            attach()
-            return
-        }
-        consecutiveFailures = 0
-        detachIfActive()
+        checkRemote(refresh = true)
     }
 
     private suspend fun watchdogTick() {
         if (!store.isWanted()) {
-            consecutiveFailures = 0
             detachIfHolding()
             return
         }
-        if (reachable()) {
-            consecutiveFailures = 0
-            attach()
-            return
+        checkRemote(refresh = false)
+    }
+
+    private suspend fun checkRemote(refresh: Boolean) {
+        val backend = store.activeBackend()
+        val reachable = RemoteControllerProbe.isReachable(probe)
+        // A setting change queues another apply; never attach using the previous target's reply.
+        if (!store.isWanted() || store.activeBackend() != backend) return
+        if (reachable) {
+            attach(refresh)
+        } else {
+            detachIfHolding()
         }
-        if (!store.isActive()) return
-        if (isWatchingRemote()) {
-            consecutiveFailures += 1
-            if (consecutiveFailures < PROBE_FAILURE_THRESHOLD) return
-        }
-        consecutiveFailures = 0
-        detach()
     }
 
     private fun startWatch() {
         if (probeJob?.isActive == true) return
         probeJob =
             scope.launch {
-                PollingTimers.ticks(PollingTimerSpecs.RemoteControllerProbe).collect {
+                PollingTimers.ticks(PollingTimerSpecs.RemoteControllerProbe).conflate().collect {
                     mutex.withLock { watchdogTick() }
                 }
             }
@@ -132,21 +122,15 @@ internal class RuntimeRemoteSwitch(
         probeJob = null
     }
 
-    private suspend fun reachable(): Boolean =
-        runCatching { probe() }
-            .onFailure { error ->
-                if (error is CancellationException) throw error
-                Timber.d(error, "Remote controller probe skipped")
-            }
-            .getOrDefault(false)
-
     private fun isWatchingRemote(): Boolean {
         val current = snapshot()
         return current.owner == RuntimeOwner.RemoteController &&
             current.phase == RuntimePhase.Running
     }
 
-    private suspend fun attach() {
+    private suspend fun attach(refresh: Boolean) {
+        if (store.isActive() && isWatchingRemote() && !refresh) return
+        refreshJob?.cancel()
         store.controllerAttached.set(true)
         operationMutex.withLock {
             if (!isWatchingRemote()) {
@@ -154,13 +138,17 @@ internal class RuntimeRemoteSwitch(
                 publishRemoteRunning()
             }
         }
-        runCatching { connectBackend() }
-            .onFailure { error ->
+        // Node/traffic refreshes may wait on slow HTTP requests. They must never hold the watchdog.
+        refreshJob = scope.launch {
+            runCatching {
+                connectBackend()
+                startTrafficPolling()
+                deps.onAfterRunning()
+            }.onFailure { error ->
                 if (error is CancellationException) throw error
-                Timber.d(error, "Remote controller backend connect skipped")
+                Timber.d(error, "Remote controller backend refresh skipped")
             }
-        startTrafficPolling()
-        deps.onAfterRunning()
+        }
     }
 
     private suspend fun detachIfHolding() {
@@ -171,18 +159,25 @@ internal class RuntimeRemoteSwitch(
         }
     }
 
-    private suspend fun detachIfActive() {
-        if (store.isActive()) detach()
-    }
-
     private suspend fun detach() {
+        refreshJob?.cancel()
+        refreshJob = null
         store.controllerAttached.set(false)
         stopTrafficPolling()
         val paused = store.takePausedLocal()?.toTypedOrNull()
         if (snapshot().owner == RuntimeOwner.RemoteController) {
             reconcile()
         }
-        if (paused == null) return
+        if (paused == null) {
+            refreshJob = scope.launch {
+                if (snapshot().phase == RuntimePhase.Running) {
+                    deps.onAfterRunning()
+                } else {
+                    deps.onAfterIdle()
+                }
+            }
+            return
+        }
         Timber.i(
             "Controller fallback: resuming local runtime owner=${paused.owner} mode=${paused.mode}"
         )
