@@ -153,21 +153,25 @@ internal fun MainContentHost(
                     val showProxyNodes =
                         settledDestination == BottomBarDestination.Proxy &&
                                 detailBackStack.lastOrNull() !is Route.Providers
-                    AnimatedContent(
-                        targetState = showProxyNodes,
-                        modifier = Modifier.fillMaxSize(),
-                        transitionSpec = { splitShellRightPaneTransform(forward = targetState) },
-                        label = "split_shell_right_pane",
-                    ) { nodesVisible ->
-                        if (nodesVisible) {
-                            ProxyShellNodeDetail(
-                                mainInnerPadding = rightInnerPadding,
-                                onNavigateToProviders = {
-                                    detailNavigator.replaceAll(listOf(Route.About, Route.Providers))
-                                },
-                            )
-                        } else {
-                            SecondaryDetailHost(navigator = detailNavigator)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Keep the detail navigator attached while proxy nodes are visible. If this
+                        // host is only composed after navigation, its childStack misses the route
+                        // transaction and falls back to its About root instead of Providers.
+                        SecondaryDetailHost(navigator = detailNavigator)
+                        AnimatedContent(
+                            targetState = showProxyNodes,
+                            modifier = Modifier.fillMaxSize(),
+                            transitionSpec = { splitShellRightPaneTransform(forward = targetState) },
+                            label = "split_shell_right_pane",
+                        ) { nodesVisible ->
+                            if (nodesVisible) {
+                                ProxyShellNodeDetail(
+                                    mainInnerPadding = rightInnerPadding,
+                                    onNavigateToProviders = {
+                                        detailNavigator.replaceAll(listOf(Route.About, Route.Providers))
+                                    },
+                                )
+                            }
                         }
                     }
                 }

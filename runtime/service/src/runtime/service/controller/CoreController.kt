@@ -317,20 +317,24 @@ class CoreController(
     /**
      * Best-effort snapshot of the nodes served by proxy providers, keyed by node name.
      *
-     * Deliberately kept off the critical path: the fetch runs on [providerScope] and callers wait
-     * at most [PROVIDER_SNAPSHOT_WAIT_MS] for it, so a provider that is slow or still initializing
-     * degrades to "not enriched this round" instead of stalling a group query — which local mode
-     * bounds at [LOCAL_GROUP_QUERY_TIMEOUT_MS]. The in-flight fetch keeps running and fills the
-     * cache for the next call.
+     * Group queries use [PROVIDER_SNAPSHOT_WAIT_MS] so a slow provider does not stall the critical
+     * path, while an explicit node test can request a longer wait before reporting an unknown
+     * provider node as timed out. The in-flight fetch keeps running and fills the cache for the
+     * next call.
      */
-    private suspend fun providerSnapshot(): ProviderSnapshot {
-        providerSnapshotCache
-            ?.takeIf { System.nanoTime() - it.capturedAtNanos <= PROVIDER_SNAPSHOT_CACHE_NS }
-            ?.let {
-                return it.snapshot
-            }
+    private suspend fun providerSnapshot(
+        waitMillis: Long = PROVIDER_SNAPSHOT_WAIT_MS,
+        forceRefresh: Boolean = false,
+    ): ProviderSnapshot {
+        if (!forceRefresh) {
+            providerSnapshotCache
+                ?.takeIf { System.nanoTime() - it.capturedAtNanos <= PROVIDER_SNAPSHOT_CACHE_NS }
+                ?.let {
+                    return it.snapshot
+                }
+        }
         val refresh = refreshProviderSnapshot()
-        return withTimeoutOrNull(PROVIDER_SNAPSHOT_WAIT_MS) { refresh.await() }
+        return withTimeoutOrNull(waitMillis) { refresh.await() }
             ?: providerSnapshotCache?.snapshot
             ?: ProviderSnapshot.Empty
     }
@@ -419,7 +423,7 @@ class CoreController(
         runBlocking(Dispatchers.IO) { closeAllConnectionsAsync() }
     }
 
-    override suspend fun healthCheck(group: String) {
+    override suspend fun healthCheck(group: String): Map<String, Int> =
         runCatching {
             request(
                 HttpMethod.Get,
@@ -428,8 +432,11 @@ class CoreController(
                 "delay",
                 query = delayQuery,
             )
+                .bodyAsText()
+                .let { raw -> json.decodeFromString<Map<String, Int>>(raw) }
         }
-    }
+            .onFailure { error -> Timber.d(error, "Group delay test failed: %s", group) }
+            .getOrDefault(emptyMap())
 
     override suspend fun healthCheckProxy(group: String, proxyName: String): Int {
         readDelay("proxies", proxyName, "delay")?.let {
@@ -437,7 +444,14 @@ class CoreController(
         }
         // `/proxies/{name}` resolves against `tunnel.Proxies()`, so a provider-backed node 404s
         // there and would always read as a timeout. Retry through the provider that owns it.
-        val owner = providerSnapshot().owners[proxyName] ?: return -1
+        val owner =
+            providerSnapshot().owners[proxyName]
+                ?: providerSnapshot(
+                    waitMillis = PROVIDER_DELAY_OWNER_WAIT_MS,
+                    forceRefresh = true,
+                )
+                    .owners[proxyName]
+                ?: return -1
         return readDelay("providers", "proxies", owner, proxyName, "healthcheck") ?: -1
     }
 
@@ -622,6 +636,7 @@ class CoreController(
         const val TRAFFIC_SAMPLE_CACHE_NS = 500_000_000L
 
         const val PROVIDER_SNAPSHOT_WAIT_MS = 400L
+        const val PROVIDER_DELAY_OWNER_WAIT_MS = 5_000L
         const val PROVIDER_SNAPSHOT_CACHE_NS = 5_000_000_000L
         const val LOCAL_BASE_URL = "http://localhost"
 

@@ -82,7 +82,10 @@ internal fun NodeSortPopup(
                             listOf(
                                 DropdownItem(
                                     text = YumeTxt.Providers.Title,
-                                    onClick = navigateToProviders,
+                                    onClick = {
+                                        onDismiss()
+                                        navigateToProviders()
+                                    },
                                 )
                             ),
                     )

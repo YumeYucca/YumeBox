@@ -239,18 +239,18 @@ class ProxyFacade(
             false
         }
 
-    suspend fun healthCheck(group: String) {
+    suspend fun healthCheck(group: String, singleNodeTest: Boolean) {
         when (nodeSession.value.source) {
-            NodeDataSource.Active -> groups.healthCheck(group)
-            NodeDataSource.Preview -> preview.healthCheck(group)
+            NodeDataSource.Active -> groups.healthCheck(group, singleNodeTest)
+            NodeDataSource.Preview -> preview.healthCheck(group, singleNodeTest)
             NodeDataSource.None -> Unit
         }
     }
 
-    suspend fun healthCheckAll() {
+    suspend fun healthCheckAll(singleNodeTest: Boolean) {
         when (nodeSession.value.source) {
-            NodeDataSource.Active -> groups.healthCheckAll()
-            NodeDataSource.Preview -> preview.healthCheckAll()
+            NodeDataSource.Active -> groups.healthCheckAll(singleNodeTest)
+            NodeDataSource.Preview -> preview.healthCheckAll(singleNodeTest)
             NodeDataSource.None -> Unit
         }
     }
