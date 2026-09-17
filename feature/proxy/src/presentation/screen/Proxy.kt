@@ -56,6 +56,7 @@ private data class ProxyScreenVmState(
     val testingProxyNames: Set<String>,
     val sortMode: ProxySortMode,
     val uiSelectedGroupName: String?,
+    val showNodeSearch: Boolean,
 )
 
 @Composable
@@ -65,12 +66,14 @@ private fun rememberProxyScreenVmState(proxyViewModel: ProxyViewModel): ProxyScr
     val testingProxyNames by proxyViewModel.testingProxyNames.collectAsState()
     val sortMode by proxyViewModel.sortMode.collectAsState()
     val uiSelectedGroupName by proxyViewModel.uiSelectedGroupName.collectAsState()
+    val showNodeSearch by proxyViewModel.showNodeSearch.collectAsState()
     return remember(
         proxyGroups,
         testingGroupNames,
         testingProxyNames,
         sortMode,
         uiSelectedGroupName,
+        showNodeSearch,
     ) {
         ProxyScreenVmState(
             proxyGroups = proxyGroups,
@@ -78,6 +81,7 @@ private fun rememberProxyScreenVmState(proxyViewModel: ProxyViewModel): ProxyScr
             testingProxyNames = testingProxyNames,
             sortMode = sortMode,
             uiSelectedGroupName = uiSelectedGroupName,
+            showNodeSearch = showNodeSearch,
         )
     }
 }
@@ -96,6 +100,7 @@ fun ProxyPager(
     val testingProxyNames = screen.testingProxyNames
     val sortMode = screen.sortMode
     val uiSelectedGroupName = screen.uiSelectedGroupName
+    val showNodeSearch = screen.showNodeSearch
     val groupScrollBehavior = MiuixScrollBehavior(snapAnimationSpec = null)
     val topBarHazeState = LocalTopBarHazeState.current
 
@@ -113,7 +118,6 @@ fun ProxyPager(
     val selectedGroupName = groupSelection.selectedGroupName
     val displayGroup = groupSelection.displayGroup
     val selectedNodeGroup = groupSelection.selectedGroup ?: displayGroup
-    var showNodeSearch by rememberSaveable { mutableStateOf(true) }
     var nodeSearchQuery by rememberSaveable(selectedGroupName) { mutableStateOf("") }
 
     LaunchedEffect(inSplitShell, proxyGroups, selectedGroupName) {
@@ -189,8 +193,9 @@ fun ProxyPager(
                     onSearchToggle =
                         selectedGroupName?.let {
                             {
-                                showNodeSearch = !showNodeSearch
-                                if (!showNodeSearch) nodeSearchQuery = ""
+                                val nextVisible = !showNodeSearch
+                                proxyViewModel.setShowNodeSearch(nextVisible)
+                                if (!nextVisible) nodeSearchQuery = ""
                             }
                         },
                     showSortPopup = showSortPopup,
@@ -369,6 +374,7 @@ internal fun ProxyShellNodeDetailContent(
     val testingProxyNames = screen.testingProxyNames
     val sortMode = screen.sortMode
     val uiSelectedGroupName = screen.uiSelectedGroupName
+    val showNodeSearch = screen.showNodeSearch
     val scrollBehavior = MiuixScrollBehavior(snapAnimationSpec = null)
     val coroutineScope = rememberCoroutineScope()
     val groupSelection =
@@ -383,7 +389,6 @@ internal fun ProxyShellNodeDetailContent(
     val displayGroup = groupSelection.displayGroup
     val currentGroup = groupSelection.selectedGroup ?: displayGroup ?: proxyGroups.firstOrNull()
     var showSortPopup by rememberSaveable { mutableStateOf(false) }
-    var showNodeSearch by rememberSaveable { mutableStateOf(true) }
     var nodeSearchQuery by rememberSaveable(selectedGroupName) { mutableStateOf("") }
 
     // The tablet detail pane can outlive the left pager during a destination transition. Keep a
@@ -466,8 +471,9 @@ internal fun ProxyShellNodeDetailContent(
                         isDelayTesting = groupName != null && groupName in testingGroupNames,
                         searchEnabled = showNodeSearch,
                         onSearchToggle = {
-                            showNodeSearch = !showNodeSearch
-                            if (!showNodeSearch) nodeSearchQuery = ""
+                            val nextVisible = !showNodeSearch
+                            proxyViewModel.setShowNodeSearch(nextVisible)
+                            if (!nextVisible) nodeSearchQuery = ""
                         },
                         showSortPopup = showSortPopup,
                         onShowSortPopupChange = { showSortPopup = it },

@@ -128,6 +128,7 @@ data class ProxyDisplaySettingsBackup(
     val displayMode: ProxyDisplayMode = ProxyDisplayMode.SINGLE_DETAILED,
     val proxyMode: TunnelState.Mode = TunnelState.Mode.Rule,
     val sheetHeightFraction: Float = PROXY_SHEET_HEIGHT_FRACTION_DEFAULT,
+    val showNodeSearch: Boolean = true,
 )
 
 @Serializable

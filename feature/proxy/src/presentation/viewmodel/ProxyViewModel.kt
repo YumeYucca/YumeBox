@@ -72,6 +72,13 @@ class ProxyViewModel(
             ProxySortMode.DEFAULT,
         )
 
+    val showNodeSearch: StateFlow<Boolean> =
+        proxyDisplaySettingsStore.showNodeSearch.state.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            true,
+        )
+
     val singleNodeTest: StateFlow<Boolean> =
         appSettings.singleNodeTest.state.stateIn(
             viewModelScope,
@@ -176,6 +183,10 @@ class ProxyViewModel(
 
     fun setSortMode(mode: ProxySortMode) {
         proxyDisplaySettingsStore.sortMode.set(mode)
+    }
+
+    fun setShowNodeSearch(visible: Boolean) {
+        proxyDisplaySettingsStore.showNodeSearch.set(visible)
     }
 
     fun selectProxy(groupName: String, proxyName: String) {

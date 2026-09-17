@@ -108,6 +108,7 @@ internal class BackupStoreAdapter(
                     displayMode = proxyDisplaySettings.displayMode.value,
                     proxyMode = proxyDisplaySettings.proxyMode.value,
                     sheetHeightFraction = proxyDisplaySettings.sheetHeightFraction.value,
+                    showNodeSearch = proxyDisplaySettings.showNodeSearch.value,
                 ),
             profileLinks =
                 ProfileLinksBackup(
@@ -222,6 +223,7 @@ internal class BackupStoreAdapter(
             proxyDisplaySettings.displayMode,
             proxyDisplaySettings.proxyMode,
             proxyDisplaySettings.sheetHeightFraction,
+            proxyDisplaySettings.showNodeSearch,
         )
         refreshAfterRawStoreClear(
             profileLinks.linkOpenMode,
@@ -304,6 +306,7 @@ internal class BackupStoreAdapter(
         proxyDisplaySettings.displayMode.set(value.displayMode)
         proxyDisplaySettings.proxyMode.set(value.proxyMode)
         proxyDisplaySettings.sheetHeightFraction.set(value.sheetHeightFraction)
+        proxyDisplaySettings.showNodeSearch.set(value.showNodeSearch)
     }
 
     private fun applyProfileLinks(value: ProfileLinksBackup) {
