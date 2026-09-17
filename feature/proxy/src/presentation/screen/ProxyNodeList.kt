@@ -48,6 +48,8 @@ import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.LocalSpacing
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.KeepLazyListTopAnchorOnReorder
+import com.github.yumeyucca.yumebox.presentation.util.ProxyDelayPullToRefresh
+import com.github.yumeyucca.yumebox.presentation.util.rememberCurrentGroupPullToRefreshTexts
 import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
@@ -162,6 +164,14 @@ internal fun NodeListPage(
             latestScrollDirectionCallback(false)
             lastHiddenState = false
         }
+        ProxyDelayPullToRefresh(
+            isRefreshing = isTesting,
+            onRefresh = onTestDelay,
+            refreshTexts = rememberCurrentGroupPullToRefreshTexts(),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = outerInnerPadding.calculateTopPadding()),
+            scrollBehavior = scrollBehavior,
+        ) {
         Box(Modifier
             .fillMaxSize()
             .nestedScroll(fabScrollObserver)) {
@@ -251,14 +261,25 @@ internal fun NodeListPage(
                 }
             }
         }
+        }
         return
     }
 
+    ProxyDelayPullToRefresh(
+        isRefreshing = isTesting,
+        onRefresh = onTestDelay,
+        refreshTexts = rememberCurrentGroupPullToRefreshTexts(),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = outerInnerPadding.calculateTopPadding()),
+        scrollBehavior = scrollBehavior,
+    ) {
     ScreenLazyColumn(
         lazyListState = listState,
         scrollBehavior = scrollBehavior,
         innerPadding = outerInnerPadding,
         enableGlobalScroll = true,
+        enableOverScroll = false,
+        enableTopBarNestedScroll = false,
         onScrollDirectionChanged = onScrollDirectionChanged,
         contentPadding = contentPadding,
     ) {
@@ -331,6 +352,7 @@ internal fun NodeListPage(
             outerHorizontalPadding = UiDp.dp0,
             itemVerticalPadding = UiDp.dp6,
         )
+    }
     }
 }
 

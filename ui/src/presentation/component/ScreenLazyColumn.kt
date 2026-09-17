@@ -57,6 +57,8 @@ fun ScreenLazyColumn(
     bottomPadding: Dp = UiDp.dp0,
     topPadding: Dp = UiDp.dp0,
     enableGlobalScroll: Boolean = true,
+    enableOverScroll: Boolean = true,
+    enableTopBarNestedScroll: Boolean = true,
     lazyListState: LazyListState = rememberLazyListState(),
     onScrollDirectionChanged: ((Boolean) -> Unit)? = null,
     content: LazyListScope.() -> Unit,
@@ -125,12 +127,18 @@ fun ScreenLazyColumn(
             modifier
                 .fillMaxSize()
                 .scrollEndHaptic()
-                .overScrollVertical()
+                .let { mod -> if (enableOverScroll) mod.overScrollVertical() else mod }
                 .let { mod ->
                     if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState) else mod
                 }
                 .nestedScroll(fabScrollObserver)
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .let { mod ->
+                    if (enableTopBarNestedScroll) {
+                        mod.nestedScroll(scrollBehavior.nestedScrollConnection)
+                    } else {
+                        mod
+                    }
+                }
                 .let { mod ->
                     if (enableGlobalScroll && bottomBarScrollBehavior != null) {
                         mod.nestedScroll(bottomBarScrollBehavior.nestedScrollConnection)

@@ -300,6 +300,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                     groups = proxyGroups,
                     onGroupClick = groupSelection.selectGroup,
                     onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
+                    onTestAllGroups = { proxyViewModel.testDelay() },
                     testingGroupNames = testingGroupNames,
                     sheetHeightFraction = NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION,
                     listState = groupListState,

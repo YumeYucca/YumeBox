@@ -50,4 +50,13 @@ Proxy = {
         DoubleDetailed = "Double Detailed"
         DoubleSimple = "Double Simple"
     }
+
+    PullToRefresh = {
+        PullToTestAllGroups = "Pull to test all groups"
+        ReleaseToTestAllGroups = "Release to test all groups"
+        TestingAllGroups = "Testing all groups..."
+        PullToTestCurrentGroup = "Pull to test current group"
+        ReleaseToTestCurrentGroup = "Release to test current group"
+        TestingCurrentGroup = "Testing current group..."
+    }
 }
