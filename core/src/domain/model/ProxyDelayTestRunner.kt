@@ -62,13 +62,13 @@ fun resolveTestableProxyNames(
 }
 
 fun countPlannedProxyDelayTests(
-    groups: List<ProxyGroupInfo>,
+    groupNames: List<String>,
     proxiesByGroup: Map<String, List<Proxy>>,
 ): Int {
     val tested = linkedSetOf<String>()
     var count = 0
-    for (group in groups) {
-        val proxyNames = resolveTestableProxyNames(group.name, proxiesByGroup)
+    for (groupName in groupNames) {
+        val proxyNames = resolveTestableProxyNames(groupName, proxiesByGroup)
         if (proxyNames.isEmpty()) {
             count += 1
             continue
@@ -87,9 +87,7 @@ fun countPlannedProxyDelayTestsForGroup(
 ): Int {
     val proxyNames = resolveTestableProxyNames(groupName, proxiesByGroup)
     if (proxyNames.isEmpty()) return 1
-    return proxyNames.count { it !in testedProxyNames }.coerceAtLeast(0).let { pending ->
-        if (pending == 0) 0 else pending
-    }
+    return proxyNames.count { it !in testedProxyNames }
 }
 
 suspend fun <T> withProxyDelayTestProgress(
@@ -110,6 +108,50 @@ suspend fun <T> withProxyDelayTestProgress(
         }
     }
     return block(onStep)
+}
+
+suspend fun runProxyGroupDelayTests(
+    groupNames: List<String>,
+    proxiesByGroup: Map<String, List<Proxy>>,
+    isActive: () -> Boolean,
+    measureProxy: suspend (groupName: String, proxyName: String) -> Int,
+    measureGroup: suspend (groupName: String) -> Map<String, Int>,
+    publish: suspend (delays: Map<String, Int>) -> Boolean,
+    onProgress: ProxyDelayTestProgressCallback? = null,
+): Boolean {
+    val total =
+        if (groupNames.size == 1) {
+            countPlannedProxyDelayTestsForGroup(groupNames.first(), proxiesByGroup)
+        } else {
+            countPlannedProxyDelayTests(groupNames, proxiesByGroup)
+        }
+    return withProxyDelayTestProgress(total, onProgress) { onStep ->
+        val testedProxyNames = linkedSetOf<String>()
+        for (groupName in groupNames) {
+            if (!isActive()) return@withProxyDelayTestProgress false
+            val proxyNames = resolveTestableProxyNames(groupName, proxiesByGroup)
+            val ok =
+                if (proxyNames.isEmpty()) {
+                    val delays = measureGroup(groupName)
+                    val published = publish(delays)
+                    if (published) {
+                        onStep(delays.size.coerceAtLeast(1))
+                    }
+                    published
+                } else {
+                    runParallelProxyDelayTests(
+                        proxyNames = proxyNames,
+                        testedProxyNames = testedProxyNames,
+                        isActive = isActive,
+                        measure = { proxyName -> measureProxy(groupName, proxyName) },
+                        publish = { proxyName, delay -> publish(mapOf(proxyName to delay)) },
+                        onStep = onStep,
+                    )
+                }
+            if (!ok) return@withProxyDelayTestProgress false
+        }
+        isActive()
+    }
 }
 
 suspend fun runParallelProxyDelayTests(

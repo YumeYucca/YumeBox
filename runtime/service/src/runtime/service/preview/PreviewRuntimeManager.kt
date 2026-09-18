@@ -9,16 +9,12 @@ package com.github.yumeyucca.yumebox.runtime.service.preview
 import android.content.Context
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import com.github.yumeyucca.yumebox.core.model.ProxySort
-import com.github.yumeyucca.yumebox.domain.model.ProxyDelayOverlay
 import com.github.yumeyucca.yumebox.domain.model.ProxyDelayPublishCoalescer
 import com.github.yumeyucca.yumebox.domain.model.ProxyDelayTestProgressCallback
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
-import com.github.yumeyucca.yumebox.domain.model.countPlannedProxyDelayTests
-import com.github.yumeyucca.yumebox.domain.model.countPlannedProxyDelayTestsForGroup
-import com.github.yumeyucca.yumebox.domain.model.proxyMembersByGroup
-import com.github.yumeyucca.yumebox.domain.model.resolveTestableProxyNames
-import com.github.yumeyucca.yumebox.domain.model.runParallelProxyDelayTests
-import com.github.yumeyucca.yumebox.domain.model.withProxyDelayTestProgress
+import com.github.yumeyucca.yumebox.domain.model.ProxyGroupOverlay
+import com.github.yumeyucca.yumebox.domain.model.membersByGroup
+import com.github.yumeyucca.yumebox.domain.model.runProxyGroupDelayTests
 import com.github.yumeyucca.yumebox.runtime.service.controller.CoreController
 import com.github.yumeyucca.yumebox.runtime.service.core.PreviewCoreProcess
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
@@ -55,7 +51,7 @@ class PreviewRuntimeManager(context: Context) {
     private val mutex = Mutex()
     private val generation = AtomicLong(0L)
     private val _state = MutableStateFlow(PreviewNodeState())
-    private val delayOverlay = ProxyDelayOverlay()
+    private val delayOverlay = ProxyGroupOverlay()
     private val delayPublish = ProxyDelayPublishCoalescer()
     val state: StateFlow<PreviewNodeState> = _state.asStateFlow()
 
@@ -110,57 +106,30 @@ class PreviewRuntimeManager(context: Context) {
     ) {
         val previewGeneration = generation.get()
         val snapshot = prepareHealthCheckSnapshot(previewGeneration) ?: return
-        val total =
-            countPlannedProxyDelayTestsForGroup(
-                groupName = group,
-                proxiesByGroup = snapshot.proxiesByGroup,
-            )
         delayPublish.session(
             flush = { delays -> applyDirectDelays(previewGeneration, delays) },
         ) {
-            withProxyDelayTestProgress(total = total, onProgress = onProgress) { onStep ->
-                healthCheckGroup(
-                    previewGeneration = previewGeneration,
-                    controller = snapshot.controller,
-                    groupName = group,
-                    proxiesByGroup = snapshot.proxiesByGroup,
-                    onStep = onStep,
-                )
-            }
+            runPreviewDelayTests(
+                previewGeneration = previewGeneration,
+                snapshot = snapshot,
+                groupNames = listOf(group),
+                onProgress = onProgress,
+            )
         }
     }
 
     suspend fun healthCheckAll(onProgress: ProxyDelayTestProgressCallback? = null) {
         val previewGeneration = generation.get()
         val snapshot = prepareHealthCheckSnapshot(previewGeneration) ?: return
-        val total =
-            countPlannedProxyDelayTests(
-                groups = snapshot.groupInfos,
-                proxiesByGroup = snapshot.proxiesByGroup,
-            )
         delayPublish.session(
             flush = { delays -> applyDirectDelays(previewGeneration, delays) },
         ) {
-            withProxyDelayTestProgress(total = total, onProgress = onProgress) { onStep ->
-                val testedProxyNames = linkedSetOf<String>()
-                var ok = true
-                for (group in snapshot.groupInfos) {
-                    if (
-                        !healthCheckGroup(
-                            previewGeneration = previewGeneration,
-                            controller = snapshot.controller,
-                            groupName = group.name,
-                            proxiesByGroup = snapshot.proxiesByGroup,
-                            testedProxyNames = testedProxyNames,
-                            onStep = onStep,
-                        )
-                    ) {
-                        ok = false
-                        break
-                    }
-                }
-                ok
-            }
+            runPreviewDelayTests(
+                previewGeneration = previewGeneration,
+                snapshot = snapshot,
+                groupNames = snapshot.groupInfos.map(ProxyGroupInfo::name),
+                onProgress = onProgress,
+            )
         }
     }
 
@@ -206,7 +175,7 @@ class PreviewRuntimeManager(context: Context) {
 
     /** Keep a direct delay probe from being overwritten by the controller's lagging history. */
     private fun mergeReportedDelays(incoming: List<ProxyGroup>): List<ProxyGroup> {
-        delayOverlay.prune(incoming.proxyMembersByGroup())
+        delayOverlay.prune(membersByGroup(incoming.map { group -> group.name to group.proxies }))
         val previousByGroup = _state.value.groups.associateBy(ProxyGroup::name)
         return incoming.map { group ->
             val previousByProxy = previousByGroup[group.name]?.proxies?.associateBy { it.name }
@@ -216,7 +185,7 @@ class PreviewRuntimeManager(context: Context) {
                         val previousDelay = previousByProxy?.get(proxy.name)?.delay
                         proxy.copy(
                             delay =
-                                delayOverlay.merge(
+                                delayOverlay.mergeDelay(
                                     groupName = group.name,
                                     proxyName = proxy.name,
                                     reportedDelay = proxy.delay,
@@ -225,7 +194,7 @@ class PreviewRuntimeManager(context: Context) {
                         )
                     }
             )
-        }
+        }.let(delayOverlay::paintProxyGroups)
     }
 
     private data class PreviewHealthCheckSnapshot(
@@ -257,35 +226,23 @@ class PreviewRuntimeManager(context: Context) {
             )
         }
 
-    private suspend fun healthCheckGroup(
+    private suspend fun runPreviewDelayTests(
         previewGeneration: Long,
-        controller: CoreController,
-        groupName: String,
-        proxiesByGroup: Map<String, List<com.github.yumeyucca.yumebox.core.model.Proxy>>,
-        testedProxyNames: MutableSet<String> = linkedSetOf(),
-        onStep: suspend (Int) -> Unit = {},
-    ): Boolean {
-        if (!isCurrentGeneration(previewGeneration)) return false
-        val proxyNames = resolveTestableProxyNames(groupName, proxiesByGroup)
-        if (proxyNames.isEmpty()) {
-            val delays = controller.healthCheck(groupName)
-            val published = publishDirectDelays(previewGeneration, delays)
-            if (published) {
-                onStep(delays.size.coerceAtLeast(1))
-            }
-            return published
-        }
-        return runParallelProxyDelayTests(
-            proxyNames = proxyNames,
-            testedProxyNames = testedProxyNames,
+        snapshot: PreviewHealthCheckSnapshot,
+        groupNames: List<String>,
+        onProgress: ProxyDelayTestProgressCallback?,
+    ): Boolean =
+        runProxyGroupDelayTests(
+            groupNames = groupNames,
+            proxiesByGroup = snapshot.proxiesByGroup,
             isActive = { isCurrentGeneration(previewGeneration) },
-            measure = { proxyName -> controller.healthCheckProxy(groupName, proxyName) },
-            publish = { proxyName, delay ->
-                publishDirectDelays(previewGeneration, mapOf(proxyName to delay))
+            measureProxy = { groupName, proxyName ->
+                snapshot.controller.healthCheckProxy(groupName, proxyName)
             },
-            onStep = onStep,
+            measureGroup = { groupName -> snapshot.controller.healthCheck(groupName) },
+            publish = { delays -> publishDirectDelays(previewGeneration, delays) },
+            onProgress = onProgress,
         )
-    }
 
     private suspend fun publishDirectDelays(
         previewGeneration: Long,
@@ -293,9 +250,9 @@ class PreviewRuntimeManager(context: Context) {
     ): Boolean {
         if (!isCurrentGeneration(previewGeneration)) return false
         if (delays.none { (_, delay) -> delay != 0 }) return true
-        return delayPublish.enqueue(delays) { pending ->
-            applyDirectDelays(previewGeneration, pending)
-        }
+        if (delayPublish.enqueue(delays)) return true
+        applyDirectDelays(previewGeneration, delays)
+        return isCurrentGeneration(previewGeneration)
     }
 
     private fun applyDirectDelays(
@@ -316,8 +273,11 @@ class PreviewRuntimeManager(context: Context) {
                         }
                 )
             }
-        delayOverlay.record(measuredDelays, updatedGroups.proxyMembersByGroup())
-        _state.value = previous.copy(groups = updatedGroups)
+        delayOverlay.recordDelays(
+            measuredDelays,
+            membersByGroup(updatedGroups.map { group -> group.name to group.proxies }),
+        )
+        _state.value = previous.copy(groups = delayOverlay.paintProxyGroups(updatedGroups))
     }
 
     private fun isCurrentGeneration(previewGeneration: Long): Boolean =

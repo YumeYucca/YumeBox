@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeYucca 2025 - Present
+ * Copyright (c) YumeYucca 2025 - Present
  *
  */
 
@@ -22,14 +22,13 @@ package com.github.yumeyucca.yumebox.runtime.client.session
 
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
-import com.github.yumeyucca.yumebox.domain.model.ProxyDelayOverlay
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
-import com.github.yumeyucca.yumebox.domain.model.proxyMembersByGroup
+import com.github.yumeyucca.yumebox.domain.model.ProxyGroupOverlay
+import com.github.yumeyucca.yumebox.domain.model.membersByGroup
 import com.github.yumeyucca.yumebox.domain.model.resolveTerminalProxy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Proxy-group view state extracted from `ProxyFacade`: caches the last published group list,
@@ -49,8 +48,8 @@ internal class ProxyGroupStore(
     val resolvedPrimaryNode: StateFlow<Proxy?> = _resolvedPrimaryNode.asStateFlow()
 
     private var lastSummary: String? = null
-    private val delayOverlay = ProxyDelayOverlay(nowNanos, directDelayGraceNanos)
-    private val pendingNow = ConcurrentHashMap<String, String>()
+    private val overlay = ProxyGroupOverlay(nowNanos, directDelayGraceNanos)
+    private var sourceGroups: List<ProxyGroupInfo> = emptyList()
 
     fun toInfo(group: ProxyGroup): ProxyGroupInfo =
         ProxyGroupInfo(
@@ -63,30 +62,25 @@ internal class ProxyGroupStore(
         )
 
     fun publish(groups: List<ProxyGroupInfo>) {
-        val summary = summarize(groups)
+        sourceGroups = groups
+        val resolved = overlay.paint(groups)
+        val summary = summarize(resolved)
         if (summary != lastSummary) {
-            _groups.value = groups
+            _groups.value = resolved
             lastSummary = summary
         }
-        onGroupsReady(groups.isNotEmpty())
-        updateResolvedPrimaryNode(groups)
+        onGroupsReady(resolved.isNotEmpty())
+        updateResolvedPrimaryNode(resolved)
     }
 
-    fun applySelectedNow(groupName: String, proxyName: String): List<ProxyGroupInfo> {
-        val name = proxyName.trim()
-        if (name.isEmpty()) return _groups.value
-        pendingNow[groupName] = name
-        return _groups.value.map { group ->
-            if (group.name == groupName) group.copy(now = name) else group
-        }
+    fun recordSelectedNow(groupName: String, proxyName: String) {
+        overlay.recordNow(groupName, proxyName)
+        publish(sourceGroups.ifEmpty { _groups.value })
     }
 
     fun clearSelectedNow(groupName: String, expected: String? = null) {
-        if (expected == null) {
-            pendingNow.remove(groupName)
-        } else {
-            pendingNow.remove(groupName, expected)
-        }
+        overlay.clearNow(groupName, expected)
+        publish(sourceGroups.ifEmpty { _groups.value })
     }
 
     fun upsert(updated: ProxyGroupInfo): List<ProxyGroupInfo> {
@@ -100,8 +94,8 @@ internal class ProxyGroupStore(
 
     fun recordDirectDelaysEverywhere(delays: Map<String, Int>): List<ProxyGroupInfo> {
         val measuredDelays = delays.filterValues { delay -> delay != 0 }
-        if (measuredDelays.isEmpty()) return _groups.value
-        val currentGroups = _groups.value
+        if (measuredDelays.isEmpty()) return sourceGroups.ifEmpty { _groups.value }
+        val currentGroups = sourceGroups.ifEmpty { _groups.value }
         val updated =
             currentGroups.map { group ->
                 group.copy(
@@ -112,60 +106,46 @@ internal class ProxyGroupStore(
                         }
                 )
             }
-        delayOverlay.record(measuredDelays, updated.proxyMembersByGroup())
+        overlay.recordDelays(measuredDelays, membersByGroup(updated.map { it.name to it.proxies }))
         return updated
     }
 
     /**
-     * The controller's aggregate proxy snapshot can lag behind a direct `/delay` response.
+     * The controller's aggregate proxy snapshot can lag behind a direct `/delay` or selector write.
      * Keep the direct result until an equal snapshot arrives or a short grace window expires.
      */
     fun mergeReportedDelays(incoming: List<ProxyGroupInfo>): List<ProxyGroupInfo> {
-        delayOverlay.prune(incoming.proxyMembersByGroup())
+        overlay.prune(membersByGroup(incoming.map { group -> group.name to group.proxies }))
         val previousByGroup = _groups.value.associateBy(ProxyGroupInfo::name)
-        return applyPendingNow(
-            incoming.map { group ->
-                val previousByProxy = previousByGroup[group.name]?.proxies?.associateBy(Proxy::name)
-                group.copy(
-                    proxies =
-                        group.proxies.map { proxy ->
-                            val previousDelay = previousByProxy?.get(proxy.name)?.delay
-                            proxy.copy(
-                                delay =
-                                    delayOverlay.merge(
-                                        groupName = group.name,
-                                        proxyName = proxy.name,
-                                        reportedDelay = proxy.delay,
-                                        previousDelay = previousDelay,
-                                    )
-                            )
-                        }
-                )
-            }
-        )
+        return incoming.map { group ->
+            val previousByProxy = previousByGroup[group.name]?.proxies?.associateBy(Proxy::name)
+            group.copy(
+                now = overlay.mergeNow(group.name, group.now.trim()),
+                proxies =
+                    group.proxies.map { proxy ->
+                        val previousDelay = previousByProxy?.get(proxy.name)?.delay
+                        proxy.copy(
+                            delay =
+                                overlay.mergeDelay(
+                                    groupName = group.name,
+                                    proxyName = proxy.name,
+                                    reportedDelay = proxy.delay,
+                                    previousDelay = previousDelay,
+                                )
+                        )
+                    }
+            )
+        }
     }
 
     fun clear(resetGroups: Boolean) {
-        delayOverlay.clear()
-        pendingNow.clear()
+        overlay.clear()
+        sourceGroups = emptyList()
         if (resetGroups) {
             _groups.value = emptyList()
             lastSummary = null
         }
         _resolvedPrimaryNode.value = null
-    }
-
-    private fun applyPendingNow(groups: List<ProxyGroupInfo>): List<ProxyGroupInfo> {
-        if (pendingNow.isEmpty()) return groups
-        return groups.map { group ->
-            val pending = pendingNow[group.name] ?: return@map group
-            if (group.now == pending) {
-                pendingNow.remove(group.name, pending)
-                group
-            } else {
-                group.copy(now = pending)
-            }
-        }
     }
 
     private fun summarize(groups: List<ProxyGroupInfo>): String =
