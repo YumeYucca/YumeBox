@@ -15,7 +15,6 @@ AppSettings = {
     Behavior = {
         AutoStartTitle = "自動開始"
         AutoUpdateOnStartTitle = "開始時に更新"
-        OneChinaTitle = "一つの中国の原則を堅持"
     }
 
     Interface = {

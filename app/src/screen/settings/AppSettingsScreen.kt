@@ -35,7 +35,6 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.Lifecycle
 import androidx.core.net.toUri
-import com.github.yumeyucca.yumebox.common.util.LocaleUtil
 import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
@@ -77,7 +76,6 @@ private fun AppBehaviorSettingsSection(viewModel: AppSettingsViewModel) {
     val section by viewModel.behaviorSectionState.collectAsState()
     val automaticRestart = section.automaticRestart
     val autoUpdateCurrentProfileOnStart = section.autoUpdateCurrentProfileOnStart
-    val isChineseLocale = remember { LocaleUtil.isChineseLocale() }
 
     Title(YumeTxt.AppSettings.Section.Behavior)
     AppCard {
@@ -91,14 +89,6 @@ private fun AppBehaviorSettingsSection(viewModel: AppSettingsViewModel) {
             checked = autoUpdateCurrentProfileOnStart,
             onCheckedChange = viewModel::onAutoUpdateCurrentProfileOnStartChange,
         )
-        if (isChineseLocale) {
-            PreferenceSwitchItem(
-                title = YumeTxt.AppSettings.Behavior.OneChinaTitle,
-                checked = true,
-                onCheckedChange = {},
-                enabled = false,
-            )
-        }
     }
 }
 

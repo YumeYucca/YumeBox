@@ -255,10 +255,10 @@ internal fun NodeGroupCard(
                             horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
                             modifier = Modifier.weight(1f),
                         ) {
-                            val cc = currentNode.countryCode
-                            if (cc != null) {
-                                CountryFlagCircle(countryCode = cc, size = UiDp.dp20)
-                            }
+                            CountryFlagCircle(
+                                countryCode = currentNode.countryCode,
+                                size = UiDp.dp20,
+                            )
                             Text(
                                 text = currentNodeName,
                                 style = MiuixTheme.textStyles.body2,

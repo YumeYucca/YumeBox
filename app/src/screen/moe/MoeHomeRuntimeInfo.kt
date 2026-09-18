@@ -108,9 +108,10 @@ internal fun MoeHomeInfoPanel(
                     .weight(1f)
                     .padding(end = MoeUi.Info.trailingPadding),
                 leading = {
-                    node?.countryCode?.let { code ->
-                        CountryFlagCircle(countryCode = code, size = AppTheme.spacing.space16)
-                    }
+                    CountryFlagCircle(
+                        countryCode = node?.countryCode,
+                        size = AppTheme.spacing.space16,
+                    )
                 },
             )
         } else Spacer(Modifier

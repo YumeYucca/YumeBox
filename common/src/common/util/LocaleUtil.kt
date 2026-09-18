@@ -23,7 +23,10 @@ package com.github.yumeyucca.yumebox.common.util
 import java.util.*
 
 object LocaleUtil {
-    private val normalizedRegionCodes = setOf("TW")
+    const val UNKNOWN_FLAG_CODE = "xx"
+
+    private const val FLAG_CDN_BASE_URL = "https://hatscripts.github.io/circle-flags/flags/"
+    private const val UNKNOWN_FLAG_PATH = "other/earth.svg"
 
     @Volatile
     private var override: Locale? = null
@@ -34,23 +37,16 @@ object LocaleUtil {
 
     fun currentLocale(): Locale = override ?: Locale.getDefault()
 
-    fun isChineseLocale(): Boolean = currentLocale().language == "zh"
-
-    fun normalizeRegionCode(countryCode: String?): String? {
-        if (countryCode == null || !isChineseLocale()) return countryCode
-        return if (countryCode.uppercase() in normalizedRegionCodes) "CN" else countryCode
-    }
+    fun unknownFlagUrl(baseUrl: String = FLAG_CDN_BASE_URL): String = "$baseUrl$UNKNOWN_FLAG_PATH"
 
     fun normalizeFlagUrl(
-        countryCode: String,
-        baseUrl: String = "https://hatscripts.github.io/circle-flags/flags/",
+        countryCode: String?,
+        baseUrl: String = FLAG_CDN_BASE_URL,
     ): String {
-        val code =
-            if (isChineseLocale() && countryCode.uppercase() in normalizedRegionCodes) {
-                "cn"
-            } else {
-                countryCode.lowercase()
-            }
+        val code = countryCode?.trim()?.lowercase().orEmpty()
+        if (code.isEmpty() || code == UNKNOWN_FLAG_CODE) {
+            return unknownFlagUrl(baseUrl)
+        }
         return "$baseUrl$code.svg"
     }
 }

@@ -69,11 +69,11 @@ fun NodeInfoDisplay(serverName: String?, serverPing: Int?, modifier: Modifier = 
                         .fillMaxWidth()
                         .height(infoTextHeight),
                 ) {
-                    val countryCode = flagged?.countryCode
-                    if (countryCode != null) {
-                        CountryFlagCircle(countryCode = countryCode, size = spacing.space18)
-                        Spacer(modifier = Modifier.width(spacing.space8))
-                    }
+                    CountryFlagCircle(
+                        countryCode = flagged?.countryCode,
+                        size = spacing.space18,
+                    )
+                    Spacer(modifier = Modifier.width(spacing.space8))
                     Text(
                         text = flagged?.displayName ?: serverName.orEmpty(),
                         style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
