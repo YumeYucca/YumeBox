@@ -24,10 +24,12 @@ import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import com.github.yumeyucca.yumebox.domain.model.ProxyDelayOverlay
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
+import com.github.yumeyucca.yumebox.domain.model.proxyMembersByGroup
 import com.github.yumeyucca.yumebox.domain.model.resolveTerminalProxy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Proxy-group view state extracted from `ProxyFacade`: caches the last published group list,
@@ -48,6 +50,7 @@ internal class ProxyGroupStore(
 
     private var lastSummary: String? = null
     private val delayOverlay = ProxyDelayOverlay(nowNanos, directDelayGraceNanos)
+    private val pendingNow = ConcurrentHashMap<String, String>()
 
     fun toInfo(group: ProxyGroup): ProxyGroupInfo =
         ProxyGroupInfo(
@@ -67,6 +70,23 @@ internal class ProxyGroupStore(
         }
         onGroupsReady(groups.isNotEmpty())
         updateResolvedPrimaryNode(groups)
+    }
+
+    fun applySelectedNow(groupName: String, proxyName: String): List<ProxyGroupInfo> {
+        val name = proxyName.trim()
+        if (name.isEmpty()) return _groups.value
+        pendingNow[groupName] = name
+        return _groups.value.map { group ->
+            if (group.name == groupName) group.copy(now = name) else group
+        }
+    }
+
+    fun clearSelectedNow(groupName: String, expected: String? = null) {
+        if (expected == null) {
+            pendingNow.remove(groupName)
+        } else {
+            pendingNow.remove(groupName, expected)
+        }
     }
 
     fun upsert(updated: ProxyGroupInfo): List<ProxyGroupInfo> {
@@ -92,7 +112,7 @@ internal class ProxyGroupStore(
                         }
                 )
             }
-        delayOverlay.record(measuredDelays, membersByGroup(updated))
+        delayOverlay.record(measuredDelays, updated.proxyMembersByGroup())
         return updated
     }
 
@@ -101,30 +121,33 @@ internal class ProxyGroupStore(
      * Keep the direct result until an equal snapshot arrives or a short grace window expires.
      */
     fun mergeReportedDelays(incoming: List<ProxyGroupInfo>): List<ProxyGroupInfo> {
-        delayOverlay.prune(membersByGroup(incoming))
+        delayOverlay.prune(incoming.proxyMembersByGroup())
         val previousByGroup = _groups.value.associateBy(ProxyGroupInfo::name)
-        return incoming.map { group ->
-            val previousByProxy = previousByGroup[group.name]?.proxies?.associateBy(Proxy::name)
-            group.copy(
-                proxies =
-                    group.proxies.map { proxy ->
-                        val previousDelay = previousByProxy?.get(proxy.name)?.delay
-                        proxy.copy(
-                            delay =
-                                delayOverlay.merge(
-                                    groupName = group.name,
-                                    proxyName = proxy.name,
-                                    reportedDelay = proxy.delay,
-                                    previousDelay = previousDelay,
-                                )
-                        )
-                    }
-            )
-        }
+        return applyPendingNow(
+            incoming.map { group ->
+                val previousByProxy = previousByGroup[group.name]?.proxies?.associateBy(Proxy::name)
+                group.copy(
+                    proxies =
+                        group.proxies.map { proxy ->
+                            val previousDelay = previousByProxy?.get(proxy.name)?.delay
+                            proxy.copy(
+                                delay =
+                                    delayOverlay.merge(
+                                        groupName = group.name,
+                                        proxyName = proxy.name,
+                                        reportedDelay = proxy.delay,
+                                        previousDelay = previousDelay,
+                                    )
+                            )
+                        }
+                )
+            }
+        )
     }
 
     fun clear(resetGroups: Boolean) {
         delayOverlay.clear()
+        pendingNow.clear()
         if (resetGroups) {
             _groups.value = emptyList()
             lastSummary = null
@@ -132,8 +155,18 @@ internal class ProxyGroupStore(
         _resolvedPrimaryNode.value = null
     }
 
-    private fun membersByGroup(groups: List<ProxyGroupInfo>): Map<String, Set<String>> =
-        groups.associate { group -> group.name to group.proxies.mapTo(HashSet()) { it.name } }
+    private fun applyPendingNow(groups: List<ProxyGroupInfo>): List<ProxyGroupInfo> {
+        if (pendingNow.isEmpty()) return groups
+        return groups.map { group ->
+            val pending = pendingNow[group.name] ?: return@map group
+            if (group.now == pending) {
+                pendingNow.remove(group.name, pending)
+                group
+            } else {
+                group.copy(now = pending)
+            }
+        }
+    }
 
     private fun summarize(groups: List<ProxyGroupInfo>): String =
         groups.joinToString(separator = "\n") { group ->

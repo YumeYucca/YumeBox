@@ -19,7 +19,18 @@
  */
 package com.github.yumeyucca.yumebox.domain.model
 
+import com.github.yumeyucca.yumebox.core.model.Proxy
+import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.jvm.JvmName
+
+@JvmName("proxyGroupInfoMembersByGroup")
+fun List<ProxyGroupInfo>.proxyMembersByGroup(): Map<String, Set<String>> =
+    associate { group -> group.name to group.proxies.mapTo(HashSet(), Proxy::name) }
+
+@JvmName("proxyGroupMembersByGroup")
+fun List<ProxyGroup>.proxyMembersByGroup(): Map<String, Set<String>> =
+    associate { group -> group.name to group.proxies.mapTo(HashSet(), Proxy::name) }
 
 /**
  * Keeps direct delay-test responses authoritative until the aggregate controller snapshot catches
