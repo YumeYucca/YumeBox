@@ -131,7 +131,7 @@ class CoreRouter(
 
     override fun closeAllConnections() = pick().closeAllConnections()
 
-    override suspend fun healthCheck(group: String) = pick().healthCheck(group)
+    override suspend fun healthCheck(group: String): Map<String, Int> = pick().healthCheck(group)
 
     override suspend fun healthCheckProxy(group: String, proxyName: String): Int =
         pick().healthCheckProxy(group, proxyName)

@@ -383,13 +383,8 @@ internal data class MainRootPageState(
 internal fun MainRootPageContent(state: MainRootPageState) {
     val detailNavigator = LocalDetailNavigator.current
     val openProvidersFromProxy: () -> Unit = {
-        detailNavigator?.replaceAll(listOf(Route.About, Route.Providers))
-            ?: state.navigator.replaceAll(
-                listOf(
-                    Route.Main(initialPage = BottomBarDestination.Proxy.ordinal),
-                    Route.Providers,
-                ),
-            )
+        detailNavigator?.replaceAll(listOf(Route.Providers))
+            ?: state.navigator.push(Route.Providers)
     }
     when (state.destination) {
         BottomBarDestination.Home -> {

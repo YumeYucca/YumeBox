@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.navigation.SecondaryDetailHost
+import com.github.yumeyucca.yumebox.presentation.navigation.rememberSecondaryDetailStack
 import com.github.yumeyucca.yumebox.presentation.navigation.splitShellRightPaneTransform
 import com.github.yumeyucca.yumebox.presentation.screen.ProxyShellNodeDetail
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
@@ -152,7 +153,11 @@ internal fun MainContentHost(
                     val rightInnerPadding = paneInnerPadding(rightPadding, reserveBottomBar = false)
                     val showProxyNodes =
                         settledDestination == BottomBarDestination.Proxy &&
-                                detailBackStack.lastOrNull() !is Route.Providers
+                            detailBackStack.lastOrNull() !is Route.Providers
+                    // Subscribe before the pane switch so Providers is already on the stack when
+                    // the bounce transition starts. Composing the host only after navigation
+                    // drops the route and leaves the About root on screen.
+                    val detailStack = rememberSecondaryDetailStack(detailNavigator)
                     AnimatedContent(
                         targetState = showProxyNodes,
                         modifier = Modifier.fillMaxSize(),
@@ -163,11 +168,11 @@ internal fun MainContentHost(
                             ProxyShellNodeDetail(
                                 mainInnerPadding = rightInnerPadding,
                                 onNavigateToProviders = {
-                                    detailNavigator.replaceAll(listOf(Route.About, Route.Providers))
+                                    detailNavigator.replaceAll(listOf(Route.Providers))
                                 },
                             )
                         } else {
-                            SecondaryDetailHost(navigator = detailNavigator)
+                            SecondaryDetailHost(detailStack)
                         }
                     }
                 }

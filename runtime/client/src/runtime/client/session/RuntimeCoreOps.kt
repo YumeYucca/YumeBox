@@ -49,7 +49,7 @@ internal class RuntimeCoreOps(private val connect: suspend () -> Unit = {}) {
     suspend fun patchSelector(group: String, name: String): Boolean =
         CoreQueries.patchSelector(api(), group, name)
 
-    suspend fun healthCheck(group: String) = CoreQueries.healthCheck(api(), group)
+    suspend fun healthCheck(group: String): Map<String, Int> = CoreQueries.healthCheck(api(), group)
 
     suspend fun healthCheckProxy(group: String, proxyName: String): Int =
         CoreQueries.healthCheckProxy(api(), group, proxyName)

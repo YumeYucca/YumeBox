@@ -84,7 +84,7 @@ object CoreQueries {
     suspend fun closeAllConnections(api: CoreApi) =
         query(api, { closeAllConnectionsAsync() }, { closeAllConnections() })
 
-    suspend fun healthCheck(api: CoreApi, group: String) = api.healthCheck(group)
+    suspend fun healthCheck(api: CoreApi, group: String): Map<String, Int> = api.healthCheck(group)
 
     suspend fun healthCheckProxy(api: CoreApi, group: String, proxyName: String): Int =
         api.healthCheckProxy(group, proxyName)
