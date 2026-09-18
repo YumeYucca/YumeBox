@@ -53,7 +53,8 @@ interface CoreApi {
 
     fun closeAllConnections()
 
-    suspend fun healthCheck(group: String)
+    /** Tests every member of [group] and returns its directly measured delays by proxy name. */
+    suspend fun healthCheck(group: String): Map<String, Int>
 
     suspend fun healthCheckProxy(group: String, proxyName: String): Int
 

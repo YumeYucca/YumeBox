@@ -22,6 +22,7 @@ package com.github.yumeyucca.yumebox.runtime.client.session
 
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
+import com.github.yumeyucca.yumebox.domain.model.ProxyDelayOverlay
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.resolveTerminalProxy
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,8 @@ import kotlinx.coroutines.flow.asStateFlow
 internal class ProxyGroupStore(
     private val isRuntimeRunning: () -> Boolean,
     private val onGroupsReady: (Boolean) -> Unit,
+    private val nowNanos: () -> Long = System::nanoTime,
+    private val directDelayGraceNanos: Long = 10_000_000_000L,
 ) {
     private val _groups = MutableStateFlow<List<ProxyGroupInfo>>(emptyList())
     val groups: StateFlow<List<ProxyGroupInfo>> = _groups.asStateFlow()
@@ -44,6 +47,7 @@ internal class ProxyGroupStore(
     val resolvedPrimaryNode: StateFlow<Proxy?> = _resolvedPrimaryNode.asStateFlow()
 
     private var lastSummary: String? = null
+    private val delayOverlay = ProxyDelayOverlay(nowNanos, directDelayGraceNanos)
 
     fun toInfo(group: ProxyGroup): ProxyGroupInfo =
         ProxyGroupInfo(
@@ -74,26 +78,30 @@ internal class ProxyGroupStore(
         return currentGroups.map { group -> if (group.name == updated.name) updated else group }
     }
 
-    fun updateProxyDelay(groupName: String, proxyName: String, delay: Int): List<ProxyGroupInfo> {
+    fun recordDirectDelaysEverywhere(delays: Map<String, Int>): List<ProxyGroupInfo> {
+        val measuredDelays = delays.filterValues { delay -> delay != 0 }
+        if (measuredDelays.isEmpty()) return _groups.value
         val currentGroups = _groups.value
-        return currentGroups.map { group ->
-            if (group.name != groupName) {
-                group
-            } else {
+        val updated =
+            currentGroups.map { group ->
                 group.copy(
-                    proxies = group.proxies.map { proxy ->
-                        if (proxy.name == proxyName) proxy.copy(delay = delay) else proxy
-                    }
+                    proxies =
+                        group.proxies.map { proxy ->
+                            measuredDelays[proxy.name]?.let { delay -> proxy.copy(delay = delay) }
+                                ?: proxy
+                        }
                 )
             }
-        }
+        delayOverlay.record(measuredDelays, membersByGroup(updated))
+        return updated
     }
 
     /**
-     * The controller's aggregate proxy snapshot lags behind the direct `/delay` response. Retain
-     * a just-tested result when that stale snapshot still reports the sentinel zero value.
+     * The controller's aggregate proxy snapshot can lag behind a direct `/delay` response.
+     * Keep the direct result until an equal snapshot arrives or a short grace window expires.
      */
     fun mergeReportedDelays(incoming: List<ProxyGroupInfo>): List<ProxyGroupInfo> {
+        delayOverlay.prune(membersByGroup(incoming))
         val previousByGroup = _groups.value.associateBy(ProxyGroupInfo::name)
         return incoming.map { group ->
             val previousByProxy = previousByGroup[group.name]?.proxies?.associateBy(Proxy::name)
@@ -101,23 +109,31 @@ internal class ProxyGroupStore(
                 proxies =
                     group.proxies.map { proxy ->
                         val previousDelay = previousByProxy?.get(proxy.name)?.delay
-                        if (proxy.delay == 0 && previousDelay != null && previousDelay != 0) {
-                            proxy.copy(delay = previousDelay)
-                        } else {
-                            proxy
-                        }
+                        proxy.copy(
+                            delay =
+                                delayOverlay.merge(
+                                    groupName = group.name,
+                                    proxyName = proxy.name,
+                                    reportedDelay = proxy.delay,
+                                    previousDelay = previousDelay,
+                                )
+                        )
                     }
             )
         }
     }
 
     fun clear(resetGroups: Boolean) {
+        delayOverlay.clear()
         if (resetGroups) {
             _groups.value = emptyList()
             lastSummary = null
         }
         _resolvedPrimaryNode.value = null
     }
+
+    private fun membersByGroup(groups: List<ProxyGroupInfo>): Map<String, Set<String>> =
+        groups.associate { group -> group.name to group.proxies.mapTo(HashSet()) { it.name } }
 
     private fun summarize(groups: List<ProxyGroupInfo>): String =
         groups.joinToString(separator = "\n") { group ->

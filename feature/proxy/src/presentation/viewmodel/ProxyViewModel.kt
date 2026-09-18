@@ -55,6 +55,9 @@ class ProxyViewModel(
     private val _testingProxyNames = MutableStateFlow<Set<String>>(emptySet())
     val testingProxyNames: StateFlow<Set<String>> = _testingProxyNames.asStateFlow()
 
+    private var groupDelayTestInProgress = false
+    private val pendingProxyDelayTests = mutableSetOf<String>()
+
     /** UI selection shared between the left group list and shell right-pane node list. */
     private val _uiSelectedGroupName = MutableStateFlow<String?>(null)
     val uiSelectedGroupName: StateFlow<String?> = _uiSelectedGroupName.asStateFlow()
@@ -75,7 +78,7 @@ class ProxyViewModel(
     val singleNodeTest: StateFlow<Boolean> =
         appSettings.singleNodeTest.state.stateIn(
             viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
+            SharingStarted.Eagerly,
             true,
         )
 
@@ -130,46 +133,48 @@ class ProxyViewModel(
     }
 
     fun testDelay(groupName: String? = null) {
+        if (groupDelayTestInProgress) return
+        groupDelayTestInProgress = true
         viewModelScope.launch {
-            setLoading(true)
-            clearError()
-            val currentGroups = proxyGroups.value
-            val testingTargets: Set<String> =
-                if (groupName != null) {
-                    setOf(groupName)
-                } else {
-                    currentGroups.mapTo(linkedSetOf()) { it.name }
+            try {
+                setLoading(true)
+                clearError()
+                val currentGroups = proxyGroups.value
+                val testingTargets: Set<String> =
+                    if (groupName != null) {
+                        setOf(groupName)
+                    } else {
+                        currentGroups.mapTo(linkedSetOf()) { it.name }
+                    }
+                if (testingTargets.isNotEmpty()) {
+                    _testingGroupNames.update { it + testingTargets }
                 }
-            if (testingTargets.isNotEmpty()) {
-                _testingGroupNames.update { it + testingTargets }
-            }
 
-            val result = runCatching {
-                if (groupName != null) {
-                    showMessage(YumeTxt.Proxy.Testing.Group.format(groupName))
-                    proxyFacade.healthCheck(groupName)
-                    PollingTimers.awaitTick(PollingTimerSpecs.ProxyHealthcheckRefresh)
-                    proxyFacade.refreshProxyGroup(groupName)
-                    showMessage(YumeTxt.Proxy.Testing.RequestSent)
-                } else {
-                    showMessage(YumeTxt.Proxy.Testing.All)
-                    proxyFacade.healthCheckAll()
-                    if (currentGroups.isNotEmpty()) {
-                        PollingTimers.awaitTick(PollingTimerSpecs.ProxyHealthcheckRefresh)
-                        proxyFacade.refreshProxyGroups()
+                val result = runCatching {
+                    if (groupName != null) {
+                        showMessage(YumeTxt.Proxy.Testing.Group.format(groupName))
+                        proxyFacade.healthCheck(groupName, singleNodeTest.value)
+                        showMessage(YumeTxt.Proxy.Testing.RequestSent)
+                    } else {
+                        showMessage(YumeTxt.Proxy.Testing.All)
+                        proxyFacade.healthCheckAll(singleNodeTest.value)
                     }
                 }
-            }
 
-            setLoading(false)
+                setLoading(false)
 
-            if (testingTargets.isNotEmpty()) {
-                PollingTimers.awaitTick(PollingTimerSpecs.ProxyTestingSortHold)
-                _testingGroupNames.update { it - testingTargets }
-            }
+                if (testingTargets.isNotEmpty()) {
+                    PollingTimers.awaitTick(PollingTimerSpecs.ProxyTestingSortHold)
+                    _testingGroupNames.update { it - testingTargets }
+                }
 
-            result.exceptionOrNull()?.let { error ->
-                showError(YumeTxt.Proxy.Testing.Failed.format(error.message))
+                result.exceptionOrNull()?.let { error ->
+                    if (error is CancellationException) throw error
+                    showError(YumeTxt.Proxy.Testing.Failed.format(error.message))
+                }
+            } finally {
+                setLoading(false)
+                groupDelayTestInProgress = false
             }
         }
     }
@@ -195,13 +200,19 @@ class ProxyViewModel(
     }
 
     fun testProxyDelay(groupName: String, proxyName: String) {
+        if (!pendingProxyDelayTests.add(proxyName)) return
         viewModelScope.launch {
             _testingProxyNames.update { it + proxyName }
-            runCatching { proxyFacade.healthCheckProxy(groupName, proxyName) }
-                .onFailure { error ->
-                    showError(YumeTxt.Proxy.Testing.Failed.format(error.message))
-                }
-            _testingProxyNames.update { it - proxyName }
+            try {
+                runCatching { proxyFacade.healthCheckProxy(groupName, proxyName) }
+                    .onFailure { error ->
+                        if (error is CancellationException) throw error
+                        showError(YumeTxt.Proxy.Testing.Failed.format(error.message))
+                    }
+            } finally {
+                _testingProxyNames.update { it - proxyName }
+                pendingProxyDelayTests.remove(proxyName)
+            }
         }
     }
 

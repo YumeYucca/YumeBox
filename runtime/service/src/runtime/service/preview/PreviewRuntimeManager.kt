@@ -9,6 +9,9 @@ package com.github.yumeyucca.yumebox.runtime.service.preview
 import android.content.Context
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import com.github.yumeyucca.yumebox.core.model.ProxySort
+import com.github.yumeyucca.yumebox.domain.model.ProxyDelayOverlay
+import com.github.yumeyucca.yumebox.domain.model.resolveTestableProxyNames
+import com.github.yumeyucca.yumebox.runtime.service.controller.CoreController
 import com.github.yumeyucca.yumebox.runtime.service.core.PreviewCoreProcess
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
 import com.github.yumeyucca.yumebox.runtime.service.profile.ImportedDao
@@ -44,6 +47,7 @@ class PreviewRuntimeManager(context: Context) {
     private val mutex = Mutex()
     private val generation = AtomicLong(0L)
     private val _state = MutableStateFlow(PreviewNodeState())
+    private val delayOverlay = ProxyDelayOverlay()
     val state: StateFlow<PreviewNodeState> = _state.asStateFlow()
 
     /** Local storage only: preview must not depend on the service/controller backend being alive. */
@@ -65,6 +69,7 @@ class PreviewRuntimeManager(context: Context) {
                 return@withLock
             }
             if (!process.isAlive() || _state.value.fingerprint != compiled.fingerprint) {
+                delayOverlay.clear()
                 process.start(compiled.finalYaml)
             }
             val groups = awaitGroups(requestGeneration)
@@ -78,69 +83,98 @@ class PreviewRuntimeManager(context: Context) {
     /** Never wait for config compilation or a controller readiness retry on the real-core handoff. */
     fun stop() {
         generation.incrementAndGet()
+        delayOverlay.clear()
         process.stop()
     }
 
     fun reset() {
         generation.incrementAndGet()
+        delayOverlay.clear()
         process.stop()
         _state.value = PreviewNodeState()
     }
 
     /** Preview is read-only for selection, but mihomo's delay probes are safe and useful here. */
-    suspend fun healthCheck(group: String) = mutex.withLock {
-        process.controller().healthCheck(group)
-        refreshGroups()
-    }
-
-    suspend fun healthCheckAll() = mutex.withLock {
-        val controller = process.controller()
-        _state.value.groups.forEach { group -> controller.healthCheck(group.name) }
-        refreshGroups()
-    }
-
-    suspend fun healthCheckProxy(group: String, proxyName: String): Int = mutex.withLock {
-        val delay = process.controller().healthCheckProxy(group, proxyName)
-        // /delay returns before the aggregate /proxies history is updated. Keep the direct result
-        // visible immediately instead of replacing it with the previous zero-delay snapshot.
-        val previous = _state.value
-        _state.value =
-            previous.copy(
-                groups =
-                    previous.groups.map { currentGroup ->
-                        if (currentGroup.name != group) currentGroup
-                        else currentGroup.copy(
-                            proxies = currentGroup.proxies.map { proxy ->
-                                if (proxy.name == proxyName) proxy.copy(delay = delay) else proxy
-                            }
-                        )
-                    }
+    suspend fun healthCheck(group: String, singleNodeTest: Boolean) {
+        val previewGeneration = generation.get()
+        mutex.withLock {
+            if (!isCurrentGeneration(previewGeneration)) return@withLock
+            refreshGroups(previewGeneration)
+            if (!isCurrentGeneration(previewGeneration)) return@withLock
+            healthCheckGroup(
+                previewGeneration = previewGeneration,
+                controller = process.controller(),
+                groupName = group,
+                singleNodeTest = singleNodeTest,
             )
-        delay
+        }
     }
 
-    suspend fun refreshGroup(name: String, sort: ProxySort) = mutex.withLock {
-        val refreshed = mergeReportedDelays(listOf(process.controller().queryProxyGroupAsync(name, sort))).first()
-        val previous = _state.value
-        val merged =
-            previous.groups.let { groups ->
-                if (groups.none { it.name == name }) groups + refreshed
-                else groups.map { group -> if (group.name == name) refreshed else group }
+    suspend fun healthCheckAll(singleNodeTest: Boolean) {
+        val previewGeneration = generation.get()
+        mutex.withLock {
+            if (!isCurrentGeneration(previewGeneration)) return@withLock
+            refreshGroups(previewGeneration)
+            if (!isCurrentGeneration(previewGeneration)) return@withLock
+            val controller = process.controller()
+            val testedProxyNames = linkedSetOf<String>()
+            for (group in _state.value.groups) {
+                val completed =
+                    healthCheckGroup(
+                        previewGeneration,
+                        controller,
+                        group.name,
+                        singleNodeTest,
+                        testedProxyNames,
+                    )
+                if (!completed) break
             }
-        _state.value = previous.copy(groups = merged, ready = true)
+        }
     }
 
-    private suspend fun refreshGroups() {
+    suspend fun healthCheckProxy(group: String, proxyName: String): Int {
+        val previewGeneration = generation.get()
+        return mutex.withLock {
+            if (!isCurrentGeneration(previewGeneration)) return@withLock -1
+            val delay = process.controller().healthCheckProxy(group, proxyName)
+            publishDirectDelays(previewGeneration, mapOf(proxyName to delay))
+            delay
+        }
+    }
+
+    suspend fun refreshGroup(name: String, sort: ProxySort) {
+        val previewGeneration = generation.get()
+        mutex.withLock {
+            if (!isCurrentGeneration(previewGeneration)) return@withLock
+            val refreshed =
+                mergeReportedDelays(listOf(process.controller().queryProxyGroupAsync(name, sort))).first()
+            if (!isCurrentGeneration(previewGeneration)) return@withLock
+            val previous = _state.value
+            val merged =
+                previous.groups.let { groups ->
+                    if (groups.none { it.name == name }) groups + refreshed
+                    else groups.map { group -> if (group.name == name) refreshed else group }
+                }
+            _state.value = previous.copy(groups = merged, ready = true)
+        }
+    }
+
+    private suspend fun refreshGroups(previewGeneration: Long) {
+        val incoming = process.controller().queryAllProxyGroupsAsync(false)
+        if (!isCurrentGeneration(previewGeneration)) {
+            return
+        }
         val previous = _state.value
         _state.value =
             previous.copy(
-                groups = mergeReportedDelays(process.controller().queryAllProxyGroupsAsync(false)),
+                groups = mergeReportedDelays(incoming),
                 ready = true,
             )
     }
 
-    /** Keep a direct delay probe from being overwritten by the controller's lagging zero history. */
+    /** Keep a direct delay probe from being overwritten by the controller's lagging history. */
     private fun mergeReportedDelays(incoming: List<ProxyGroup>): List<ProxyGroup> {
+        delayOverlay.prune(membersByGroup(incoming))
         val previousByGroup = _state.value.groups.associateBy(ProxyGroup::name)
         return incoming.map { group ->
             val previousByProxy = previousByGroup[group.name]?.proxies?.associateBy { it.name }
@@ -148,15 +182,81 @@ class PreviewRuntimeManager(context: Context) {
                 proxies =
                     group.proxies.map { proxy ->
                         val previousDelay = previousByProxy?.get(proxy.name)?.delay
-                        if (proxy.delay == 0 && previousDelay != null && previousDelay != 0) {
-                            proxy.copy(delay = previousDelay)
-                        } else {
-                            proxy
-                        }
+                        proxy.copy(
+                            delay =
+                                delayOverlay.merge(
+                                    groupName = group.name,
+                                    proxyName = proxy.name,
+                                    reportedDelay = proxy.delay,
+                                    previousDelay = previousDelay,
+                                )
+                        )
                     }
             )
         }
     }
+
+    private suspend fun healthCheckGroup(
+        previewGeneration: Long,
+        controller: CoreController,
+        groupName: String,
+        singleNodeTest: Boolean,
+        testedProxyNames: MutableSet<String> = linkedSetOf(),
+    ): Boolean {
+        if (!isCurrentGeneration(previewGeneration)) return false
+        if (!singleNodeTest) {
+            val delays = controller.healthCheck(groupName)
+            return publishDirectDelays(previewGeneration, delays)
+        }
+
+        val proxyNames =
+            resolveTestableProxyNames(
+                groupName,
+                _state.value.groups.associate { group -> group.name to group.proxies },
+            )
+        if (proxyNames.isEmpty()) {
+            val delays = controller.healthCheck(groupName)
+            return publishDirectDelays(previewGeneration, delays)
+        }
+        for (proxyName in proxyNames) {
+            if (!testedProxyNames.add(proxyName)) continue
+            if (!isCurrentGeneration(previewGeneration)) return false
+            val delay = controller.healthCheckProxy(groupName, proxyName)
+            if (!publishDirectDelays(previewGeneration, mapOf(proxyName to delay))) {
+                return false
+            }
+        }
+        return isCurrentGeneration(previewGeneration)
+    }
+
+    private fun publishDirectDelays(
+        previewGeneration: Long,
+        delays: Map<String, Int>,
+    ): Boolean {
+        if (!isCurrentGeneration(previewGeneration)) return false
+        val measuredDelays = delays.filterValues { delay -> delay != 0 }
+        if (measuredDelays.isEmpty()) return true
+        val previous = _state.value
+        val updatedGroups =
+            previous.groups.map { group ->
+                group.copy(
+                    proxies =
+                        group.proxies.map { proxy ->
+                            measuredDelays[proxy.name]?.let { delay -> proxy.copy(delay = delay) }
+                                ?: proxy
+                        }
+                )
+            }
+        delayOverlay.record(measuredDelays, membersByGroup(updatedGroups))
+        _state.value = previous.copy(groups = updatedGroups)
+        return true
+    }
+
+    private fun membersByGroup(groups: List<ProxyGroup>): Map<String, Set<String>> =
+        groups.associate { group -> group.name to group.proxies.mapTo(HashSet()) { it.name } }
+
+    private fun isCurrentGeneration(previewGeneration: Long): Boolean =
+        generation.get() == previewGeneration && process.isAlive()
 
     private suspend fun awaitGroups(requestGeneration: Long): List<ProxyGroup> =
         withTimeout(CONTROLLER_READY_TIMEOUT_MS) {
