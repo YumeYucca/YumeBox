@@ -11,6 +11,7 @@ Proxy = {
         Test = "Test"
         Sort = "Sort"
         LocateCurrent = "Locate current proxy"
+        More = "More"
     }
 
     Node = {
@@ -28,6 +29,8 @@ Proxy = {
         Group = "Testing node group: %s"
         All = "Testing all node groups..."
         RequestSent = "Test request sent"
+        Progress = "Testing %d/%d"
+        Completed = "Test completed"
         Failed = "Test failed: %s"
         InProgress = "Testing the node"
     }

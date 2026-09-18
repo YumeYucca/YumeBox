@@ -79,7 +79,6 @@ data class AppSettingsBackup(
     val moeHomeQuote: String = "时间一分一秒流逝而去 终结一步一步迎面而来",
     val moeSidebarExpanded: Boolean = true,
     val pageScale: Float = 1.0f,
-    val singleNodeTest: Boolean = true,
     val customUserAgent: String = "",
 )
 

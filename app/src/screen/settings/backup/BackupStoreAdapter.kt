@@ -62,7 +62,6 @@ internal class BackupStoreAdapter(
                     moeHomeQuote = appSettings.moeHomeQuote.value,
                     moeSidebarExpanded = appSettings.moeSidebarExpanded.value,
                     pageScale = appSettings.pageScale.value,
-                    singleNodeTest = appSettings.singleNodeTest.value,
                     customUserAgent = appSettings.customUserAgent.value,
                 ),
             networkSettings =
@@ -180,7 +179,6 @@ internal class BackupStoreAdapter(
             appSettings.moeHomeQuote,
             appSettings.moeSidebarExpanded,
             appSettings.pageScale,
-            appSettings.singleNodeTest,
             appSettings.customUserAgent,
         )
         refreshAfterRawStoreClear(
@@ -258,7 +256,6 @@ internal class BackupStoreAdapter(
         appSettings.moeHomeQuote.set(value.moeHomeQuote)
         appSettings.moeSidebarExpanded.set(value.moeSidebarExpanded)
         appSettings.pageScale.set(value.pageScale)
-        appSettings.singleNodeTest.set(value.singleNodeTest)
         appSettings.customUserAgent.set(value.customUserAgent)
     }
 

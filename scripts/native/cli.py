@@ -68,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
     build_loader = not explicit or args.all or args.loader
     build_compat = not explicit or args.all or args.compat
     download_geo = not explicit or args.all or args.geo
-    needs_ndk = build_go or build_shell or build_loader or build_compat
+    needs_ndk = build_go or build_shell or build_rust or build_loader or build_compat
     ndk_tools = NdkTools(config) if needs_ndk else None
     if ndk_tools:
         print(f"NDK: {ndk_tools.ndk_dir}")
@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
     if build_shell:
         shell_builder(config, ndk_tools).build_all()
     if build_rust:
-        RustBuilder(config).build_all()
+        RustBuilder(config, ndk_tools).build_all()
     if build_loader:
         loader_builder(config, ndk_tools).build_all()
     if build_compat:

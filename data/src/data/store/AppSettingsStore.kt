@@ -52,8 +52,6 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     val pageScale by floatFlow(1.0f)
     val predictiveBackEnabled by boolFlow(false)
     val predictiveBackMaxProgress by floatFlow(50.0f)
-    val singleNodeTest by boolFlow(true)
-
     val customUserAgent by strFlow("")
 
     init {

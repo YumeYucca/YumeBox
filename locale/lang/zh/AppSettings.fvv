@@ -62,7 +62,6 @@ AppSettings = {
 
     ServiceSection = {
         TrafficNotificationTitle = "顯示流量通知"
-        SingleNodeTestTitle = "單節點測試"
         ExitUiWhenBackgroundTitle = "背景隱藏時釋放介面"
         BatteryOptimizationTitle = "電池最佳化無限制"
         BatteryOptimizationAlreadyDisabled = "電池最佳化已關閉"

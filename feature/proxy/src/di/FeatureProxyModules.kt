@@ -26,7 +26,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val featureProxyViewModelModule = module {
-    viewModel { ProxyViewModel(get(), get(), get(), get()) }
+    viewModel { ProxyViewModel(get(), get(), get()) }
     viewModel { ProvidersViewModel(get(), get()) }
 }
 

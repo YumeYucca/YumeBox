@@ -46,7 +46,6 @@ import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
@@ -56,9 +55,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowBottomSheet
 
 private const val NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION = 0.55f
-
-private fun LazyListState.isScrolledFromTop(): Boolean =
-    firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 0
 
 @Composable
 fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
@@ -76,7 +72,6 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
         )
     val selectedGroupName = groupSelection.selectedGroupName
     val selectedGroup = groupSelection.selectedGroup
-    val coroutineScope = rememberCoroutineScope()
     val groupListState = rememberLazyListState()
     val nodeListState =
         rememberSaveable(selectedGroupName, saver = LazyListState.Saver) { LazyListState() }
@@ -94,26 +89,14 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
             }
         }
     val triggerTopDelayTest =
-        remember(coroutineScope, groupListState, proxyViewModel) {
-            {
-                coroutineScope.launch {
-                    if (groupListState.isScrolledFromTop()) {
-                        groupListState.animateScrollToItem(0)
-                    }
-                    proxyViewModel.testDelay()
-                }
-            }
+        remember(proxyViewModel) {
+            { proxyViewModel.testDelay() }
         }
     val triggerSelectedGroupDelayTest =
-        remember(coroutineScope, nodeListState, proxyViewModel, selectedGroupName) {
+        remember(proxyViewModel, selectedGroupName) {
             {
                 val groupName = selectedGroupName ?: return@remember
-                coroutineScope.launch {
-                    if (nodeListState.isScrolledFromTop()) {
-                        nodeListState.animateScrollToItem(0)
-                    }
-                    proxyViewModel.testDelay(groupName)
-                }
+                proxyViewModel.testDelay(groupName)
             }
         }
     LaunchedEffect(showSheet.value) {
@@ -348,6 +331,7 @@ private fun ProxySheetNodeContent(
     NodeSheetContent(
         group = group,
         isDelayTesting = isDelayTesting,
+        delayTestProgress = proxyViewModel.delayTestProgress,
         onSelectProxy = onSelectProxy,
         onTestDelay = onTestDelay,
         testingProxyNames = testingProxyNames,

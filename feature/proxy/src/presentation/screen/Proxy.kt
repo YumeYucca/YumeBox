@@ -35,10 +35,7 @@ import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Eye
-import com.github.yumeyucca.yumebox.presentation.icon.yume.ListChevronsUpDown
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Speed
-import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSortPopup
+import com.github.yumeyucca.yumebox.presentation.icon.yume.Folders
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGroupItems
 import com.github.yumeyucca.yumebox.presentation.theme.*
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
@@ -113,7 +110,6 @@ fun ProxyPager(
     val selectedGroupName = groupSelection.selectedGroupName
     val displayGroup = groupSelection.displayGroup
     val selectedNodeGroup = groupSelection.selectedGroup ?: displayGroup
-    var showNodeSearch by rememberSaveable { mutableStateOf(true) }
     var nodeSearchQuery by rememberSaveable(selectedGroupName) { mutableStateOf("") }
 
     LaunchedEffect(inSplitShell, proxyGroups, selectedGroupName) {
@@ -133,15 +129,10 @@ fun ProxyPager(
     }
 
     val requestSelectedGroupDelayTest =
-        remember(coroutineScope, nodeListState, selectedGroupName, proxyViewModel) {
+        remember(selectedGroupName, proxyViewModel) {
             {
                 val groupName = selectedGroupName ?: return@remember
-                coroutineScope.launch {
-                    if (nodeListState.isScrolledFromTop()) {
-                        nodeListState.animateScrollToItem(0)
-                    }
-                    proxyViewModel.testDelay(groupName)
-                }
+                proxyViewModel.testDelay(groupName)
             }
         }
     val locateCurrentProxy =
@@ -182,17 +173,7 @@ fun ProxyPager(
                     showBack = false,
                     onBack = {},
                     onNavigateToProviders = onNavigateToProviders,
-                    onLocateCurrentProxy = locateCurrentProxy,
-                    onTestDelay = null,
-                    isDelayTesting = false,
-                    searchEnabled = showNodeSearch,
-                    onSearchToggle =
-                        selectedGroupName?.let {
-                            {
-                                showNodeSearch = !showNodeSearch
-                                if (!showNodeSearch) nodeSearchQuery = ""
-                            }
-                        },
+                    showSortAction = selectedGroupName == null,
                     showSortPopup = showSortPopup,
                     onShowSortPopupChange = { showSortPopup = it },
                     sortMode = sortMode,
@@ -296,6 +277,7 @@ fun ProxyPager(
                             sortMode = sortMode,
                             testingGroupNames = testingGroupNames,
                             testingProxyNames = testingProxyNames,
+                            delayTestProgress = proxyViewModel.delayTestProgress,
                             mainInnerPadding = mainInnerPadding,
                             outerInnerPadding = scaffoldPadding,
                             scrollBehavior = groupScrollBehavior,
@@ -312,8 +294,11 @@ fun ProxyPager(
                             onScrollDirectionChanged = {},
                             useAdaptiveGrid = false,
                             searchQuery = nodeSearchQuery,
-                            showSearch = showNodeSearch,
                             onSearchQueryChange = { nodeSearchQuery = it },
+                            showSortPopup = showSortPopup,
+                            onShowMorePopupChange = { showSortPopup = it },
+                            onSortSelected = proxyViewModel::setSortMode,
+                            onLocateCurrentProxy = locateCurrentProxy,
                         )
                     }
                 }
@@ -383,7 +368,6 @@ internal fun ProxyShellNodeDetailContent(
     val displayGroup = groupSelection.displayGroup
     val currentGroup = groupSelection.selectedGroup ?: displayGroup ?: proxyGroups.firstOrNull()
     var showSortPopup by rememberSaveable { mutableStateOf(false) }
-    var showNodeSearch by rememberSaveable { mutableStateOf(true) }
     var nodeSearchQuery by rememberSaveable(selectedGroupName) { mutableStateOf("") }
 
     // The tablet detail pane can outlive the left pager during a destination transition. Keep a
@@ -423,15 +407,10 @@ internal fun ProxyShellNodeDetailContent(
         val nodeGridState =
             rememberSaveable(groupName, saver = LazyGridState.Saver) { LazyGridState() }
         val requestSelectedGroupDelayTest =
-            remember(coroutineScope, nodeGridState, groupName, proxyViewModel) {
+            remember(groupName, proxyViewModel) {
                 {
                     val targetGroupName = groupName ?: return@remember
-                    coroutineScope.launch {
-                        if (nodeGridState.isScrolledFromTop()) {
-                            nodeGridState.animateScrollToItem(0)
-                        }
-                        proxyViewModel.testDelay(targetGroupName)
-                    }
+                    proxyViewModel.testDelay(targetGroupName)
                 }
             }
         val locateCurrentProxy =
@@ -461,14 +440,7 @@ internal fun ProxyShellNodeDetailContent(
                         showBack = false,
                         onBack = {},
                         onNavigateToProviders = onNavigateToProviders,
-                        onLocateCurrentProxy = locateCurrentProxy,
-                        onTestDelay = requestSelectedGroupDelayTest,
-                        isDelayTesting = groupName != null && groupName in testingGroupNames,
-                        searchEnabled = showNodeSearch,
-                        onSearchToggle = {
-                            showNodeSearch = !showNodeSearch
-                            if (!showNodeSearch) nodeSearchQuery = ""
-                        },
+                        showSortAction = false,
                         showSortPopup = showSortPopup,
                         onShowSortPopupChange = { showSortPopup = it },
                         sortMode = sortMode,
@@ -482,6 +454,7 @@ internal fun ProxyShellNodeDetailContent(
                         sortMode = sortMode,
                         testingGroupNames = testingGroupNames,
                         testingProxyNames = testingProxyNames,
+                        delayTestProgress = proxyViewModel.delayTestProgress,
                         mainInnerPadding = mainInnerPadding,
                         outerInnerPadding = scaffoldPadding,
                         scrollBehavior = scrollBehavior,
@@ -499,8 +472,11 @@ internal fun ProxyShellNodeDetailContent(
                         onScrollDirectionChanged = {},
                         useAdaptiveGrid = true,
                         searchQuery = nodeSearchQuery,
-                        showSearch = showNodeSearch,
                         onSearchQueryChange = { nodeSearchQuery = it },
+                        showSortPopup = showSortPopup,
+                        onShowMorePopupChange = { showSortPopup = it },
+                        onSortSelected = proxyViewModel::setSortMode,
+                        onLocateCurrentProxy = locateCurrentProxy,
                     )
                 }
             }
@@ -514,18 +490,12 @@ private fun ProxyTopBar(
     showBack: Boolean,
     onBack: () -> Unit,
     onNavigateToProviders: (() -> Unit)?,
-    onLocateCurrentProxy: (() -> Unit)?,
-    onTestDelay: (() -> Unit)?,
-    isDelayTesting: Boolean,
-    searchEnabled: Boolean,
-    onSearchToggle: (() -> Unit)?,
+    showSortAction: Boolean,
     showSortPopup: Boolean,
     onShowSortPopupChange: (Boolean) -> Unit,
     sortMode: ProxySortMode,
     onSortSelected: (ProxySortMode) -> Unit,
 ) {
-    val spacing = AppTheme.spacing
-
     TopBar(
         title = title,
         scrollBehavior = scrollBehavior,
@@ -539,50 +509,18 @@ private fun ProxyTopBar(
                         contentDescription = YumeTxt.Component.Navigation.Back,
                     )
                 }
-            } else if (onTestDelay != null) {
-                // The detail pane has no back arrow; use the leading slot for one-tap delay
-                // testing instead of forcing users back to the list's small test button
-                // (issue #151 item 10).
-                IconButton(onClick = onTestDelay) {
-                    if (isDelayTesting) {
-                        InfiniteProgressIndicator(
-                            modifier = Modifier.size(UiDp.dp22),
-                        )
-                    } else {
-                        Icon(
-                            Yume.Speed,
-                            contentDescription = YumeTxt.Proxy.Action.Test,
-                        )
-                    }
-                }
             }
         },
         actions = {
-            if (onLocateCurrentProxy != null) {
-                IconButton(
-                    modifier = Modifier.padding(end = spacing.space12),
-                    onClick = onLocateCurrentProxy,
-                ) {
-                    Icon(Yume.Eye, contentDescription = YumeTxt.Proxy.Action.LocateCurrent)
+            if (showSortAction) {
+                onNavigateToProviders?.let { navigateToProviders ->
+                    IconButton(onClick = navigateToProviders) {
+                        Icon(
+                            Yume.Folders,
+                            contentDescription = YumeTxt.Providers.Title,
+                        )
+                    }
                 }
-            }
-            Box {
-                IconButton(onClick = { onShowSortPopupChange(true) }) {
-                    Icon(
-                        Yume.ListChevronsUpDown,
-                        contentDescription = YumeTxt.Proxy.Action.Sort,
-                    )
-                }
-                NodeSortPopup(
-                    show = showSortPopup,
-                    onDismiss = { onShowSortPopupChange(false) },
-                    sortMode = sortMode,
-                    alignment = PopupPositionProvider.Align.BottomEnd,
-                    onNavigateToProviders = onNavigateToProviders,
-                    searchEnabled = searchEnabled,
-                    onSearchToggle = onSearchToggle,
-                    onSortSelected = onSortSelected,
-                )
             }
         },
     )
