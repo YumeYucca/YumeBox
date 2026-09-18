@@ -223,7 +223,6 @@ private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
     val context = LocalContext.current
     val section by viewModel.serviceSectionState.collectAsState()
     val showTrafficNotification = section.showTrafficNotification
-    val singleNodeTest = section.singleNodeTest
     val exitUiWhenBackground = section.exitUiWhenBackground
 
     Title(YumeTxt.AppSettings.Section.Service)
@@ -232,11 +231,6 @@ private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
             title = YumeTxt.AppSettings.ServiceSection.TrafficNotificationTitle,
             checked = showTrafficNotification,
             onCheckedChange = viewModel::onShowTrafficNotificationChange,
-        )
-        PreferenceSwitchItem(
-            title = YumeTxt.AppSettings.ServiceSection.SingleNodeTestTitle,
-            checked = singleNodeTest,
-            onCheckedChange = viewModel::onSingleNodeTestChange,
         )
         PreferenceSwitchItem(
             title = YumeTxt.AppSettings.ServiceSection.ExitUiWhenBackgroundTitle,

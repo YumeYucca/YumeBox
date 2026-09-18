@@ -75,7 +75,6 @@ class AppSettingsViewModel(
     val pageScale: Preference<Float> = settings.pageScale
     val predictiveBackEnabled: Preference<Boolean> = settings.predictiveBackEnabled
     val predictiveBackMaxProgress: Preference<Float> = settings.predictiveBackMaxProgress
-    val singleNodeTest: Preference<Boolean> = settings.singleNodeTest
     val exitUiWhenBackground: Preference<Boolean> = featureStore.exitUiWhenBackground
 
     val customUserAgent: Preference<String> = settings.customUserAgent
@@ -175,19 +174,13 @@ class AppSettingsViewModel(
 
     data class ServiceSectionState(
         val showTrafficNotification: Boolean = false,
-        val singleNodeTest: Boolean = false,
         val exitUiWhenBackground: Boolean = false,
     )
 
     val serviceSectionState: StateFlow<ServiceSectionState> =
-        combine(
-            showTrafficNotification.state,
-            singleNodeTest.state,
-            exitUiWhenBackground.state,
-        ) { traffic, single, exitUi ->
+        combine(showTrafficNotification.state, exitUiWhenBackground.state) { traffic, exitUi ->
             ServiceSectionState(
                 showTrafficNotification = traffic,
-                singleNodeTest = single,
                 exitUiWhenBackground = exitUi,
             )
         }
@@ -195,7 +188,6 @@ class AppSettingsViewModel(
                 viewModelScope,
                 ServiceSectionState(
                     showTrafficNotification = showTrafficNotification.value,
-                    singleNodeTest = singleNodeTest.value,
                     exitUiWhenBackground = exitUiWhenBackground.value,
                 ),
             )
@@ -344,8 +336,6 @@ class AppSettingsViewModel(
     fun onExcludeFromRecentsChange(exclude: Boolean) = excludeFromRecents.set(exclude)
 
     fun onShowTrafficNotificationChange(show: Boolean) = showTrafficNotification.set(show)
-
-    fun onSingleNodeTestChange(enabled: Boolean) = singleNodeTest.set(enabled)
 
     fun onExitUiWhenBackgroundChange(enabled: Boolean) = exitUiWhenBackground.set(enabled)
 

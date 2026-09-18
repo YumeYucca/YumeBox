@@ -242,11 +242,10 @@ internal fun NodeCard(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(sizes.nodeCardContentGap),
         ) {
             NodeLargeIcon(
-                modifier = Modifier.padding(top = spacing.space2),
                 countryCode = presentation.countryCode.takeIf { showCountryFlag },
                 typeName = iconLabel,
             )

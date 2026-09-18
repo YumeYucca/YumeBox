@@ -40,13 +40,24 @@ internal fun NodeSortPopup(
     onDismiss: () -> Unit,
     sortMode: ProxySortMode,
     alignment: PopupPositionProvider.Align = PopupPositionProvider.Align.Start,
-    onNavigateToProviders: (() -> Unit)? = null,
-    searchEnabled: Boolean = false,
-    onSearchToggle: (() -> Unit)? = null,
+    onLocateCurrentProxy: (() -> Unit)? = null,
     onSortSelected: (ProxySortMode) -> Unit,
 ) {
     val entries =
         buildList {
+            onLocateCurrentProxy?.let { locateCurrentProxy ->
+                add(
+                    DropdownEntry(
+                        items =
+                            listOf(
+                                DropdownItem(
+                                    text = YumeTxt.Proxy.Action.LocateCurrent,
+                                    onClick = locateCurrentProxy,
+                                )
+                            ),
+                    )
+                )
+            }
             add(
                 DropdownEntry(
                     items =
@@ -61,33 +72,6 @@ internal fun NodeSortPopup(
                         },
                 )
             )
-            onSearchToggle?.let { toggleSearch ->
-                add(
-                    DropdownEntry(
-                        items =
-                            listOf(
-                                DropdownItem(
-                                    text = YumeTxt.Component.Editor.Action.Search,
-                                    selected = searchEnabled,
-                                    onClick = toggleSearch,
-                                )
-                            ),
-                    )
-                )
-            }
-            onNavigateToProviders?.let { navigateToProviders ->
-                add(
-                    DropdownEntry(
-                        items =
-                            listOf(
-                                DropdownItem(
-                                    text = YumeTxt.Providers.Title,
-                                    onClick = navigateToProviders,
-                                )
-                            ),
-                    )
-                )
-            }
         }
 
     OverlayCascadingListPopup(

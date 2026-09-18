@@ -62,7 +62,6 @@ AppSettings = {
 
     ServiceSection = {
         TrafficNotificationTitle = "通信量通知を表示"
-        SingleNodeTestTitle = "単一ノードテスト"
         ExitUiWhenBackgroundTitle = "バックグラウンドで UI を解放"
         BatteryOptimizationTitle = "バッテリー制限なし"
         BatteryOptimizationAlreadyDisabled = "バッテリー最適化は既に無効です"

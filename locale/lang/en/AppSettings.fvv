@@ -62,7 +62,6 @@ AppSettings = {
 
     ServiceSection = {
         TrafficNotificationTitle = "Show Traffic Notification"
-        SingleNodeTestTitle = "Single Node Test"
         ExitUiWhenBackgroundTitle = "Release UI In Background"
         BatteryOptimizationTitle = "Unrestricted Battery"
         BatteryOptimizationAlreadyDisabled = "Battery optimization is already disabled"

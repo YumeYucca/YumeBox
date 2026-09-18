@@ -29,6 +29,7 @@ import com.github.yumeyucca.yumebox.core.util.AppVisibilityTracker
 import com.github.yumeyucca.yumebox.data.store.MMKVProvider
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
+import com.github.yumeyucca.yumebox.domain.model.ProxyDelayTestProgressCallback
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.runtime.api.*
 import com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess
@@ -239,18 +240,21 @@ class ProxyFacade(
             false
         }
 
-    suspend fun healthCheck(group: String, singleNodeTest: Boolean) {
+    suspend fun healthCheck(
+        group: String,
+        onProgress: ProxyDelayTestProgressCallback? = null,
+    ) {
         when (nodeSession.value.source) {
-            NodeDataSource.Active -> groups.healthCheck(group, singleNodeTest)
-            NodeDataSource.Preview -> preview.healthCheck(group, singleNodeTest)
+            NodeDataSource.Active -> groups.healthCheck(group, onProgress)
+            NodeDataSource.Preview -> preview.healthCheck(group, onProgress)
             NodeDataSource.None -> Unit
         }
     }
 
-    suspend fun healthCheckAll(singleNodeTest: Boolean) {
+    suspend fun healthCheckAll(onProgress: ProxyDelayTestProgressCallback? = null) {
         when (nodeSession.value.source) {
-            NodeDataSource.Active -> groups.healthCheckAll(singleNodeTest)
-            NodeDataSource.Preview -> preview.healthCheckAll(singleNodeTest)
+            NodeDataSource.Active -> groups.healthCheckAll(onProgress)
+            NodeDataSource.Preview -> preview.healthCheckAll(onProgress)
             NodeDataSource.None -> Unit
         }
     }

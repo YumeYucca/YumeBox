@@ -26,11 +26,8 @@ package com.github.yumeyucca.yumebox.presentation.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.github.yumeyucca.yumebox.core.presentation.ContractStateViewModel
 import com.github.yumeyucca.yumebox.core.presentation.LoadableState
-import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
-import com.github.yumeyucca.yumebox.core.util.PollingTimers
 import com.github.yumeyucca.yumebox.data.controller.RuntimeOverrideController
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
-import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
 import com.github.yumeyucca.yumebox.data.store.ProxyDisplaySettingsStore
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
@@ -40,11 +37,14 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import tf.gal.yumebox.locale.YumeTxt
 
+sealed interface ProxyDelayTestProgress {
+    data class Running(val completed: Int, val total: Int) : ProxyDelayTestProgress
+}
+
 class ProxyViewModel(
     private val runtimeOverrideController: RuntimeOverrideController,
     private val proxyFacade: ProxyFacade,
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore,
-    appSettings: AppSettingsStore,
 ) :
     ContractStateViewModel<ProxyViewModel.ProxyUiState, ProxyViewModel.ProxyUiEffect>(
         ProxyUiState()
@@ -54,6 +54,9 @@ class ProxyViewModel(
 
     private val _testingProxyNames = MutableStateFlow<Set<String>>(emptySet())
     val testingProxyNames: StateFlow<Set<String>> = _testingProxyNames.asStateFlow()
+
+    private val _delayTestProgress = MutableStateFlow<ProxyDelayTestProgress?>(null)
+    val delayTestProgress: StateFlow<ProxyDelayTestProgress?> = _delayTestProgress.asStateFlow()
 
     private var groupDelayTestInProgress = false
     private val pendingProxyDelayTests = mutableSetOf<String>()
@@ -73,13 +76,6 @@ class ProxyViewModel(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             ProxySortMode.DEFAULT,
-        )
-
-    val singleNodeTest: StateFlow<Boolean> =
-        appSettings.singleNodeTest.state.stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            true,
         )
 
     val proxyGroups: StateFlow<List<ProxyGroupInfo>> =
@@ -137,7 +133,6 @@ class ProxyViewModel(
         groupDelayTestInProgress = true
         viewModelScope.launch {
             try {
-                setLoading(true)
                 clearError()
                 val currentGroups = proxyGroups.value
                 val testingTargets: Set<String> =
@@ -150,30 +145,32 @@ class ProxyViewModel(
                     _testingGroupNames.update { it + testingTargets }
                 }
 
-                val result = runCatching {
-                    if (groupName != null) {
-                        showMessage(YumeTxt.Proxy.Testing.Group.format(groupName))
-                        proxyFacade.healthCheck(groupName, singleNodeTest.value)
-                        showMessage(YumeTxt.Proxy.Testing.RequestSent)
-                    } else {
-                        showMessage(YumeTxt.Proxy.Testing.All)
-                        proxyFacade.healthCheckAll(singleNodeTest.value)
+                val onProgress: (Int, Int) -> Unit = { completed, total ->
+                    val next = ProxyDelayTestProgress.Running(completed, total)
+                    if (_delayTestProgress.value != next) {
+                        _delayTestProgress.value = next
                     }
                 }
-
-                setLoading(false)
+                val result =
+                    runCatching {
+                        if (groupName != null) {
+                            proxyFacade.healthCheck(groupName, onProgress)
+                        } else {
+                            proxyFacade.healthCheckAll(onProgress)
+                        }
+                    }
 
                 if (testingTargets.isNotEmpty()) {
-                    PollingTimers.awaitTick(PollingTimerSpecs.ProxyTestingSortHold)
                     _testingGroupNames.update { it - testingTargets }
                 }
+
+                _delayTestProgress.value = null
 
                 result.exceptionOrNull()?.let { error ->
                     if (error is CancellationException) throw error
                     showError(YumeTxt.Proxy.Testing.Failed.format(error.message))
                 }
             } finally {
-                setLoading(false)
                 groupDelayTestInProgress = false
             }
         }

@@ -47,12 +47,13 @@ import com.github.yumeyucca.yumebox.domain.model.isSelectable
 import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze.chromeEffect
 import dev.chrisbanes.haze.HazeState
+import kotlinx.coroutines.flow.StateFlow
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeProgressive
 import tf.gal.yumebox.locale.YumeTxt
-import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollHorizontal
@@ -187,6 +188,7 @@ fun NodeSheetContent(
     group: ProxyGroupInfo,
     onSelectProxy: (String) -> Unit,
     isDelayTesting: Boolean,
+    delayTestProgress: StateFlow<ProxyDelayTestProgress?>,
     testingProxyNames: Set<String> = emptySet(),
     onTestDelay: () -> Unit,
     onTestProxyDelay: (String) -> Unit = {},
@@ -195,53 +197,24 @@ fun NodeSheetContent(
 ) {
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
 
-    LaunchedEffect(isDelayTesting) {
-        if (isDelayTesting && listState.isScrolledFromTop()) {
-            listState.animateScrollToItem(0)
-        }
-    }
-
     LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(sheetHeight)
-            .overScrollVertical(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(sheetHeight)
+                .overScrollVertical(),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
         contentPadding = NodeSheetContentPadding,
         overscrollEffect = null,
     ) {
         item(key = "__refresh_indicator__") {
-            AnimatedVisibility(
+            NodeDelayRefreshIndicator(
                 visible = isDelayTesting,
-                enter =
-                    expandVertically(
-                        animationSpec = tween(durationMillis = 200),
-                        expandFrom = Alignment.Top,
-                    ) + fadeIn(animationSpec = tween(durationMillis = 150)),
-                exit =
-                    shrinkVertically(
-                        animationSpec = tween(durationMillis = 200),
-                        shrinkTowards = Alignment.Top,
-                    ) + fadeOut(animationSpec = tween(durationMillis = 150)),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = UiDp.dp12),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
-                ) {
-                    InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
-                    Text(
-                        text = YumeTxt.Proxy.Testing.InProgress,
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                }
-            }
+                progress = delayTestProgress,
+                textStyle = MiuixTheme.textStyles.footnote1,
+            )
         }
-
         nodeGridItems(
             proxies = group.proxies,
             selectedProxyName = group.now,

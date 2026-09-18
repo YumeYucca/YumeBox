@@ -11,6 +11,7 @@ Proxy = {
         Test = "テスト"
         Sort = "並び替え"
         LocateCurrent = "現在のノードを表示"
+        More = "その他"
     }
 
     Node = {
@@ -28,6 +29,8 @@ Proxy = {
         Group = "ノードグループをテスト中: %s"
         All = "すべてのノードグループをテスト中..."
         RequestSent = "テスト要求を送信しました"
+        Progress = "テスト中 %d/%d"
+        Completed = "テスト完了"
         Failed = "テストに失敗しました: %s"
         InProgress = "ノードをテスト中"
     }

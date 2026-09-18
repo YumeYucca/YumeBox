@@ -11,6 +11,7 @@ Proxy = {
         Test = "測試"
         Sort = "排序"
         LocateCurrent = "定位目前節點"
+        More = "更多"
     }
 
     Node = {
@@ -28,6 +29,8 @@ Proxy = {
         Group = "正在測試節點組：%s"
         All = "正在測試所有節點組..."
         RequestSent = "測試請求已送出"
+        Progress = "正在測試 %d/%d"
+        Completed = "測試完成"
         Failed = "測試失敗：%s"
         InProgress = "正在測試節點"
     }

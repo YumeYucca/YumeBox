@@ -20,21 +20,15 @@
 
 package com.github.yumeyucca.yumebox.presentation.screen
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.Velocity
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
@@ -43,21 +37,15 @@ import com.github.yumeyucca.yumebox.domain.model.isSelectable
 import com.github.yumeyucca.yumebox.presentation.component.PaneWidths
 import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeCard
+import com.github.yumeyucca.yumebox.presentation.screen.node.NodeDelayRefreshIndicator
+import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSearchToolbar
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGridItems
-import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.LocalSpacing
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.KeepLazyListTopAnchorOnReorder
-import tf.gal.yumebox.locale.YumeTxt
-import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.InputField
+import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
+import kotlinx.coroutines.flow.StateFlow
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.Search
-import top.yukonga.miuix.kmp.icon.basic.SearchCleanup
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
     val normalizedQuery = query.trim()
@@ -75,6 +63,7 @@ internal fun NodeListPage(
     sortMode: ProxySortMode,
     testingGroupNames: Set<String>,
     testingProxyNames: Set<String>,
+    delayTestProgress: StateFlow<ProxyDelayTestProgress?>,
     mainInnerPadding: PaddingValues,
     outerInnerPadding: PaddingValues,
     scrollBehavior: ScrollBehavior,
@@ -86,8 +75,11 @@ internal fun NodeListPage(
     useAdaptiveGrid: Boolean = false,
     gridState: LazyGridState? = null,
     searchQuery: String = "",
-    showSearch: Boolean = false,
     onSearchQueryChange: (String) -> Unit = {},
+    showSortPopup: Boolean = false,
+    onShowMorePopupChange: (Boolean) -> Unit = {},
+    onSortSelected: (ProxySortMode) -> Unit = {},
+    onLocateCurrentProxy: (() -> Unit)? = null,
 ) {
     if (group == null) return
     val spacing = LocalSpacing.current
@@ -98,21 +90,9 @@ internal fun NodeListPage(
     KeepLazyListTopAnchorOnReorder(
         listState = listState,
         itemKeys = listItemKeys,
-        enabled = sortMode == ProxySortMode.BY_LATENCY && !useAdaptiveGrid,
+        enabled = sortMode == ProxySortMode.BY_LATENCY && !useAdaptiveGrid && !isTesting,
         scrollToTopOnEnabled = true,
     )
-
-    LaunchedEffect(isTesting, useAdaptiveGrid, gridState) {
-        if (!isTesting) return@LaunchedEffect
-        if (useAdaptiveGrid) {
-            val state = gridState ?: return@LaunchedEffect
-            if (state.isScrolledFromTop()) {
-                state.animateScrollToItem(0)
-            }
-        } else if (listState.isScrolledFromTop()) {
-            listState.animateScrollToItem(0)
-        }
-    }
 
     val contentPadding =
         PaddingValues(
@@ -162,9 +142,11 @@ internal fun NodeListPage(
             latestScrollDirectionCallback(false)
             lastHiddenState = false
         }
-        Box(Modifier
-            .fillMaxSize()
-            .nestedScroll(fabScrollObserver)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .nestedScroll(fabScrollObserver),
+        ) {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = PaneWidths.NodeGridAdaptiveMin),
                 state = resolvedGridState,
@@ -174,63 +156,22 @@ internal fun NodeListPage(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
-                    NodeSearchField(
+                    NodeSearchToolbar(
                         query = searchQuery,
-                        visible = showSearch,
                         onQueryChange = onSearchQueryChange,
+                        sortMode = sortMode,
+                        showMorePopup = showSortPopup,
+                        onShowMorePopupChange = onShowMorePopupChange,
+                        onSortSelected = onSortSelected,
+                        onTestDelay = onTestDelay,
+                        onLocateCurrentProxy = onLocateCurrentProxy,
                     )
                 }
                 item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
-                    AnimatedVisibility(
+                    NodeDelayRefreshIndicator(
                         visible = isTesting,
-                        enter =
-                            expandVertically(
-                                animationSpec =
-                                    tween(
-                                        durationMillis =
-                                            AnimationSpecs.Proxy.RefreshIndicatorDuration
-                                    ),
-                                expandFrom = Alignment.Top,
-                            ) +
-                                    fadeIn(
-                                        animationSpec =
-                                            tween(
-                                                durationMillis =
-                                                    AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
-                                            )
-                                    ),
-                        exit =
-                            shrinkVertically(
-                                animationSpec =
-                                    tween(
-                                        durationMillis =
-                                            AnimationSpecs.Proxy.RefreshIndicatorDuration
-                                    ),
-                                shrinkTowards = Alignment.Top,
-                            ) +
-                                    fadeOut(
-                                        animationSpec =
-                                            tween(
-                                                durationMillis =
-                                                    AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
-                                            )
-                                    ),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = UiDp.dp12),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
-                        ) {
-                            InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
-                            Text(
-                                text = YumeTxt.Proxy.Testing.InProgress,
-                                style = MiuixTheme.textStyles.subtitle,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        }
-                    }
+                        progress = delayTestProgress,
+                    )
                 }
                 items(items = visibleProxies, key = { it.name }) { proxy ->
                     NodeCard(
@@ -263,59 +204,23 @@ internal fun NodeListPage(
         contentPadding = contentPadding,
     ) {
         item(key = "__node_search__") {
-            NodeSearchField(
+            NodeSearchToolbar(
                 query = searchQuery,
-                visible = showSearch,
                 onQueryChange = onSearchQueryChange,
+                sortMode = sortMode,
+                showMorePopup = showSortPopup,
+                onShowMorePopupChange = onShowMorePopupChange,
+                onSortSelected = onSortSelected,
+                onTestDelay = onTestDelay,
+                onLocateCurrentProxy = onLocateCurrentProxy,
             )
         }
         item(key = "__refresh_indicator__") {
-            AnimatedVisibility(
+            NodeDelayRefreshIndicator(
                 visible = isTesting,
-                enter =
-                    expandVertically(
-                        animationSpec =
-                            tween(durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration),
-                        expandFrom = Alignment.Top,
-                    ) +
-                            fadeIn(
-                                animationSpec =
-                                    tween(
-                                        durationMillis =
-                                            AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
-                                    )
-                            ),
-                exit =
-                    shrinkVertically(
-                        animationSpec =
-                            tween(durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration),
-                        shrinkTowards = Alignment.Top,
-                    ) +
-                            fadeOut(
-                                animationSpec =
-                                    tween(
-                                        durationMillis =
-                                            AnimationSpecs.Proxy.RefreshIndicatorFadeDuration
-                                    )
-                            ),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = UiDp.dp12),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
-                ) {
-                    InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
-                    Text(
-                        text = YumeTxt.Proxy.Testing.InProgress,
-                        style = MiuixTheme.textStyles.subtitle,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                }
-            }
+                progress = delayTestProgress,
+            )
         }
-
         nodeGridItems(
             proxies = visibleProxies,
             selectedProxyName = group.now,
@@ -331,66 +236,5 @@ internal fun NodeListPage(
             outerHorizontalPadding = UiDp.dp0,
             itemVerticalPadding = UiDp.dp6,
         )
-    }
-}
-
-@Composable
-private fun NodeSearchField(query: String, visible: Boolean, onQueryChange: (String) -> Unit) {
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-    AnimatedVisibility(
-        visible = visible,
-        enter =
-            expandVertically(
-                animationSpec = tween(durationMillis = 220),
-                expandFrom = Alignment.Top,
-            ) + fadeIn(animationSpec = tween(durationMillis = 160)),
-        exit =
-            shrinkVertically(
-                animationSpec = tween(durationMillis = 180),
-                shrinkTowards = Alignment.Top,
-            ) + fadeOut(animationSpec = tween(durationMillis = 120)),
-    ) {
-        InputField(
-            query = query,
-            onQueryChange = onQueryChange,
-            onSearch = {},
-            expanded = false,
-            onExpandedChange = {},
-            label = YumeTxt.Component.Editor.Action.Search,
-            leadingIcon = {
-                Icon(
-                    imageVector = MiuixIcons.Basic.Search,
-                    contentDescription = YumeTxt.Component.Editor.Action.Search,
-                    modifier =
-                        Modifier
-                            .size(UiDp.dp44)
-                            .padding(start = UiDp.dp16, end = UiDp.dp8),
-                )
-            },
-            trailingIcon = {
-                AnimatedVisibility(visible = query.isNotEmpty()) {
-                    Icon(
-                        imageVector = MiuixIcons.Basic.SearchCleanup,
-                        contentDescription = YumeTxt.Component.Button.Clear,
-                        modifier =
-                            Modifier
-                                .size(UiDp.dp44)
-                                .padding(start = UiDp.dp8, end = UiDp.dp16)
-                                .clickable { onQueryChange("") },
-                    )
-                }
-            },
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = UiDp.dp4, bottom = UiDp.dp8),
-            )
-    }
-    LaunchedEffect(visible) {
-        if (visible) {
-            focusManager.clearFocus(force = true)
-            keyboardController?.hide()
-        }
     }
 }

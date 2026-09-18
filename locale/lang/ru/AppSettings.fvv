@@ -62,7 +62,6 @@ AppSettings = {
 
     ServiceSection = {
         TrafficNotificationTitle = "Показывать уведомление о трафике"
-        SingleNodeTestTitle = "Тест одного узла"
         ExitUiWhenBackgroundTitle = "Освобождать UI в фоне"
         BatteryOptimizationTitle = "Без ограничений батареи"
         BatteryOptimizationAlreadyDisabled = "Оптимизация батареи уже отключена"
