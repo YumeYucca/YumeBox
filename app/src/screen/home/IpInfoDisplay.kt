@@ -38,7 +38,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
-import com.github.yumeyucca.yumebox.common.util.LocaleUtil
 import com.github.yumeyucca.yumebox.data.network.IpMonitoringState
 import com.github.yumeyucca.yumebox.presentation.component.CountryFlagCircle
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
@@ -136,15 +135,13 @@ private fun IpInfoRow(
 @Composable
 private fun CountryBadge(countryCode: String?) {
     if (countryCode != null) {
-        val displayCountryCode = LocaleUtil.normalizeRegionCode(countryCode) ?: countryCode
-
         Row(
             horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CountryFlagCircle(countryCode = countryCode, size = UiDp.dp20)
             Text(
-                text = displayCountryCode,
+                text = countryCode,
                 style = MiuixTheme.textStyles.body1,
                 fontWeight = FontWeight.Bold,
                 color = MiuixTheme.colorScheme.primary,
