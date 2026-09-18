@@ -36,6 +36,7 @@ class ProxyDelayPublishCoalescer(
     private val pending = linkedMapOf<String, Int>()
     private val active = AtomicBoolean(false)
     private var lastFlushAtMs = 0L
+    private var sessionFlush: (suspend (Map<String, Int>) -> Unit)? = null
 
     val isActive: Boolean
         get() = active.get()
@@ -47,39 +48,36 @@ class ProxyDelayPublishCoalescer(
         mutex.withLock {
             pending.clear()
             lastFlushAtMs = nowMs()
+            sessionFlush = flush
             active.set(true)
         }
         try {
             return block()
         } finally {
-            try {
-                drain(flush)
-            } finally {
-                mutex.withLock {
-                    pending.clear()
-                    active.set(false)
-                }
-            }
+            drainUntilInactive()
         }
     }
 
-    suspend fun enqueue(
-        delays: Map<String, Int>,
-        flush: suspend (Map<String, Int>) -> Unit,
-    ): Boolean {
+    /** @return true if a group-test session accepted the delays. */
+    suspend fun enqueue(delays: Map<String, Int>): Boolean {
         val measured = delays.filterValues { delay -> delay != 0 }
         if (measured.isEmpty()) return true
-        val toFlush =
+        val batch =
             mutex.withLock {
-                if (!active.get()) {
-                    measured
-                } else {
-                    pending.putAll(measured)
-                    takeIfDue()
+                val flush = sessionFlush
+                if (!active.get() || flush == null) {
+                    return@withLock null
                 }
-            }
-        if (toFlush != null) {
-            flush(toFlush)
+                pending.putAll(measured)
+                val due = takeIfDue()
+                if (due == null) {
+                    DrainBatch(emptyMap(), flush, queuedOnly = true)
+                } else {
+                    DrainBatch(due, flush, queuedOnly = false)
+                }
+            } ?: return false
+        if (!batch.queuedOnly) {
+            batch.flush(batch.delays)
         }
         return true
     }
@@ -92,18 +90,29 @@ class ProxyDelayPublishCoalescer(
         return pending.toMap().also { pending.clear() }
     }
 
-    private suspend fun drain(flush: suspend (Map<String, Int>) -> Unit) {
-        val leftover =
-            mutex.withLock {
-                if (pending.isEmpty()) {
-                    null
-                } else {
+    private suspend fun drainUntilInactive() {
+        while (true) {
+            val batch =
+                mutex.withLock {
+                    val flush = sessionFlush
+                    if (flush == null || pending.isEmpty()) {
+                        sessionFlush = null
+                        active.set(false)
+                        pending.clear()
+                        return@withLock null
+                    }
                     lastFlushAtMs = nowMs()
-                    pending.toMap().also { pending.clear() }
-                }
-            } ?: return
-        flush(leftover)
+                    DrainBatch(pending.toMap().also { pending.clear() }, flush, queuedOnly = false)
+                } ?: return
+            batch.flush(batch.delays)
+        }
     }
+
+    private data class DrainBatch(
+        val delays: Map<String, Int>,
+        val flush: suspend (Map<String, Int>) -> Unit,
+        val queuedOnly: Boolean,
+    )
 
     private companion object {
         const val DEFAULT_FLUSH_INTERVAL_MS = 250L
