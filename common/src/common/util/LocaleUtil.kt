@@ -20,7 +20,7 @@
 
 package com.github.yumeyucca.yumebox.common.util
 
-import java.util.*
+import java.util.Locale
 
 object LocaleUtil {
     const val UNKNOWN_FLAG_CODE = "xx"
@@ -43,10 +43,15 @@ object LocaleUtil {
         countryCode: String?,
         baseUrl: String = FLAG_CDN_BASE_URL,
     ): String {
-        val code = countryCode?.trim()?.lowercase().orEmpty()
-        if (code.isEmpty() || code == UNKNOWN_FLAG_CODE) {
+        val normalizedCode =
+            countryCode
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() && it.all(Char::isLetter) }
+                ?: return unknownFlagUrl(baseUrl)
+        if (normalizedCode.equals(UNKNOWN_FLAG_CODE, ignoreCase = true)) {
             return unknownFlagUrl(baseUrl)
         }
+        val code = normalizedCode.lowercase(Locale.ROOT)
         return "$baseUrl$code.svg"
     }
 }
