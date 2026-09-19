@@ -7,6 +7,20 @@ icon: clock
 
 <Card title="GitHub Releases" icon="download" horizontal href="https://github.com/YumeYucca/YumeBox/releases" />
 
+<Update label="2026-9-19" tags={["Feature updates","optimization","repair"]} description="v0.6.4">
+## Change
+
+- Refactored proxy delay tests and health checks: group-level overlay, progress display, and coalesced delay refresh
+- Combined node search, sorting, and delay test actions in the proxy toolbar, with smoother list updates while testing
+- Improved health checks for preview runtime and when the proxy is stopped, with unified delay results
+- Merged remote-controller reachability probing with non-blocking proxy refresh to reduce stalls in remote mode
+- Removed the Moe Home wallpaper bottom-dim toggle; the bottom fade is always applied so rounded corners do not reveal the wallpaper
+- Improved country/region flag display logic
+- Updated the Android NDK and Go module dependencies
+
+  **Full Changelog**: [https://github.com/YumeYucca/YumeBox/compare/v0.6.3...v0.6.4](https://github.com/YumeYucca/YumeBox/compare/v0.6.3...v0.6.4)
+</Update>
+
 <Update label="2026-9-17" tags={["Feature updates","optimization","repair"]} description="v0.6.3">
 ## Change
 

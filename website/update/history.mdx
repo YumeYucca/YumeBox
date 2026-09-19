@@ -7,6 +7,20 @@ icon: clock
 
 <Card title="GitHub Releases" icon="download" horizontal href="https://github.com/YumeYucca/YumeBox/releases" />
 
+<Update label="2026-9-19" tags={["功能更新","优化","修复"]} description="v0.6.4">
+  ## 更改
+
+  - 重构代理页测速与健康检查：组级测速 overlay、进度显示，以及测速结果的合并刷新
+  - 代理页工具栏整合节点搜索、排序与测速入口，并优化测速中的节点列表刷新
+  - 增强预览运行时与未启动代理时的健康检查，统一返回延迟结果
+  - 合并外部控制器连通性探测与节点列表非阻塞刷新，减少远程模式下的卡顿
+  - Moe 首页移除「壁纸底部渐暗」开关，默认始终渐暗，避免圆角区域露出壁纸
+  - 优化国家/地区旗帜显示逻辑
+  - 更新 Android NDK 与 Go 模块依赖
+
+  **Full Changelog**: [https://github.com/YumeYucca/YumeBox/compare/v0.6.3...v0.6.4](https://github.com/YumeYucca/YumeBox/compare/v0.6.3...v0.6.4)
+</Update>
+
 <Update label="2026-9-17" tags={["功能更新","优化","修复"]} description="v0.6.3">
   ## 更改
 
