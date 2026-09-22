@@ -29,61 +29,38 @@ import java.util.concurrent.TimeUnit
 class PrivilegedServiceImpl : IPrivilegedService.Stub() {
     companion object {
         private const val TAG = "YumeBoxPrivilegedService"
-        private const val FIREWALL_CHAIN_OEM_DENY = 9
         private const val TIMEOUT_SECONDS = 3L
     }
 
     override fun setPackageNetworkingEnabled(uid: Int, enabled: Boolean): Boolean {
-        return try {
-            val serviceManagerClass = Class.forName("android.os.ServiceManager")
-            val getServiceMethod = serviceManagerClass.getMethod("getService", String::class.java)
-            val connectivityBinder = getServiceMethod.invoke(null, "connectivity") as? IBinder
-                ?: throw IllegalStateException("Connectivity service not found")
-            val connectivityManager = Class.forName("android.net.IConnectivityManager\$Stub")
-                .getMethod("asInterface", IBinder::class.java)
-                .invoke(null, connectivityBinder)
-
-            val latch = CountDownLatch(1)
-            var result = false
-            Thread {
-                try {
-                    val setChainEnabled = connectivityManager.javaClass.getMethod(
-                        "setFirewallChainEnabled",
-                        Int::class.javaPrimitiveType,
-                        Boolean::class.javaPrimitiveType,
-                    )
-                    setChainEnabled.invoke(connectivityManager, FIREWALL_CHAIN_OEM_DENY, true)
-
-                    val setUidRule = connectivityManager.javaClass.getMethod(
-                        "setUidFirewallRule",
-                        Int::class.javaPrimitiveType,
-                        Int::class.javaPrimitiveType,
-                        Int::class.javaPrimitiveType,
-                    )
-                    val rule = if (enabled) 0 else 2
-                    setUidRule.invoke(
-                        connectivityManager,
-                        FIREWALL_CHAIN_OEM_DENY,
-                        uid,
-                        rule,
-                    )
-                    result = true
-                } catch (error: Throwable) {
-                    Log.e(TAG, "Failed to update package firewall rule", error)
-                } finally {
-                    latch.countDown()
-                }
-            }.start()
-
-            if (!latch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                Log.w(TAG, "Firewall update timed out")
-                false
-            } else {
-                result
-            }
-        } catch (error: Throwable) {
-            Log.e(TAG, "Failed to update package networking", error)
-            false
+        val connectivity =
+            runCatching {
+                Class
+                    .forName("android.os.ServiceManager")
+                    .getMethod("getService", String::class.java)
+                    .invoke(null, "connectivity") as? IBinder
+            }.getOrNull()
+        if (connectivity == null) {
+            Log.e(TAG, "Connectivity service is not available")
+            return false
         }
+
+        // The update runs on its own thread so a hanging transaction cannot block the caller's
+        // binder call forever.
+        val latch = CountDownLatch(1)
+        var result = false
+        Thread {
+            try {
+                result = OemDenyFirewall.setPackageDenied(connectivity, uid, denied = !enabled)
+            } finally {
+                latch.countDown()
+            }
+        }.start()
+
+        if (!latch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            Log.w(TAG, "Firewall update timed out")
+            return false
+        }
+        return result
     }
 }

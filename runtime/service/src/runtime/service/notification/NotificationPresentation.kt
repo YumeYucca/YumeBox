@@ -25,16 +25,33 @@ import com.github.yumeyucca.yumebox.common.util.formatSpeed
 import com.github.yumeyucca.yumebox.runtime.service.profile.Imported
 import java.time.Instant
 import java.time.ZoneId
+import tf.gal.yumebox.locale.YumeTxt
 
-internal data class NotificationPresentation(
-    val title: String,
-    val content: String,
-    val expandedText: String,
-    val subText: String? = null,
-    val compactText: String = content,
-    val isRunning: Boolean = false,
-    val currentNode: String? = null,
-)
+/**
+ * What the ongoing notification renders. The two states carry different data, so they are modelled
+ * as separate variants instead of one flat record with mode flags and unused fields.
+ */
+internal sealed class NotificationPresentation {
+    abstract val title: String
+    abstract val content: String
+    abstract val expandedText: String
+
+    /** Running service with traffic figures; also feeds the Super Island payload. */
+    data class Running(
+        override val title: String,
+        override val content: String,
+        override val expandedText: String,
+        val compactTraffic: String,
+        val currentNode: String?,
+    ) : NotificationPresentation()
+
+    /** Running service without traffic figures (traffic notification disabled). */
+    data class Status(
+        override val title: String,
+        override val content: String,
+        override val expandedText: String,
+    ) : NotificationPresentation()
+}
 
 internal object NotificationPresentationFactory {
     fun createRunning(
@@ -42,26 +59,26 @@ internal object NotificationPresentationFactory {
         profile: Imported?,
         currentNode: String?,
         trafficNow: Long,
-    ): NotificationPresentation {
+    ): NotificationPresentation.Running {
         val usageLine = buildUsageLine(profile)
-        val node = currentNode ?: "未选择"
-        return NotificationPresentation(
+        val node = currentNode ?: YumeTxt.Service.Notification.NoNode
+        return NotificationPresentation.Running(
             title = profileName,
             content = usageLine,
-            expandedText = "$usageLine\n当前节点：$node",
-            subText = null,
-            compactText = buildCompactTrafficLine(trafficNow),
-            isRunning = true,
+            expandedText = "$usageLine\n" + YumeTxt.Service.Notification.CurrentNode.format(node),
+            compactTraffic = buildCompactTrafficLine(trafficNow),
             currentNode = currentNode,
         )
     }
 
-    fun createStatus(profileName: String, status: String): NotificationPresentation =
-        NotificationPresentation(
+    fun createStatus(
+        profileName: String,
+        status: String,
+    ): NotificationPresentation.Status =
+        NotificationPresentation.Status(
             title = profileName,
             content = status,
             expandedText = status,
-            subText = null,
         )
 
     /**

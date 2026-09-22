@@ -35,7 +35,6 @@ import com.github.yumeyucca.yumebox.di.appModule
 import com.github.yumeyucca.yumebox.feature.meta.presentation.util.CustomRoutingBootstrapper
 import com.github.yumeyucca.yumebox.runtime.api.Components
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
-import com.github.yumeyucca.yumebox.runtime.service.shizuku.ShizukuManager
 import com.github.yumeyucca.yumebox.screen.settings.MoeWallpaperImporter
 import com.github.yumeyucca.yumebox.substore.util.AppUtil
 import com.tencent.mmkv.MMKV
@@ -60,7 +59,6 @@ class App : Application() {
 
         instance = this
         AppVisibilityTracker.register(this)
-        ShizukuManager.init(this)
         if (BuildConfig.DEBUG && Timber.forest().isEmpty()) {
             Timber.plant(Timber.DebugTree())
         }

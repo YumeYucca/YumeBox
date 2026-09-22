@@ -22,6 +22,7 @@ package com.github.yumeyucca.yumebox.runtime.service.notification
 
 import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicLong
+import tf.gal.yumebox.locale.YumeTxt
 
 /**
  * Builds the HyperOS Super Island payload that the system reads from the
@@ -49,7 +50,7 @@ object MiuiIslandParams {
         currentNode: String?,
     ): String {
         val now = System.currentTimeMillis()
-        val node = currentNode ?: "未选择"
+        val node = currentNode ?: YumeTxt.Service.Notification.NoNode
 
         val params =
             JSONObject().apply {
@@ -93,7 +94,7 @@ object MiuiIslandParams {
                     "hintInfo",
                     JSONObject().apply {
                         put("type", 2)
-                        put("content", "当前节点")
+                        put("content", YumeTxt.Service.Notification.CurrentNodeLabel)
                         put("title", node)
                         put(
                             "timerInfo",
@@ -104,7 +105,7 @@ object MiuiIslandParams {
                                 put("timerSystemCurrent", now)
                             },
                         )
-                        put("subContent", "实时流量")
+                        put("subContent", YumeTxt.Service.Notification.RealtimeTraffic)
                         put("subTitle", compactText)
                         put("colorContent", "#666666")
                         put("colorContentDark", "#aaaaaa")

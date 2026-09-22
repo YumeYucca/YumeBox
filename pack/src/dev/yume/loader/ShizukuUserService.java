@@ -18,7 +18,9 @@ import java.lang.reflect.Method;
  * {@code /data/user/0/<pkg>}, which the shell user cannot traverse.</p>
  *
  * <p>The Binder contract has to stay in sync with
- * {@code com.github.yumeyucca.yumebox.runtime.service.shizuku.IPrivilegedService}.</p>
+ * {@code com.github.yumeyucca.yumebox.runtime.service.shizuku.IPrivilegedService}, and the firewall
+ * call below with {@code ...shizuku.OemDenyFirewall} (this class cannot share that code: it runs
+ * from the APK's loader DEX).</p>
  */
 public final class ShizukuUserService extends Binder {
 

@@ -36,8 +36,12 @@ import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
 import com.github.yumeyucca.yumebox.data.store.FeatureStore
 import com.github.yumeyucca.yumebox.data.store.Preference
 import com.github.yumeyucca.yumebox.presentation.theme.DEFAULT_CUSTOM_THEME_SEED_ARGB
+import com.github.yumeyucca.yumebox.runtime.service.notification.HyperOsIsland
+import com.github.yumeyucca.yumebox.runtime.service.shizuku.ShizukuManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -199,6 +203,69 @@ class AppSettingsViewModel(
                     superIslandEnabled = superIslandEnabled.value,
                 ),
             )
+
+    /** Shizuku / Super Island access shown in the service section. */
+    data class ShizukuAccessState(
+        val islandSupported: Boolean = false,
+        val running: Boolean = false,
+        val granted: Boolean = false,
+    ) {
+        val statusText: String
+            get() =
+                when {
+                    !running -> YumeTxt.AppSettings.ServiceSection.ShizukuStatusUnavailable
+                    !granted -> YumeTxt.AppSettings.ServiceSection.ShizukuStatusPending
+                    else -> YumeTxt.AppSettings.ServiceSection.ShizukuStatusGranted
+                }
+    }
+
+    private val _shizukuAccess =
+        MutableStateFlow(ShizukuAccessState(islandSupported = HyperOsIsland.isSupported()))
+    val shizukuAccess: StateFlow<ShizukuAccessState> = _shizukuAccess.asStateFlow()
+
+    /** Re-reads the live Shizuku state; called when the section appears and on every resume. */
+    fun refreshShizukuAccess() {
+        _shizukuAccess.value = readShizukuAccess()
+    }
+
+    private fun readShizukuAccess(): ShizukuAccessState {
+        val running = ShizukuManager.isRunning()
+        return ShizukuAccessState(
+            islandSupported = _shizukuAccess.value.islandSupported,
+            running = running,
+            granted = running && ShizukuManager.hasPermission(),
+        )
+    }
+
+    /** Opens Shizuku, reports readiness, or asks for the permission, depending on the live state. */
+    fun onShizukuAccessClick() {
+        val access = readShizukuAccess().also { _shizukuAccess.value = it }
+        when {
+            !access.running -> {
+                if (!ShizukuManager.openShizuku(application)) {
+                    application.toast(YumeTxt.AppSettings.ServiceSection.ShizukuNotRunning)
+                }
+            }
+
+            access.granted -> {
+                application.toast(YumeTxt.AppSettings.ServiceSection.ShizukuReady)
+            }
+
+            else ->
+                ShizukuManager.requestPermission { allowed ->
+                    viewModelScope.launch {
+                        refreshShizukuAccess()
+                        application.toast(
+                            if (allowed) {
+                                YumeTxt.AppSettings.ServiceSection.ShizukuReady
+                            } else {
+                                YumeTxt.AppSettings.ServiceSection.ShizukuPermissionRequired
+                            }
+                        )
+                    }
+                }
+        }
+    }
 
     data class PrivacySectionState(
         val excludeFromRecents: Boolean = false,

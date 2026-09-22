@@ -55,7 +55,6 @@ import com.github.yumeyucca.yumebox.presentation.theme.ProvideAndroidPlatformThe
 import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze
 import com.github.yumeyucca.yumebox.presentation.theme.YumeTheme
 import com.github.yumeyucca.yumebox.runtime.service.WifiAutomationService
-import com.github.yumeyucca.yumebox.runtime.service.shizuku.ShizukuManager
 import com.github.yumeyucca.yumebox.screen.moe.HomePreviewGuideDialog
 import com.github.yumeyucca.yumebox.screen.moe.SystemWallpaperAccess
 import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
@@ -131,7 +130,6 @@ class MainActivity : FragmentActivity() {
 
         super.onCreate(savedInstanceState)
         applyExcludeFromRecents(appSettingsStorage.excludeFromRecents.value)
-        ShizukuManager.init(this)
 
         intentController = IntentController(this, lifecycleScope)
         handleIntent(intent)

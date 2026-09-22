@@ -31,16 +31,30 @@ import kotlinx.coroutines.sync.withLock
 import rikka.shizuku.Shizuku
 import rikka.shizuku.ShizukuBinderWrapper
 import rikka.shizuku.SystemServiceHelper
-import rikka.sui.Sui
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
+/**
+ * Access to the Shizuku / Sui privileged service.
+ *
+ * Sui needs no explicit initialization here: `rikka.shizuku.ShizukuProvider` (declared in the app
+ * manifest) initializes it in its `onCreate`, which runs before `Application.onCreate`. This app
+ * runs in a single process, so the provider also serves the Shizuku binder.
+ */
 object ShizukuManager {
     private const val TAG = "YumeBoxShizuku"
     private const val XMSF_PACKAGE = "com.xiaomi.xmsf"
     private const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
-    private const val FIREWALL_CHAIN_OEM_DENY = 9
     private const val PERMISSION_REQUEST_CODE = 1001
+    private const val USER_SERVICE_VERSION = 1
+    private const val BIND_TIMEOUT_SECONDS = 3L
+
+    /**
+     * How long the XMSF network block is kept after the notification was posted. HyperOS decides
+     * whether to show the island entry while the notification is delivered, so the block has to
+     * outlive the `startForeground()` call by a small margin.
+     */
+    private const val ISLAND_SETTLE_DELAY_MS = 100L
 
     /**
      * UserService Shizuku instantiates in its own process. Packed builds keep the class in the APK's
@@ -58,28 +72,9 @@ object ShizukuManager {
             )
     }
 
-    /**
-     * HyperOS signal that the Xiaomi Super Island is available. Read once: the system property is
-     * fixed for the lifetime of the process, and the reflection lookup is not cheap enough to run
-     * on every notification refresh.
-     */
-    private val islandSupported: Boolean by lazy {
-        runCatching {
-            val clazz = Class.forName("android.os.SystemProperties")
-            val method =
-                clazz.getMethod(
-                    "getBoolean",
-                    String::class.java,
-                    Boolean::class.javaPrimitiveType,
-                )
-            method.invoke(null, "persist.sys.feature.island", false) as Boolean
-        }.getOrDefault(false)
-    }
-
-    fun isIslandSupported(): Boolean = islandSupported
-
-    private var privilegedService: IPrivilegedService? = null
-    private var serviceConnected = false
+    // Written by the service connection callback, read from the traffic updater's thread.
+    @Volatile private var privilegedService: IPrivilegedService? = null
+    @Volatile private var serviceConnected = false
     private var bindLatch = CountDownLatch(1)
     private val bypassMutex = Mutex()
 
@@ -103,20 +98,6 @@ object ShizukuManager {
             }
         }
 
-    @Volatile private var suiInitialized = false
-
-    fun init(context: Context) {
-        // Sui only needs to be initialized once per process (NexioSchedule does this from
-        // Application/Activity onCreate). Live Shizuku state is re-queried by isRunning() /
-        // hasPermission(), so a Shizuku service started later is still picked up on resume.
-        if (suiInitialized) return
-        runCatching {
-            Sui.init(context.packageName)
-            suiInitialized = true
-            Log.d(TAG, "Shizuku initialized, running=${Shizuku.pingBinder()}")
-        }.onFailure { error -> Log.w(TAG, "Shizuku init failed", error) }
-    }
-
     fun isAvailable(): Boolean =
         runCatching {
             Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
@@ -130,27 +111,11 @@ object ShizukuManager {
         }.getOrDefault(false)
 
     fun requestPermission(callback: (Boolean) -> Unit) {
-        requestPermissionFromBinder(callback)
-    }
-
-    fun openShizuku(context: Context): Boolean =
-        runCatching {
-            val intent =
-                context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE)
-                    ?: return@runCatching false
-            context.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-            true
-        }.getOrDefault(false)
-
-    private fun requestPermissionFromBinder(callback: (Boolean) -> Unit) {
         if (!isRunning()) {
             callback(false)
             return
         }
-        if (runCatching {
-                Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-            }.getOrDefault(false)
-        ) {
+        if (hasPermission()) {
             callback(true)
             return
         }
@@ -175,6 +140,16 @@ object ShizukuManager {
             }
     }
 
+    fun openShizuku(context: Context): Boolean =
+        runCatching {
+            val intent =
+                context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE)
+                    ?: return@runCatching false
+            context.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        }.getOrDefault(false)
+
+    /** Runs [block] with the network of the XMSF package blocked, and restores it afterwards. */
     suspend fun <T> withXmsfNetworkingDisabled(
         context: Context,
         block: () -> T,
@@ -182,66 +157,45 @@ object ShizukuManager {
         if (!isAvailable()) return block()
 
         return bypassMutex.withLock {
-            val disabled =
-                runCatching {
-                    setXmsfNetworkingEnabled(context, enabled = false)
-                }.getOrDefault(false)
-            if (!disabled) return@withLock block()
+            val blocked = setXmsfNetworkingBlocked(context, blocked = true)
+            if (!blocked) return@withLock block()
 
             try {
-                block().also { delay(100L) }
+                block().also { delay(ISLAND_SETTLE_DELAY_MS) }
             } finally {
-                runCatching { setXmsfNetworkingEnabled(context, enabled = true) }
-                    .onFailure { error -> Log.e(TAG, "Failed to restore XMSF networking", error) }
+                setXmsfNetworkingBlocked(context, blocked = false)
             }
         }
     }
 
-    private fun setXmsfNetworkingEnabled(
+    private fun setXmsfNetworkingBlocked(
         context: Context,
-        enabled: Boolean,
+        blocked: Boolean,
     ): Boolean {
-        val xmsfUid = context.packageManager.getPackageUid(XMSF_PACKAGE, 0)
+        val xmsfUid =
+            runCatching { context.packageManager.getPackageUid(XMSF_PACKAGE, 0) }
+                .onFailure { error -> Log.w(TAG, "$XMSF_PACKAGE is not installed", error) }
+                .getOrNull()
+                ?: return false
+
         getPrivilegedService(context)?.let { service ->
-            return service.setPackageNetworkingEnabled(xmsfUid, enabled)
+            return runCatching { service.setPackageNetworkingEnabled(xmsfUid, !blocked) }
+                .onFailure { error -> Log.w(TAG, "User service call failed", error) }
+                .getOrDefault(false)
         }
 
-        return runCatching {
-            val connectivityBinder =
-                SystemServiceHelper.getSystemService("connectivity")
-                    ?: return@runCatching false
-            val wrappedBinder = ShizukuBinderWrapper(connectivityBinder)
-            val connectivityManager =
-                Class
-                    .forName("android.net.IConnectivityManager\$Stub")
-                    .getMethod("asInterface", IBinder::class.java)
-                    .invoke(null, wrappedBinder)
-            val setChainEnabled =
-                connectivityManager.javaClass.getMethod(
-                    "setFirewallChainEnabled",
-                    Int::class.javaPrimitiveType,
-                    Boolean::class.javaPrimitiveType,
-                )
-            setChainEnabled.invoke(connectivityManager, FIREWALL_CHAIN_OEM_DENY, true)
-            val setUidRule =
-                connectivityManager.javaClass.getMethod(
-                    "setUidFirewallRule",
-                    Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType,
-                )
-            setUidRule.invoke(
-                connectivityManager,
-                FIREWALL_CHAIN_OEM_DENY,
-                xmsfUid,
-                if (enabled) 0 else 2,
-            )
-            true
-        }.getOrDefault(false)
+        // Fallback when the user service cannot be bound: drive the connectivity service directly
+        // through the Shizuku binder, which runs with the same privileged identity.
+        val connectivity = SystemServiceHelper.getSystemService("connectivity") ?: return false
+        return OemDenyFirewall.setPackageDenied(
+            connectivity = ShizukuBinderWrapper(connectivity),
+            uid = xmsfUid,
+            denied = blocked,
+        )
     }
 
     private fun getPrivilegedService(context: Context): IPrivilegedService? {
-        if (privilegedService != null && serviceConnected) return privilegedService
+        privilegedService?.takeIf { serviceConnected }?.let { return it }
 
         return runCatching {
             bindLatch = CountDownLatch(1)
@@ -252,10 +206,16 @@ object ShizukuManager {
                     ).daemon(false)
                     .processNameSuffix("privileged")
                     .debuggable(false)
-                    .version(1)
+                    .version(USER_SERVICE_VERSION)
             Shizuku.bindUserService(args, serviceConnection)
-            bindLatch.await(3L, TimeUnit.SECONDS)
-            privilegedService
-        }.getOrNull()
+            if (bindLatch.await(BIND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                privilegedService
+            } else {
+                Log.w(TAG, "Timed out binding the Shizuku user service")
+                null
+            }
+        }
+            .onFailure { error -> Log.w(TAG, "Unable to bind the Shizuku user service", error) }
+            .getOrNull()
     }
 }
