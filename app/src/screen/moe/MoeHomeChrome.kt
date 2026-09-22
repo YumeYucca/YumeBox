@@ -54,10 +54,10 @@ import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze
 import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
-import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
 import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -92,16 +92,18 @@ internal fun MoeSidebarDecoration(
     val blurRadius = lerpDp(30.dp, 52.dp, clampedBlurProgress)
     val blurModifier =
         if (blurEnabled) {
-            Modifier.hazeEffect(state = hazeState) {
-                inputScale = HazeInputScale.Auto
-                blurEffect {
-                    this.blurRadius = blurRadius
-                    noiseFactor = YumeHaze.ChromeNoiseFactor
-                    backgroundColor = YumeHaze.glassBackgroundColor(surface, isDarkSurface)
-                    colorEffects = YumeHaze.glassColorEffects(surface, isDarkSurface)
-                    fallbackTint = YumeHaze.sidebarFallbackTint(surface, isDarkSurface)
-                }
-            }
+            val effectRadius = blurRadius
+            Modifier.hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                style =
+                    HazeBlurStyle {
+                        blurRadius(effectRadius)
+                        noiseFactor(YumeHaze.ChromeNoiseFactor)
+                        backgroundColor(YumeHaze.glassBackgroundColor(surface, isDarkSurface))
+                        colorEffects(YumeHaze.glassColorEffects(surface, isDarkSurface))
+                        fallbackColorEffect(YumeHaze.sidebarFallbackTint(surface, isDarkSurface))
+                    },
+            )
         } else {
             Modifier
         }

@@ -49,10 +49,11 @@ import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze.chromeEffect
+import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.flow.StateFlow
 import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.HazeProgressive
 import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -74,8 +75,8 @@ private fun Modifier.nodeTabHaze(state: HazeState?, style: HazeBlurStyle?): Modi
             HazeProgressive.verticalGradient(
                 startIntensity = 1f,
                 endIntensity = 0f,
-                preferPerformance = true,
             ),
+        performanceMode = HazePerformanceMode.Performance,
     )
 
 @Composable
