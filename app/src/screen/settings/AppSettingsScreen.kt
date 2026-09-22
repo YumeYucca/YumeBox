@@ -34,6 +34,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.net.toUri
 import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.common.util.toast
@@ -211,9 +213,22 @@ private fun AppPrivacySettingsSection(viewModel: AppSettingsViewModel) {
 @Composable
 private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val section by viewModel.serviceSectionState.collectAsState()
+    val shizukuAccess by viewModel.shizukuAccess.collectAsState()
     val showTrafficNotification = section.showTrafficNotification
+    val superIslandEnabled = section.superIslandEnabled
     val exitUiWhenBackground = section.exitUiWhenBackground
+
+    LaunchedEffect(viewModel) { viewModel.refreshShizukuAccess() }
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshShizukuAccess()
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Title(YumeTxt.AppSettings.Section.Service)
     AppCard {
@@ -227,6 +242,23 @@ private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
             checked = exitUiWhenBackground,
             onCheckedChange = viewModel::onExitUiWhenBackgroundChange,
         )
+        if (shizukuAccess.islandSupported) {
+            PreferenceSwitchItem(
+                title = YumeTxt.AppSettings.ServiceSection.SuperIslandTitle,
+                checked = superIslandEnabled,
+                onCheckedChange = viewModel::onSuperIslandEnabledChange,
+            )
+            PreferenceArrowItem(
+                title = YumeTxt.AppSettings.ServiceSection.ShizukuTitle,
+                endActions = {
+                    Text(
+                        text = shizukuAccess.statusText,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                    )
+                },
+                onClick = viewModel::onShizukuAccessClick,
+            )
+        }
         PreferenceArrowItem(
             title = YumeTxt.AppSettings.ServiceSection.BatteryOptimizationTitle,
             onClick = {

@@ -36,6 +36,10 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     val autoUpdateCurrentProfileOnStart by boolFlow(true)
     val excludeFromRecents by boolFlow(false)
     val showTrafficNotification by boolFlow(true)
+    // Read by the foreground service through the same multi-process "settings" store: on HyperOS the
+    // ongoing notification is only rendered as a Super Island entry while the XMSF network block is
+    // applied around the update.
+    val superIslandEnabled by boolFlow(true)
     val bottomBarAutoHide by boolFlow(true)
     val topBarBlurEnabled by boolFlow(false)
     val classicHomeEnabled by boolFlow(false)

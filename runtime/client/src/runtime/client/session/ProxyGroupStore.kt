@@ -25,7 +25,8 @@ import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupOverlay
 import com.github.yumeyucca.yumebox.domain.model.membersByGroup
-import com.github.yumeyucca.yumebox.domain.model.resolveTerminalProxy
+import com.github.yumeyucca.yumebox.domain.model.resolvePrimaryNode
+import com.github.yumeyucca.yumebox.domain.model.toInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,15 +52,7 @@ internal class ProxyGroupStore(
     private val overlay = ProxyGroupOverlay(nowNanos, directDelayGraceNanos)
     private var sourceGroups: List<ProxyGroupInfo> = emptyList()
 
-    fun toInfo(group: ProxyGroup): ProxyGroupInfo =
-        ProxyGroupInfo(
-            name = group.name,
-            type = group.type,
-            proxies = group.proxies,
-            now = group.now.trim(),
-            icon = group.icon,
-            hidden = group.hidden,
-        )
+    fun toInfo(group: ProxyGroup): ProxyGroupInfo = group.toInfo()
 
     fun publish(groups: List<ProxyGroupInfo>) {
         sourceGroups = groups
@@ -174,14 +167,6 @@ internal class ProxyGroupStore(
         }
 
     private fun updateResolvedPrimaryNode(groups: List<ProxyGroupInfo>) {
-        if (!isRuntimeRunning() || groups.isEmpty()) {
-            _resolvedPrimaryNode.value = null
-            return
-        }
-        val mainGroup =
-            groups.find { it.name.equals("Proxy", ignoreCase = true) } ?: groups.firstOrNull()
-        val targetNode = mainGroup?.now?.trim().orEmpty()
-        _resolvedPrimaryNode.value =
-            targetNode.takeIf(String::isNotEmpty)?.let { groups.resolveTerminalProxy(it) }
+        _resolvedPrimaryNode.value = groups.takeIf { isRuntimeRunning() }?.resolvePrimaryNode()
     }
 }

@@ -24,6 +24,7 @@ package com.github.yumeyucca.yumebox.domain.model
 
 
 import com.github.yumeyucca.yumebox.core.model.Proxy
+import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import com.github.yumeyucca.yumebox.core.model.isManuallySelectable
 import com.github.yumeyucca.yumebox.core.model.isProxyGroup
 import kotlinx.serialization.Serializable
@@ -43,6 +44,34 @@ val ProxyGroupInfo.isSelectable: Boolean
 
 val ProxyGroupInfo.isProxyGroup: Boolean
     get() = type in Proxy.Type.groupTypes || now.isNotBlank() || proxies.isNotEmpty()
+
+/** The group name a stock config uses for its main group; every other config falls back to its first. */
+private const val PRIMARY_GROUP_NAME = "Proxy"
+
+/** Maps the core proxy-group payload to its presentation model. */
+fun ProxyGroup.toInfo(): ProxyGroupInfo =
+    ProxyGroupInfo(
+        name = name,
+        type = type,
+        proxies = proxies,
+        now = now.trim(),
+        icon = icon,
+        hidden = hidden,
+    )
+
+/**
+ * Resolves the terminal (non-group) proxy of the group the runtime is currently dialing: the main
+ * group ([PRIMARY_GROUP_NAME]) when a config has one, otherwise the first group. Returns `null`
+ * when there is no group or the selected entry cannot be resolved.
+ */
+fun List<ProxyGroupInfo>.resolvePrimaryNode(): Proxy? {
+    val group =
+        firstOrNull { it.name.equals(PRIMARY_GROUP_NAME, ignoreCase = true) }
+            ?: firstOrNull()
+            ?: return null
+    val selected = group.now.trim()
+    return if (selected.isEmpty()) null else resolveTerminalProxy(selected)
+}
 
 /** Resolves a selected proxy-group entry to the terminal (non-group) proxy. */
 fun List<ProxyGroupInfo>.resolveTerminalProxy(entryName: String): Proxy? {

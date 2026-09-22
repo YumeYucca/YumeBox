@@ -51,4 +51,6 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
 }

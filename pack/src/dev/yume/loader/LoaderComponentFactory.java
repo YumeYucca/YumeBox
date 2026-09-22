@@ -35,6 +35,9 @@ public final class LoaderComponentFactory extends AppComponentFactory {
     public @NonNull Application instantiateApplication(@NonNull ClassLoader classLoader, @NonNull String className)
             throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         PayloadInstaller.Installation installation = prepare(classLoader);
+        if (installation == null) {
+            return super.instantiateApplication(classLoader, className);
+        }
         return delegate(installation.metadata()).instantiateApplication(
                 installation.classLoader(),
                 installation.metadata().originalApplication
@@ -45,6 +48,9 @@ public final class LoaderComponentFactory extends AppComponentFactory {
     public @NonNull Activity instantiateActivity(@NonNull ClassLoader classLoader, @NonNull String className, Intent intent)
             throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         PayloadInstaller.Installation installation = prepare(classLoader);
+        if (installation == null) {
+            return super.instantiateActivity(classLoader, className, intent);
+        }
         return delegate(installation.metadata()).instantiateActivity(installation.classLoader(), className, intent);
     }
 
@@ -52,6 +58,9 @@ public final class LoaderComponentFactory extends AppComponentFactory {
     public @NonNull Service instantiateService(@NonNull ClassLoader classLoader, @NonNull String className, Intent intent)
             throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         PayloadInstaller.Installation installation = prepare(classLoader);
+        if (installation == null) {
+            return super.instantiateService(classLoader, className, intent);
+        }
         return delegate(installation.metadata()).instantiateService(installation.classLoader(), className, intent);
     }
 
@@ -59,6 +68,9 @@ public final class LoaderComponentFactory extends AppComponentFactory {
     public @NonNull BroadcastReceiver instantiateReceiver(@NonNull ClassLoader classLoader, @NonNull String className, Intent intent)
             throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         PayloadInstaller.Installation installation = prepare(classLoader);
+        if (installation == null) {
+            return super.instantiateReceiver(classLoader, className, intent);
+        }
         return delegate(installation.metadata()).instantiateReceiver(installation.classLoader(), className, intent);
     }
 
@@ -66,10 +78,20 @@ public final class LoaderComponentFactory extends AppComponentFactory {
     public @NonNull ContentProvider instantiateProvider(@NonNull ClassLoader classLoader, @NonNull String className)
             throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         PayloadInstaller.Installation installation = prepare(classLoader);
+        if (installation == null) {
+            return super.instantiateProvider(classLoader, className);
+        }
         return delegate(installation.metadata()).instantiateProvider(installation.classLoader(), className);
     }
 
+    /**
+     * Installs the packed payload and returns it, or {@code null} when this is not an application
+     * process (see {@link RuntimeBootstrap#hasBoundApplication()}).
+     */
     private PayloadInstaller.Installation prepare(ClassLoader classLoader) {
+        if (!RuntimeBootstrap.hasBoundApplication()) {
+            return null;
+        }
         ApplicationInfo appInfo = RuntimeBootstrap.currentApplicationInfo();
         PayloadInstaller.Installation installation = PayloadInstaller.install(
                 appInfo,

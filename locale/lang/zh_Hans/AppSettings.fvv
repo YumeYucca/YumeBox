@@ -62,6 +62,14 @@ AppSettings = {
     ServiceSection = {
         TrafficNotificationTitle = "显示流量通知"
         ExitUiWhenBackgroundTitle = "后台隐藏时释放界面"
+        SuperIslandTitle = "超级岛"
+        ShizukuTitle = "Shizuku 授权"
+        ShizukuNotRunning = "请先安装并启动 Shizuku"
+        ShizukuPermissionRequired = "点击此处申请 Shizuku 权限"
+        ShizukuReady = "Shizuku 已授权，超级岛可正常工作"
+        ShizukuStatusUnavailable = "未运行"
+        ShizukuStatusPending = "待授权"
+        ShizukuStatusGranted = "已授权"
         BatteryOptimizationTitle = "电池优化无限制"
         BatteryOptimizationAlreadyDisabled = "电池优化已关闭"
     }
