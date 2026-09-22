@@ -25,6 +25,8 @@ package com.github.yumeyucca.yumebox.screen.settings
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.PowerManager
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
@@ -34,6 +36,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.net.toUri
 import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.common.util.toast
@@ -43,6 +47,7 @@ import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.screen.moe.SystemWallpaperPreferenceItem
 import com.github.yumeyucca.yumebox.runtime.api.Intents
+import com.github.yumeyucca.yumebox.runtime.service.shizuku.ShizukuManager
 import com.github.yumeyucca.yumebox.screen.settings.component.ThemeColorPickerItem
 import org.koin.androidx.compose.koinViewModel
 import tf.gal.yumebox.locale.YumeTxt
@@ -211,9 +216,36 @@ private fun AppPrivacySettingsSection(viewModel: AppSettingsViewModel) {
 @Composable
 private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val section by viewModel.serviceSectionState.collectAsState()
     val showTrafficNotification = section.showTrafficNotification
+    val superIslandEnabled = section.superIslandEnabled
     val exitUiWhenBackground = section.exitUiWhenBackground
+    var islandSupported by remember { mutableStateOf(false) }
+    var shizukuRunning by remember { mutableStateOf(false) }
+    var shizukuGranted by remember { mutableStateOf(false) }
+
+    fun refreshShizukuState(): Pair<Boolean, Boolean> {
+        ShizukuManager.init(context)
+        val running = ShizukuManager.isRunning()
+        val granted = running && ShizukuManager.hasPermission()
+        shizukuRunning = running
+        shizukuGranted = granted
+        return running to granted
+    }
+
+    LaunchedEffect(context) {
+        islandSupported = ShizukuManager.isIslandSupported()
+        refreshShizukuState()
+    }
+    DisposableEffect(lifecycleOwner, context) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) refreshShizukuState()
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Title(YumeTxt.AppSettings.Section.Service)
     AppCard {
@@ -227,6 +259,62 @@ private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
             checked = exitUiWhenBackground,
             onCheckedChange = viewModel::onExitUiWhenBackgroundChange,
         )
+        if (islandSupported) {
+            PreferenceSwitchItem(
+                title = YumeTxt.AppSettings.ServiceSection.SuperIslandTitle,
+                checked = superIslandEnabled,
+                onCheckedChange = viewModel::onSuperIslandEnabledChange,
+            )
+            PreferenceArrowItem(
+                title = YumeTxt.AppSettings.ServiceSection.ShizukuTitle,
+                endActions = {
+                    Text(
+                        text =
+                            when {
+                                !shizukuRunning ->
+                                    YumeTxt.AppSettings.ServiceSection.ShizukuStatusUnavailable
+
+                                !shizukuGranted ->
+                                    YumeTxt.AppSettings.ServiceSection.ShizukuStatusPending
+
+                                else -> YumeTxt.AppSettings.ServiceSection.ShizukuStatusGranted
+                            },
+                        color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                    )
+                },
+                onClick = {
+                    val (running, granted) = refreshShizukuState()
+                    when {
+                        !running -> {
+                            if (!ShizukuManager.openShizuku(context)) {
+                                context.toast(YumeTxt.AppSettings.ServiceSection.ShizukuNotRunning)
+                            }
+                        }
+
+                        granted -> {
+                            context.toast(YumeTxt.AppSettings.ServiceSection.ShizukuReady)
+                        }
+
+                        else -> {
+                            ShizukuManager.requestPermission { allowed ->
+                                Handler(Looper.getMainLooper()).post {
+                                    shizukuGranted = allowed
+                                    refreshShizukuState()
+                                    context.toast(
+                                        if (allowed) {
+                                            YumeTxt.AppSettings.ServiceSection.ShizukuReady
+                                        } else {
+                                            YumeTxt.AppSettings.ServiceSection
+                                                .ShizukuPermissionRequired
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+            )
+        }
         PreferenceArrowItem(
             title = YumeTxt.AppSettings.ServiceSection.BatteryOptimizationTitle,
             onClick = {

@@ -12,6 +12,12 @@ public final class LoaderApplication extends Application {
     @Override
     protected void attachBaseContext(@NonNull Context base) {
         super.attachBaseContext(base);
+        if (!RuntimeBootstrap.hasBoundApplication()) {
+            // Not an application process (for example the Shizuku UserService, which Shizuku starts
+            // itself). The packed payload cannot be installed here, so this class stays a plain
+            // Application shell whose class loader keeps serving the APK's own DEX files.
+            return;
+        }
         PayloadInstaller.Installation installation = PayloadInstaller.install(
                 base.getApplicationInfo(),
                 base.getClassLoader(),
@@ -27,6 +33,9 @@ public final class LoaderApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        if (original == null) {
+            return;
+        }
         ApplicationBridge.replace(this, original);
         original.onCreate();
     }
@@ -34,24 +43,32 @@ public final class LoaderApplication extends Application {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        original.onConfigurationChanged(newConfig);
+        if (original != null) {
+            original.onConfigurationChanged(newConfig);
+        }
     }
 
     @Override
     public void onLowMemory() {
         super.onLowMemory();
-        original.onLowMemory();
+        if (original != null) {
+            original.onLowMemory();
+        }
     }
 
     @Override
     public void onTrimMemory(int level) {
         super.onTrimMemory(level);
-        original.onTrimMemory(level);
+        if (original != null) {
+            original.onTrimMemory(level);
+        }
     }
 
     @Override
     public void onTerminate() {
-        original.onTerminate();
+        if (original != null) {
+            original.onTerminate();
+        }
         super.onTerminate();
     }
 }

@@ -29,6 +29,7 @@ xz = "1.12"
 shapes = "1.2.1"
 snakeYaml = "v1.18-android"
 libsu = "6.0.0"
+shizuku = "13.1.5"
 animation = "1.11.4"
 room = "2.8.5"
 smaliDexlib2 = "3.0.10"
@@ -103,6 +104,8 @@ rosemoe-language-textmate = { module = "io.github.rosemoe:language-textmate" }
 rosemoe-oniguruma = { module = "io.github.rosemoe:oniguruma-native" }
 libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
 libsu-service = { module = "com.github.topjohnwu.libsu:service", version.ref = "libsu" }
+shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
+shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
 androidx-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "animation" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }

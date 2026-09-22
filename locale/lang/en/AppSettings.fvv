@@ -62,6 +62,14 @@ AppSettings = {
     ServiceSection = {
         TrafficNotificationTitle = "Show Traffic Notification"
         ExitUiWhenBackgroundTitle = "Release UI In Background"
+        SuperIslandTitle = "Super Island"
+        ShizukuTitle = "Shizuku Access"
+        ShizukuNotRunning = "Install and start Shizuku first"
+        ShizukuPermissionRequired = "Tap to request Shizuku permission"
+        ShizukuReady = "Shizuku authorized; Super Island is ready"
+        ShizukuStatusUnavailable = "Unavailable"
+        ShizukuStatusPending = "Needs access"
+        ShizukuStatusGranted = "Authorized"
         BatteryOptimizationTitle = "Unrestricted Battery"
         BatteryOptimizationAlreadyDisabled = "Battery optimization is already disabled"
     }

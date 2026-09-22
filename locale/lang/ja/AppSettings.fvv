@@ -62,6 +62,14 @@ AppSettings = {
     ServiceSection = {
         TrafficNotificationTitle = "通信量通知を表示"
         ExitUiWhenBackgroundTitle = "バックグラウンドで UI を解放"
+        SuperIslandTitle = "スーパーアイランド"
+        ShizukuTitle = "Shizuku 権限"
+        ShizukuNotRunning = "Shizuku をインストールして起動してください"
+        ShizukuPermissionRequired = "タップして Shizuku 権限を申請"
+        ShizukuReady = "Shizuku 許可済み、スーパーアイランドを利用できます"
+        ShizukuStatusUnavailable = "未実行"
+        ShizukuStatusPending = "権限未許可"
+        ShizukuStatusGranted = "許可済み"
         BatteryOptimizationTitle = "バッテリー制限なし"
         BatteryOptimizationAlreadyDisabled = "バッテリー最適化は既に無効です"
     }

@@ -24,15 +24,24 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.graphics.drawable.Icon
+import android.os.Bundle
+import android.os.SystemClock
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
+import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
+import com.github.yumeyucca.yumebox.domain.model.resolveTerminalProxy
 import com.github.yumeyucca.yumebox.runtime.api.Components
+import com.github.yumeyucca.yumebox.runtime.api.CoreApi
 import com.github.yumeyucca.yumebox.runtime.service.R
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
+import com.github.yumeyucca.yumebox.runtime.service.profile.Imported
 import com.github.yumeyucca.yumebox.runtime.service.profile.ImportedDao
+import com.github.yumeyucca.yumebox.runtime.service.shizuku.ShizukuManager
 import com.github.yumeyucca.yumebox.runtime.service.util.ServiceLogoIcons
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
@@ -59,7 +68,15 @@ class ServiceNotificationManager(
     // notification AFTER stopForeground(REMOVE), leaving it stuck on screen.
     @Volatile private var released = false
 
+    // Terminal node of the selected group, cached so the island payload does not trigger a core
+    // IPC on every traffic tick.
+    private var currentNode: String? = null
+    private var currentNodeUpdatedAt = 0L
+
     fun createChannel() {
+        // The island extras are only rendered while Shizuku is available, so bind/initialize it
+        // together with the notification channel of the foreground service.
+        ShizukuManager.init(service)
         legacyChannelIds.forEach(notificationManager::deleteNotificationChannel)
         notificationManager.createNotificationChannel(
             NotificationChannelCompat.Builder(
@@ -83,7 +100,7 @@ class ServiceNotificationManager(
         )
 
     fun startTrafficUpdate(scope: CoroutineScope): Job =
-        scope.launch(Dispatchers.Default) {
+        scope.launch(Dispatchers.IO) {
             PollingTimers.ticks(PollingTimerSpecs.ServiceTrafficNotification).collect {
                 refreshRunningNotification()
             }
@@ -111,17 +128,17 @@ class ServiceNotificationManager(
 
         val core = com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess.controller(service)
         val now = runCatching { core.queryTrafficNow() }.getOrDefault(0L)
-        val total = runCatching { core.queryTrafficTotal() }.getOrDefault(0L)
         return buildNotification(
             NotificationPresentationFactory.createRunning(
                 profileName = profileName,
+                profile = resolveProfile(),
+                currentNode = resolveCurrentNode(core),
                 trafficNow = now,
-                trafficTotal = total,
             )
         )
     }
 
-    private fun refreshRunningNotification() {
+    private suspend fun refreshRunningNotification() {
         // This notification belongs to a running foreground service. Re-post it through
         // startForeground() instead of NotificationManager.notify(): Android may defer ordinary
         // notify() updates after the app leaves the foreground, while startForeground() remains
@@ -130,6 +147,19 @@ class ServiceNotificationManager(
             return
         }
         val notification = buildRunningNotification()
+        if (islandActive()) {
+            // HyperOS only keeps the island entry of a notification app whose network access is
+            // blocked; the XMSF bypass is restored right after the update.
+            ShizukuManager.withXmsfNetworkingDisabled(service) {
+                // Re-check after the (possibly slow) core query: the service may have stopped
+                // while we were building the notification, and a startForeground() now would
+                // resurrect it.
+                if (!released) {
+                    service.startForeground(config.notificationId, notification)
+                }
+            }
+            return
+        }
         // Re-check after the (possibly slow) core query: the service may have stopped while we
         // were building the notification, and a notify() now would resurrect it.
         if (!released) {
@@ -175,13 +205,81 @@ class ServiceNotificationManager(
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
+            .also { addIslandExtras(it, presentation) }
     }
 
-    private fun resolveProfileName(): String {
-        val active =
-            serviceStore.activeProfile ?: return YumeTxt.Service.Notification.UnknownProfile
-        return ImportedDao.queryByUUID(active)?.name?.takeIf { it.isNotBlank() }
+    /**
+     * HyperOS picks up the island entry from the notification extras: the icon bundle is used for
+     * the island artwork, [MiuiIslandParams] carries the text and the tap intent.
+     */
+    private fun addIslandExtras(
+        notification: Notification,
+        presentation: NotificationPresentation,
+    ) {
+        if (!presentation.isRunning || !islandActive()) {
+            return
+        }
+        val icon = runCatching { ServiceLogoIcons.resId() }.getOrDefault(R.drawable.ic_logo_service)
+        val pics =
+            Bundle().apply {
+                putParcelable("miui.focus.pic_app_icon", Icon.createWithResource(service, icon))
+                putParcelable("miui.focus.pic_app_icon_dark", Icon.createWithResource(service, icon))
+                putParcelable("miui.focus.pic_small", Icon.createWithResource(service, icon))
+                putParcelable("miui.focus.pic_small_dark", Icon.createWithResource(service, icon))
+            }
+        notification.extras.putBundle("miui.focus.pics", pics)
+        notification.extras.putString(
+            "miui.focus.param",
+            MiuiIslandParams.build(
+                profileName = presentation.title,
+                usageText = presentation.content,
+                compactText = presentation.compactText,
+                currentNode = presentation.currentNode,
+            ),
+        )
+    }
+
+    private fun resolveProfile(): Imported? =
+        serviceStore.activeProfile?.let { ImportedDao.queryByUUID(it) }
+
+    private fun resolveProfileName(): String =
+        resolveProfile()?.name?.takeIf { it.isNotBlank() }
             ?: YumeTxt.Service.Notification.UnknownProfile
+
+    private fun resolveCurrentNode(core: CoreApi): String? {
+        val now = SystemClock.elapsedRealtime()
+        if (now - currentNodeUpdatedAt < CURRENT_NODE_REFRESH_MS) {
+            return currentNode
+        }
+        currentNodeUpdatedAt = now
+        runCatching { core.queryAllProxyGroups(false) }.onSuccess { groups ->
+            currentNode = resolveTerminalNode(groups)
+        }
+        return currentNode
+    }
+
+    /**
+     * Resolves the proxy the selected group finally dials: the main group is named "Proxy" on a
+     * stock config, any other config falls back to its first group.
+     */
+    private fun resolveTerminalNode(groups: List<ProxyGroup>): String? {
+        val infos =
+            groups.map { group ->
+                ProxyGroupInfo(
+                    name = group.name,
+                    type = group.type,
+                    proxies = group.proxies,
+                    now = group.now.trim(),
+                    icon = group.icon,
+                    hidden = group.hidden,
+                )
+            }
+        val group =
+            infos.firstOrNull { it.name.equals("Proxy", ignoreCase = true) }
+                ?: infos.firstOrNull()
+                ?: return null
+        val now = group.now.takeIf { it.isNotBlank() } ?: return null
+        return infos.resolveTerminalProxy(now)?.name
     }
 
     private fun shouldShowTrafficNotification(): Boolean {
@@ -192,10 +290,23 @@ class ServiceNotificationManager(
         return serviceStore.showTrafficNotification
     }
 
+    /** Super Island toggle of the app side; written in the shared settings store. */
+    private fun isSuperIslandEnabled(): Boolean =
+        settingsStore.decodeBool("superIslandEnabled", true)
+
+    private fun islandActive(): Boolean =
+        isSuperIslandEnabled() &&
+            ShizukuManager.isIslandSupported() &&
+            shouldShowTrafficNotification()
+
     companion object {
         // Channel ids shipped before the YumeBox rebrand; deleted on channel creation so
         // upgraded installs don't keep orphaned "Clash ..." entries in notification settings.
         private val legacyChannelIds = listOf("clash_vpn_service", "clash_http_service")
+
+        // The terminal node is only refreshed when the cached value is older than this: resolving
+        // it costs a core IPC listing all proxy groups.
+        private const val CURRENT_NODE_REFRESH_MS = 2500L
 
         val vpnConfig =
             Config(

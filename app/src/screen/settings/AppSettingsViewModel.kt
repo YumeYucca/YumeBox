@@ -76,6 +76,7 @@ class AppSettingsViewModel(
     val predictiveBackEnabled: Preference<Boolean> = settings.predictiveBackEnabled
     val predictiveBackMaxProgress: Preference<Float> = settings.predictiveBackMaxProgress
     val exitUiWhenBackground: Preference<Boolean> = featureStore.exitUiWhenBackground
+    val superIslandEnabled: Preference<Boolean> = settings.superIslandEnabled
 
     val customUserAgent: Preference<String> = settings.customUserAgent
 
@@ -175,13 +176,19 @@ class AppSettingsViewModel(
     data class ServiceSectionState(
         val showTrafficNotification: Boolean = false,
         val exitUiWhenBackground: Boolean = false,
+        val superIslandEnabled: Boolean = false,
     )
 
     val serviceSectionState: StateFlow<ServiceSectionState> =
-        combine(showTrafficNotification.state, exitUiWhenBackground.state) { traffic, exitUi ->
+        combine(
+            showTrafficNotification.state,
+            exitUiWhenBackground.state,
+            superIslandEnabled.state,
+        ) { traffic, exitUi, island ->
             ServiceSectionState(
                 showTrafficNotification = traffic,
                 exitUiWhenBackground = exitUi,
+                superIslandEnabled = island,
             )
         }
             .stateInWhileSubscribed(
@@ -189,6 +196,7 @@ class AppSettingsViewModel(
                 ServiceSectionState(
                     showTrafficNotification = showTrafficNotification.value,
                     exitUiWhenBackground = exitUiWhenBackground.value,
+                    superIslandEnabled = superIslandEnabled.value,
                 ),
             )
 
@@ -336,6 +344,8 @@ class AppSettingsViewModel(
     fun onExcludeFromRecentsChange(exclude: Boolean) = excludeFromRecents.set(exclude)
 
     fun onShowTrafficNotificationChange(show: Boolean) = showTrafficNotification.set(show)
+
+    fun onSuperIslandEnabledChange(enabled: Boolean) = superIslandEnabled.set(enabled)
 
     fun onExitUiWhenBackgroundChange(enabled: Boolean) = exitUiWhenBackground.set(enabled)
 

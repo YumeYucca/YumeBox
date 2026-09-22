@@ -74,3 +74,14 @@
 -keepclassmembers class * {
     @org.koin.core.inject *** inject(...);
 }
+
+# ========================================
+# Shizuku UserService
+# ========================================
+# The service is bound by ComponentName(packageName, className), so its binary name must survive
+# release shrinking. Shizuku API classes also contain reflection-based entry points.
+-keep class rikka.shizuku.** { *; }
+-keep class rikka.sui.** { *; }
+-keep class com.github.yumeyucca.yumebox.runtime.service.shizuku.** { *; }
+-dontwarn rikka.shizuku.**
+-dontwarn rikka.sui.**

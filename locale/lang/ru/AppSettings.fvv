@@ -62,6 +62,14 @@ AppSettings = {
     ServiceSection = {
         TrafficNotificationTitle = "Показывать уведомление о трафике"
         ExitUiWhenBackgroundTitle = "Освобождать UI в фоне"
+        SuperIslandTitle = "Super Island"
+        ShizukuTitle = "Доступ через Shizuku"
+        ShizukuNotRunning = "Сначала установите и запустите Shizuku"
+        ShizukuPermissionRequired = "Нажмите, чтобы запросить разрешение Shizuku"
+        ShizukuReady = "Shizuku разрешён, Super Island готов"
+        ShizukuStatusUnavailable = "Недоступен"
+        ShizukuStatusPending = "Не разрешён"
+        ShizukuStatusGranted = "Разрешён"
         BatteryOptimizationTitle = "Без ограничений батареи"
         BatteryOptimizationAlreadyDisabled = "Оптимизация батареи уже отключена"
     }
