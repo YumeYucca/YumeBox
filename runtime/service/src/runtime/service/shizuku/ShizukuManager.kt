@@ -35,11 +35,9 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * Access to the Shizuku / Sui privileged service.
- *
- * Sui needs no explicit initialization here: `rikka.shizuku.ShizukuProvider` (declared in the app
- * manifest) initializes it in its `onCreate`, which runs before `Application.onCreate`. This app
- * runs in a single process, so the provider also serves the Shizuku binder.
+ * Access to the Shizuku / Sui privileged service. Sui needs no explicit initialization here:
+ * `rikka.shizuku.ShizukuProvider` (declared in the app manifest) initializes it in its `onCreate`,
+ * which runs before `Application.onCreate`.
  */
 object ShizukuManager {
     private const val TAG = "YumeBoxShizuku"
@@ -50,17 +48,14 @@ object ShizukuManager {
     private const val BIND_TIMEOUT_SECONDS = 3L
 
     /**
-     * How long the XMSF network block is kept after the notification was posted. HyperOS decides
-     * whether to show the island entry while the notification is delivered, so the block has to
-     * outlive the `startForeground()` call by a small margin.
+     * Kept a little beyond the `startForeground()` call: HyperOS decides whether to show the island
+     * entry while the notification is delivered.
      */
     private const val ISLAND_SETTLE_DELAY_MS = 100L
 
     /**
-     * UserService Shizuku instantiates in its own process. Packed builds keep the class in the APK's
-     * loader DEX (see :pack), because the packed payload below /data/user/0/<pkg> is not readable
-     * for the shell user Shizuku runs as. Builds without a loader DEX fall back to the
-     * implementation that ships in the APK's own DEX files.
+     * Packed builds keep this class in the APK's loader DEX (see :pack), because the packed payload
+     * below /data/user/0/<pkg> is not readable for the shell user Shizuku runs as.
      */
     private const val LOADER_USER_SERVICE_CLASS = "dev.yume.loader.ShizukuUserService"
 
@@ -75,7 +70,7 @@ object ShizukuManager {
     // Written by the service connection callback, read from the traffic updater's thread.
     @Volatile private var privilegedService: IPrivilegedService? = null
     @Volatile private var serviceConnected = false
-    private var bindLatch = CountDownLatch(1)
+    @Volatile private var bindLatch = CountDownLatch(1)
     private val bypassMutex = Mutex()
 
     private val serviceConnection =
@@ -92,11 +87,24 @@ object ShizukuManager {
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
-                privilegedService = null
-                serviceConnected = false
-                bindLatch = CountDownLatch(1)
+                resetBinding()
+            }
+
+            override fun onBindingDied(name: ComponentName?) {
+                resetBinding()
+            }
+
+            override fun onNullBinding(name: ComponentName?) {
+                resetBinding()
             }
         }
+
+    /** Drops the cached binder and releases a waiting caller instead of letting it time out. */
+    private fun resetBinding() {
+        privilegedService = null
+        serviceConnected = false
+        bindLatch.countDown()
+    }
 
     fun isAvailable(): Boolean =
         runCatching {

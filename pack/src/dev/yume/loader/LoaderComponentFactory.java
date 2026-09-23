@@ -84,10 +84,7 @@ public final class LoaderComponentFactory extends AppComponentFactory {
         return delegate(installation.metadata()).instantiateProvider(installation.classLoader(), className);
     }
 
-    /**
-     * Installs the packed payload and returns it, or {@code null} when this is not an application
-     * process (see {@link RuntimeBootstrap#hasBoundApplication()}).
-     */
+    /** Installs the packed payload, or returns {@code null} outside an application process. */
     private PayloadInstaller.Installation prepare(ClassLoader classLoader) {
         if (!RuntimeBootstrap.hasBoundApplication()) {
             return null;

@@ -220,7 +220,6 @@ private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
     val superIslandEnabled = section.superIslandEnabled
     val exitUiWhenBackground = section.exitUiWhenBackground
 
-    LaunchedEffect(viewModel) { viewModel.refreshShizukuAccess() }
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer =
             LifecycleEventObserver { _, event ->

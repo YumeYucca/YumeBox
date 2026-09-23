@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeYucca 2025 - Present
+ * Copyright (c) YumeYucca 2025 - Present
  */
 
 package com.github.yumeyucca.yumebox.substore.engine
@@ -34,23 +34,12 @@ object NativeLibraryManager {
     const val JAVET_ARCHIVE_FILE_NAME = "libjavet.so.xz"
 
     /**
-     * Javet version the Java layer inside this APK was compiled against.
-     *
-     * The native library registers its JNI entry points for one exact Javet version and the V8 /
-     * Node build behind it, so a native of any other version must never be handed to `System.load`:
-     * the mismatch aborts the process instead of raising a catchable exception. Every check below
-     * is therefore keyed on this value, never on "some version that used to be valid".
+     * Javet version the Java layer in this APK was compiled against. A native of another version
+     * must never reach `System.load`: the mismatch aborts the process instead of throwing.
      */
     val JAVET_VERSION: String = BuildConfig.JAVET_VERSION
 
-    /**
-     * Release assets of the Javet native, in preference order.
-     *
-     * The versioned tag keeps every published native addressable forever, so shipping a new app
-     * build never invalidates the asset an older build still points at. The legacy fixed tag is
-     * kept last so installs that predate versioned assets keep working during the migration; the
-     * installer still rejects whatever does not hash to [JAVET_VERSION].
-     */
+    /** Release assets of the Javet native, versioned tag first, legacy fixed tag as fallback. */
     val JAVET_ARCHIVE_URLS: List<String> =
         listOf(
             "https://github.com/YumeYucca/libjavet/releases/download/javet-$JAVET_VERSION/$JAVET_ARCHIVE_FILE_NAME",
@@ -58,11 +47,9 @@ object NativeLibraryManager {
         )
 
     /**
-     * Known-good digests per Javet version, append-only.
-     *
-     * Only the entry of [JAVET_VERSION] is ever accepted for loading; the older entries exist so a
-     * native left on disk by a previous app build can be recognised by digest and reported as
-     * "installed 5.0.9, needs 5.0.10" instead of as an anonymous mismatch.
+     * Known-good digests per Javet version, append-only. Only the entry of [JAVET_VERSION] is ever
+     * accepted; older entries exist so a stale native can be reported by version instead of as an
+     * anonymous mismatch.
      */
     private val LIBRARY_SHA256_BY_VERSION =
         mapOf(
@@ -73,6 +60,19 @@ object NativeLibraryManager {
         mapOf(
             "5.0.9" to "31d7606fe3dd9135930a6a9519d90394abd219e535796cee3d5c8747812c6d35",
         )
+
+    init {
+        // A version without digests cannot be verified at all: every install and load would fail
+        // with a confusing "hash mismatch", so say why once.
+        if (JAVET_VERSION !in LIBRARY_SHA256_BY_VERSION ||
+            JAVET_VERSION !in ARCHIVE_SHA256_BY_VERSION
+        ) {
+            Timber.e(
+                "No known digest for Javet $JAVET_VERSION: add the SHA-256 of its libjavet.so and " +
+                    "libjavet.so.xz to NativeLibraryManager",
+            )
+        }
+    }
 
     private const val LIBRARY_DIR_NAME = "lib"
 
@@ -153,15 +153,14 @@ object NativeLibraryManager {
         }
 
     /**
-     * Whether the native on disk is exactly the build this APK can load. A native of another Javet
-     * version is reported as unavailable on purpose, so the UI offers a download instead of letting
-     * it reach `System.load`.
+     * Whether the native on disk is exactly the build this APK can load. Another Javet version is
+     * reported as unavailable on purpose, so the UI offers a download instead.
      */
     fun isLibraryAvailable(name: String): Boolean = identifyInstalledVersion(name) == JAVET_VERSION
 
     @SuppressLint("UnsafeDynamicallyLoadedCode")
     fun loadJniLibrary(name: String): Boolean {
-        // Last line of defence: a mismatched native is not an exception, it is a process abort.
+        // A mismatched native is not an exception, it is a process abort.
         if (!isLibraryAvailable(name)) {
             Timber.e("Refusing to load native library $name: ${getLibraryStatus(name)}")
             return false
@@ -198,11 +197,7 @@ object NativeLibraryManager {
     private val libraryDir: File?
         get() = context?.filesDir?.resolve(LIBRARY_DIR_NAME)
 
-    /**
-     * Resolves the Javet version of the file on disk from its digest. The digest is authoritative
-     * because it describes the exact bytes that would be mapped into the process; a file that
-     * matches no known build resolves to null and is never loaded.
-     */
+    /** Resolves the Javet version of the file on disk from its digest; null when no build matches. */
     private fun identifyInstalledVersion(name: String): String? {
         val file = getLibraryFile(name) ?: return null
         if (!file.isFile || !file.canRead()) return null

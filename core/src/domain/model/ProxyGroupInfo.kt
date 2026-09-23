@@ -48,7 +48,6 @@ val ProxyGroupInfo.isProxyGroup: Boolean
 /** The group name a stock config uses for its main group; every other config falls back to its first. */
 private const val PRIMARY_GROUP_NAME = "Proxy"
 
-/** Maps the core proxy-group payload to its presentation model. */
 fun ProxyGroup.toInfo(): ProxyGroupInfo =
     ProxyGroupInfo(
         name = name,
@@ -60,9 +59,8 @@ fun ProxyGroup.toInfo(): ProxyGroupInfo =
     )
 
 /**
- * Resolves the terminal (non-group) proxy of the group the runtime is currently dialing: the main
- * group ([PRIMARY_GROUP_NAME]) when a config has one, otherwise the first group. Returns `null`
- * when there is no group or the selected entry cannot be resolved.
+ * Resolves the terminal proxy of the group the runtime is dialing: the main group
+ * ([PRIMARY_GROUP_NAME]) when there is one, otherwise the first group.
  */
 fun List<ProxyGroupInfo>.resolvePrimaryNode(): Proxy? {
     val group =
