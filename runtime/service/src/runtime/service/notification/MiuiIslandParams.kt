@@ -25,21 +25,16 @@ import java.util.concurrent.atomic.AtomicLong
 import tf.gal.yumebox.locale.YumeTxt
 
 /**
- * Builds the HyperOS Super Island payload that the system reads from the
- * `miui.focus.param` notification extra.
- *
- * The structure mirrors what the HyperOS island renderer expects for a long-running session: a
- * base info block with the profile name and the subscription line, a hint block for the expanded
- * area with the current node and the compact traffic text, and the island area definitions
- * (big island template with the profile name and the compact text, small island with the app icon).
+ * Builds the HyperOS Super Island payload that the system reads from the `miui.focus.param`
+ * notification extra: base info (profile and subscription line), a hint block for the expanded area
+ * (current node and compact traffic text) and the island area definitions.
  */
 object MiuiIslandParams {
     private const val BUSINESS = "yumebox_service"
 
     /**
-     * Monotonic island sequence, seeded once per process: the island renderer drops updates whose
-     * sequence did not grow, and a freshly started process must not replay the sequence of the
-     * previous one.
+     * The island renderer drops updates whose sequence did not grow, so seed it from the clock to
+     * avoid replaying the previous process' sequence.
      */
     private val sequence = AtomicLong(System.currentTimeMillis() / 1000)
 
@@ -68,7 +63,7 @@ object MiuiIslandParams {
                     JSONObject().apply {
                         put("type", 2)
                         put("title", profileName)
-                        // One line under the title: percentage, usage and expiry joined with "|".
+                        // One line under the title: usage and expiry joined with "|".
                         put("content", usageText)
                         put("subTitle", "")
                         put("extraTitle", "")

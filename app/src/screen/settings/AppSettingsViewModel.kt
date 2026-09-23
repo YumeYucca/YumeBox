@@ -204,7 +204,7 @@ class AppSettingsViewModel(
                 ),
             )
 
-    /** Shizuku / Super Island access shown in the service section. */
+    /** Live Shizuku / Super Island access for the service section. */
     data class ShizukuAccessState(
         val islandSupported: Boolean = false,
         val running: Boolean = false,
@@ -223,7 +223,7 @@ class AppSettingsViewModel(
         MutableStateFlow(ShizukuAccessState(islandSupported = HyperOsIsland.isSupported()))
     val shizukuAccess: StateFlow<ShizukuAccessState> = _shizukuAccess.asStateFlow()
 
-    /** Re-reads the live Shizuku state; called when the section appears and on every resume. */
+    /** Called when the section appears and on every resume. */
     fun refreshShizukuAccess() {
         _shizukuAccess.value = readShizukuAccess()
     }
@@ -237,7 +237,7 @@ class AppSettingsViewModel(
         )
     }
 
-    /** Opens Shizuku, reports readiness, or asks for the permission, depending on the live state. */
+    /** Opens Shizuku, reports readiness, or requests the permission, depending on the live state. */
     fun onShizukuAccessClick() {
         val access = readShizukuAccess().also { _shizukuAccess.value = it }
         when {

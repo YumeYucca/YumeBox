@@ -255,8 +255,7 @@ class FeatureViewModel(
                             ),
                         )
                     temporaryFile.delete()
-                    // Versioned asset first, legacy fixed tag as a fallback; the installer rejects
-                    // anything that does not hash to the Javet version this APK needs.
+                    // Versioned asset first, legacy fixed tag as fallback.
                     NativeLibraryManager.JAVET_ARCHIVE_URLS.any { url ->
                         downloadClient.download(url, temporaryFile) &&
                             NativeLibraryManager.installDownloadedArchive(

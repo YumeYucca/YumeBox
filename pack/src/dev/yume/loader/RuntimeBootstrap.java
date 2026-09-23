@@ -17,19 +17,13 @@ final class RuntimeBootstrap {
     }
 
     /**
-     * Whether this process is an application process started by the system, i.e. whether
-     * {@code ActivityThread.mBoundApplication} is set.
+     * Whether this process is an application process, i.e. whether {@code ActivityThread}
+     * {@code mBoundApplication} is set. A process that only hosts classes for another app (Shizuku
+     * starts its UserService with {@code ActivityThread.systemMain()}) has none, and the payload
+     * must not be installed there.
      *
-     * <p>Processes that host classes for another app (for example the Shizuku UserService, which
-     * Shizuku starts with {@code ActivityThread.systemMain()}) have no bound application. In such a
-     * process the packed payload cannot be installed, so the loader stays out of the way and the
-     * application is instantiated from the APK's own DEX files.</p>
-     *
-     * <p>When the state cannot be determined the application assumption is kept, so a reflection
-     * failure can never disable payload installation for a real application process.</p>
-     *
-     * <p>Resolved once per process: {@link LoaderComponentFactory} asks on every component
-     * instantiation, and the answer cannot change while the process lives.</p>
+     * <p>Resolved once per process. An unreadable state keeps the application assumption, so a
+     * reflection failure can never disable payload installation.
      */
     static boolean hasBoundApplication() {
         int resolved = boundApplicationState;
@@ -41,7 +35,8 @@ final class RuntimeBootstrap {
             }
             boundApplicationState = resolved;
         }
-        return resolved == BOUND_APPLICATION_PRESENT;
+        // Only an explicit "absent" disables payload installation.
+        return resolved != BOUND_APPLICATION_ABSENT;
     }
 
     /**

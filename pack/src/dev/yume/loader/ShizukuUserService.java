@@ -9,18 +9,15 @@ import android.util.Log;
 import java.lang.reflect.Method;
 
 /**
- * Shizuku user service used for the short XMSF firewall bypass around island updates.
+ * Shizuku user service for the short XMSF firewall bypass around island updates.
  *
- * <p>Shizuku starts a user service in its own process (an {@code app_process} running as shell or
- * root) and loads the requested class from the client's own DEX files. This class therefore lives in
- * the loader DEX, which is the APK's {@code classes.dex} and stays readable for the shell user. A
- * class inside the packed payload cannot be used here: the payload is extracted below
- * {@code /data/user/0/<pkg>}, which the shell user cannot traverse.</p>
+ * <p>Shizuku loads this class from the client's own DEX files, so it lives in the loader DEX (the
+ * APK's {@code classes.dex}), which the shell user can read; the packed payload below
+ * {@code /data/user/0/<pkg>} cannot be traversed by it.</p>
  *
  * <p>The Binder contract has to stay in sync with
- * {@code com.github.yumeyucca.yumebox.runtime.service.shizuku.IPrivilegedService}, and the firewall
- * call below with {@code ...shizuku.OemDenyFirewall} (this class cannot share that code: it runs
- * from the APK's loader DEX).</p>
+ * {@code com.github.yumeyucca.yumebox.runtime.service.shizuku.IPrivilegedService} and the firewall
+ * call with {@code ...shizuku.OemDenyFirewall}.</p>
  */
 public final class ShizukuUserService extends Binder {
 

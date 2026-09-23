@@ -24,12 +24,10 @@ import android.os.IBinder
 import android.util.Log
 
 /**
- * Adds or removes the OEM deny firewall rule of a uid through the hidden connectivity API. Callers
- * only have to bring a connectivity binder obtained in their own process: [ShizukuManager] wraps
- * the system service through Shizuku, [PrivilegedServiceImpl] runs inside the Shizuku user service.
+ * Adds or removes the OEM deny firewall rule of a uid through the hidden connectivity API; the caller
+ * brings a connectivity binder obtained in its own process.
  *
- * The copy that cannot share this code is `dev.yume.loader.ShizukuUserService` (see :pack): it has
- * to live in the APK's loader DEX and therefore keeps its own version of this call.
+ * `dev.yume.loader.ShizukuUserService` (:pack) keeps its own copy: it has to live in the loader DEX.
  */
 internal object OemDenyFirewall {
     private const val TAG = "YumeBoxFirewall"

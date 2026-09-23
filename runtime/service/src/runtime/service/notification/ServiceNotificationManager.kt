@@ -67,8 +67,7 @@ class ServiceNotificationManager(
     // notification AFTER stopForeground(REMOVE), leaving it stuck on screen.
     @Volatile private var released = false
 
-    // Terminal node of the selected group, cached so the island payload does not trigger a core
-    // IPC on every traffic tick.
+    // Cached so the island payload does not trigger a core IPC on every traffic tick.
     private var currentNode: String? = null
     private var currentNodeUpdatedAt = 0L
 
@@ -112,7 +111,7 @@ class ServiceNotificationManager(
     }
 
     private fun buildRunningNotification(island: Boolean): Notification {
-        // Resolve the profile once: reading it deserializes the whole stored profile list.
+        // Reading the profile deserializes the whole stored list, so resolve it only once.
         val profile = resolveProfile()
         val profileName =
             profile?.name?.takeIf { it.isNotBlank() }
@@ -153,15 +152,14 @@ class ServiceNotificationManager(
         val island = isIslandActive()
         val notification = buildRunningNotification(island)
         val post = {
-            // Re-check after the (possibly slow) core query: the service may have stopped while we
-            // were building the notification, and a startForeground() now would resurrect it.
+            // The service may have stopped during the (possibly slow) core query; a startForeground()
+            // now would resurrect the notification.
             if (!released) {
                 service.startForeground(config.notificationId, notification)
             }
         }
         if (island) {
-            // HyperOS only keeps the island entry of a notification app whose network access is
-            // blocked; the XMSF bypass is restored right after the update.
+            // HyperOS only keeps the island entry of a notification app whose network is blocked.
             ShizukuManager.withXmsfNetworkingDisabled(service, post)
         } else {
             post()
@@ -184,10 +182,6 @@ class ServiceNotificationManager(
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
 
-        // Keep the small icon free of hard failures so startForeground() never trips before the
-        // first frame; preference reads fall back to the default logo inside ServiceLogoIcons.
-        val smallIcon = runCatching { ServiceLogoIcons.resId() }.getOrDefault(R.drawable.ic_logo_service)
-
         return NotificationCompat.Builder(service, config.channelId)
             .setContentTitle(presentation.title)
             .setContentText(presentation.content)
@@ -203,8 +197,8 @@ class ServiceNotificationManager(
             .build()
     }
 
-    // Keep the small icon free of hard failures so startForeground() never trips before the first
-    // frame; preference reads fall back to the default logo inside ServiceLogoIcons.
+    // startForeground() must never trip before the first frame, so a preference read failure falls
+    // back to the default logo.
     private fun smallIconRes(): Int =
         runCatching { ServiceLogoIcons.resId() }.getOrDefault(R.drawable.ic_logo_service)
 
@@ -232,7 +226,6 @@ class ServiceNotificationManager(
         return serviceStore.showTrafficNotification
     }
 
-    /** Super Island toggle of the app side; written in the shared settings store. */
     private fun isSuperIslandEnabled(): Boolean = appSettings.superIslandEnabled.value
 
     private fun isIslandActive(): Boolean =
@@ -245,8 +238,7 @@ class ServiceNotificationManager(
         // upgraded installs don't keep orphaned "Clash ..." entries in notification settings.
         private val legacyChannelIds = listOf("clash_vpn_service", "clash_http_service")
 
-        // The terminal node is only refreshed when the cached value is older than this: resolving
-        // it costs a core IPC listing all proxy groups.
+        // Resolving the node costs a core IPC listing all proxy groups.
         private const val CURRENT_NODE_REFRESH_MS = 2500L
 
         val vpnConfig =

@@ -4,9 +4,7 @@
 # language-textmate uses the native Oniguruma backend; Joni is an optional fallback.
 -dontwarn org.joni.**
 
-# Shizuku / Sui. The API uses hidden-API reflection, and the UserService class is instantiated by
-# its binary name from another process, so neither the names nor the implicitly-used no-argument
-# constructors may be shrunk away.
+# Shizuku / Sui: the API uses hidden-API reflection and the UserService is instantiated by name.
 -keep class rikka.shizuku.** { *; }
 -keep class rikka.sui.** { *; }
 -keep class com.github.yumeyucca.yumebox.runtime.service.shizuku.** { *; }

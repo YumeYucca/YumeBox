@@ -26,11 +26,8 @@ import android.graphics.drawable.Icon
 import android.os.Bundle
 
 /**
- * Xiaomi HyperOS Super Island support.
- *
- * The island entry is not a notification API: HyperOS picks it up from the extras of the ongoing
- * notification. [applyExtras] attaches the artwork bundle (`miui.focus.pics`) and the island
- * payload (`miui.focus.param`, built by [MiuiIslandParams]) to an already built notification.
+ * Xiaomi HyperOS Super Island support. HyperOS picks the island entry up from the extras of the
+ * ongoing notification rather than from a notification API.
  */
 object HyperOsIsland {
     /** HyperOS marks devices with the island renderer through this system property. */
@@ -43,10 +40,7 @@ object HyperOsIsland {
     private const val PIC_SMALL = "miui.focus.pic_small"
     private const val PIC_SMALL_DARK = "miui.focus.pic_small_dark"
 
-    /**
-     * Read once: the system property is fixed for the lifetime of the process, and the reflection
-     * lookup is not cheap enough to run on every notification refresh.
-     */
+    /** Read once: the property is fixed for the lifetime of the process. */
     private val supported: Boolean by lazy {
         runCatching {
             Class.forName("android.os.SystemProperties")

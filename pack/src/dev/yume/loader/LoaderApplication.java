@@ -13,9 +13,7 @@ public final class LoaderApplication extends Application {
     protected void attachBaseContext(@NonNull Context base) {
         super.attachBaseContext(base);
         if (!RuntimeBootstrap.hasBoundApplication()) {
-            // Not an application process (for example the Shizuku UserService, which Shizuku starts
-            // itself). The packed payload cannot be installed here, so this class stays a plain
-            // Application shell whose class loader keeps serving the APK's own DEX files.
+            // Not an application process (e.g. the Shizuku UserService): no payload to install.
             return;
         }
         PayloadInstaller.Installation installation = PayloadInstaller.install(
@@ -66,9 +64,9 @@ public final class LoaderApplication extends Application {
 
     @Override
     public void onTerminate() {
+        super.onTerminate();
         if (original != null) {
             original.onTerminate();
         }
-        super.onTerminate();
     }
 }

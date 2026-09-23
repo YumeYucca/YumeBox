@@ -27,16 +27,13 @@ import java.time.Instant
 import java.time.ZoneId
 import tf.gal.yumebox.locale.YumeTxt
 
-/**
- * What the ongoing notification renders. The two states carry different data, so they are modelled
- * as separate variants instead of one flat record with mode flags and unused fields.
- */
+/** What the ongoing notification renders. */
 internal sealed class NotificationPresentation {
     abstract val title: String
     abstract val content: String
     abstract val expandedText: String
 
-    /** Running service with traffic figures; also feeds the Super Island payload. */
+    /** Traffic figures; also feeds the Super Island payload. */
     data class Running(
         override val title: String,
         override val content: String,
@@ -45,7 +42,7 @@ internal sealed class NotificationPresentation {
         val currentNode: String?,
     ) : NotificationPresentation()
 
-    /** Running service without traffic figures (traffic notification disabled). */
+    /** No traffic figures (traffic notification disabled). */
     data class Status(
         override val title: String,
         override val content: String,
@@ -82,11 +79,8 @@ internal object NotificationPresentationFactory {
         )
 
     /**
-     * Usage line, second line of the island. Values only, no labels, so the island can render it:
-     * `1.2 GB / 100 GB | 2026-08-31`.
-     *
-     * Without a traffic limit only the used amount is shown, without an expiry only the usage part;
-     * a config that carries no subscription information falls back to its own name.
+     * Values only, no labels, so the island can render it: `1.2 GB / 100 GB | 2026-08-31`. Falls back
+     * to the profile name when the profile carries no subscription information.
      */
     private fun buildUsageLine(profile: Imported?): String {
         val used = profile?.let { (it.upload + it.download).coerceAtLeast(0L) } ?: 0L
