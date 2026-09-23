@@ -107,7 +107,9 @@ tasks.register<Sync>("collectJavetNative") {
     group = "distribution"
     description = "Extracts the arm64-v8a Javet native library for the Expand release"
     from(provider { configurations.getByName("releaseRuntimeClasspath").files.map(::zipTree) }) {
-        include("jni/arm64-v8a/libjavet-node-android.v.5.0.9.so")
+        // Follow the catalog version so bumping libs.versions.toml is enough to pick up a new
+        // native; the runtime URL is derived from the same value in feature/substore.
+        include("jni/arm64-v8a/libjavet-node-android.v.${libs.versions.javetNodeAndroid.get()}.so")
         rename { "libjavet.so" }
         eachFile { relativePath = RelativePath(true, name) }
         includeEmptyDirs = false
