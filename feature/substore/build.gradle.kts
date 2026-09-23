@@ -29,6 +29,14 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    defaultConfig {
+        // Single source of truth for the Javet native this APK can load. The runtime download URL
+        // and the digest check are both derived from it, so the in-APK Java layer and the
+        // out-of-APK native can never be asked to disagree.
+        buildConfigField("String", "JAVET_VERSION", "\"${libs.versions.javetNodeAndroid.get()}\"")
     }
 }
 

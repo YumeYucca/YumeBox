@@ -154,11 +154,6 @@ class FeatureViewModel(
             initialValue = FeatureScreenState(),
         )
 
-    companion object {
-        private const val JAVET_RELEASE_URL =
-            "https://github.com/YumeYucca/libjavet/releases/download/libjavet/libjavet.so.xz"
-    }
-
     fun startService() {
         if (DeviceUtil.is32BitDevice()) {
             showToast(YumeTxt.Feature.SubStore.Not32Bit)
@@ -260,11 +255,15 @@ class FeatureViewModel(
                             ),
                         )
                     temporaryFile.delete()
-                    downloadClient.download(JAVET_RELEASE_URL, temporaryFile) &&
-                        NativeLibraryManager.installDownloadedArchive(
-                            NativeLibraryManager.JAVET_LIBRARY_NAME,
-                            temporaryFile,
-                        ) &&
+                    // Versioned asset first, legacy fixed tag as a fallback; the installer rejects
+                    // anything that does not hash to the Javet version this APK needs.
+                    NativeLibraryManager.JAVET_ARCHIVE_URLS.any { url ->
+                        downloadClient.download(url, temporaryFile) &&
+                            NativeLibraryManager.installDownloadedArchive(
+                                NativeLibraryManager.JAVET_LIBRARY_NAME,
+                                temporaryFile,
+                            )
+                    } &&
                         NativeLibraryManager.loadJniLibrary(NativeLibraryManager.JAVET_LIBRARY_NAME)
                 }.getOrElse { error ->
                     showToast(
