@@ -424,8 +424,8 @@
 	},
 	"seo": {
 		"metatags": {
-			"canonical": "https://yumebox.gal.tf",
-			"og:image": "https://yumebox.gal.tf/images/brand/project-preview.webp"
+			"canonical": "https://yumebox.yumeyuka.moe",
+			"og:image": "https://yumebox.yumeyuka.moe/images/brand/project-preview.webp"
 		},
 		"organization": {
 			"id": "https://www.yumeyuka.moe/#person",

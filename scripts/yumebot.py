@@ -26,7 +26,7 @@ RELEASE_URL = os.environ.get("RELEASE_URL", "")
 META_URL = os.environ.get("META_URL", "")
 PUBLISH_DIR = os.environ.get("PUBLISH_DIR", "")
 LOGO_PATH = os.environ.get("LOGO_PATH", "website/images/brand/project-preview.webp")
-LOGO_URL = os.environ.get("LOGO_URL", "https://yumebox.gal.tf/images/brand/project-preview.webp")
+LOGO_URL = os.environ.get("LOGO_URL", "https://yumebox.yumeyuka.moe/images/brand/project-preview.webp")
 COMMIT_MESSAGE = os.environ.get("COMMIT_MESSAGE", "")
 BOT_API_BASE_URL = os.environ.get("BOT_API_BASE_URL", "https://api.telegram.org").rstrip("/")
 

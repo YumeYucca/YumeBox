@@ -191,7 +191,7 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
         )
         PreferenceArrowItem(
             title = YumeTxt.AppSettings.Interface.CustomIconTitle,
-            onClick = { openUrl(context, "https://yumebox.gal.tf/guide/icon-builder") },
+            onClick = { openUrl(context, "https://yumebox.yumeyuka.moe/guide/icon-builder") },
         )
     }
 }
