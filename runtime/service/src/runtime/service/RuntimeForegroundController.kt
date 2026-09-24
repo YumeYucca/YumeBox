@@ -29,6 +29,7 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.github.yumeyucca.yumebox.core.model.LogMessage
 import com.github.yumeyucca.yumebox.data.model.RunMode
+import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.runtime.api.Intents
 import com.github.yumeyucca.yumebox.runtime.api.RuntimeSnapshot
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
@@ -92,6 +93,12 @@ class RuntimeForegroundController(
     /** Once destroyed, async stop work must not touch the (possibly replacement) service. */
     @Volatile private var destroyed = false
 
+    /**
+     * Set when onCreate sees an attached remote controller. The system still delivers onStartCommand
+     * after that, and this instance must not start a runtime from there.
+     */
+    private var remoteStartRejected = false
+
     private val runtimeEventsReceiver =
         object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -130,6 +137,14 @@ class RuntimeForegroundController(
                 notificationManager.createInitialNotification(),
             )
             runtimeLog.i(RuntimeLog.Type.Service, "startForeground done")
+            if (RemoteControllerStore.isActive()) {
+                remoteStartRejected = true
+                StatusProvider.setServiceAlive(mode, false)
+                StatusProvider.markRuntimeIdle(mode)
+                runtimeLog.i(RuntimeLog.Type.Service, "skip: remote controller active")
+                service.stopSelf()
+                return@runCatching
+            }
 
             StatusProvider.clearLegacyStateFiles()
             sessionToken = StatusProvider.adoptOrBeginRuntimeSession(mode)
@@ -240,6 +255,11 @@ class RuntimeForegroundController(
 
     fun onStartCommand(startId: Int): Int {
         lastStartId = startId
+        if (remoteStartRejected) {
+            if (!RemoteControllerStore.isActive()) restartAfterStop = true
+            service.stopSelf(startId)
+            return Service.START_NOT_STICKY
+        }
         if (notificationJob?.isActive != true) {
             notificationJob = notificationManager.startTrafficUpdate(scope)
         }
@@ -287,7 +307,10 @@ class RuntimeForegroundController(
 
         // A start command can land on a dying instance, and a stale session may explicitly
         // request a handoff. Both cases must wait until this instance releases its token.
-        if (restartAfterStop || (stopRequested && lastStartId != stopCommandStartId)) {
+        if (
+            !RemoteControllerStore.isActive() &&
+                (restartAfterStop || (stopRequested && lastStartId != stopCommandStartId))
+        ) {
             runtimeLog.i(RuntimeLog.Type.Service, "relaunching after stop")
             runCatching { service.startForegroundService(Intent(service, service.javaClass)) }
                 .onFailure { error ->

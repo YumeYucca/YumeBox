@@ -56,6 +56,7 @@ object HyperOsIsland {
         notification: Notification,
         presentation: NotificationPresentation.Running,
         iconRes: Int,
+        promote: Boolean,
     ) {
         val icon = Icon.createWithResource(service, iconRes)
         notification.extras.putBundle(
@@ -74,6 +75,7 @@ object HyperOsIsland {
                 usageText = presentation.content,
                 compactText = presentation.compactTraffic,
                 currentNode = presentation.currentNode,
+                promote = promote,
             ),
         )
     }

@@ -25,7 +25,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.IBinder
 import android.util.Log
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import rikka.shizuku.Shizuku
@@ -48,12 +47,6 @@ object ShizukuManager {
     private const val BIND_TIMEOUT_SECONDS = 3L
 
     /**
-     * Kept a little beyond the `startForeground()` call: HyperOS decides whether to show the island
-     * entry while the notification is delivered.
-     */
-    private const val ISLAND_SETTLE_DELAY_MS = 100L
-
-    /**
      * Packed builds keep this class in the APK's loader DEX (see :pack), because the packed payload
      * below /data/user/0/<pkg> is not readable for the shell user Shizuku runs as.
      */
@@ -72,6 +65,12 @@ object ShizukuManager {
     @Volatile private var serviceConnected = false
     @Volatile private var bindLatch = CountDownLatch(1)
     private val bypassMutex = Mutex()
+
+    /** Live sessions holding the bypass. The firewall flips only at 0 and 1. */
+    private var bypassHolders = 0
+
+    /** The count is an unrestored firewall rule, not a live session. */
+    private var restorePending = false
 
     private val serviceConnection =
         object : android.content.ServiceConnection {
@@ -157,24 +156,52 @@ object ShizukuManager {
             true
         }.getOrDefault(false)
 
-    /** Runs [block] with the network of the XMSF package blocked, and restores it afterwards. */
-    suspend fun <T> withXmsfNetworkingDisabled(
-        context: Context,
-        block: () -> T,
-    ): T {
-        if (!isAvailable()) return block()
+    /**
+     * Takes one hold on the XMSF bypass. HyperOS only keeps an unofficial island while that network
+     * stays down, so the firewall changes when the first holder arrives and when the last one leaves.
+     *
+     * Returns false when the firewall could not be changed. A later call retries.
+     */
+    suspend fun acquireXmsfBypass(context: Context): Boolean =
+        bypassMutex.withLock {
+            if (restorePending) {
+                restorePending = false
+                return@withLock true
+            }
+            if (bypassHolders > 0) {
+                bypassHolders += 1
+                return@withLock true
+            }
+            if (!isAvailable()) return@withLock false
+            if (!setXmsfNetworkingBlocked(context, blocked = true)) return@withLock false
+            bypassHolders = 1
+            true
+        }
 
-        return bypassMutex.withLock {
-            val blocked = setXmsfNetworkingBlocked(context, blocked = true)
-            if (!blocked) return@withLock block()
-
-            try {
-                block().also { delay(ISLAND_SETTLE_DELAY_MS) }
-            } finally {
-                setXmsfNetworkingBlocked(context, blocked = false)
+    /**
+     * Drops one hold. Returns false when this hold is still the last one and the firewall restore
+     * failed; the count stays at one so the next release can retry.
+     */
+    suspend fun releaseXmsfBypass(context: Context): Boolean =
+        bypassMutex.withLock {
+            when {
+                bypassHolders > 1 -> {
+                    bypassHolders -= 1
+                    true
+                }
+                bypassHolders == 1 &&
+                    setXmsfNetworkingBlocked(context, blocked = false) -> {
+                    bypassHolders = 0
+                    restorePending = false
+                    true
+                }
+                bypassHolders == 1 -> {
+                    restorePending = true
+                    false
+                }
+                else -> true
             }
         }
-    }
 
     private fun setXmsfNetworkingBlocked(
         context: Context,
