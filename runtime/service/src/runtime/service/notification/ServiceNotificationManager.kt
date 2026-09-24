@@ -31,6 +31,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
+import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.domain.model.resolvePrimaryNode
 import com.github.yumeyucca.yumebox.domain.model.toInfo
 import com.github.yumeyucca.yumebox.runtime.api.Components
@@ -45,7 +46,10 @@ import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tf.gal.yumebox.locale.YumeTxt
 
 class ServiceNotificationManager(
@@ -70,6 +74,10 @@ class ServiceNotificationManager(
     // Cached so the island payload does not trigger a core IPC on every traffic tick.
     private var currentNode: String? = null
     private var currentNodeUpdatedAt = 0L
+
+    private var islandShown = false
+    private var bypassAcquired = false
+    private var lastFrame: NoticeFrame? = null
 
     fun createChannel() {
         legacyChannelIds.forEach(notificationManager::deleteNotificationChannel)
@@ -96,49 +104,63 @@ class ServiceNotificationManager(
 
     fun startTrafficUpdate(scope: CoroutineScope): Job =
         scope.launch(Dispatchers.IO) {
-            PollingTimers.ticks(PollingTimerSpecs.ServiceTrafficNotification).collect {
-                refreshRunningNotification()
+            try {
+                PollingTimers.ticks(PollingTimerSpecs.ServiceTrafficNotification).collect {
+                    refreshRunningNotification()
+                }
+            } finally {
+                // Cancellation must not skip the restore. A cancelled withLock returns immediately.
+                withContext(NonCancellable) { releaseBypass() }
             }
         }
 
     /**
      * Stop updating and clear the notification. After this the traffic updater never notifies
-     * again.
+     * again. The caller cancels the traffic job; that job releases the XMSF bypass.
      */
     fun release() {
         released = true
+        islandShown = false
+        lastFrame = null
         runCatching { notificationManager.cancel(config.notificationId) }
     }
 
-    private fun buildRunningNotification(island: Boolean): Notification {
+    private sealed interface NoticeFrame {
+        data class Plain(val presentation: NotificationPresentation) : NoticeFrame
+
+        data class Island(val running: NotificationPresentation.Running) : NoticeFrame
+    }
+
+    private fun loadFrame(): NoticeFrame {
         // Reading the profile deserializes the whole stored list, so resolve it only once.
         val profile = resolveProfile()
         val profileName =
             profile?.name?.takeIf { it.isNotBlank() }
                 ?: YumeTxt.Service.Notification.UnknownProfile
         if (!shouldShowTrafficNotification()) {
-            return buildNotification(
+            return NoticeFrame.Plain(
                 NotificationPresentationFactory.createStatus(
                     profileName = profileName,
                     status = YumeTxt.Service.Notification.Running,
                 )
             )
         }
+        val running = loadRunning(profile, profileName)
+        return if (isIslandEnabled()) NoticeFrame.Island(running) else NoticeFrame.Plain(running)
+    }
 
+    private fun loadRunning(
+        profile: Imported?,
+        profileName: String,
+    ): NotificationPresentation.Running {
         val core = com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess.controller(service)
         val now = runCatching { core.queryTrafficNow() }.getOrDefault(0L)
-        val presentation =
-            NotificationPresentationFactory.createRunning(
-                profileName = profileName,
-                profile = profile,
-                currentNode = resolveCurrentNode(core),
-                trafficNow = now,
-            )
-        val notification = buildNotification(presentation)
-        if (island) {
-            HyperOsIsland.applyExtras(service, notification, presentation, smallIconRes())
-        }
-        return notification
+        return NotificationPresentationFactory.createRunning(
+            profileName = profileName,
+            profile = profile,
+            currentNode = resolveCurrentNode(core),
+            trafficNow = now,
+        )
     }
 
     private suspend fun refreshRunningNotification() {
@@ -146,23 +168,64 @@ class ServiceNotificationManager(
         // startForeground() instead of NotificationManager.notify(): Android may defer ordinary
         // notify() updates after the app leaves the foreground, while startForeground() remains
         // the service-owned update path even when POST_NOTIFICATIONS is denied.
-        if (released) {
-            return
+        if (released) return
+        val frame = loadFrame()
+        if (released) return
+        when (frame) {
+            is NoticeFrame.Island -> postIsland(frame)
+            is NoticeFrame.Plain -> postPlain(frame)
         }
-        val island = isIslandActive()
-        val notification = buildRunningNotification(island)
-        val post = {
-            // The service may have stopped during the (possibly slow) core query; a startForeground()
-            // now would resurrect the notification.
-            if (!released) {
-                service.startForeground(config.notificationId, notification)
-            }
-        }
-        if (island) {
-            // HyperOS only keeps the island entry of a notification app whose network is blocked.
-            ShizukuManager.withXmsfNetworkingDisabled(service, post)
-        } else {
-            post()
+    }
+
+    private suspend fun postIsland(frame: NoticeFrame.Island) {
+        val held = acquireBypass()
+        if (released) return
+        // Expand once, and only after the bypass is actually held. A failed acquire still posts
+        // the text once; the next tick retries the bypass without replaying the expand.
+        val promote = held && !islandShown
+        if (!promote && frame == lastFrame) return
+        deliver(islandNotification(frame.running, promote))
+        if (promote) delay(ISLAND_SETTLE_DELAY_MS)
+        if (released) return
+        if (held) islandShown = true
+        lastFrame = frame
+    }
+
+    private suspend fun postPlain(frame: NoticeFrame.Plain) {
+        if (releaseBypass()) islandShown = false
+        if (frame == lastFrame) return
+        deliver(buildNotification(frame.presentation))
+        lastFrame = frame
+    }
+
+    private suspend fun acquireBypass(): Boolean {
+        if (bypassAcquired) return true
+        if (!ShizukuManager.acquireXmsfBypass(service)) return false
+        bypassAcquired = true
+        return true
+    }
+
+    private suspend fun releaseBypass(): Boolean {
+        if (!bypassAcquired) return true
+        if (!ShizukuManager.releaseXmsfBypass(service)) return false
+        bypassAcquired = false
+        return true
+    }
+
+    private fun islandNotification(
+        running: NotificationPresentation.Running,
+        promote: Boolean,
+    ): Notification {
+        val notification = buildNotification(running)
+        HyperOsIsland.applyExtras(service, notification, running, smallIconRes(), promote)
+        return notification
+    }
+
+    private fun deliver(notification: Notification) {
+        // The service may have stopped during the (possibly slow) core query; a startForeground()
+        // now would resurrect the notification.
+        if (!released) {
+            service.startForeground(config.notificationId, notification)
         }
     }
 
@@ -228,12 +291,18 @@ class ServiceNotificationManager(
 
     private fun isSuperIslandEnabled(): Boolean = appSettings.superIslandEnabled.value
 
-    private fun isIslandActive(): Boolean =
-        isSuperIslandEnabled() &&
-            HyperOsIsland.isSupported() &&
-            shouldShowTrafficNotification()
+    private fun isIslandEnabled(): Boolean =
+        !RemoteControllerStore.isActive() &&
+            isSuperIslandEnabled() &&
+            HyperOsIsland.isSupported()
 
     companion object {
+        /**
+         * Kept past the first island `startForeground()`. HyperOS decides whether to keep the island
+         * while that notification is delivered, and the XMSF bypass is already held.
+         */
+        private const val ISLAND_SETTLE_DELAY_MS = 100L
+
         // Channel ids shipped before the YumeBox rebrand; deleted on channel creation so
         // upgraded installs don't keep orphaned "Clash ..." entries in notification settings.
         private val legacyChannelIds = listOf("clash_vpn_service", "clash_http_service")

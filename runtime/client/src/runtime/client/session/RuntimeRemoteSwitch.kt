@@ -73,6 +73,12 @@ internal class RuntimeRemoteSwitch(
     private var probeJob: Job? = null
     private var refreshJob: Job? = null
 
+    /**
+     * Consecutive unreachable probes while a remote session is held. One miss must not restart the
+     * local runtime.
+     */
+    private var unreachableStreak = 0
+
     fun apply() {
         scope.launch { mutex.withLock { applyLocked() } }
     }
@@ -101,10 +107,17 @@ internal class RuntimeRemoteSwitch(
         // A setting change queues another apply; never attach using the previous target's reply.
         if (!store.isWanted() || store.activeBackend() != backend) return
         if (reachable) {
+            unreachableStreak = 0
             attach(refresh)
-        } else {
-            detachIfHolding()
+            return
         }
+        val holding =
+            store.controllerAttached.value || snapshot().owner == RuntimeOwner.RemoteController
+        if (!holding) return
+        unreachableStreak += 1
+        if (unreachableStreak < DETACH_AFTER_MISSES) return
+        unreachableStreak = 0
+        detachIfHolding()
     }
 
     private fun startWatch() {
@@ -219,5 +232,10 @@ internal class RuntimeRemoteSwitch(
             RuntimeOwner.RemoteController,
             RuntimeOwner.None -> null
         }
+    }
+
+    private companion object {
+        /** About a few seconds of continuous probe failure before the local runtime is resumed. */
+        const val DETACH_AFTER_MISSES = 4
     }
 }

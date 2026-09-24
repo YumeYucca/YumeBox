@@ -32,17 +32,25 @@ import tf.gal.yumebox.locale.YumeTxt
 object MiuiIslandParams {
     private const val BUSINESS = "yumebox_service"
 
+    /** Island lifetime. Short values make HyperOS drop the entry and the next post creates another. */
+    private const val ISLAND_TIMEOUT_SECONDS = 7 * 24 * 60 * 60
+
     /**
      * The island renderer drops updates whose sequence did not grow, so seed it from the clock to
      * avoid replaying the previous process' sequence.
      */
     private val sequence = AtomicLong(System.currentTimeMillis() / 1000)
 
+    /**
+     * @param promote true only for the first frame of an island session. That frame may expand once.
+     * Updates must stay collapsed; repeating the first-frame flags replays the appear animation.
+     */
     fun build(
         profileName: String,
         usageText: String,
         compactText: String,
         currentNode: String?,
+        promote: Boolean,
     ): String {
         val now = System.currentTimeMillis()
         val node = currentNode ?: YumeTxt.Service.Notification.NoNode
@@ -51,11 +59,14 @@ object MiuiIslandParams {
             JSONObject().apply {
                 put("business", BUSINESS)
                 put("protocol", 1)
-                put("islandFirstFloat", true)
+                put("orderId", BUSINESS)
+                put("islandFirstFloat", promote)
                 put("enableFloat", false)
                 put("updatable", true)
                 put("outEffectSrc", "")
-                put("reopen", "reopen")
+                // "reopen" redisplays a notification id that was cancelled. Updates of a live
+                // island must not ask for that, or a dropped frame comes back as a new island.
+                put("reopen", if (promote) "reopen" else "close")
                 put("sequence", sequence.incrementAndGet())
                 put("aodTitle", profileName)
                 put(
@@ -116,7 +127,7 @@ object MiuiIslandParams {
                     "param_island",
                     JSONObject().apply {
                         put("islandProperty", 1)
-                        put("islandTimeout", 3600)
+                        put("islandTimeout", ISLAND_TIMEOUT_SECONDS)
                         put(
                             "bigIslandArea",
                             JSONObject().apply {

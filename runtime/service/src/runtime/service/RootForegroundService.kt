@@ -14,6 +14,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.ServiceCompat
+import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
 import com.github.yumeyucca.yumebox.runtime.api.initializeServiceGlobal
 import com.github.yumeyucca.yumebox.runtime.service.notification.ServiceNotificationManager
@@ -34,6 +35,9 @@ class RootForegroundService : Service(), CoroutineScope by CoroutineScope(Dispat
         ServiceNotificationManager(this, ServiceNotificationManager.rootConfig)
     }
     private var notificationJob: Job? = null
+
+    private var remoteStartRejected = false
+
     override fun onCreate() {
         super.onCreate()
         initializeServiceGlobal(appContextOrSelf)
@@ -42,9 +46,18 @@ class RootForegroundService : Service(), CoroutineScope by CoroutineScope(Dispat
             ServiceNotificationManager.rootConfig.notificationId,
             notificationManager.createInitialNotification(),
         )
+        if (RemoteControllerStore.isActive()) {
+            remoteStartRejected = true
+            stopSelf()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (remoteStartRejected && RemoteControllerStore.isActive()) {
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
+        remoteStartRejected = false
         if (notificationJob?.isActive != true) {
             notificationJob = notificationManager.startTrafficUpdate(this)
         }

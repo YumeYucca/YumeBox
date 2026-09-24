@@ -24,6 +24,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import com.github.yumeyucca.yumebox.core.model.RunMode
+import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
 import com.github.yumeyucca.yumebox.core.util.StartupTaskCoordinator
@@ -59,6 +60,11 @@ object RootSessionLauncher {
             "RootSessionLauncher handles root modes only, got $mode"
         }
         val appContext = context.appContextOrSelf
+        if (RemoteControllerStore.isActive()) {
+            RuntimeLog.writer(appContext, mode)
+                .i(RuntimeLog.Type.Launcher, "skipped: remote controller active")
+            return
+        }
         RootAccessSupport.requireRootAccess(appContext)
         if (mode == RunMode.Ebpf) {
             check(KernelManager.isEbpfKernelActive(appContext)) {
