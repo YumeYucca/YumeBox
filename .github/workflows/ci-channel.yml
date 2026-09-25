@@ -29,7 +29,7 @@ permissions:
 jobs:
   validate-channel:
     name: "00 · Validate (arm64-v8a)"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -115,7 +115,7 @@ jobs:
   verify-native-bundle:
     name: "04 · Verify bundle (arm64-v8a)"
     needs: bundle-native-pre
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
     steps:
@@ -171,7 +171,7 @@ jobs:
   verify-published-apk:
     name: "07 · Verify APK (arm64-v8a)"
     needs: prepare-publish-pre-app
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
     steps:
