@@ -48,6 +48,7 @@ import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze.chromeEffect
+import com.github.yumeyucca.yumebox.presentation.theme.rememberRowReveal
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
@@ -157,6 +158,7 @@ internal fun NodeGroupSheetContent(
     listState: LazyListState = rememberLazyListState(),
 ) {
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
+    val revealCount = rememberRowReveal(play = true, itemCount = groups.size)
 
     LaunchedEffect(testingGroupNames) {
         if (testingGroupNames.isNotEmpty() && listState.isScrolledFromTop()) {
@@ -180,6 +182,7 @@ internal fun NodeGroupSheetContent(
             onGroupTest = onGroupTest,
             testingGroupNames = testingGroupNames,
             itemVerticalPadding = UiDp.dp0,
+            revealCount = revealCount,
         )
     }
 }
@@ -197,6 +200,7 @@ fun NodeSheetContent(
     listState: LazyListState = rememberLazyListState(),
 ) {
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
+    val revealCount = rememberRowReveal(play = true, itemCount = group.proxies.size, replayKey = group.name)
 
     LazyColumn(
         modifier =
@@ -229,6 +233,7 @@ fun NodeSheetContent(
             },
             onProxyTest = onTestProxyDelay,
             testingProxyNames = testingProxyNames,
+            revealCount = revealCount,
         )
     }
 }
