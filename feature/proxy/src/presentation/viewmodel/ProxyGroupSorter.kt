@@ -25,6 +25,7 @@ package com.github.yumeyucca.yumebox.presentation.viewmodel
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
+import com.github.yumeyucca.yumebox.domain.model.resolveMemberDelays
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
 
@@ -132,9 +133,12 @@ internal class ProxyGroupSorter {
         val nextCache = HashMap<String, SortedGroupCacheEntry>(groups.size)
         val results = groups.map { group ->
             val originalOrder = originalOrderCache[group.name].orEmpty()
+            // Resolve before the cache check. A parent of other groups does not change when a
+            // nested leaf delay arrives, but its rows must show the selected node's delay.
+            val resolved = group.resolveMemberDelays(groups)
             val cached =
                 previousCache[group.name]?.takeIf { entry ->
-                    entry.sourceGroup == group &&
+                    entry.sourceGroup == resolved &&
                             entry.sortMode == mode &&
                             entry.originalOrder == originalOrder
                 }
@@ -144,18 +148,18 @@ internal class ProxyGroupSorter {
             } else {
                 val sortedProxies =
                     sortProxies(
-                        proxies = group.proxies,
+                        proxies = resolved.proxies,
                         sortMode = mode,
                         originalOrder = originalOrder,
                     )
                 val result =
-                    if (sortedProxies === group.proxies) {
-                        group
+                    if (sortedProxies === resolved.proxies) {
+                        resolved
                     } else {
-                        group.copy(proxies = sortedProxies)
+                        resolved.copy(proxies = sortedProxies)
                     }
                 SortedGroupCacheEntry(
-                    sourceGroup = group,
+                    sourceGroup = resolved,
                     sortMode = mode,
                     originalOrder = originalOrder,
                     result = result,
