@@ -42,6 +42,9 @@ import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSearchToolbar
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGridItems
 import com.github.yumeyucca.yumebox.presentation.theme.LocalSpacing
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.theme.rememberRowReveal
+import com.github.yumeyucca.yumebox.presentation.theme.rememberRowShown
+import com.github.yumeyucca.yumebox.presentation.theme.rowReveal
 import com.github.yumeyucca.yumebox.presentation.util.KeepLazyListTopAnchorOnReorder
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import kotlinx.coroutines.flow.StateFlow
@@ -80,11 +83,13 @@ internal fun NodeListPage(
     onShowMorePopupChange: (Boolean) -> Unit = {},
     onSortSelected: (ProxySortMode) -> Unit = {},
     onLocateCurrentProxy: (() -> Unit)? = null,
+    reveal: Boolean = true,
 ) {
     if (group == null) return
     val spacing = LocalSpacing.current
     val visibleProxies = remember(group.proxies, searchQuery) { group.filterNodes(searchQuery) }
     val listItemKeys = remember(group.proxies) { group.proxies.map { it.name } }
+    val revealCount = rememberRowReveal(play = reveal, itemCount = visibleProxies.size, replayKey = group.name)
 
     GroupDelayTestListAnchor(
         listState = listState,
@@ -174,7 +179,7 @@ internal fun NodeListPage(
                         progress = delayTestProgress,
                     )
                 }
-                items(items = visibleProxies, key = { it.name }) { proxy ->
+                itemsIndexed(items = visibleProxies, key = { _, proxy -> proxy.name }) { index, proxy ->
                     NodeCard(
                         proxy = proxy,
                         isSelected = proxy.name == group.now,
@@ -188,7 +193,7 @@ internal fun NodeListPage(
                         onTestClick = onTestProxyDelay,
                         isDelayTesting = testingProxyNames.contains(proxy.name),
                         showCountryFlag = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.rowReveal(rememberRowShown(index, revealCount)).fillMaxWidth(),
                     )
                 }
             }
@@ -237,6 +242,7 @@ internal fun NodeListPage(
             testingProxyNames = testingProxyNames,
             outerHorizontalPadding = UiDp.dp0,
             itemVerticalPadding = UiDp.dp6,
+            revealCount = revealCount,
         )
     }
 }

@@ -28,7 +28,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -55,6 +55,8 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.Speed
 import com.github.yumeyucca.yumebox.presentation.icon.yume.chevron
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.theme.rememberRowShown
+import com.github.yumeyucca.yumebox.presentation.theme.rowReveal
 import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -73,12 +75,13 @@ internal fun LazyListScope.nodeGroupItems(
     onGroupTest: (ProxyGroupInfo) -> Unit,
     testingGroupNames: Set<String> = emptySet(),
     itemVerticalPadding: Dp = UiDp.dp6,
+    revealCount: Int = Int.MAX_VALUE,
 ) {
-    items(
+    itemsIndexed(
         items = groups,
-        key = { group -> "${group.type}:${group.name}" },
-        contentType = { "NodeGroupCard" },
-    ) { group ->
+        key = { _, group -> "${group.type}:${group.name}" },
+        contentType = { _, _ -> "NodeGroupCard" },
+    ) { index, group ->
         NodeGroupCard(
             group = group,
             allGroups = groups,
@@ -86,6 +89,7 @@ internal fun LazyListScope.nodeGroupItems(
             onClick = onGroupClick,
             onTestClick = onGroupTest,
             modifier = Modifier
+                .rowReveal(rememberRowShown(index, revealCount))
                 .fillMaxWidth()
                 .padding(vertical = itemVerticalPadding),
         )

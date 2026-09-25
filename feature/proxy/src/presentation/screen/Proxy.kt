@@ -194,6 +194,7 @@ fun ProxyPager(
                         onGroupClick = groupSelection.selectGroup,
                         onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
                         listState = groupListState,
+                        reveal = isActive,
                     )
                     }
                 } else {
@@ -265,6 +266,7 @@ fun ProxyPager(
                                 onGroupClick = groupSelection.selectGroup,
                                 onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
                                 listState = groupListState,
+                                reveal = isActive,
                             )
                         }
                     } else {
@@ -295,6 +297,7 @@ fun ProxyPager(
                             onShowMorePopupChange = { showSortPopup = it },
                             onSortSelected = proxyViewModel::setSortMode,
                             onLocateCurrentProxy = locateCurrentProxy,
+                            reveal = isActive,
                         )
                     }
                 }
@@ -313,9 +316,11 @@ private fun ProxyContent(
     onGroupTest: (ProxyGroupInfo) -> Unit,
     testingGroupNames: StateFlow<Set<String>>,
     listState: LazyListState,
+    reveal: Boolean,
 ) {
     val testingNames by testingGroupNames.collectAsState()
     val spacing = LocalSpacing.current
+    val revealCount = rememberRowReveal(play = reveal, itemCount = proxyGroups.size)
     ScreenLazyColumn(
         lazyListState = listState,
         scrollBehavior = scrollBehavior,
@@ -335,6 +340,7 @@ private fun ProxyContent(
             onGroupTest = onGroupTest,
             testingGroupNames = testingNames,
             itemVerticalPadding = UiDp.dp6,
+            revealCount = revealCount,
         )
     }
 }

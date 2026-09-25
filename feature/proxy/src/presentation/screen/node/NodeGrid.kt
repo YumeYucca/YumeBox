@@ -30,13 +30,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.theme.rememberRowShown
+import com.github.yumeyucca.yumebox.presentation.theme.rowReveal
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
@@ -48,8 +50,13 @@ internal fun LazyListScope.nodeGridItems(
     testingProxyNames: Set<String> = emptySet(),
     outerHorizontalPadding: Dp = UiDp.dp0,
     itemVerticalPadding: Dp = UiDp.dp0,
+    revealCount: Int = Int.MAX_VALUE,
 ) {
-    items(items = proxies, key = { it.name }, contentType = { "NodeCard1" }) { proxy ->
+    itemsIndexed(
+        items = proxies,
+        key = { _, proxy -> proxy.name },
+        contentType = { _, _ -> "NodeCard1" },
+    ) { index, proxy ->
         NodeCard(
             proxy = proxy,
             isSelected = proxy.name == selectedProxyName,
@@ -58,10 +65,12 @@ internal fun LazyListScope.nodeGridItems(
             isDelayTesting = testingProxyNames.contains(proxy.name),
             showCountryFlag = true,
             modifier =
-                Modifier.padding(
-                    horizontal = outerHorizontalPadding,
-                    vertical = itemVerticalPadding,
-                ),
+                Modifier
+                    .rowReveal(rememberRowShown(index, revealCount))
+                    .padding(
+                        horizontal = outerHorizontalPadding,
+                        vertical = itemVerticalPadding,
+                    ),
         )
     }
 }
