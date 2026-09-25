@@ -29,7 +29,7 @@ import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
-import top.yukonga.miuix.kmp.overlay.OverlayCascadingListPopup
+import top.yukonga.miuix.kmp.window.WindowCascadingListPopup
 
 internal val NodeSortModes =
     listOf(ProxySortMode.DEFAULT, ProxySortMode.BY_NAME, ProxySortMode.BY_LATENCY)
@@ -74,7 +74,7 @@ internal fun NodeSortPopup(
             )
         }
 
-    OverlayCascadingListPopup(
+    WindowCascadingListPopup(
         show = show,
         entries = entries,
         alignment = alignment,

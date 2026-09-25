@@ -83,13 +83,12 @@ internal fun NodeListPage(
     onShowMorePopupChange: (Boolean) -> Unit = {},
     onSortSelected: (ProxySortMode) -> Unit = {},
     onLocateCurrentProxy: (() -> Unit)? = null,
-    reveal: Boolean = true,
 ) {
     if (group == null) return
     val spacing = LocalSpacing.current
     val visibleProxies = remember(group.proxies, searchQuery) { group.filterNodes(searchQuery) }
     val listItemKeys = remember(group.proxies) { group.proxies.map { it.name } }
-    val revealCount = rememberRowReveal(play = reveal, itemCount = visibleProxies.size, replayKey = group.name)
+    val revealCount = rememberRowReveal(itemCount = visibleProxies.size, replayKey = group.name)
 
     GroupDelayTestListAnchor(
         listState = listState,

@@ -38,7 +38,7 @@ class ProxySheetActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setFinishOnTouchOutside(true)
+        setFinishOnTouchOutside(false)
         @Suppress("DEPRECATION") overridePendingTransition(0, 0)
 
         setContent {

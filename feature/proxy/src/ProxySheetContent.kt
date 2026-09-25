@@ -80,7 +80,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
     }
 
     val dismissSheet =
-        remember(onDismiss) {
+        remember {
             {
                 showSortPopup.value = false
                 showSheet.value = false
@@ -97,12 +97,6 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                 proxyViewModel.testDelay(groupName)
             }
         }
-    LaunchedEffect(showSheet.value) {
-        if (!showSheet.value) {
-            onDismiss()
-        }
-    }
-
     WindowBottomSheet(
         show = showSheet.value,
         title = selectedGroup?.name ?: YumeTxt.Proxy.Title,
@@ -205,6 +199,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
             )
         },
         onDismissRequest = { dismissSheet() },
+        onDismissFinished = onDismiss,
         enableWindowDim = true,
         insideMargin = DpSize(UiDp.dp16, UiDp.dp16),
         enableNestedScroll = false,
