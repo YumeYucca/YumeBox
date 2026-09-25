@@ -66,7 +66,7 @@ check(appAbiList == listOf("arm64-v8a")) {
 }
 
 // Packaging switches. CLI -P properties (same pattern as build.number below), NOT gropify keys:
-//  - geo.bundle=false   -> keep the XZ geo databases and BundleMRS.7z out of assets (the local
+//  - geo.bundle=false   -> keep the XZ geo databases out of assets (the local
 //    default); a fresh install must run a Builtin APK once before it can start the local core.
 // Release-only native-lib XZ compression is handled by the dev.yume.packer APK transform (which
 // keeps the libmihomo PIE shell and libloader raw in nativeLibraryDir and packs the shared Go core
@@ -400,6 +400,8 @@ android {
 
     androidResources {
         generateLocaleConfig = false
+        ignoreAssetsPattern =
+            "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~:!BundleMRS.7z"
     }
 
     buildFeatures {

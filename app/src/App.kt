@@ -95,7 +95,7 @@ class App : Application() {
 
     private fun extractGeoFiles() {
         val dir = runtimeHomeDir.apply { mkdirs() }
-        for (name in listOf("geoip.metadb", "geosite.dat", "ASN.mmdb", "BundleMRS.7z")) {
+        for (name in listOf("geoip.metadb", "geosite.dat", "ASN.mmdb")) {
             val target = File(dir, name)
             if (!target.exists()) {
                 extractXzAsset("$name.xz", target) ?: copyAssetIfExists(name, target)
