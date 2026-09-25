@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.state.IntColorDrawableStateImage
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
+import com.github.yumeyucca.yumebox.domain.model.displayedSelectionDelay
 import com.github.yumeyucca.yumebox.domain.model.resolveTerminalProxy
 import com.github.yumeyucca.yumebox.presentation.component.CountryFlagCircle
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
@@ -126,11 +127,14 @@ internal fun NodeGroupCard(
         remember(group.icon) {
             group.icon?.trim()?.takeIf { it.isNotEmpty() }?.let(::normalizeNodeGroupIconUri)
         }
-    val currentDelay = remember(currentProxy) { currentProxy?.delay }
+    val currentDelay =
+        remember(group.now, allGroups) {
+            allGroups.displayedSelectionDelay(group)
+        }
     val badge = remember(group.type) { groupBadge(group.type) }
-    // The group card keeps its navigation chevron until a real delay is available. The default
-    // test capsule belongs to each individual node card, not this group-level navigation surface.
-    val delayLabel = currentDelay?.takeIf { it != 0 }?.let { delay -> nodeLatencyLabel(delay) }
+    // The group card keeps its navigation chevron until a real delay is available. The number is
+    // the selected node's measurement, including a copy published on another group.
+    val delayLabel = currentDelay.takeIf { it != 0 }?.let { delay -> nodeLatencyLabel(delay) }
 
     Column(
         modifier =
