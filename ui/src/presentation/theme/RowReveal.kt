@@ -45,14 +45,10 @@ private const val InitialScale = 0.97f
 private val Rise = 8.dp
 
 @Composable
-fun rememberRowReveal(play: Boolean, itemCount: Int, replayKey: Any? = null): Int {
-    var revealed by remember(play, replayKey) { mutableIntStateOf(if (play) 0 else Int.MAX_VALUE) }
+fun rememberRowReveal(itemCount: Int, replayKey: Any? = null): Int {
+    var revealed by remember(replayKey) { mutableIntStateOf(0) }
     val latestCount = rememberUpdatedState(itemCount)
-    LaunchedEffect(play, replayKey) {
-        if (!play) {
-            revealed = Int.MAX_VALUE
-            return@LaunchedEffect
-        }
+    LaunchedEffect(replayKey) {
         val count = snapshotFlow { latestCount.value }.first { it > 0 }
         revealed = 0
         delay(LeadMillis)
