@@ -44,8 +44,6 @@ import com.github.yumeyucca.yumebox.presentation.screen.rememberProxyGroupSelect
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import org.koin.androidx.compose.koinViewModel
 import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
@@ -310,13 +308,6 @@ private fun ProxySheetNodeContent(
     sheetHeightFraction: Float,
     listState: LazyListState,
 ) {
-    val isDelayTesting by
-    remember(group.name, proxyViewModel) {
-        proxyViewModel.testingGroupNames
-            .map { testingGroupNames -> testingGroupNames.contains(group.name) }
-            .distinctUntilChanged()
-    }
-        .collectAsState(initial = false)
     val onSelectProxy =
         remember(group.name, group.type, proxyViewModel, onTestDelay) {
             { proxyName: String ->
@@ -330,7 +321,7 @@ private fun ProxySheetNodeContent(
 
     NodeSheetContent(
         group = group,
-        isDelayTesting = isDelayTesting,
+        testingGroupNames = proxyViewModel.testingGroupNames,
         delayTestProgress = proxyViewModel.delayTestProgress,
         onSelectProxy = onSelectProxy,
         onTestDelay = onTestDelay,

@@ -40,6 +40,7 @@ import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGroupItems
 import com.github.yumeyucca.yumebox.presentation.theme.*
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import tf.gal.yumebox.locale.YumeTxt
@@ -49,7 +50,6 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 
 private data class ProxyScreenVmState(
     val proxyGroups: List<ProxyGroupInfo>,
-    val testingGroupNames: Set<String>,
     val testingProxyNames: Set<String>,
     val sortMode: ProxySortMode,
     val uiSelectedGroupName: String?,
@@ -58,20 +58,17 @@ private data class ProxyScreenVmState(
 @Composable
 private fun rememberProxyScreenVmState(proxyViewModel: ProxyViewModel): ProxyScreenVmState {
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsState()
-    val testingGroupNames by proxyViewModel.testingGroupNames.collectAsState()
     val testingProxyNames by proxyViewModel.testingProxyNames.collectAsState()
     val sortMode by proxyViewModel.sortMode.collectAsState()
     val uiSelectedGroupName by proxyViewModel.uiSelectedGroupName.collectAsState()
     return remember(
         proxyGroups,
-        testingGroupNames,
         testingProxyNames,
         sortMode,
         uiSelectedGroupName,
     ) {
         ProxyScreenVmState(
             proxyGroups = proxyGroups,
-            testingGroupNames = testingGroupNames,
             testingProxyNames = testingProxyNames,
             sortMode = sortMode,
             uiSelectedGroupName = uiSelectedGroupName,
@@ -89,7 +86,6 @@ fun ProxyPager(
     val proxyViewModel = koinViewModel<ProxyViewModel>()
     val screen = rememberProxyScreenVmState(proxyViewModel)
     val proxyGroups = screen.proxyGroups
-    val testingGroupNames = screen.testingGroupNames
     val testingProxyNames = screen.testingProxyNames
     val sortMode = screen.sortMode
     val uiSelectedGroupName = screen.uiSelectedGroupName
@@ -194,7 +190,7 @@ fun ProxyPager(
                         scrollBehavior = groupScrollBehavior,
                         innerPadding = scaffoldPadding,
                         mainInnerPadding = mainInnerPadding,
-                        testingGroupNames = testingGroupNames,
+                        testingGroupNames = proxyViewModel.testingGroupNames,
                         onGroupClick = groupSelection.selectGroup,
                         onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
                         listState = groupListState,
@@ -265,7 +261,7 @@ fun ProxyPager(
                                 scrollBehavior = groupScrollBehavior,
                                 innerPadding = scaffoldPadding,
                                 mainInnerPadding = mainInnerPadding,
-                                testingGroupNames = testingGroupNames,
+                                testingGroupNames = proxyViewModel.testingGroupNames,
                                 onGroupClick = groupSelection.selectGroup,
                                 onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
                                 listState = groupListState,
@@ -275,7 +271,7 @@ fun ProxyPager(
                         NodeListPage(
                             group = selectedNodeGroup,
                             sortMode = sortMode,
-                            testingGroupNames = testingGroupNames,
+                            testingGroupNames = proxyViewModel.testingGroupNames,
                             testingProxyNames = testingProxyNames,
                             delayTestProgress = proxyViewModel.delayTestProgress,
                             mainInnerPadding = mainInnerPadding,
@@ -315,9 +311,10 @@ private fun ProxyContent(
     mainInnerPadding: PaddingValues,
     onGroupClick: (ProxyGroupInfo) -> Unit,
     onGroupTest: (ProxyGroupInfo) -> Unit,
-    testingGroupNames: Set<String>,
+    testingGroupNames: StateFlow<Set<String>>,
     listState: LazyListState,
 ) {
+    val testingNames by testingGroupNames.collectAsState()
     val spacing = LocalSpacing.current
     ScreenLazyColumn(
         lazyListState = listState,
@@ -336,7 +333,7 @@ private fun ProxyContent(
             groups = proxyGroups,
             onGroupClick = onGroupClick,
             onGroupTest = onGroupTest,
-            testingGroupNames = testingGroupNames,
+            testingGroupNames = testingNames,
             itemVerticalPadding = UiDp.dp6,
         )
     }
@@ -350,7 +347,6 @@ internal fun ProxyShellNodeDetailContent(
     val proxyViewModel = koinViewModel<ProxyViewModel>()
     val screen = rememberProxyScreenVmState(proxyViewModel)
     val proxyGroups = screen.proxyGroups
-    val testingGroupNames = screen.testingGroupNames
     val testingProxyNames = screen.testingProxyNames
     val sortMode = screen.sortMode
     val uiSelectedGroupName = screen.uiSelectedGroupName
@@ -452,7 +448,7 @@ internal fun ProxyShellNodeDetailContent(
                     NodeListPage(
                         group = pageGroup,
                         sortMode = sortMode,
-                        testingGroupNames = testingGroupNames,
+                        testingGroupNames = proxyViewModel.testingGroupNames,
                         testingProxyNames = testingProxyNames,
                         delayTestProgress = proxyViewModel.delayTestProgress,
                         mainInnerPadding = mainInnerPadding,
