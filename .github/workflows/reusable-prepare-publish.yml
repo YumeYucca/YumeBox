@@ -58,7 +58,7 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       default_apk_name: ${{ steps.stem.outputs.external_arm64 }}.apk
       builtin_apk_name: ${{ steps.stem.outputs.builtin_arm64 }}.apk
