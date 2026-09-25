@@ -19,9 +19,10 @@
  */
 package com.github.yumeyucca.yumebox.presentation.screen.node
 
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,6 +32,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.TextStyle
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
@@ -40,6 +44,24 @@ import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import kotlin.math.roundToInt
+
+@Composable
+internal fun GroupDelayRefreshIndicator(
+    groupName: String,
+    testingGroupNames: StateFlow<Set<String>>,
+    progress: StateFlow<ProxyDelayTestProgress?>,
+    modifier: Modifier = Modifier,
+    textStyle: TextStyle = MiuixTheme.textStyles.subtitle,
+) {
+    val testing by testingGroupNames.collectAsState()
+    NodeDelayRefreshIndicator(
+        visible = groupName in testing,
+        progress = progress,
+        modifier = modifier,
+        textStyle = textStyle,
+    )
+}
 
 @Composable
 internal fun NodeDelayRefreshIndicator(
@@ -48,34 +70,53 @@ internal fun NodeDelayRefreshIndicator(
     modifier: Modifier = Modifier,
     textStyle: TextStyle = MiuixTheme.textStyles.subtitle,
 ) {
-    Column(
+    val reveal by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec =
+            tween(
+                durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration,
+                easing =
+                    if (visible) {
+                        AnimationSpecs.EmphasizedDecelerate
+                    } else {
+                        AnimationSpecs.EmphasizedAccelerate
+                    },
+            ),
+        label = "delay_refresh_reveal",
+    )
+    if (!visible && reveal == 0f) return
+    // Measure the bar once at its full height, then report only the revealed slice. Children keep
+    // stable constraints, so the lazy list repositions instead of remeasuring every row.
+    Box(
         modifier =
             modifier
                 .fillMaxWidth()
-                .animateContentSize(
-                    animationSpec =
-                        tween(
-                            durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration,
-                            easing = AnimationSpecs.Legacy,
-                        ),
-                ),
-        horizontalAlignment = Alignment.CenterHorizontally,
+                .clipToBounds()
+                .revealDown(reveal),
     ) {
-        if (visible) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = UiDp.dp12),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
-            ) {
-                DelayTestSpinner()
-                NodeDelayRefreshProgressLine(progress = progress, style = textStyle)
-            }
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer { alpha = reveal }
+                    .padding(vertical = UiDp.dp12),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+        ) {
+            DelayTestSpinner()
+            NodeDelayRefreshProgressLine(progress = progress, style = textStyle)
         }
     }
 }
+
+private fun Modifier.revealDown(reveal: Float): Modifier =
+    layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints)
+        val height = (placeable.height * reveal).roundToInt().coerceIn(0, placeable.height)
+        layout(placeable.width, height) {
+            placeable.place(0, 0)
+        }
+    }
 
 @Composable
 private fun DelayTestSpinner() {

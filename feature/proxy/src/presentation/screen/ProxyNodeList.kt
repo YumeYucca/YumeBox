@@ -36,8 +36,8 @@ import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
 import com.github.yumeyucca.yumebox.presentation.component.PaneWidths
 import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
+import com.github.yumeyucca.yumebox.presentation.screen.node.GroupDelayRefreshIndicator
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeCard
-import com.github.yumeyucca.yumebox.presentation.screen.node.NodeDelayRefreshIndicator
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSearchToolbar
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGridItems
 import com.github.yumeyucca.yumebox.presentation.theme.LocalSpacing
@@ -61,7 +61,7 @@ private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
 internal fun NodeListPage(
     group: ProxyGroupInfo?,
     sortMode: ProxySortMode,
-    testingGroupNames: Set<String>,
+    testingGroupNames: StateFlow<Set<String>>,
     testingProxyNames: Set<String>,
     delayTestProgress: StateFlow<ProxyDelayTestProgress?>,
     mainInnerPadding: PaddingValues,
@@ -83,15 +83,15 @@ internal fun NodeListPage(
 ) {
     if (group == null) return
     val spacing = LocalSpacing.current
-    val isTesting = testingGroupNames.contains(group.name)
     val visibleProxies = remember(group.proxies, searchQuery) { group.filterNodes(searchQuery) }
     val listItemKeys = remember(group.proxies) { group.proxies.map { it.name } }
 
-    KeepLazyListTopAnchorOnReorder(
+    GroupDelayTestListAnchor(
         listState = listState,
         itemKeys = listItemKeys,
-        enabled = sortMode == ProxySortMode.BY_LATENCY && !useAdaptiveGrid && !isTesting,
-        scrollToTopOnEnabled = true,
+        sortByLatency = sortMode == ProxySortMode.BY_LATENCY && !useAdaptiveGrid,
+        groupName = group.name,
+        testingGroupNames = testingGroupNames,
     )
 
     val contentPadding =
@@ -168,8 +168,9 @@ internal fun NodeListPage(
                     )
                 }
                 item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
-                    NodeDelayRefreshIndicator(
-                        visible = isTesting,
+                    GroupDelayRefreshIndicator(
+                        groupName = group.name,
+                        testingGroupNames = testingGroupNames,
                         progress = delayTestProgress,
                     )
                 }
@@ -216,8 +217,9 @@ internal fun NodeListPage(
             )
         }
         item(key = "__refresh_indicator__") {
-            NodeDelayRefreshIndicator(
-                visible = isTesting,
+            GroupDelayRefreshIndicator(
+                groupName = group.name,
+                testingGroupNames = testingGroupNames,
                 progress = delayTestProgress,
             )
         }
@@ -237,4 +239,21 @@ internal fun NodeListPage(
             itemVerticalPadding = UiDp.dp6,
         )
     }
+}
+
+@Composable
+private fun GroupDelayTestListAnchor(
+    listState: LazyListState,
+    itemKeys: List<String>,
+    sortByLatency: Boolean,
+    groupName: String,
+    testingGroupNames: StateFlow<Set<String>>,
+) {
+    val testing by testingGroupNames.collectAsState()
+    KeepLazyListTopAnchorOnReorder(
+        listState = listState,
+        itemKeys = itemKeys,
+        enabled = sortByLatency && groupName !in testing,
+        scrollToTopOnEnabled = true,
+    )
 }

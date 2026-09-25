@@ -47,8 +47,8 @@ import com.github.yumeyucca.yumebox.domain.model.isSelectable
 import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze.chromeEffect
+import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
@@ -188,7 +188,7 @@ internal fun NodeGroupSheetContent(
 fun NodeSheetContent(
     group: ProxyGroupInfo,
     onSelectProxy: (String) -> Unit,
-    isDelayTesting: Boolean,
+    testingGroupNames: StateFlow<Set<String>>,
     delayTestProgress: StateFlow<ProxyDelayTestProgress?>,
     testingProxyNames: Set<String> = emptySet(),
     onTestDelay: () -> Unit,
@@ -210,8 +210,9 @@ fun NodeSheetContent(
         overscrollEffect = null,
     ) {
         item(key = "__refresh_indicator__") {
-            NodeDelayRefreshIndicator(
-                visible = isDelayTesting,
+            GroupDelayRefreshIndicator(
+                groupName = group.name,
+                testingGroupNames = testingGroupNames,
                 progress = delayTestProgress,
                 textStyle = MiuixTheme.textStyles.footnote1,
             )
