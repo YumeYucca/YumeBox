@@ -31,7 +31,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--rust", action="store_true", help="Build Rust config compiler")
     result.add_argument("--loader", action="store_true", help="Build the C/liblzma native payload extractor")
     result.add_argument("--compat", action="store_true", help="Build the out-of-process core bridge")
-    result.add_argument("--geo", action="store_true", help="Download Geo databases and BundleMRS.7z")
+    result.add_argument("--geo", action="store_true", help="Download and compress Geo databases")
     result.add_argument("--clean", action="store_true", help="Clean build outputs")
     result.add_argument("--all", action="store_true", help="Build everything")
     return result

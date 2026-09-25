@@ -112,7 +112,7 @@ python scripts/native-build.py --all
 | `--compat` | 核心进程通信桥 `libcompat.so` |
 | `--loader` | APK payload loader `libloader.so` |
 | `--shell` | 仅构建 mihomo PIE 启动壳 |
-| `--geo` | 下载并压缩 Geo 数据与 BundleMRS |
+| `--geo` | 下载并压缩 Geo 数据 |
 | `--clean` | 清理原生、Geo 和版本标记 |
 
 本机调试可只构建当前 ABI：
@@ -146,7 +146,6 @@ Geo 数据位于 `build/generated/assets/geo/`：
 geoip.metadb.xz
 geosite.dat.xz
 ASN.mmdb.xz
-BundleMRS.7z
 ```
 
 ## 构建 APK

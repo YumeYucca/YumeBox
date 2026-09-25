@@ -111,7 +111,7 @@ python scripts/native-build.py --all
 | `--compat` | Core process communication bridge `libcompat.so` |
 | `--loader` | APK payload loader `libloader.so` |
 | `--shell` | Only build mihomo PIE startup shell |
-| `--geo` | Download and compress Geo data with BundleMRS |
+| `--geo` | Download and compress Geo data |
 | `--clean` | Clean native, Geo and version tags |
 
 Native debugging builds only the current ABI:
@@ -145,7 +145,6 @@ Geo data is located at `build/generated/assets/geo/`:
 geoip.metadb.xz
 geosite.dat.xz
 ASN.mmdb.xz
-BundleMRS.7z
 ```
 
 ## Build APK

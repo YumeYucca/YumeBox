@@ -133,9 +133,10 @@ jobs:
           for file in libmihomo.so libpreview.so libmihomocore.so liboverride.so libcompat.so libloader.so core-version.properties; do
             test -s "native/jniLibs/${abi}/${file}"
           done
-          for file in geoip.metadb.xz geosite.dat.xz ASN.mmdb.xz BundleMRS.7z; do
+          for file in geoip.metadb.xz geosite.dat.xz ASN.mmdb.xz; do
             test -s "native/build/generated/assets/geo/${file}"
           done
+          test ! -e "native/build/generated/assets/geo/BundleMRS.7z"
 
   prepare-publish-pre-app:
     name: "06 · Publish (Pre)"

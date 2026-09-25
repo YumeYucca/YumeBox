@@ -46,7 +46,7 @@ jobs:
           test -f "build/generated/assets/geo/geoip.metadb.xz"
           test -f "build/generated/assets/geo/geosite.dat.xz"
           test -f "build/generated/assets/geo/ASN.mmdb.xz"
-          test -f "build/generated/assets/geo/BundleMRS.7z"
+          test ! -e "build/generated/assets/geo/BundleMRS.7z"
 
       - name: Upload native bundle artifact
         uses: actions/upload-artifact@v7

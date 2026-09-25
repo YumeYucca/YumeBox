@@ -119,7 +119,7 @@ jobs:
           test -f "build/generated/assets/geo/geoip.metadb.xz"
           test -f "build/generated/assets/geo/geosite.dat.xz"
           test -f "build/generated/assets/geo/ASN.mmdb.xz"
-          test -f "build/generated/assets/geo/BundleMRS.7z"
+          test ! -e "build/generated/assets/geo/BundleMRS.7z"
 
       - name: Restore signing keystore
         env:
@@ -218,7 +218,7 @@ jobs:
           cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
           ## Choosing an APK variant
 
-          - `builtin`: Bundles GeoIP, GeoSite, ASN, and BundleMRS data and works immediately after installation.
+          - `builtin`: Bundles GeoIP, GeoSite, and ASN data and works immediately after installation.
           - `external`: Omits Geo data for a smaller APK, but requires a network download on first use.
           - First-time users should choose `builtin` with bundled Geo data; both variants provide the same application features and core code.
           EOF

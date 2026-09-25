@@ -26,11 +26,11 @@ class ResourceDownloader:
 
     def download_geo_files(self) -> None:
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        (self.output_dir / "BundleMRS.7z").unlink(missing_ok=True)
         assets = [
             Asset("geoip.metadb", self.config.get_string("asset.geoip.url", "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"), True),
             Asset("geosite.dat", self.config.get_string("asset.geosite.url", "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"), True),
             Asset("ASN.mmdb", self.config.get_string("asset.asn.url", "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb"), True),
-            Asset("BundleMRS.7z", self.config.get_string("asset.bundleMRS.url", "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z"), False),
         ]
         for asset in assets:
             if asset.url.startswith("https://"):
