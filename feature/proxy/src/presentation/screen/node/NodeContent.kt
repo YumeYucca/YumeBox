@@ -158,7 +158,7 @@ internal fun NodeGroupSheetContent(
     listState: LazyListState = rememberLazyListState(),
 ) {
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
-    val revealCount = rememberRowReveal(itemCount = groups.size)
+    val revealCount = rememberRowReveal(itemCount = groups.size, listState = listState)
 
     LaunchedEffect(testingGroupNames) {
         if (testingGroupNames.isNotEmpty() && listState.isScrolledFromTop()) {
@@ -200,7 +200,11 @@ fun NodeSheetContent(
     listState: LazyListState = rememberLazyListState(),
 ) {
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
-    val revealCount = rememberRowReveal(itemCount = group.proxies.size, replayKey = group.name)
+    val revealCount = rememberRowReveal(
+        itemCount = group.proxies.size,
+        replayKey = group.name,
+        listState = listState,
+    )
 
     LazyColumn(
         modifier =
