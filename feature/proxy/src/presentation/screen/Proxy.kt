@@ -316,7 +316,7 @@ private fun ProxyContent(
 ) {
     val testingNames by testingGroupNames.collectAsState()
     val spacing = LocalSpacing.current
-    val revealCount = rememberRowReveal(itemCount = proxyGroups.size)
+    val revealCount = rememberRowReveal(itemCount = proxyGroups.size, listState = listState)
     ScreenLazyColumn(
         lazyListState = listState,
         scrollBehavior = scrollBehavior,

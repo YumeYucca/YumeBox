@@ -88,7 +88,14 @@ internal fun NodeListPage(
     val spacing = LocalSpacing.current
     val visibleProxies = remember(group.proxies, searchQuery) { group.filterNodes(searchQuery) }
     val listItemKeys = remember(group.proxies) { group.proxies.map { it.name } }
-    val revealCount = rememberRowReveal(itemCount = visibleProxies.size, replayKey = group.name)
+    val resolvedGridState = if (useAdaptiveGrid) gridState ?: rememberLazyGridState() else null
+    val revealCount =
+        rememberRowReveal(
+            itemCount = visibleProxies.size,
+            replayKey = group.name,
+            listState = if (useAdaptiveGrid) null else listState,
+            gridState = resolvedGridState,
+        )
 
     GroupDelayTestListAnchor(
         listState = listState,
@@ -107,11 +114,11 @@ internal fun NodeListPage(
         )
 
     if (useAdaptiveGrid) {
-        val resolvedGridState = gridState ?: rememberLazyGridState()
+        val activeGridState = resolvedGridState ?: return
         val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
-        var lastHiddenState by remember(resolvedGridState) { mutableStateOf(false) }
+        var lastHiddenState by remember(activeGridState) { mutableStateOf(false) }
         val fabScrollObserver =
-            remember(resolvedGridState) {
+            remember(activeGridState) {
                 object : NestedScrollConnection {
                     override fun onPreScroll(
                         available: Offset,
@@ -142,7 +149,7 @@ internal fun NodeListPage(
                     }
                 }
             }
-        LaunchedEffect(resolvedGridState) {
+        LaunchedEffect(activeGridState) {
             latestScrollDirectionCallback(false)
             lastHiddenState = false
         }
@@ -153,7 +160,7 @@ internal fun NodeListPage(
         ) {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = PaneWidths.NodeGridAdaptiveMin),
-                state = resolvedGridState,
+                state = activeGridState,
                 contentPadding = contentPadding,
                 horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
                 verticalArrangement = Arrangement.spacedBy(UiDp.dp6),

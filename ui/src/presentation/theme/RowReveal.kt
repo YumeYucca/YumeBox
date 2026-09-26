@@ -22,6 +22,8 @@ package com.github.yumeyucca.yumebox.presentation.theme
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,11 +46,27 @@ private const val StaggerLimit = 8
 private const val InitialScale = 0.97f
 private val Rise = 8.dp
 
+private fun LazyListState.isAwayFromTop(): Boolean =
+    firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 0
+
+private fun LazyGridState.isAwayFromTop(): Boolean =
+    firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 0
+
 @Composable
-fun rememberRowReveal(itemCount: Int, replayKey: Any? = null): Int {
-    var revealed by remember(replayKey) { mutableIntStateOf(0) }
+fun rememberRowReveal(
+    itemCount: Int,
+    replayKey: Any? = null,
+    listState: LazyListState? = null,
+    gridState: LazyGridState? = null,
+): Int {
+    val skipReveal =
+        remember(replayKey) {
+            listState?.isAwayFromTop() == true || gridState?.isAwayFromTop() == true
+        }
+    var revealed by remember(replayKey) { mutableIntStateOf(if (skipReveal) Int.MAX_VALUE else 0) }
     val latestCount = rememberUpdatedState(itemCount)
     LaunchedEffect(replayKey) {
+        if (skipReveal) return@LaunchedEffect
         val count = snapshotFlow { latestCount.value }.first { it > 0 }
         revealed = 0
         delay(LeadMillis)
@@ -65,7 +83,7 @@ fun rememberRowReveal(itemCount: Int, replayKey: Any? = null): Int {
 @Composable
 fun rememberRowShown(index: Int, revealCount: Int): Float {
     val shown by animateFloatAsState(
-        targetValue = if (index < revealCount) 1f else 0f,
+        targetValue = if (index >= StaggerLimit || index < revealCount) 1f else 0f,
         animationSpec =
             tween(
                 durationMillis = DurationMillis,
