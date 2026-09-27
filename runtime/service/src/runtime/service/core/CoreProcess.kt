@@ -320,6 +320,7 @@ class CoreProcess(private val context: Context) {
                 secret = secret,
                 mode = mode,
                 startTimeTicks = RootDaemonProbe.startTimeTicks(pid) ?: 0L,
+                launchedAt = System.currentTimeMillis(),
             )
         RootDaemonProbe.commit(record)
         Timber.tag(TAG).i("root core launched, pid=%d mode=%s", pid, mode)
@@ -637,10 +638,14 @@ class CoreProcess(private val context: Context) {
         /** Shared local-core controller client (unix socket path fixed, secret from [current]). */
         fun controller(context: Context): CoreApi = sharedController(context)
 
-        /** Suspendable startup probe so launch deadlines are not hidden by the synchronous API. */
+        /** Root startup probe: `/configs` answers as soon as the controller listens. */
         internal suspend fun probeController(context: Context) {
             sharedController(context).queryTunnelStateAsync()
         }
+
+        /** VPN startup probe: number of groups the loaded config exposes. */
+        internal suspend fun probeGroupCount(context: Context): Int =
+            sharedController(context).queryGroupCount()
 
         private fun sharedController(context: Context): CoreController =
             controller

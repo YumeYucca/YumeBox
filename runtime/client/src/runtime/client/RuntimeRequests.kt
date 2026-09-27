@@ -22,19 +22,12 @@ package com.github.yumeyucca.yumebox.runtime.client
 
 import com.github.yumeyucca.yumebox.core.model.RunMode
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
 
-/** Start request carried as one object instead of long argument lists. */
 data class RuntimeStartRequest(
-    val owner: RuntimeOwner,
     val mode: RunMode,
     val profile: Profile? = null,
 )
 
-/** Stop request carried as one object instead of long argument lists. */
 data class RuntimeStopRequest(
-    val owner: RuntimeOwner = RuntimeOwner.None,
-    val targetMode: RunMode,
-    val completeImmediately: Boolean = false,
     val reason: String? = null,
 )

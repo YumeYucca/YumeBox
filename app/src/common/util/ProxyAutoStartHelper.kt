@@ -27,7 +27,7 @@ import android.net.VpnService
 import com.github.yumeyucca.yumebox.core.model.RunMode
 import com.github.yumeyucca.yumebox.core.util.AutoStartSessionGate
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import com.github.yumeyucca.yumebox.runtime.service.StatusProvider
+import com.github.yumeyucca.yumebox.runtime.service.RuntimeCoordinator
 import com.github.yumeyucca.yumebox.runtime.service.util.AutoStartExecutionGate
 import com.github.yumeyucca.yumebox.runtime.service.util.AutoStartUpdatePolicy
 import kotlinx.coroutines.CancellationException
@@ -75,7 +75,7 @@ object ProxyAutoStartHelper {
             return
         }
 
-        if (deps.proxyFacade.runtimeSnapshot.value.running || StatusProvider.serviceRunning) {
+        if (deps.proxyFacade.runtimeSnapshot.value.running || RuntimeCoordinator.state.value.active) {
             return
         }
 

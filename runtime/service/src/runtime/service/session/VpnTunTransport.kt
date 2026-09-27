@@ -24,7 +24,12 @@ package com.github.yumeyucca.yumebox.runtime.service.session
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.net.ConnectivityManager
 import android.net.IpPrefix
+import android.net.LinkProperties
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.ProxyInfo
 import android.net.VpnService
 import android.os.Build
@@ -37,37 +42,26 @@ import com.github.yumeyucca.yumebox.runtime.service.core.VpnTunnel
 import com.github.yumeyucca.yumebox.runtime.service.log.RuntimeLog
 import com.github.yumeyucca.yumebox.runtime.service.util.buildIncludedRoutesFromExcludedCidrs
 import com.github.yumeyucca.yumebox.runtime.service.util.parseCIDR
-import kotlinx.coroutines.runBlocking
 import java.net.InetAddress
 
 class VpnTunTransport(
     private val vpnService: VpnService,
     private val store: ServiceStore = ServiceStore(),
-) : RuntimeTransport {
+) {
     private val log = RuntimeLog.writer(vpnService, RuntimeLog.Source.LocalTun)
-    private val pipeline = CompiledConfigPipeline(vpnService)
     private val core = CoreProcess(vpnService)
+    private val connectivity = vpnService.getSystemService(ConnectivityManager::class.java)
+    private var underlyingNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
-    override fun start(spec: RuntimeSpec) {
+    /** Blocking: reaps any previous core, establishes the tun and forks the child with [runtime]. */
+    fun start(runtime: LoadedRuntime) {
         log.i(RuntimeLog.Type.Transport, "start begin")
-        // Prefer the precompiled YAML attached to the spec (single compile on the start path).
-        // Fall back to a local compile only for callers that have not prepared the spec yet.
-        val config =
-            if (spec.compiledFinalYaml.isNotBlank()) {
-                spec.compiledFinalYaml
-            } else {
-                runBlocking { pipeline.compile(spec) }
-            }
-        val rootMode = CoreProcess.rootDaemonMode()
-        try {
-            core.startVpn(
-                config = config,
-                stack = vpnTunStack(store.tunStackMode),
-                openTunnel = { openTunnel(config) },
-            )
-        } finally {
-            RootSessionLauncher.releaseReapedHost(vpnService, rootMode)
-        }
+        core.startVpn(
+            config = runtime.config,
+            stack = vpnTunStack(store.tunStackMode),
+            openTunnel = { openTunnel(runtime.config) },
+        )
+        trackUnderlyingNetworks()
         log.i(RuntimeLog.Type.Transport, "success: tun attached and core launched")
     }
 
@@ -243,14 +237,49 @@ class VpnTunTransport(
             ?.toIntOrNull()
             ?.takeIf { it in 1..65535 }
 
-    override fun stop() {
+    /** Blocking: SIGTERM with a grace period, then SIGKILL. */
+    fun stop() {
+        underlyingNetworkCallback?.let { callback ->
+            runCatching { connectivity?.unregisterNetworkCallback(callback) }
+        }
+        underlyingNetworkCallback = null
         core.stop()
     }
 
-    override fun onNetworkChanged() {
-        if (Build.VERSION.SDK_INT in 22..28) {
-            @Suppress("DEPRECATION") vpnService.setUnderlyingNetworks(null)
+    /**
+     * Before API 29 a VPN does not follow default-network switches on its own; re-declaring "use
+     * the default network" on every change keeps the tun's egress from sticking to a dead link.
+     */
+    private fun trackUnderlyingNetworks() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || underlyingNetworkCallback != null) {
+            return
         }
+        val callback =
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) = resetUnderlyingNetworks()
+
+                override fun onLosing(network: Network, maxMsToLive: Int) =
+                    resetUnderlyingNetworks()
+
+                override fun onLost(network: Network) = resetUnderlyingNetworks()
+
+                override fun onLinkPropertiesChanged(
+                    network: Network,
+                    linkProperties: LinkProperties,
+                ) = resetUnderlyingNetworks()
+            }
+        val request =
+            NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+                .build()
+        runCatching { connectivity?.registerNetworkCallback(request, callback) }
+            .onSuccess { underlyingNetworkCallback = callback }
+    }
+
+    private fun resetUnderlyingNetworks() {
+        vpnService.setUnderlyingNetworks(null)
     }
 
     private companion object {

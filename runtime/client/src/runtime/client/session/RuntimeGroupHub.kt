@@ -191,7 +191,7 @@ internal class RuntimeGroupHub(
                         .getOrElse { error ->
                             if (error is CancellationException) throw error
                             Timber.e(error, "Failed to refresh proxy groups")
-                            missingLocalRuntime = session.isMissingLocalRuntime(snapshot)
+                            missingLocalRuntime = session.verifyLocalRuntime(snapshot)
                             null
                         }
                 }
@@ -200,7 +200,6 @@ internal class RuntimeGroupHub(
             if (groups != null) {
                 groupStore.publish(groupStore.mergeReportedDelays(groups))
             } else if (missingLocalRuntime) {
-                session.handleMissingLocalRuntime(snapshot, "runtime backend unavailable")
                 runCatching { queryPreviewProxyGroups() }
                     .onSuccess { preview ->
                         if (isCurrentEpoch(epoch)) {

@@ -18,14 +18,17 @@
  *
  */
 
-@file:Suppress("DuplicatedCode", "UnusedSymbol", "RedundantSuspendModifier")
-
 package com.github.yumeyucca.yumebox.runtime.client.session
 
-import android.net.VpnService
 import com.github.yumeyucca.yumebox.core.model.RunMode
 import com.github.yumeyucca.yumebox.core.util.AppVisibilityTracker
-import com.github.yumeyucca.yumebox.runtime.api.*
+import com.github.yumeyucca.yumebox.runtime.api.Profile
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
+import com.github.yumeyucca.yumebox.runtime.api.RuntimePhase
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeSnapshot
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeStartSource
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeState
+import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
 import com.github.yumeyucca.yumebox.runtime.client.ProxyGroupSyncPriority
 import com.github.yumeyucca.yumebox.runtime.client.RuntimeStartRequest
 import com.github.yumeyucca.yumebox.runtime.client.RuntimeStateMapper
@@ -41,16 +44,17 @@ import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 
 /**
- * High-cohesion runtime host: snapshot/traffic/profile state, lifecycle, event bridge and traffic
- * polling. Remote-controller takeover lives in [RuntimeRemoteSwitch]. Platform differences go
- * through seams.
+ * UI-side view of the runtime: mirrors [RuntimeSessionDeps.control] into a [RuntimeSnapshot]
+ * enriched with profile / group / traffic readiness, and drives payload refreshes and traffic
+ * polling. Lifecycle decisions stay in the control; remote-controller takeover lives in
+ * [RuntimeRemoteSwitch].
  */
 internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
-    private val context
-        get() = deps.context
-
     private val scope
         get() = deps.scope
+
+    private val control
+        get() = deps.control
 
     private val networkSettingsStorage
         get() = deps.networkSettingsStorage
@@ -58,43 +62,18 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
     private val remoteControllerStore
         get() = deps.remoteControllerStore
 
-    private val statusStore
-        get() = deps.statusStore
-
-    private val processController
-        get() = deps.processController
-
-    private val launcher
-        get() = deps.launcher
-
-    private val queryTrafficNowAction
-        get() = deps.queryTrafficNowAction
-
-    private val queryTrafficTotalAction
-        get() = deps.queryTrafficTotalAction
-
-    private val onAfterRunning
-        get() = deps.onAfterRunning
-
-    private val onAfterIdle
-        get() = deps.onAfterIdle
-
-    private val onGroupTick
-        get() = deps.onGroupTick
-
-    private val onTrafficTickExtra
-        get() = deps.onTrafficTickExtra
-
-    private val onClearGroups
-        get() = deps.onClearGroups
-
     private companion object {
         const val TRAFFIC_TOTAL_POLL_TICKS = 10
     }
 
-    private val appContext = context.appContextOrSelf
+    private val appContext = deps.context.appContextOrSelf
+
+    /** Serializes snapshot publication between the local state mirror and the remote switch. */
     private val operationMutex = Mutex()
     private var generationCounter = 0L
+
+    /** Local-state generation whose payload refresh already ran. */
+    private var refreshedGeneration = -1L
 
     private val _runtimeSnapshot =
         MutableStateFlow(RuntimeStateMapper.idleSnapshot(networkSettingsStorage.runMode.value))
@@ -115,68 +94,50 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
     private val _trafficTotal = MutableStateFlow(0L)
     val trafficTotal: StateFlow<Long> = _trafficTotal.asStateFlow()
 
-    val ownership =
-        RuntimeOwnership(
-            statusStore = statusStore,
-            processController = processController,
-            currentSnapshot = { _runtimeSnapshot.value },
-        )
-
     private val polling =
         RuntimePolling(
             scope = scope,
             isRunning = { _runtimeSnapshot.value.running },
             onTrafficTick = { tick ->
                 runCatching {
-                    queryTrafficNow(queryTrafficNowAction)
+                    queryTrafficNow(deps.queryTrafficNowAction)
                     if (tick % TRAFFIC_TOTAL_POLL_TICKS == 0) {
-                        queryTrafficTotal(queryTrafficTotalAction)
+                        queryTrafficTotal(deps.queryTrafficTotalAction)
                     }
                 }
                     .onFailure { error ->
                         if (error is CancellationException) throw error
                         Timber.d(error, "Traffic polling skipped")
                     }
-                onTrafficTickExtra(tick)
+                deps.onTrafficTickExtra(tick)
             },
-            onGroupTick = { onGroupTick() },
+            onGroupTick = { deps.onGroupTick() },
         )
 
     private val eventBridge =
         RuntimeEventBridge(
             context = appContext,
-            isConfigReloading = { _isConfigReloading.value },
-            onRuntimeStarted = {
-                scope.launch {
-                    try {
-                        reconcileAndRefresh()
-                    } finally {
-                        _isConfigReloading.value = false
-                    }
-                }
-            },
-            onRuntimeStopped = { reason -> scope.launch { handleStopped(reason) } },
             onConfigChanged = { scope.launch { onConfigChanged() } },
-            onReconcile = { scope.launch { reconcileAndRefresh() } },
-            onRootFailed = { error -> scope.launch { handleFailure(error) } },
         )
 
     private val remoteSwitch =
         RuntimeRemoteSwitch(
             deps = deps,
-            ownership = ownership,
             operationMutex = operationMutex,
             snapshot = { _runtimeSnapshot.value },
             publishRemoteRunning = {
                 publishSnapshot(
-                    ownership.remoteRunningSnapshot(
+                    RuntimeSnapshot(
+                        owner = RuntimeOwner.RemoteController,
+                        phase = RuntimePhase.Running,
                         runMode = networkSettingsStorage.runMode.value,
                         generation = nextGeneration(),
+                        startedAt = System.currentTimeMillis(),
                     )
                 )
             },
             reconcile = { reconcile(refreshPayload = false) },
-            startLocal = { owner, mode -> start(RuntimeStartRequest(owner = owner, mode = mode)) },
+            startLocal = { mode -> start(RuntimeStartRequest(mode = mode)) },
             startTrafficPolling = { startTrafficPolling() },
             stopTrafficPolling = { stopTrafficPolling() },
             connectBackend = { connectBackend() },
@@ -184,8 +145,9 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
 
     fun bootstrap() {
         eventBridge.register()
+        if (remoteControllerStore.isWanted()) applyRemoteControllerState()
+        scope.launch { control.state.collect { state -> mirrorLocal(state) } }
         scope.launch {
-            operationMutex.withLock { initializeSnapshot() }
             remoteControllerStore.controllerEnabled.state.collect { applyRemoteControllerState() }
         }
     }
@@ -194,13 +156,13 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
 
     fun snapshotValue(): RuntimeSnapshot = _runtimeSnapshot.value
 
-    fun publishSnapshot(snapshot: RuntimeSnapshot) {
+    private fun publishSnapshot(snapshot: RuntimeSnapshot) {
         val normalized = snapshot.copy(running = snapshot.phase.running)
         _runtimeSnapshot.value = normalized
         _isRunning.value = normalized.running
     }
 
-    fun nextGeneration(): Long {
+    private fun nextGeneration(): Long {
         generationCounter += 1L
         return generationCounter
     }
@@ -215,15 +177,9 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
 
     fun startGroupPolling(priority: ProxyGroupSyncPriority) = polling.startGroups(priority)
 
-    fun stopGroupPolling() = polling.stopGroups()
-
-    fun setConfigReloading(value: Boolean) {
-        _isConfigReloading.value = value
-    }
-
-    fun clearRuntimePayload(resetGroups: Boolean = true) {
+    private fun clearRuntimePayload() {
         _currentProfile.value = null
-        onClearGroups(resetGroups)
+        deps.onClearGroups(false)
         _trafficNow.value = 0L
         _trafficTotal.value = 0L
     }
@@ -243,7 +199,7 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
         publishSnapshot(_runtimeSnapshot.value.copy(groupsReady = ready))
     }
 
-    fun updateTrafficReady() {
+    private fun updateTrafficReady() {
         if (!_runtimeSnapshot.value.trafficReady) {
             publishSnapshot(_runtimeSnapshot.value.copy(trafficReady = true))
         }
@@ -251,76 +207,106 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
 
     fun applyRemoteControllerState() = remoteSwitch.apply()
 
+    private suspend fun mirrorLocal(state: RuntimeState) {
+        operationMutex.withLock { applyLocalLocked(state, forceRefresh = false) }
+    }
+
+    /**
+     * Publishes [state] unless the remote controller holds the snapshot, and refreshes the
+     * payload once per settled state: each Running generation (outside a reload) and each idle
+     * one.
+     */
+    private fun applyLocalLocked(state: RuntimeState, forceRefresh: Boolean) {
+        _isConfigReloading.value = state.reloading
+        if (isRemoteControllerActive() ||
+            _runtimeSnapshot.value.owner == RuntimeOwner.RemoteController
+        ) {
+            return
+        }
+        val previous = _runtimeSnapshot.value
+        val next = mapLocal(state, previous)
+        if (previous.running && !next.running && !state.reloading) clearRuntimePayload()
+        publishSnapshot(next)
+
+        val settled =
+            (state.phase == RuntimePhase.Running && !state.reloading) ||
+                state.phase == RuntimePhase.Idle ||
+                state.phase == RuntimePhase.Failed
+        if (next.running) startTrafficPolling() else stopTrafficPolling()
+        if (!settled || (!forceRefresh && state.generation == refreshedGeneration)) return
+        refreshedGeneration = state.generation
+        scope.launch { if (next.running) deps.onAfterRunning() else deps.onAfterIdle() }
+    }
+
+    private fun mapLocal(state: RuntimeState, previous: RuntimeSnapshot): RuntimeSnapshot {
+        val configuredMode = networkSettingsStorage.runMode.value
+        if (state.owner == RuntimeOwner.None) {
+            return RuntimeStateMapper.idleSnapshot(
+                configuredMode = configuredMode,
+                generation = nextGeneration(),
+                lastError = state.lastError,
+            )
+        }
+        // Readiness survives only while the same session keeps running (reload, error notes).
+        val keep =
+            previous.owner == state.owner &&
+                previous.phase == RuntimePhase.Running &&
+                state.phase == RuntimePhase.Running
+        val profile = _currentProfile.value
+        return RuntimeSnapshot(
+            owner = state.owner,
+            phase = state.phase,
+            runMode = state.mode ?: configuredMode,
+            profileReady = keep && previous.profileReady,
+            groupsReady = keep && previous.groupsReady,
+            trafficReady = keep && previous.trafficReady,
+            profileUuid = profile?.uuid?.toString() ?: previous.profileUuid,
+            profileName = profile?.name ?: previous.profileName,
+            lastError = state.lastError,
+            startedAt = state.startedAt,
+            generation = nextGeneration(),
+        )
+    }
+
+    /** Re-checks core liveness, republishes the local state and optionally refreshes payload. */
     suspend fun reconcile(refreshPayload: Boolean = true) {
         if (isRemoteControllerActive()) {
             applyRemoteControllerState()
             return
         }
+        control.verify()
         operationMutex.withLock {
-            val configuredMode = networkSettingsStorage.runMode.value
-            statusStore.reconcilePersistedRuntimeState()
-            val owner = ownership.detectOwner()
-
-            if (owner == RuntimeOwner.None) {
-                stopTrafficPolling()
-                clearRuntimePayload(resetGroups = false)
+            if (_runtimeSnapshot.value.owner == RuntimeOwner.RemoteController) {
                 publishSnapshot(
                     RuntimeStateMapper.idleSnapshot(
-                        configuredMode,
-                        lastError = statusStore.queryRuntimeLastError(configuredMode.name),
+                        networkSettingsStorage.runMode.value,
+                        generation = nextGeneration(),
                     )
                 )
-                if (refreshPayload) onAfterIdle()
-                return
             }
-
-            publishSnapshot(
-                ownership.activeSnapshot(
-                    owner = owner,
-                    runMode = ownership.localModeForOwner(owner) ?: configuredMode,
-                    localPhase = ownership.localRuntimePhaseForOwner(owner),
-                    localStartedAt = ownership.localRuntimeStartedAtForOwner(owner),
-                )
-            )
-
-            if (_runtimeSnapshot.value.phase.running) {
-                startTrafficPolling()
-                if (refreshPayload) onAfterRunning()
-            } else {
-                stopTrafficPolling()
-                if (refreshPayload) onAfterIdle()
-            }
+            applyLocalLocked(control.state.value, forceRefresh = refreshPayload)
         }
     }
 
-    suspend fun reconcileAndRefresh() {
-        reconcile()
-        if (_runtimeSnapshot.value.phase == RuntimePhase.Running) {
-            onAfterRunning()
-        } else {
-            onAfterIdle()
-        }
-    }
+    suspend fun reconcileAndRefresh() = reconcile(refreshPayload = true)
 
+    /** Idle config edits change what the preview shows; running ones arrive as a reload. */
     private suspend fun onConfigChanged() {
-        if (
-            !isRemoteControllerActive() && ownership.detectActiveOwner() == RuntimeOwner.RootDaemon
-        ) {
-            runCatching { reload(networkSettingsStorage.runMode.value) }
-                .onFailure { error -> Timber.w(error, "Root daemon config reload failed") }
-        } else {
-            reconcileAndRefresh()
-        }
+        if (isRemoteControllerActive() || control.state.value.active) return
+        deps.onAfterIdle()
     }
 
-    suspend fun reload(mode: RunMode = networkSettingsStorage.runMode.value) {
+    /**
+     * Applies changed settings to an active runtime: a reload in the same [mode], an owner switch
+     * otherwise. An idle runtime stays idle.
+     */
+    suspend fun reload(mode: RunMode) {
         if (isRemoteControllerActive()) return
-        _isConfigReloading.value = true
-        try {
-            start(RuntimeStartRequest(owner = ownership.ownerForMode(mode), mode = mode))
-        } catch (error: Throwable) {
-            _isConfigReloading.value = false
-            throw error
+        val state = control.state.value
+        when {
+            !state.active -> Unit
+            state.mode == mode -> control.reload()
+            else -> control.start(mode, RuntimeStartSource.Ui)
         }
     }
 
@@ -329,82 +315,12 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
             Timber.i("Ignoring startProxy: remote controller mode active")
             return
         }
-        val mode = request.mode
-        Timber.i("Start proxy: mode=$mode")
+        Timber.i("Start proxy: mode=${request.mode}")
         RuntimeAccess.connect(appContext)
-
         val activeProfile = request.profile ?: RuntimeAccess.profile().queryActive()
         check(activeProfile != null) { "No profile selected" }
-
-        if (mode == RunMode.VpnService) {
-            val vpnIntent = VpnService.prepare(context)
-            if (vpnIntent != null) {
-                throw VpnPermissionRequired(vpnIntent)
-            }
-        }
-
-        operationMutex.withLock {
-            if (isRemoteControllerActive()) {
-                Timber.i("Ignoring startProxy: remote controller mode active")
-                return
-            }
-            val targetOwner =
-                request.owner.takeIf { it != RuntimeOwner.None } ?: ownership.ownerForMode(mode)
-            val currentOwner =
-                ownership.detectActiveOwner().takeIf { it != RuntimeOwner.None }
-                    ?: _runtimeSnapshot.value.owner
-            // Root reload keeps the live daemon through config compile. The launcher swaps it
-            // under the core lifecycle lock. VPN and cross-mode starts still stop first: the
-            // service owns the tun and will not apply a second start while it is running.
-            val replacingSameRoot =
-                currentOwner == RuntimeOwner.RootDaemon && targetOwner == RuntimeOwner.RootDaemon
-            if (currentOwner != RuntimeOwner.None && !replacingSameRoot) {
-                stopInternal(
-                    RuntimeStopRequest(
-                        owner = currentOwner,
-                        targetMode = mode,
-                        completeImmediately = true,
-                    )
-                )
-            }
-
-            val generation = nextGeneration()
-            clearRuntimePayload(resetGroups = false)
-            _currentProfile.value = activeProfile
-            publishSnapshot(
-                ownership.startingSnapshot(
-                    owner = targetOwner,
-                    runMode = mode,
-                    profile = activeProfile,
-                    generation = generation,
-                )
-            )
-
-            runCatching { launcher.start(targetOwner, mode) }
-                .onFailure { error ->
-                    val liveRoot =
-                        if (replacingSameRoot) {
-                            ownership.liveRootSnapshot(activeProfile, generation, error.message)
-                        } else {
-                            null
-                        }
-                    if (liveRoot != null) {
-                        publishSnapshot(liveRoot)
-                    } else {
-                        clearRuntimePayload(resetGroups = false)
-                        publishSnapshot(
-                            RuntimeStateMapper.idleSnapshot(
-                                configuredMode = mode,
-                                generation = generation,
-                                lastError = error.message,
-                            )
-                        )
-                        stopTrafficPolling()
-                        scope.launch { onAfterIdle() }
-                    }
-                    throw error
-                }
-        }
+        _currentProfile.value = activeProfile
+        control.start(request.mode, RuntimeStartSource.Ui)
     }
 
     suspend fun stop(request: RuntimeStopRequest) {
@@ -412,156 +328,19 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
             Timber.i("Ignoring stopProxy: remote controller mode active")
             return
         }
-        operationMutex.withLock { stopInternal(request) }
+        control.stop(request.reason)
     }
 
-    private suspend fun stopInternal(request: RuntimeStopRequest) {
-        val owner =
-            request.owner.takeIf { it != RuntimeOwner.None }
-                ?: ownership.detectActiveOwner().takeIf { it != RuntimeOwner.None }
-                ?: _runtimeSnapshot.value.owner
-        val generation = nextGeneration()
-        val targetMode = request.targetMode
-
-        if (owner == RuntimeOwner.None) {
-            clearRuntimePayload(resetGroups = false)
-            publishSnapshot(RuntimeStateMapper.idleSnapshot(targetMode, generation = generation))
-            stopTrafficPolling()
-            scope.launch { onAfterIdle() }
-            return
-        }
-
-        val previousSnapshot = _runtimeSnapshot.value
-        publishSnapshot(
-            previousSnapshot.copy(
-                owner = owner,
-                phase = RuntimePhase.Stopping,
-                runMode = targetMode,
-                profileReady = false,
-                groupsReady = false,
-                trafficReady = false,
-                lastError = request.reason,
-                generation = generation,
-            )
-        )
-
-        runCatching { launcher.stop(owner) }
-            .onFailure {
-                publishSnapshot(previousSnapshot)
-                throw it
-            }
-
-        stopTrafficPolling()
-        if (!request.completeImmediately) {
-            return
-        }
-
-        clearRuntimePayload(resetGroups = false)
-        publishSnapshot(RuntimeStateMapper.idleSnapshot(targetMode, generation = generation))
-        scope.launch { onAfterIdle() }
-    }
-
-    private fun initializeSnapshot() {
-        if (remoteControllerStore.isWanted()) {
-            applyRemoteControllerState()
-        }
-        if (isRemoteControllerActive()) {
-            return
-        }
-        val configuredMode = networkSettingsStorage.runMode.value
-        statusStore.clearLegacyStateFiles()
-        statusStore.reconcilePersistedRuntimeState()
-        // Root daemon survives app death; re-attach controller endpoint before ownership probe.
-        runCatching { processController.reconnectRoot() }
-        val owner = ownership.detectOwner()
-
-        if (owner == RuntimeOwner.None) {
-            clearRuntimePayload(resetGroups = false)
-            publishSnapshot(
-                RuntimeStateMapper.idleSnapshot(
-                    configuredMode,
-                    lastError = statusStore.queryRuntimeLastError(configuredMode.name),
-                )
-            )
-            scope.launch { onAfterIdle() }
-            return
-        }
-
-        publishSnapshot(
-            ownership.activeSnapshot(
-                owner = owner,
-                runMode = ownership.localModeForOwner(owner) ?: configuredMode,
-                localPhase = ownership.localRuntimePhaseForOwner(owner),
-                localStartedAt = ownership.localRuntimeStartedAtForOwner(owner),
-            )
-        )
-        if (_runtimeSnapshot.value.phase.running) {
-            startTrafficPolling()
-            scope.launch { onAfterRunning() }
-        } else {
-            stopTrafficPolling()
-            scope.launch { onAfterIdle() }
-        }
-    }
-
-    private fun handleStopped(reason: String?) {
-        if (isRemoteControllerActive()) {
-            applyRemoteControllerState()
-            return
-        }
-        val generation = nextGeneration()
-        clearRuntimePayload(resetGroups = false)
-        publishSnapshot(
-            RuntimeStateMapper.idleSnapshot(
-                configuredMode = networkSettingsStorage.runMode.value,
-                generation = generation,
-                lastError = reason,
-            )
-        )
-        stopTrafficPolling()
-        scope.launch { onAfterIdle() }
-    }
-
-    private fun handleFailure(error: String?) {
-        if (isRemoteControllerActive()) {
-            applyRemoteControllerState()
-            return
-        }
-        val generation = nextGeneration()
-        clearRuntimePayload(resetGroups = false)
-        publishSnapshot(
-            RuntimeStateMapper.idleSnapshot(
-                configuredMode = networkSettingsStorage.runMode.value,
-                generation = generation,
-                lastError = error ?: "root runtime failed",
-            )
-        )
-        stopTrafficPolling()
-        scope.launch { onAfterIdle() }
-    }
-
-    suspend fun handleMissingLocalRuntime(snapshot: RuntimeSnapshot, reason: String?) {
-        val mode = ownership.localModeForOwner(snapshot.owner) ?: return
-        statusStore.markRuntimeIdle(mode.name)
-        clearRuntimePayload(resetGroups = false)
-        publishSnapshot(
-            RuntimeStateMapper.idleSnapshot(
-                configuredMode = networkSettingsStorage.runMode.value,
-                generation = nextGeneration(),
-                lastError = reason,
-            )
-        )
-        stopTrafficPolling()
-    }
-
-    fun isMissingLocalRuntime(snapshot: RuntimeSnapshot): Boolean {
-        if (
-            snapshot.owner == RuntimeOwner.None || snapshot.owner == RuntimeOwner.RemoteController
-        ) {
+    /**
+     * The controller did not answer: returns true when that is because the local core itself is
+     * gone (the control then already dropped to Idle).
+     */
+    suspend fun verifyLocalRuntime(snapshot: RuntimeSnapshot): Boolean {
+        if (snapshot.owner != RuntimeOwner.VpnService && snapshot.owner != RuntimeOwner.RootDaemon) {
             return false
         }
-        val mode = ownership.localModeForOwner(snapshot.owner) ?: return false
-        return !statusStore.isLocalRuntimeServiceAlive(mode.name)
+        control.verify()
+        return !control.state.value.active
     }
 
     suspend fun queryTrafficTotal(query: suspend () -> Long): Long {

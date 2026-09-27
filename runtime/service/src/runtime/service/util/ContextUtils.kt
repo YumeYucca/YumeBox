@@ -49,45 +49,6 @@ fun Context.sendProfileChanged(uuid: UUID, affectsRuntime: Boolean) {
     sendBroadcastSelf(intent)
 }
 
-fun Context.sendProfileLoaded(uuid: UUID) {
-    sendBroadcastSelf(
-        Intent(Intents.ACTION_PROFILE_LOADED).putExtra(Intents.EXTRA_UUID, uuid.toString())
-    )
-}
-
 fun Context.sendOverrideChanged() {
     sendBroadcastSelf(Intent(Intents.ACTION_OVERRIDE_CHANGED))
-}
-
-fun Context.sendServiceRecreated() {
-    sendBroadcastSelf(Intent(Intents.ACTION_SERVICE_RECREATED))
-}
-
-fun Context.sendRuntimeStarted() {
-    sendBroadcastSelf(Intent(Intents.ACTION_RUNTIME_STARTED))
-    requestTileRefresh()
-}
-
-fun Context.sendRuntimeStopped(reason: String?) {
-    sendBroadcastSelf(
-        Intent(Intents.ACTION_RUNTIME_STOPPED).putExtra(Intents.EXTRA_STOP_REASON, reason)
-    )
-    requestTileRefresh()
-}
-
-/**
- * Nudge the QS tile to re-read the runtime state. The tile only self-refreshes while its panel is
- * open (onStartListening); without this, starting/stopping from the app UI leaves it stale. This
- * asks the system to call onStartListening even when the panel is closed.
- */
-private fun Context.requestTileRefresh() {
-    runCatching {
-        android.service.quicksettings.TileService.requestListeningState(
-            this,
-            android.content.ComponentName(
-                this,
-                com.github.yumeyucca.yumebox.runtime.service.ProxyTileService::class.java,
-            ),
-        )
-    }
 }

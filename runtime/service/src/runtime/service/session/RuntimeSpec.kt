@@ -40,27 +40,10 @@ data class RuntimeSpec(
     /** Compiles an inspect-only core configuration; never expose this as a user run mode. */
     val preview: Boolean = false,
     val tunConfig: TunConfig? = null,
-    val staticPlanFingerprint: String = "",
-    val transportFingerprint: String = "",
-    val effectiveFingerprint: String = "",
-    val profileFingerprint: String = "",
-    /**
-     * Precompiled final mihomo YAML for this start/reload. When non-blank, transports and
-     * readiness checks must reuse it instead of calling nativeCompile again.
-     */
-    val compiledFinalYaml: String = "",
-    /** Proxy-group names extracted from [compiledFinalYaml] (declaration order). */
-    val expectedProxyGroupNames: List<String> = emptyList(),
 )
 
-@Serializable
-data class RuntimeOperationResult(
-    val success: Boolean,
-    val error: String? = null,
-)
-
-@Serializable
-data class RuntimeLogChunk(
-    val nextSeq: Long = 0L,
-    val items: List<String> = emptyList(),
+/** A spec together with its one compile result; everything downstream reuses this YAML. */
+class LoadedRuntime(
+    val spec: RuntimeSpec,
+    val config: String,
 )

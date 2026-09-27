@@ -31,54 +31,18 @@ object Intents {
 
     fun actionStopRuntime(packageName: String): String = "$packageName.action.STOP_CLASH"
 
-    fun actionServiceRecreated(packageName: String): String =
-        intentAction(packageName, "CLASH_RECREATED")
-
-    fun actionRuntimeStarted(packageName: String): String =
-        intentAction(packageName, "CLASH_STARTED")
-
-    fun actionRuntimeStopped(packageName: String): String =
-        intentAction(packageName, "CLASH_STOPPED")
-
-    fun actionRuntimeRequestStop(packageName: String): String =
-        intentAction(packageName, "CLASH_REQUEST_STOP")
-
     fun actionProfileChanged(packageName: String): String =
         intentAction(packageName, "PROFILE_CHANGED")
-
-    fun actionProfileLoaded(packageName: String): String =
-        intentAction(packageName, "PROFILE_LOADED")
 
     fun actionOverrideChanged(packageName: String): String =
         intentAction(packageName, "OVERRIDE_CHANGED")
 
-    fun actionRootRuntimeFailed(packageName: String): String =
-        intentAction(packageName, "ROOT_RUNTIME_FAILED")
-
-    val ACTION_SERVICE_RECREATED: String
-        get() = actionServiceRecreated(packageName)
-
-    val ACTION_RUNTIME_STARTED: String
-        get() = actionRuntimeStarted(packageName)
-
-    val ACTION_RUNTIME_STOPPED: String
-        get() = actionRuntimeStopped(packageName)
-
-    val ACTION_RUNTIME_REQUEST_STOP: String
-        get() = actionRuntimeRequestStop(packageName)
-
     val ACTION_PROFILE_CHANGED: String
         get() = actionProfileChanged(packageName)
-
-    val ACTION_PROFILE_LOADED: String
-        get() = actionProfileLoaded(packageName)
 
     val ACTION_OVERRIDE_CHANGED: String
         get() = actionOverrideChanged(packageName)
 
-    const val EXTRA_STOP_REASON = "stop_reason"
-    const val EXTRA_RESTART = "restart"
-    const val EXTRA_RUNTIME_MODE = "runtime_mode"
     const val EXTRA_UUID = "uuid"
     const val EXTRA_AFFECTS_RUNTIME = "affects_runtime"
 }

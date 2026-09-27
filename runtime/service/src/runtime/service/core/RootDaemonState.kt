@@ -35,12 +35,16 @@ object RootDaemonState {
     private const val KEY_SECRET = "root_daemon_secret"
     private const val KEY_MODE = "root_daemon_mode"
     private const val KEY_START_TIME_TICKS = "root_daemon_start_time_ticks"
+    private const val KEY_LAUNCHED_AT = "root_daemon_launched_at"
+
     /** [mode] is the launch `--mode` value: "tun" or "ebpf". */
     data class Record(
         val pid: Int,
         val secret: String,
         val mode: String,
         val startTimeTicks: Long = 0L,
+        /** Wall-clock launch time, so a reattached session keeps its real uptime. */
+        val launchedAt: Long = 0L,
     )
 
     private fun store() = MMKVProvider().getMMKV(ID)
@@ -51,6 +55,7 @@ object RootDaemonState {
             encode(KEY_SECRET, record.secret)
             encode(KEY_MODE, record.mode)
             encode(KEY_START_TIME_TICKS, record.startTimeTicks)
+            encode(KEY_LAUNCHED_AT, record.launchedAt)
         }
     }
 
@@ -66,6 +71,7 @@ object RootDaemonState {
             secret = mmkv.decodeString(KEY_SECRET).orEmpty(),
             mode = mode,
             startTimeTicks = mmkv.decodeLong(KEY_START_TIME_TICKS, 0L),
+            launchedAt = mmkv.decodeLong(KEY_LAUNCHED_AT, 0L),
         )
     }
 
@@ -75,6 +81,7 @@ object RootDaemonState {
             removeValueForKey(KEY_SECRET)
             removeValueForKey(KEY_MODE)
             removeValueForKey(KEY_START_TIME_TICKS)
+            removeValueForKey(KEY_LAUNCHED_AT)
             // Remove state written by versions that launched a separate eBPF bridge.
             removeValueForKey("root_bridge_pid")
             removeValueForKey("root_bridge_start_time_ticks")

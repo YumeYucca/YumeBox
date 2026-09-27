@@ -34,6 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.security.MessageDigest
 
@@ -112,28 +113,14 @@ class CompiledConfigPipeline(private val context: Context) {
      */
     data class CompiledRuntimeConfig(
         val finalYaml: String,
-        val proxyGroupNames: List<String>,
         val warnings: List<String> = emptyList(),
         val fingerprint: String = "",
     )
 
     suspend fun compile(spec: RuntimeSpec): String = compileDetailed(spec).finalYaml
 
-    /**
-     * Compile once and extract proxy-group names so startup readiness does not need a second
-     * nativeCompile just to know which groups to expect.
-     */
     suspend fun compileDetailed(spec: RuntimeSpec): CompiledRuntimeConfig =
         withContext(Dispatchers.Default) {
-            if (spec.compiledFinalYaml.isNotBlank()) {
-                return@withContext CompiledRuntimeConfig(
-                    finalYaml = spec.compiledFinalYaml,
-                    proxyGroupNames =
-                        spec.expectedProxyGroupNames.ifEmpty {
-                            extractProxyGroupNames(spec.compiledFinalYaml)
-                        },
-                )
-            }
             val request = buildRequest(spec)
             val result =
                 compilerJson.decodeFromString(
@@ -145,7 +132,6 @@ class CompiledConfigPipeline(private val context: Context) {
             check(result.success) { result.error ?: "override compile failed" }
             CompiledRuntimeConfig(
                 finalYaml = result.finalYaml,
-                proxyGroupNames = extractProxyGroupNames(result.finalYaml),
                 warnings = result.warnings,
                 fingerprint = result.fingerprint,
             )
@@ -161,46 +147,6 @@ class CompiledConfigPipeline(private val context: Context) {
                     .toList()
             }
             .getOrDefault(emptyList())
-
-    /**
-     * Deletes any leftover runtime.yaml before loading a profile. runtime.yaml is no longer
-     * produced by any code path, but historical builds may have left one on disk; clearing it for
-     * every profile keeps the invariant "no runtime.yaml ever exists". A missing file is the normal
-     * case and returns silently; only a failed delete of an existing file is treated as an error.
-     */
-    private fun removeStaleRuntimeYaml(spec: RuntimeSpec, logger: ((String) -> Unit)?) {
-        val runtimeFile = File(spec.runtimeConfigPath)
-        if (!runtimeFile.exists()) {
-            return
-        }
-        if (!runtimeFile.delete()) {
-            error("Stale runtime.yaml cleanup failed")
-        }
-        logger?.invoke(
-            "runtime native: removed stale runtime.yaml output=${runtimeFile.safeLogHash()}"
-        )
-    }
-
-    /**
-     * Authoritative group list straight from the compiled rawConfig. The list retains declaration
-     * order; live state is overlaid from the running core by [RuntimeProxyGroupResolver].
-     */
-    fun previewGroups(spec: RuntimeSpec, excludeNotSelectable: Boolean): List<ProxyGroup> {
-        val request = buildRequest(spec)
-        val result =
-            compilerJson.decodeFromString(
-                CompileResult.serializer(),
-                Compiler.nativeCompile(compilerJson.encodeToString(CompileRequest.serializer(), request)),
-            )
-        check(result.success) { result.error ?: "override group preview failed" }
-        val rawConfig = YamlCodec.decode(CompiledGroupConfig.serializer(), result.finalYaml)
-        return rawConfig.proxyGroups
-            .asSequence()
-            .filter { it.name.isNotBlank() }
-            .map(CompiledProxyGroup::toProxyGroup)
-            .filter { !excludeNotSelectable || it.isSelectable }
-            .toList()
-    }
 
     /**
      * Returns the compiled YAML for non-encrypted profiles (the user-initiated "view compiled
@@ -254,40 +200,6 @@ class CompiledConfigPipeline(private val context: Context) {
             skipRuntimePatches = spec.skipRuntimePatches,
             preview = spec.preview,
         )
-    }
-
-    /**
-     * Publishes the compiled `tun.include-package` / `tun.exclude-package` lists for
-     * [VpnTunTransport]. A running VPN session does not re-establish the TUN device on profile
-     * reload, so a mid-session change only takes effect on the next VPN (re)start — log it so the
-     * limitation is diagnosable.
-     */
-    private fun publishCompiledTunPackages(
-        summary: CompileRawSummary,
-        logger: ((String) -> Unit)?,
-    ) {
-        val changed =
-            CompiledTunPackages.update(summary.tunIncludePackage, summary.tunExcludePackage)
-        if (changed) {
-            logger?.invoke(
-                "runtime native: tun package lists changed include=${summary.tunIncludePackage.size}" +
-                    " exclude=${summary.tunExcludePackage.size}; applied at next TUN establish" +
-                    " (a running VPN session is not re-established on reload)"
-            )
-        }
-    }
-
-    private fun logRawCompileWarnings(summary: CompileRawSummary, logger: ((String) -> Unit)?) {
-        if (logger == null) {
-            return
-        }
-        if (!summary.success) {
-            logger("runtime native: warning summary failed=${summary.error.safeNativeDiagnostic()}")
-            return
-        }
-        summary.warnings.forEachIndexed { index, warning ->
-            logger("runtime native: warning index=$index detail=${warning.safeNativeDiagnostic()}")
-        }
     }
 
     private fun validateCompiledProviderPaths(finalYaml: String, profileDir: File) {
@@ -418,9 +330,6 @@ class CompiledConfigPipeline(private val context: Context) {
         }
     }
 
-    fun previewGroupNames(spec: RuntimeSpec, excludeNotSelectable: Boolean): List<String> =
-        previewGroups(spec, excludeNotSelectable).map(ProxyGroup::name).filter(String::isNotBlank)
-
     private fun File.toOverrideSpec(): OverrideSpec {
         val extension =
             extension.lowercase().ifBlank {
@@ -456,35 +365,7 @@ class CompiledConfigPipeline(private val context: Context) {
         @SerialName("proxy-groups") val proxyGroups: List<CompiledProxyGroup> = emptyList()
     )
 
-    @Serializable
-    private data class CompiledProxyGroup(
-        val name: String = "",
-        val type: String = "",
-        val proxies: List<String> = emptyList(),
-        val icon: String? = null,
-        val hidden: Boolean = false,
-    ) {
-        fun toProxyGroup(): ProxyGroup {
-            val runtimeType = type.toRuntimeProxyType()
-            return ProxyGroup(
-                name = name,
-                type = runtimeType,
-                proxies =
-                    proxies.map { proxyName ->
-                        Proxy(
-                            name = proxyName,
-                            title = proxyName,
-                            subtitle = "",
-                            type = Proxy.Type.Unknown,
-                            delay = 0,
-                        )
-                    },
-                now = "",
-                icon = icon,
-                hidden = hidden,
-            )
-        }
-    }
+    @Serializable private data class CompiledProxyGroup(val name: String = "")
 
     @Serializable
     private data class MetadataIndexPayload(
@@ -500,7 +381,7 @@ class CompiledConfigPipeline(private val context: Context) {
     private companion object {
         private const val TAG = "CompiledConfigPipeline"
         private val compilerJson =
-            kotlinx.serialization.json.Json {
+            Json {
                 ignoreUnknownKeys = true
                 encodeDefaults = true
                 coerceInputValues = true
@@ -511,17 +392,6 @@ class CompiledConfigPipeline(private val context: Context) {
         const val LEGACY_PRESET_PREFIX = "preset-"
     }
 }
-
-private fun String.toRuntimeProxyType(): String =
-    when (lowercase()) {
-        "select" -> Proxy.Type.Selector
-        "url-test" -> Proxy.Type.URLTest
-        "fallback" -> Proxy.Type.Fallback
-        "load-balance" -> Proxy.Type.LoadBalance
-        "relay" -> Proxy.Type.Relay
-        "smart" -> Proxy.Type.Smart
-        else -> Proxy.Type.Unknown
-    }
 
 private fun String.toOverrideExtension(): String? =
     when (lowercase()) {

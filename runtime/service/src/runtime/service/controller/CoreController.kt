@@ -383,6 +383,9 @@ class CoreController(
         return ProviderSnapshot(nodes = nodes, owners = owners)
     }
 
+    /** Startup readiness: `/group` alone, without the `/proxies` + provider join. */
+    internal suspend fun queryGroupCount(): Int = fetchGroups().size
+
     private suspend fun fetchGroups(): List<RawProxy> {
         val raw = request(HttpMethod.Get, "group").bodyAsText()
         return json.decodeFromString<RawGroupResponse>(raw).proxies

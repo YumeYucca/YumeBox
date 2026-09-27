@@ -36,12 +36,21 @@ import com.github.yumeyucca.yumebox.core.util.StartupTaskCoordinator
 import com.github.yumeyucca.yumebox.data.model.RunMode
 import com.github.yumeyucca.yumebox.data.store.*
 import com.github.yumeyucca.yumebox.runtime.api.Profile
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
+import com.github.yumeyucca.yumebox.runtime.api.RuntimePhase
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeStartSource
 import com.github.yumeyucca.yumebox.runtime.service.log.RuntimeLog
 import com.github.yumeyucca.yumebox.runtime.service.profile.ProfileService
-import com.github.yumeyucca.yumebox.runtime.service.session.RootSessionLauncher
-import com.github.yumeyucca.yumebox.runtime.service.session.RuntimeServiceLauncher
 import com.github.yumeyucca.yumebox.runtime.service.util.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -53,6 +62,7 @@ class AutoRestartService : Service() {
         const val EXTRA_REASON = "auto_restart_reason"
         const val REASON_BOOT_COMPLETED = "boot_completed"
         const val REASON_PACKAGE_REPLACED = "package_replaced"
+        private const val ACTIVATION_TIMEOUT_MS = 60_000L
     }
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -65,7 +75,6 @@ class AutoRestartService : Service() {
     private val serviceCache by lazy { mmkvProvider.getMMKV("service_cache") }
     private val profileManager by lazy { ProfileService(applicationContext) }
     private val foregroundStarted = AtomicBoolean(false)
-    private val activationAwaiter = RuntimeActivationAwaiter()
     private var autoStartJob: Job? = null
 
     // Duplicate triggers (boot + replaced racing) are merged into one job; the finally block
@@ -129,10 +138,12 @@ class AutoRestartService : Service() {
     private suspend fun checkAndAutoStart(reason: String) {
         // An APK replacement kills app-owned services but not the detached root daemon. Tear it
         // down before checking the restart preference so no process keeps running replaced code.
-        if (reason == REASON_PACKAGE_REPLACED) {
-            withContext(Dispatchers.IO) {
-                RootSessionLauncher.stop(this@AutoRestartService)
-            }
+        // verify() also reattaches a surviving root daemon before anything below reads state.
+        RuntimeCoordinator.verify()
+        if (reason == REASON_PACKAGE_REPLACED &&
+            RuntimeCoordinator.state.value.owner == RuntimeOwner.RootDaemon
+        ) {
+            RuntimeCoordinator.stop()
         }
         if (!appSettingsStorage.automaticRestart.value) return
         if (RemoteControllerStore.isActive()) {
@@ -159,96 +170,39 @@ class AutoRestartService : Service() {
         )
 
         val runMode = networkSettingsStorage.runMode.value
-        // Mirrors ProxyAutoStartHelper: a restart against an already-active runtime would
-        // re-mark Starting and tear down the live core underneath the existing service.
-        if (StatusProvider.isRuntimeActive(runMode)) {
+        // A restart against an already-active runtime would tear down the live core.
+        if (RuntimeCoordinator.state.value.active) {
             Timber.tag(TAG).i("Skip auto start: ${runMode.name} runtime already active")
             return
         }
+        if (runMode == RunMode.VpnService && VpnService.prepare(this) != null) {
+            Timber.tag(TAG).i("Skip auto start: VPN permission is missing")
+            return
+        }
 
-        val startupSource =
+        val source =
             when (reason) {
-                REASON_BOOT_COMPLETED -> RuntimeServiceLauncher.SOURCE_AUTO_RESTART_BOOT
-                REASON_PACKAGE_REPLACED -> RuntimeServiceLauncher.SOURCE_AUTO_RESTART_REPLACED
-                else -> RuntimeServiceLauncher.SOURCE_AUTO_RESTART
+                REASON_BOOT_COMPLETED -> RuntimeStartSource.AutoRestartBoot
+                REASON_PACKAGE_REPLACED -> RuntimeStartSource.AutoRestartReplaced
+                else -> RuntimeStartSource.AutoRestart
             }
-        val activationMode = runMode
-        when (runMode) {
-            RunMode.VpnService -> {
-                if (VpnService.prepare(this) != null) {
-                    Timber.tag(TAG).i("Skip auto start: VPN permission is missing")
-                    return
-                }
-                RuntimeServiceLauncher.start(this, RunMode.VpnService, startupSource)
-            }
-
-            RunMode.Tun ->
-                withContext(Dispatchers.IO) {
-                    RootSessionLauncher.start(this@AutoRestartService, runMode)
-                }
-
-            RunMode.Ebpf ->
-                withContext(Dispatchers.IO) {
-                    RootSessionLauncher.start(this@AutoRestartService, RunMode.Ebpf)
-                }
+        val log = RuntimeLog.writer(this, runMode)
+        try {
+            withTimeout(ACTIVATION_TIMEOUT_MS) { RuntimeCoordinator.start(runMode, source) }
+        } catch (error: TimeoutCancellationException) {
+            RuntimeCoordinator.stop()
+            log.e(RuntimeLog.Type.AutoStart, "timeout reason=$reason mode=$runMode")
+            throw IllegalStateException("runtime activation timed out", error)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+            log.e(RuntimeLog.Type.AutoStart, "failed reason=$reason error=${error.message}")
+            throw error
         }
-
-        val activationResult = runCatching {
-            awaitRuntimeActivation(activationMode)
-        }
-            .getOrElse { error ->
-                cleanupIncompleteRuntime(activationMode)
-                throw error
-            }
-        val log = RuntimeLog.writer(this, activationMode)
-        when (activationResult) {
-            is RuntimeActivationResult.Running -> {
-                log.i(
-                    RuntimeLog.Type.AutoStart,
-                    "success: running reason=$reason mode=$activationMode",
-                )
-                Timber.tag(TAG)
-                    .i(
-                        "Auto start active: reason=$reason profile=${activeProfile.name}, " +
-                                "mode=$activationMode"
-                    )
-            }
-
-            is RuntimeActivationResult.Failed -> {
-                cleanupIncompleteRuntime(activationMode)
-                val message = activationResult.error ?: "runtime entered Failed"
-                log.e(RuntimeLog.Type.AutoStart, "failed reason=$reason error=$message")
-                error(message)
-            }
-
-            is RuntimeActivationResult.TimedOut -> {
-                cleanupIncompleteRuntime(activationMode)
-                val message =
-                    "runtime activation timed out in ${activationResult.lastState.phase}" +
-                        activationResult.lastState.error?.let { ": $it" }.orEmpty()
-                log.e(
-                    RuntimeLog.Type.AutoStart,
-                    "timeout reason=$reason phase=${activationResult.lastState.phase} " +
-                        "error=${activationResult.lastState.error}",
-                )
-                error(message)
-            }
-        }
-    }
-
-    private suspend fun awaitRuntimeActivation(mode: RunMode): RuntimeActivationResult =
-        activationAwaiter.await(mode) {
-            RuntimeActivationState(
-                phase = StatusProvider.queryRuntimePhase(mode),
-                error = StatusProvider.queryRuntimeLastError(mode),
-            )
-        }
-
-    private suspend fun cleanupIncompleteRuntime(mode: RunMode) {
-        if (mode == RunMode.VpnService) {
-            RuntimeServiceLauncher.stop(this, mode)
-        } else {
-            RootSessionLauncher.stop(this)
+        if (RuntimeCoordinator.state.value.phase == RuntimePhase.Running) {
+            log.i(RuntimeLog.Type.AutoStart, "success: running reason=$reason mode=$runMode")
+            Timber.tag(TAG)
+                .i("Auto start active: reason=$reason profile=${activeProfile.name}, mode=$runMode")
         }
     }
 

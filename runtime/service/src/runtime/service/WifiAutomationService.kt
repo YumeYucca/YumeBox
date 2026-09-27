@@ -26,12 +26,20 @@ import com.github.yumeyucca.yumebox.data.model.WifiAutomationFallbackAction
 import com.github.yumeyucca.yumebox.data.store.MMKVProvider
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeStartSource
 import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
 import com.github.yumeyucca.yumebox.runtime.service.profile.ProfileService
-import com.github.yumeyucca.yumebox.runtime.service.session.RuntimeServiceLauncher
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidObservation
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidObserver
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.UUID
 
@@ -144,25 +152,24 @@ class WifiAutomationService : Service() {
         }
     }
 
-    private fun startVpnIfPossible() {
-        if (StatusProvider.isRuntimeActive(RunMode.VpnService)) return
+    private suspend fun startVpnIfPossible() {
+        if (RuntimeCoordinator.state.value.active) return
         if (VpnService.prepare(this) != null) {
             Timber.i("Wi-Fi automation skipped start: VPN permission missing")
             return
         }
-        runCatching {
-            RuntimeServiceLauncher.start(
-                this,
-                RunMode.VpnService,
-                RuntimeServiceLauncher.SOURCE_WIFI_AUTOMATION,
-            )
+        try {
+            RuntimeCoordinator.start(RunMode.VpnService, RuntimeStartSource.WifiAutomation)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+            Timber.w(error, "Wi-Fi automation start failed")
         }
-            .onFailure { error -> Timber.w(error, "Wi-Fi automation start failed") }
     }
 
-    private fun stopVpn() {
-        runCatching { RuntimeServiceLauncher.stop(this, RunMode.VpnService) }
-            .onFailure { error -> Timber.w(error, "Wi-Fi automation stop failed") }
+    private suspend fun stopVpn() {
+        if (RuntimeCoordinator.state.value.owner != RuntimeOwner.VpnService) return
+        RuntimeCoordinator.stop()
     }
 
     private fun startForegroundNotification() {

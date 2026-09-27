@@ -215,12 +215,7 @@ class ProxyFacade(
     }
 
     suspend fun startProxy(mode: RunMode = networkSettingsStorage.runMode.value) =
-        startProxy(
-            RuntimeStartRequest(
-                owner = session.ownership.ownerForMode(mode),
-                mode = mode,
-            )
-        )
+        startProxy(RuntimeStartRequest(mode = mode))
 
     suspend fun stopProxy(request: RuntimeStopRequest) {
         try {
@@ -230,8 +225,7 @@ class ProxyFacade(
         }
     }
 
-    suspend fun stopProxy(mode: RunMode? = null) =
-        stopProxy(RuntimeStopRequest(targetMode = mode ?: networkSettingsStorage.runMode.value))
+    suspend fun stopProxy(reason: String? = null) = stopProxy(RuntimeStopRequest(reason = reason))
 
     suspend fun selectProxy(group: String, proxyName: String): Boolean =
         if (nodeSession.value.source == NodeDataSource.Active) {
