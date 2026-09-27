@@ -107,10 +107,10 @@ private fun inferPresetTemplateSelection(
         fallbackRegions = inferredFallbackRegions,
         enabledItems = inferredEnabledItems,
         enableUrlTestGroup =
-            OFFICIAL_MRS_AUTO_GROUP_NAME in groupNames ||
+            OfficialMrs.autoGroupName in groupNames ||
                     orderedRegions.any { it.groupName in groupNames },
         enableFallbackGroup =
-            OFFICIAL_MRS_FALLBACK_GROUP_NAME in groupNames ||
+            OfficialMrs.fallbackGroupName in groupNames ||
                     orderedRegions.any { it.fallbackGroupName in groupNames },
     )
 }
@@ -121,14 +121,13 @@ private fun isOfficialMrsItemEnabledInConfig(
     groupNames: Set<String>,
     rules: List<String>,
 ): Boolean {
-    val providerIds = item.providers.map(OfficialMrsProviderSpec::id)
-    return when (item.id) {
-        "match" -> rules.any { rule -> rule.trim() == "MATCH,Proxy" }
-        else ->
-            providerIds.any(providerKeys::contains) ||
-                    item.detectionRules.any(rules::contains) ||
-                    (item.groupName != null && item.groupName in groupNames)
+    if (item == OverridePresetItem.Match) {
+        return rules.any { rule -> rule.trim() == OfficialMrs.matchRule }
     }
+    val providerIds = item.providers.map(OfficialMrsProviderSpec::id)
+    return providerIds.any(providerKeys::contains) ||
+            item.detectionRules.any(rules::contains) ||
+            (item.groupName != null && item.groupName in groupNames)
 }
 
 private fun isOfficialMrsTemplateRule(rule: String): Boolean {

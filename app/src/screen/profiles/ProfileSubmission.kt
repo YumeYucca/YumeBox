@@ -21,9 +21,7 @@ package com.github.yumeyucca.yumebox.screen.profiles
 
 import android.net.Uri
 import androidx.core.net.toUri
-import com.github.yumeyucca.yumebox.presentation.util.PROFILE_IMPORT_TYPE_FILE
-import com.github.yumeyucca.yumebox.presentation.util.PROFILE_IMPORT_TYPE_QR
-import com.github.yumeyucca.yumebox.presentation.util.PROFILE_IMPORT_TYPE_URL
+import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import tf.gal.yumebox.locale.YumeTxt
 import java.util.*
@@ -33,7 +31,7 @@ internal typealias AddProfile = (String, String, Profile.Type, Long, Uri?, Strin
 internal typealias UpdateProfile = (UUID, String, String, Long) -> Unit
 
 internal data class ProfileDraft(
-    val typeIndex: Int,
+    val importType: ProfileImportType,
     val name: String,
     val url: String,
     val filePath: String,
@@ -53,13 +51,13 @@ internal class ProfileSubmissionActions(
 
 context(actions: ProfileSubmissionActions)
 internal fun submitProfile(draft: ProfileDraft) {
-    if (draft.typeIndex == PROFILE_IMPORT_TYPE_QR || draft.isDownloading) return
+    if (draft.importType == ProfileImportType.Qr || draft.isDownloading) return
     actions.hideKeyboard()
-    if (draft.typeIndex == PROFILE_IMPORT_TYPE_URL && draft.url.isBlank()) {
+    if (draft.importType == ProfileImportType.Url && draft.url.isBlank()) {
         actions.showError(YumeTxt.ProfilesPage.Validation.EnterUrl)
         return
     }
-    if (draft.typeIndex == PROFILE_IMPORT_TYPE_FILE && draft.filePath.isBlank()) {
+    if (draft.importType == ProfileImportType.LocalFile && draft.filePath.isBlank()) {
         actions.showError(YumeTxt.ProfilesPage.Validation.SelectFile)
         return
     }
@@ -68,9 +66,9 @@ internal fun submitProfile(draft: ProfileDraft) {
     actions.startDownload()
     val profile = draft.profileToEdit
     if (profile != null) {
-        val source = if (draft.typeIndex == PROFILE_IMPORT_TYPE_URL) draft.url else profile.source
+        val source = if (draft.importType == ProfileImportType.Url) draft.url else profile.source
         actions.updateProfile(profile.uuid, draft.name, source, profile.interval)
-    } else if (draft.typeIndex == PROFILE_IMPORT_TYPE_URL) {
+    } else if (draft.importType == ProfileImportType.Url) {
         actions.addProfile(
             draft.name.ifBlank { YumeTxt.ProfilesPage.Input.NewProfile },
             draft.url,

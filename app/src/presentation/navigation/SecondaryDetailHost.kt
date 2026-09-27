@@ -20,7 +20,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.navigation
 
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -76,10 +75,7 @@ internal fun rememberSecondaryDetailStack(navigator: Navigator): SecondaryDetail
 @Composable
 internal fun SecondaryDetailHost(stack: SecondaryDetailStack) {
     val childStack by stack.value.subscribeAsState()
-    val animation: StackAnimation<Any, DetailRouteChild> =
-        remember {
-            stackAnimation(fade(tween(300)) + slide(tween(400)) + scale(tween(500)))
-        }
+    val animation: StackAnimation<Any, DetailRouteChild> = remember { yumeStackAnimation() }
     Children(
         stack = childStack,
         modifier = Modifier.fillMaxSize(),

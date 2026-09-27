@@ -18,7 +18,7 @@
  *
  */
 
-@file:Suppress("DuplicatedCode", "FunctionName")
+@file:Suppress("FunctionName")
 
 package com.github.yumeyucca.yumebox
 
@@ -31,6 +31,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.unit.DpSize
+import com.github.yumeyucca.yumebox.data.model.PROXY_SHEET_HEIGHT_FRACTION_DEFAULT
+import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetAction
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetIconAction
@@ -51,8 +53,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowBottomSheet
-
-private const val NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION = 0.55f
 
 @Composable
 fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
@@ -105,50 +105,15 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
             AnimatedContent(
                 targetState = selectedGroup != null,
                 transitionSpec = {
-                    val slideDuration =
-                        if (targetState) {
-                            AnimationSpecs.Proxy.SheetSlideInDuration
-                        } else {
-                            AnimationSpecs.Proxy.SheetSlideOutDuration
-                        }
-                    val initialOffset: (Int) -> Int =
-                        if (targetState) {
-                            { width -> width / 3 }
-                        } else {
-                            { width -> -width / 3 }
-                        }
-                    val targetOffset: (Int) -> Int =
-                        if (targetState) {
-                            { width -> -width / 3 }
-                        } else {
-                            { width -> width / 3 }
-                        }
-                    (slideInHorizontally(
-                        animationSpec =
-                            tween(
-                                durationMillis = slideDuration,
-                                easing = AnimationSpecs.Legacy,
-                            ),
-                        initialOffsetX = initialOffset,
-                    ) +
-                            fadeIn(
-                                animationSpec =
-                                    tween(durationMillis = AnimationSpecs.Proxy.SheetFadeInDuration)
-                            )) togetherWith
-                            (slideOutHorizontally(
-                                animationSpec =
-                                    tween(
-                                        durationMillis = AnimationSpecs.Proxy.SheetSlideOutDuration,
-                                        easing = AnimationSpecs.Legacy,
-                                    ),
-                                targetOffsetX = targetOffset,
-                            ) +
-                                    fadeOut(
-                                        animationSpec =
-                                            tween(
-                                                durationMillis = AnimationSpecs.Proxy.SheetFadeOutDuration
-                                            )
-                                    ))
+                    val motion = AnimationSpecs.Proxy
+                    val forward = targetState
+                    proxySheetTransition(
+                        enterSlideMillis =
+                            if (forward) motion.SheetSlideInDuration else motion.SheetSlideOutDuration,
+                        exitSlideMillis = motion.SheetSlideOutDuration,
+                        enterOffsetX = { width -> if (forward) width / 3 else -width / 3 },
+                        exitOffsetX = { width -> if (forward) -width / 3 else width / 3 },
+                    )
                 },
                 label = "notification_node_sheet_start_action",
             ) { showBackAction ->
@@ -207,62 +172,22 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
         AnimatedContent(
             targetState = selectedGroupName,
             transitionSpec = {
+                val motion = AnimationSpecs.Proxy
                 if (targetState != null) {
-                    (slideInHorizontally(
-                        animationSpec =
-                            tween(
-                                durationMillis = AnimationSpecs.Proxy.SheetSlideInDuration,
-                                easing = AnimationSpecs.Legacy,
-                            ),
-                        initialOffsetX = { it },
-                    ) +
-                            fadeIn(
-                                animationSpec =
-                                    tween(durationMillis = AnimationSpecs.Proxy.SheetFadeInDuration)
-                            )) togetherWith
-                            (slideOutHorizontally(
-                                animationSpec =
-                                    tween(
-                                        durationMillis = AnimationSpecs.Proxy.SheetSlideOutDuration,
-                                        easing = AnimationSpecs.Legacy,
-                                    ),
-                                targetOffsetX = { -it / 3 },
-                            ) +
-                                    fadeOut(
-                                        animationSpec =
-                                            tween(
-                                                durationMillis = AnimationSpecs.Proxy.SheetFadeOutDuration
-                                            )
-                                    ))
+                    proxySheetTransition(
+                        enterSlideMillis = motion.SheetSlideInDuration,
+                        exitSlideMillis = motion.SheetSlideOutDuration,
+                        enterOffsetX = { fullWidth -> fullWidth },
+                        exitOffsetX = { fullWidth -> -fullWidth / 3 },
+                    )
                 } else {
-                    (slideInHorizontally(
-                        animationSpec =
-                            tween(
-                                durationMillis = AnimationSpecs.Proxy.SheetSlideOutDuration,
-                                easing = AnimationSpecs.Legacy,
-                            ),
-                        initialOffsetX = { -it / 3 },
-                    ) +
-                            fadeIn(
-                                animationSpec =
-                                    tween(
-                                        durationMillis = AnimationSpecs.Proxy.SheetFadeInDuration - 20
-                                    )
-                            )) togetherWith
-                            (slideOutHorizontally(
-                                animationSpec =
-                                    tween(
-                                        durationMillis = AnimationSpecs.Proxy.SheetSlideInDuration - 20,
-                                        easing = AnimationSpecs.Legacy,
-                                    ),
-                                targetOffsetX = { it },
-                            ) +
-                                    fadeOut(
-                                        animationSpec =
-                                            tween(
-                                                durationMillis = AnimationSpecs.Proxy.SheetFadeOutDuration
-                                            )
-                                    ))
+                    proxySheetTransition(
+                        enterSlideMillis = motion.SheetSlideOutDuration,
+                        exitSlideMillis = motion.SheetSlideInDuration - 20,
+                        enterOffsetX = { fullWidth -> -fullWidth / 3 },
+                        exitOffsetX = { fullWidth -> fullWidth },
+                        enterFadeMillis = motion.SheetFadeInDuration - 20,
+                    )
                 }
             },
             label = "notification_node_sheet_content",
@@ -277,7 +202,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                     onGroupClick = groupSelection.selectGroup,
                     onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
                     testingGroupNames = testingGroupNames,
-                    sheetHeightFraction = NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION,
+                    sheetHeightFraction = PROXY_SHEET_HEIGHT_FRACTION_DEFAULT,
                     listState = groupListState,
                 )
             } else {
@@ -286,7 +211,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                     group = targetGroup,
                     testingProxyNames = testingProxyNames,
                     onTestDelay = triggerSelectedGroupDelayTest,
-                    sheetHeightFraction = NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION,
+                    sheetHeightFraction = PROXY_SHEET_HEIGHT_FRACTION_DEFAULT,
                     listState = nodeListState,
                 )
             }
@@ -294,10 +219,26 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
     }
 }
 
+private fun proxySheetTransition(
+    enterSlideMillis: Int,
+    exitSlideMillis: Int,
+    enterOffsetX: (Int) -> Int,
+    exitOffsetX: (Int) -> Int,
+    enterFadeMillis: Int = AnimationSpecs.Proxy.SheetFadeInDuration,
+): ContentTransform =
+    (slideInHorizontally(
+        animationSpec = tween(durationMillis = enterSlideMillis, easing = AnimationSpecs.Legacy),
+        initialOffsetX = enterOffsetX,
+    ) + fadeIn(animationSpec = tween(durationMillis = enterFadeMillis))) togetherWith
+        (slideOutHorizontally(
+            animationSpec = tween(durationMillis = exitSlideMillis, easing = AnimationSpecs.Legacy),
+            targetOffsetX = exitOffsetX,
+        ) + fadeOut(animationSpec = tween(durationMillis = AnimationSpecs.Proxy.SheetFadeOutDuration)))
+
 @Composable
 private fun ProxySheetNodeContent(
     proxyViewModel: ProxyViewModel,
-    group: com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo,
+    group: ProxyGroupInfo,
     testingProxyNames: Set<String>,
     onTestDelay: () -> Unit,
     sheetHeightFraction: Float,

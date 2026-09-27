@@ -18,30 +18,44 @@
  *
  */
 
-@file:Suppress("UnusedSymbol", "FunctionName", "SimplifiableCallChain")
-
 package com.github.yumeyucca.yumebox.feature.meta.presentation.util
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
-internal const val OFFICIAL_MRS_RULE_PROVIDER_INTERVAL = 86400
-internal const val OFFICIAL_MRS_URL_TEST_INTERVAL = 300
-internal const val OFFICIAL_MRS_URL_TEST_URL = "https://www.gstatic.com/generate_204"
-internal const val OFFICIAL_MRS_EXCLUDE_FILTER =
-    "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
-private const val OFFICIAL_MRS_POPULAR_REGION_EXCLUDE_FILTER =
-    "(?i)(香港|HK|Hong Kong|\\x{1F1ED}\\x{1F1F0}|台湾|TW|Taiwan|\\x{1F1F9}\\x{1F1FC}|日本|JP|Japan|东京|大阪|\\x{1F1EF}\\x{1F1F5}|新加坡|SG|Singapore|狮城|\\x{1F1F8}\\x{1F1EC}|美国|US|United States|America|洛杉矶|硅谷|\\x{1F1FA}\\x{1F1F8})"
-internal const val OFFICIAL_MRS_GEOSITE_URL =
-    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/%s.mrs"
-internal const val OFFICIAL_MRS_GEOIP_URL =
-    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/%s.mrs"
-internal const val OFFICIAL_MRS_AUTO_GROUP_NAME = "Auto"
-internal const val OFFICIAL_MRS_FALLBACK_GROUP_NAME = "Fallback"
-private const val OFFICIAL_MRS_ICON_APP_BASE_URL =
-    "https://raw.githubusercontent.com/fmz200/wool_scripts/main/icons/apps"
-private const val OFFICIAL_MRS_CATALOG_BASE_URL =
-    "https://raw.githubusercontent.com/Orz-3/mini/master/Color"
+internal object OfficialMrs {
+    val ruleProviderIntervalSeconds = 86_400
+    val urlTestIntervalSeconds = 300
+    val urlTestUrl = "https://www.gstatic.com/generate_204"
+    val nodeExcludeFilter = "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
+    val geositeUrlTemplate =
+        "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/%s.mrs"
+    val geoipUrlTemplate =
+        "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/%s.mrs"
+    val autoGroupName = "Auto"
+    val fallbackGroupName = "Fallback"
+    val proxyPolicy = "Proxy"
+    val directPolicy = "DIRECT"
+    val rejectPolicy = "REJECT"
+    val matchRule = "MATCH,Proxy"
+
+    private val catalogIconBaseUrl = "https://raw.githubusercontent.com/Orz-3/mini/master/Color"
+    private val appIconBaseUrl =
+        "https://raw.githubusercontent.com/fmz200/wool_scripts/main/icons/apps"
+
+    fun ruleProviderPath(providerId: String): String = "./providers/rules/$providerId.mrs"
+
+    fun catalogIconUrl(iconName: String?): String? = iconUrl(catalogIconBaseUrl, iconName, ".png")
+
+    fun appIconUrl(iconName: String?): String? = iconUrl(appIconBaseUrl, iconName)
+
+    private fun iconUrl(baseUrl: String, iconName: String?, suffix: String = ""): String? {
+        val normalizedIconName = iconName?.trim()?.takeIf(String::isNotBlank) ?: return null
+        return "$baseUrl/${encodePathSegment(normalizedIconName)}$suffix"
+    }
+}
+
+private fun regionFilter(keywords: String): String = "(?i)($keywords)"
 
 data class OverridePresetTemplateSelection(
     val urlTestRegions: Set<OverridePresetRegion> = emptySet(),
@@ -56,798 +70,148 @@ data class OverridePresetTemplateContentAnalysis(
     val matchesTemplateExactly: Boolean,
 )
 
-enum class OverridePresetRegion(
-    val specId: String,
-    val displayName: String,
-    val groupName: String,
-    val fallbackGroupName: String,
-    val filter: String? = null,
-    val excludeFilter: String? = null,
-    val icon: String,
-) {
-    HK(
-        specId = "hk",
-        displayName = "香港自动组",
-        groupName = "HK Auto",
-        fallbackGroupName = "HK Fallback",
-        filter = "(?i)(香港|HK|Hong Kong|\\x{1F1ED}\\x{1F1F0})",
-        icon = officialMrsCatalogIconUrl("HK").orEmpty(),
-    ),
-    TW(
-        specId = "tw",
-        displayName = "台湾自动组",
-        groupName = "TW Auto",
-        fallbackGroupName = "TW Fallback",
-        filter = "(?i)(台湾|TW|Taiwan|\\x{1F1F9}\\x{1F1FC})",
-        icon = officialMrsCatalogIconUrl("TW").orEmpty(),
-    ),
-    JP(
-        specId = "jp",
-        displayName = "日本自动组",
-        groupName = "JP Auto",
-        fallbackGroupName = "JP Fallback",
-        filter = "(?i)(日本|JP|Japan|东京|大阪|\\x{1F1EF}\\x{1F1F5})",
-        icon = officialMrsCatalogIconUrl("JP").orEmpty(),
-    ),
-    SG(
-        specId = "sg",
-        displayName = "新加坡自动组",
-        groupName = "SG Auto",
-        fallbackGroupName = "SG Fallback",
-        filter = "(?i)(新加坡|SG|Singapore|狮城|\\x{1F1F8}\\x{1F1EC})",
-        icon = officialMrsCatalogIconUrl("SG").orEmpty(),
-    ),
-    US(
-        specId = "us",
-        displayName = "美国自动组",
-        groupName = "US Auto",
-        fallbackGroupName = "US Fallback",
-        filter = "(?i)(美国|US|United States|America|洛杉矶|硅谷|\\x{1F1FA}\\x{1F1F8})",
-        icon = officialMrsCatalogIconUrl("US").orEmpty(),
-    ),
+enum class OverridePresetRegion(definition: RegionDefinition) {
+    HK(region("HK", "香港自动组", "香港|HK|Hong Kong|\\x{1F1ED}\\x{1F1F0}")),
+    TW(region("TW", "台湾自动组", "台湾|TW|Taiwan|\\x{1F1F9}\\x{1F1FC}")),
+    JP(region("JP", "日本自动组", "日本|JP|Japan|东京|大阪|\\x{1F1EF}\\x{1F1F5}")),
+    SG(region("SG", "新加坡自动组", "新加坡|SG|Singapore|狮城|\\x{1F1F8}\\x{1F1EC}")),
+    US(region("US", "美国自动组", "美国|US|United States|America|洛杉矶|硅谷|\\x{1F1FA}\\x{1F1F8}")),
     Other(
-        specId = "other",
-        displayName = "冷门地区自动组",
-        groupName = "Other Auto",
-        fallbackGroupName = "Other Fallback",
-        excludeFilter = OFFICIAL_MRS_POPULAR_REGION_EXCLUDE_FILTER,
-        icon = officialMrsCatalogIconUrl("XD").orEmpty(),
+        region(
+            label = "Other",
+            displayName = "冷门地区自动组",
+            specId = "other",
+            iconName = "XD",
+        )
     ),
+    ;
+
+    val specId: String = definition.specId
+    val displayName: String = definition.displayName
+    val groupName: String = definition.groupName
+    val fallbackGroupName: String = definition.fallbackGroupName
+    val filter: String? = definition.keywords?.let(::regionFilter)
+    val excludeFilter: String?
+        get() = if (this == Other) popularExclude else null
+    val icon: String = OfficialMrs.catalogIconUrl(definition.iconName).orEmpty()
+    private val keywords: String? = definition.keywords
+
+    private companion object {
+        val popularExclude: String by lazy {
+            regionFilter(entries.mapNotNull { region -> region.keywords }.joinToString("|"))
+        }
+    }
 }
 
-enum class OverridePresetItem(
-    val id: String,
-    val title: String,
-    val summary: String,
-    val icon: String? = null,
-    val isService: Boolean = false,
-    val groupName: String? = null,
-    val providers: List<OfficialMrsProviderSpec> = emptyList(),
-    val rules: List<OfficialMrsRuleSpec> = emptyList(),
-    val detectionRules: List<String> = emptyList(),
-) {
+enum class OverridePresetItem(definition: PresetItemDefinition) {
     Proxy(
-        id = "proxy",
-        title = "代理规则集",
-        summary = "启用 proxy 规则集并走 Proxy.",
-        icon = officialMrsCatalogIconUrl("Static"),
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("proxy_domain", "proxy", OfficialMrsRuleBehavior.Domain)
-            ),
-        detectionRules = listOf("RULE-SET,proxy_domain,Proxy"),
+        route(
+            id = "proxy",
+            title = "代理规则集",
+            summary = "启用 proxy 规则集并走 ${OfficialMrs.proxyPolicy}.",
+            icon = catalogIcon("Static"),
+            sources = listOf(source(OfficialMrs.proxyPolicy, "proxy")),
+        )
     ),
     Ads(
-        id = "ads",
-        title = "广告拦截",
-        summary = "启用 category-ads-all 并走 REJECT.",
-        icon = officialMrsCatalogIconUrl("Adblock"),
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "ads_domain",
-                    "category-ads-all",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        detectionRules = listOf("RULE-SET,ads_domain,REJECT"),
+        route(
+            id = "ads",
+            title = "广告拦截",
+            summary = "启用 category-ads-all 并走 ${OfficialMrs.rejectPolicy}.",
+            icon = catalogIcon("Adblock"),
+            sources = listOf(source(OfficialMrs.rejectPolicy, "category-ads-all")),
+        )
     ),
-    Google(
-        id = "google",
-        title = "Google",
-        summary = "启用 Google 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Google"),
-        groupName = "Google",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("google_domain", "google", OfficialMrsRuleBehavior.Domain),
-                OfficialMrsProviderSpec("google_ip", "google", OfficialMrsRuleBehavior.IpCidr),
-            ),
-        rules =
-            listOf(
-                OfficialMrsRuleSpec("google_domain", "Google"),
-                OfficialMrsRuleSpec("google_ip", "Google", noResolve = true),
-            ),
-        detectionRules =
-            listOf("RULE-SET,google_domain,Google", "RULE-SET,google_ip,Google,no-resolve"),
-    ),
-    Telegram(
-        id = "telegram",
-        title = "Telegram",
-        summary = "启用 Telegram 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Telegram"),
-        groupName = "Telegram",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "telegram_domain",
-                    "telegram",
-                    OfficialMrsRuleBehavior.Domain,
-                ),
-                OfficialMrsProviderSpec("telegram_ip", "telegram", OfficialMrsRuleBehavior.IpCidr),
-            ),
-        rules =
-            listOf(
-                OfficialMrsRuleSpec("telegram_domain", "Telegram"),
-                OfficialMrsRuleSpec("telegram_ip", "Telegram", noResolve = true),
-            ),
-        detectionRules =
-            listOf("RULE-SET,telegram_domain,Telegram", "RULE-SET,telegram_ip,Telegram,no-resolve"),
-    ),
-    WhatsApp(
-        id = "whatsapp",
-        title = "WhatsApp",
-        summary = "启用 WhatsApp 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("WhatsApp.png"),
-        groupName = "WhatsApp",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "whatsapp_domain",
-                    "whatsapp",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("whatsapp_domain", "WhatsApp")),
-        detectionRules = listOf("RULE-SET,whatsapp_domain,WhatsApp"),
-    ),
-    Line(
-        id = "line",
-        title = "LINE",
-        summary = "启用 LINE 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("LineTV"),
-        groupName = "LINE",
-        providers =
-            listOf(OfficialMrsProviderSpec("line_domain", "line", OfficialMrsRuleBehavior.Domain)),
-        rules = listOf(OfficialMrsRuleSpec("line_domain", "LINE")),
-        detectionRules = listOf("RULE-SET,line_domain,LINE"),
-    ),
-    Twitter(
-        id = "twitter",
-        title = "Twitter / X",
-        summary = "启用 Twitter / X 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Twitter"),
-        groupName = "Twitter",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "twitter_domain",
-                    "twitter",
-                    OfficialMrsRuleBehavior.Domain,
-                ),
-                OfficialMrsProviderSpec("twitter_ip", "twitter", OfficialMrsRuleBehavior.IpCidr),
-            ),
-        rules =
-            listOf(
-                OfficialMrsRuleSpec("twitter_domain", "Twitter"),
-                OfficialMrsRuleSpec("twitter_ip", "Twitter", noResolve = true),
-            ),
-        detectionRules =
-            listOf("RULE-SET,twitter_domain,Twitter", "RULE-SET,twitter_ip,Twitter,no-resolve"),
-    ),
-    TikTok(
-        id = "tiktok",
-        title = "TikTok",
-        summary = "启用 TikTok 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("TikTok"),
-        groupName = "TikTok",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("tiktok_domain", "tiktok", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("tiktok_domain", "TikTok")),
-        detectionRules = listOf("RULE-SET,tiktok_domain,TikTok"),
-    ),
-    Speedtest(
-        id = "speedtest",
-        title = "Speedtest",
-        summary = "启用 Speedtest 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Speedtest"),
-        groupName = "Speedtest",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "speedtest_domain",
-                    "speedtest",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("speedtest_domain", "Speedtest")),
-        detectionRules = listOf("RULE-SET,speedtest_domain,Speedtest"),
-    ),
-    GitHub(
-        id = "github",
-        title = "GitHub",
-        summary = "启用 GitHub 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("github_00.png"),
-        groupName = "GitHub",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("github_domain", "github", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("github_domain", "GitHub")),
-        detectionRules = listOf("RULE-SET,github_domain,GitHub"),
-    ),
-    Discord(
-        id = "discord",
-        title = "Discord",
-        summary = "启用 Discord 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("Discord.png"),
-        groupName = "Discord",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("discord_domain", "discord", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("discord_domain", "Discord")),
-        detectionRules = listOf("RULE-SET,discord_domain,Discord"),
-    ),
-    Reddit(
-        id = "reddit",
-        title = "Reddit",
-        summary = "启用 Reddit 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("Category_Magazine.png"),
-        groupName = "Reddit",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("reddit_domain", "reddit", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("reddit_domain", "Reddit")),
-        detectionRules = listOf("RULE-SET,reddit_domain,Reddit"),
-    ),
-    Facebook(
-        id = "facebook",
-        title = "Facebook",
-        summary = "启用 Facebook 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("facebook.png"),
-        groupName = "Facebook",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "facebook_domain",
-                    "facebook",
-                    OfficialMrsRuleBehavior.Domain,
-                ),
-                OfficialMrsProviderSpec("facebook_ip", "facebook", OfficialMrsRuleBehavior.IpCidr),
-            ),
-        rules =
-            listOf(
-                OfficialMrsRuleSpec("facebook_domain", "Facebook"),
-                OfficialMrsRuleSpec("facebook_ip", "Facebook", noResolve = true),
-            ),
-        detectionRules =
-            listOf("RULE-SET,facebook_domain,Facebook", "RULE-SET,facebook_ip,Facebook,no-resolve"),
-    ),
-    Instagram(
-        id = "instagram",
-        title = "Instagram",
-        summary = "启用 Instagram 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Instagram"),
-        groupName = "Instagram",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "instagram_domain",
-                    "instagram",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("instagram_domain", "Instagram")),
-        detectionRules = listOf("RULE-SET,instagram_domain,Instagram"),
-    ),
-    Threads(
-        id = "threads",
-        title = "Threads",
-        summary = "启用 Threads 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("Threads.png"),
-        groupName = "Threads",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("threads_domain", "threads", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("threads_domain", "Threads")),
-        detectionRules = listOf("RULE-SET,threads_domain,Threads"),
-    ),
-    Microsoft(
-        id = "microsoft",
-        title = "Microsoft",
-        summary = "启用 Microsoft 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Microsoft"),
-        groupName = "Microsoft",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "microsoft_domain",
-                    "microsoft",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("microsoft_domain", "Microsoft")),
-        detectionRules = listOf("RULE-SET,microsoft_domain,Microsoft"),
-    ),
-    Bing(
-        id = "bing",
-        title = "Bing",
-        summary = "启用 Bing 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("bing.png"),
-        groupName = "Bing",
-        providers =
-            listOf(OfficialMrsProviderSpec("bing_domain", "bing", OfficialMrsRuleBehavior.Domain)),
-        rules = listOf(OfficialMrsRuleSpec("bing_domain", "Bing")),
-        detectionRules = listOf("RULE-SET,bing_domain,Bing"),
-    ),
-    Apple(
-        id = "apple",
-        title = "Apple",
-        summary = "启用 Apple 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Apple"),
-        groupName = "Apple",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("apple_domain", "apple", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("apple_domain", "Apple")),
-        detectionRules = listOf("RULE-SET,apple_domain,Apple"),
-    ),
-    YouTube(
-        id = "youtube",
-        title = "YouTube",
-        summary = "启用 YouTube 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("YouTube"),
-        groupName = "YouTube",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("youtube_domain", "youtube", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("youtube_domain", "YouTube")),
-        detectionRules = listOf("RULE-SET,youtube_domain,YouTube"),
-    ),
-    Netflix(
-        id = "netflix",
-        title = "Netflix",
-        summary = "启用 Netflix 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Netflix"),
-        groupName = "Netflix",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("netflix_domain", "netflix", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("netflix_domain", "Netflix")),
-        detectionRules = listOf("RULE-SET,netflix_domain,Netflix"),
-    ),
-    Disney(
-        id = "disney",
-        title = "Disney",
-        summary = "启用 Disney 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("DisneyPlus"),
-        groupName = "Disney",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("disney_domain", "disney", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("disney_domain", "Disney")),
-        detectionRules = listOf("RULE-SET,disney_domain,Disney"),
-    ),
-    Hbo(
-        id = "hbo",
-        title = "HBO",
-        summary = "启用 HBO 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("HBO"),
-        groupName = "HBO",
-        providers =
-            listOf(OfficialMrsProviderSpec("hbo_domain", "hbo", OfficialMrsRuleBehavior.Domain)),
-        rules = listOf(OfficialMrsRuleSpec("hbo_domain", "HBO")),
-        detectionRules = listOf("RULE-SET,hbo_domain,HBO"),
-    ),
-    PrimeVideo(
-        id = "primevideo",
-        title = "Prime Video",
-        summary = "启用 Prime Video 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("PrimeVideo"),
-        groupName = "PrimeVideo",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "primevideo_domain",
-                    "primevideo",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("primevideo_domain", "PrimeVideo")),
-        detectionRules = listOf("RULE-SET,primevideo_domain,PrimeVideo"),
-    ),
-    Tvb(
-        id = "tvb",
-        title = "TVB",
-        summary = "启用 TVB 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("TVBAnywhere+.png"),
-        groupName = "TVB",
-        providers =
-            listOf(OfficialMrsProviderSpec("tvb_domain", "tvb", OfficialMrsRuleBehavior.Domain)),
-        rules = listOf(OfficialMrsRuleSpec("tvb_domain", "TVB")),
-        detectionRules = listOf("RULE-SET,tvb_domain,TVB"),
-    ),
-    MyTvSuper(
-        id = "mytvsuper",
-        title = "MyTVSuper",
-        summary = "启用 MyTVSuper 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("TVBAnywhere+.png"),
-        groupName = "MyTVSuper",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "mytvsuper_domain",
-                    "mytvsuper",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("mytvsuper_domain", "MyTVSuper")),
-        detectionRules = listOf("RULE-SET,mytvsuper_domain,MyTVSuper"),
-    ),
-    Dazn(
-        id = "dazn",
-        title = "DAZN",
-        summary = "启用 DAZN 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Streaming"),
-        groupName = "DAZN",
-        providers =
-            listOf(OfficialMrsProviderSpec("dazn_domain", "dazn", OfficialMrsRuleBehavior.Domain)),
-        rules = listOf(OfficialMrsRuleSpec("dazn_domain", "DAZN")),
-        detectionRules = listOf("RULE-SET,dazn_domain,DAZN"),
-    ),
-    Spotify(
-        id = "spotify",
-        title = "Spotify",
-        summary = "启用 Spotify 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Spotify"),
-        groupName = "Spotify",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("spotify_domain", "spotify", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("spotify_domain", "Spotify")),
-        detectionRules = listOf("RULE-SET,spotify_domain,Spotify"),
-    ),
-    Amazon(
-        id = "amazon",
-        title = "Amazon",
-        summary = "启用 Amazon 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("Amazon.png"),
-        groupName = "Amazon",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("amazon_domain", "amazon", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("amazon_domain", "Amazon")),
-        detectionRules = listOf("RULE-SET,amazon_domain,Amazon"),
-    ),
-    PayPal(
-        id = "paypal",
-        title = "PayPal",
-        summary = "启用 PayPal 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Paypal"),
-        groupName = "PayPal",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("paypal_domain", "paypal", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("paypal_domain", "PayPal")),
-        detectionRules = listOf("RULE-SET,paypal_domain,PayPal"),
-    ),
-    Cloudflare(
-        id = "cloudflare",
-        title = "Cloudflare",
-        summary = "启用 Cloudflare 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("Cloudflare.png"),
-        groupName = "Cloudflare",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "cloudflare_domain",
-                    "cloudflare",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("cloudflare_domain", "Cloudflare")),
-        detectionRules = listOf("RULE-SET,cloudflare_domain,Cloudflare"),
-    ),
-    Zoom(
-        id = "zoom",
-        title = "Zoom",
-        summary = "启用 Zoom 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("Category_Networking.png"),
-        groupName = "Zoom",
-        providers =
-            listOf(OfficialMrsProviderSpec("zoom_domain", "zoom", OfficialMrsRuleBehavior.Domain)),
-        rules = listOf(OfficialMrsRuleSpec("zoom_domain", "Zoom")),
-        detectionRules = listOf("RULE-SET,zoom_domain,Zoom"),
-    ),
-    Wikimedia(
-        id = "wikimedia",
-        title = "Wikimedia",
-        summary = "启用 Wikimedia 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("Category_Research.png"),
-        groupName = "Wikimedia",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "wikimedia_domain",
-                    "wikimedia",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("wikimedia_domain", "Wikimedia")),
-        detectionRules = listOf("RULE-SET,wikimedia_domain,Wikimedia"),
-    ),
-    Bilibili(
-        id = "bilibili",
-        title = "Bilibili",
-        summary = "启用 Bilibili 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Bili"),
-        groupName = "Bilibili",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "bilibili_domain",
-                    "bilibili",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("bilibili_domain", "Bilibili")),
-        detectionRules = listOf("RULE-SET,bilibili_domain,Bilibili"),
-    ),
-    BiliIntl(
-        id = "biliintl",
-        title = "BiliIntl",
-        summary = "启用 BiliIntl 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Bili"),
-        groupName = "BiliIntl",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "biliintl_domain",
-                    "biliintl",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("biliintl_domain", "BiliIntl")),
-        detectionRules = listOf("RULE-SET,biliintl_domain,BiliIntl"),
-    ),
-    Bahamut(
-        id = "bahamut",
-        title = "Bahamut",
-        summary = "启用 Bahamut 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsCatalogIconUrl("Bahamut"),
-        groupName = "Bahamut",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("bahamut_domain", "bahamut", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("bahamut_domain", "Bahamut")),
-        detectionRules = listOf("RULE-SET,bahamut_domain,Bahamut"),
-    ),
-    Dmm(
-        id = "dmm",
-        title = "DMM",
-        summary = "启用 DMM 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("AnimeHome.png"),
-        groupName = "DMM",
-        providers =
-            listOf(OfficialMrsProviderSpec("dmm_domain", "dmm", OfficialMrsRuleBehavior.Domain)),
-        rules = listOf(OfficialMrsRuleSpec("dmm_domain", "DMM")),
-        detectionRules = listOf("RULE-SET,dmm_domain,DMM"),
-    ),
-    Abema(
-        id = "abema",
-        title = "Abema",
-        summary = "启用 Abema 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("AnimeHome.png"),
-        groupName = "Abema",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("abema_domain", "abema", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("abema_domain", "Abema")),
-        detectionRules = listOf("RULE-SET,abema_domain,Abema"),
-    ),
-    Ehentai(
-        id = "ehentai",
-        title = "EHentai",
-        summary = "启用 EHentai 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("HentaiHome.png"),
-        groupName = "EHentai",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("ehentai_domain", "ehentai", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("ehentai_domain", "EHentai")),
-        detectionRules = listOf("RULE-SET,ehentai_domain,EHentai"),
-    ),
-    OpenAI(
-        id = "openai",
-        title = "OpenAI",
-        summary = "启用 OpenAI 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("ChatGPT.png"),
-        groupName = "OpenAI",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("openai_domain", "openai", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("openai_domain", "OpenAI")),
-        detectionRules = listOf("RULE-SET,openai_domain,OpenAI"),
-    ),
+    Google(service("google", "Google", catalogIcon("Google"), includeIp = true)),
+    Telegram(service("telegram", "Telegram", catalogIcon("Telegram"), includeIp = true)),
+    WhatsApp(service("whatsapp", "WhatsApp", appIcon("WhatsApp.png"))),
+    Line(service("line", "LINE", catalogIcon("LineTV"), groupName = "LINE")),
+    Twitter(service("twitter", "Twitter / X", catalogIcon("Twitter"), groupName = "Twitter", includeIp = true)),
+    TikTok(service("tiktok", "TikTok", catalogIcon("TikTok"))),
+    Speedtest(service("speedtest", "Speedtest", catalogIcon("Speedtest"))),
+    GitHub(service("github", "GitHub", appIcon("github_00.png"))),
+    Discord(service("discord", "Discord", appIcon("Discord.png"))),
+    Reddit(service("reddit", "Reddit", appIcon("Category_Magazine.png"))),
+    Facebook(service("facebook", "Facebook", appIcon("facebook.png"), includeIp = true)),
+    Instagram(service("instagram", "Instagram", catalogIcon("Instagram"))),
+    Threads(service("threads", "Threads", appIcon("Threads.png"))),
+    Microsoft(service("microsoft", "Microsoft", catalogIcon("Microsoft"))),
+    Bing(service("bing", "Bing", appIcon("bing.png"))),
+    Apple(service("apple", "Apple", catalogIcon("Apple"))),
+    YouTube(service("youtube", "YouTube", catalogIcon("YouTube"))),
+    Netflix(service("netflix", "Netflix", catalogIcon("Netflix"))),
+    Disney(service("disney", "Disney", catalogIcon("DisneyPlus"))),
+    Hbo(service("hbo", "HBO", catalogIcon("HBO"))),
+    PrimeVideo(service("primevideo", "Prime Video", catalogIcon("PrimeVideo"), groupName = "PrimeVideo")),
+    Tvb(service("tvb", "TVB", appIcon("TVBAnywhere+.png"))),
+    MyTvSuper(service("mytvsuper", "MyTVSuper", appIcon("TVBAnywhere+.png"))),
+    Dazn(service("dazn", "DAZN", catalogIcon("Streaming"))),
+    Spotify(service("spotify", "Spotify", catalogIcon("Spotify"))),
+    Amazon(service("amazon", "Amazon", appIcon("Amazon.png"))),
+    PayPal(service("paypal", "PayPal", catalogIcon("Paypal"))),
+    Cloudflare(service("cloudflare", "Cloudflare", appIcon("Cloudflare.png"))),
+    Zoom(service("zoom", "Zoom", appIcon("Category_Networking.png"))),
+    Wikimedia(service("wikimedia", "Wikimedia", appIcon("Category_Research.png"))),
+    Bilibili(service("bilibili", "Bilibili", catalogIcon("Bili"))),
+    BiliIntl(service("biliintl", "BiliIntl", catalogIcon("Bili"))),
+    Bahamut(service("bahamut", "Bahamut", catalogIcon("Bahamut"))),
+    Dmm(service("dmm", "DMM", appIcon("AnimeHome.png"))),
+    Abema(service("abema", "Abema", appIcon("AnimeHome.png"))),
+    Ehentai(service("ehentai", "EHentai", appIcon("HentaiHome.png"))),
+    OpenAI(service("openai", "OpenAI", appIcon("ChatGPT.png"))),
     Anthropic(
-        id = "anthropic",
-        title = "Claude / Anthropic",
-        summary = "启用 Claude / Anthropic 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("Claude_01.png"),
-        groupName = "Claude",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "anthropic_domain",
-                    "anthropic",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("anthropic_domain", "Claude")),
-        detectionRules = listOf("RULE-SET,anthropic_domain,Claude"),
+        service(
+            "anthropic",
+            "Claude / Anthropic",
+            appIcon("Claude_01.png"),
+            groupName = "Claude",
+        )
     ),
-    OneDrive(
-        id = "onedrive",
-        title = "OneDrive",
-        summary = "启用 OneDrive 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("OneDrive.png"),
-        groupName = "OneDrive",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "onedrive_domain",
-                    "onedrive",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("onedrive_domain", "OneDrive")),
-        detectionRules = listOf("RULE-SET,onedrive_domain,OneDrive"),
-    ),
-    Pixiv(
-        id = "pixiv",
-        title = "Pixiv",
-        summary = "启用 Pixiv 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("Category_Photo.png"),
-        groupName = "Pixiv",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("pixiv_domain", "pixiv", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("pixiv_domain", "Pixiv")),
-        detectionRules = listOf("RULE-SET,pixiv_domain,Pixiv"),
-    ),
-    Niconico(
-        id = "niconico",
-        title = "Niconico",
-        summary = "启用 Niconico 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("AnimeHome.png"),
-        groupName = "Niconico",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "niconico_domain",
-                    "niconico",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        rules = listOf(OfficialMrsRuleSpec("niconico_domain", "Niconico")),
-        detectionRules = listOf("RULE-SET,niconico_domain,Niconico"),
-    ),
-    Steam(
-        id = "steam",
-        title = "Steam",
-        summary = "启用 Steam 分流和专属策略组.",
-        isService = true,
-        icon = officialMrsAppIconUrl("steam.png"),
-        groupName = "Steam",
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("steam_domain", "steam", OfficialMrsRuleBehavior.Domain)
-            ),
-        rules = listOf(OfficialMrsRuleSpec("steam_domain", "Steam")),
-        detectionRules = listOf("RULE-SET,steam_domain,Steam"),
-    ),
+    OneDrive(service("onedrive", "OneDrive", appIcon("OneDrive.png"))),
+    Pixiv(service("pixiv", "Pixiv", appIcon("Category_Photo.png"))),
+    Niconico(service("niconico", "Niconico", appIcon("AnimeHome.png"))),
+    Steam(service("steam", "Steam", appIcon("steam.png"))),
     Cn(
-        id = "cn",
-        title = "中国大陆直连",
-        summary = "启用 cn 域名和 IP 规则并走 DIRECT.",
-        icon = officialMrsCatalogIconUrl("China"),
-        providers =
-            listOf(
-                OfficialMrsProviderSpec("cn_domain", "cn", OfficialMrsRuleBehavior.Domain),
-                OfficialMrsProviderSpec("cn_ip", "cn", OfficialMrsRuleBehavior.IpCidr),
-            ),
-        detectionRules = listOf("RULE-SET,cn_domain,DIRECT", "RULE-SET,cn_ip,DIRECT,no-resolve"),
+        route(
+            id = "cn",
+            title = "中国大陆直连",
+            summary = "启用 cn 域名和 IP 规则并走 ${OfficialMrs.directPolicy}.",
+            icon = catalogIcon("China"),
+            sources =
+                listOf(
+                    source(OfficialMrs.directPolicy, "cn"),
+                    source(OfficialMrs.directPolicy, "cn", OfficialMrsRuleBehavior.IpCidr),
+                ),
+        )
     ),
     GeolocationNotCn(
-        id = "geolocation_not_cn",
-        title = "境外地理规则",
-        summary = "启用 geolocation-!cn 并走 Proxy.",
-        icon = officialMrsCatalogIconUrl("Global"),
-        providers =
-            listOf(
-                OfficialMrsProviderSpec(
-                    "geolocation_not_cn_domain",
-                    "geolocation-!cn",
-                    OfficialMrsRuleBehavior.Domain,
-                )
-            ),
-        detectionRules = listOf("RULE-SET,geolocation_not_cn_domain,Proxy"),
+        route(
+            id = "geolocation_not_cn",
+            title = "境外地理规则",
+            summary = "启用 geolocation-!cn 并走 ${OfficialMrs.proxyPolicy}.",
+            icon = catalogIcon("Global"),
+            sources = listOf(source(OfficialMrs.proxyPolicy, "geolocation-!cn")),
+        )
     ),
     Match(
-        id = "match",
-        title = "兜底 MATCH",
-        summary = "末尾追加 MATCH,Proxy.",
-        icon = officialMrsCatalogIconUrl("Final"),
-        detectionRules = listOf("MATCH,Proxy"),
+        route(
+            id = "match",
+            title = "兜底 MATCH",
+            summary = "末尾追加 ${OfficialMrs.matchRule}.",
+            icon = catalogIcon("Final"),
+            fixedRule = OfficialMrs.matchRule,
+        )
     ),
+    ;
+
+    val id: String = definition.id
+    val title: String = definition.title
+    val summary: String = definition.summary
+    val icon: String? = definition.icon?.url()
+    val isService: Boolean = definition.isService
+    val groupName: String? = definition.groupName
+    val providers: List<OfficialMrsProviderSpec> = definition.providers
+    val detectionRules: List<String> = definition.detectionRules
 }
 
 internal enum class OfficialMrsHealthCheckGroupType(val wireName: String) {
@@ -866,97 +230,52 @@ data class OfficialMrsProviderSpec(
     val behavior: OfficialMrsRuleBehavior,
 )
 
-data class OfficialMrsRuleSpec(
-    val providerId: String,
-    val target: String,
-    val noResolve: Boolean = false,
-)
-
 internal val orderedRegions = OverridePresetRegion.entries.toList()
 internal val orderedItems = OverridePresetItem.entries.toList()
 internal val orderedServiceItems = orderedItems.filter(OverridePresetItem::isService)
 private val orderedBaseItems = orderedItems.filterNot(OverridePresetItem::isService)
-internal val itemById = orderedItems.associateBy(OverridePresetItem::id)
 internal val templateProviderIds =
-    orderedItems.flatMap { it.providers }.map(OfficialMrsProviderSpec::id).toSet()
+    orderedItems.flatMap(OverridePresetItem::providers).map(OfficialMrsProviderSpec::id).toSet()
 internal val serviceGroupNames =
     orderedServiceItems.mapNotNull(OverridePresetItem::groupName).toSet()
 internal val regionGroupNames =
     orderedRegions.flatMap { region -> listOf(region.groupName, region.fallbackGroupName) }.toSet()
-private val defaultEnabledItemIds =
-    linkedSetOf(
-        "proxy",
-        "ads",
-        "google",
-        "telegram",
-        "github",
-        "microsoft",
-        "bing",
-        "apple",
-        "youtube",
-        "netflix",
-        "spotify",
-        "openai",
-        "anthropic",
-        "steam",
-        "cn",
-        "geolocation_not_cn",
-        "match",
-    )
-internal val ruleOrder =
+
+private val defaultEnabledItems =
     listOf(
-        "ads",
-        "google",
-        "telegram",
-        "whatsapp",
-        "line",
-        "twitter",
-        "tiktok",
-        "speedtest",
-        "github",
-        "discord",
-        "reddit",
-        "facebook",
-        "instagram",
-        "threads",
-        "microsoft",
-        "bing",
-        "apple",
-        "youtube",
-        "netflix",
-        "disney",
-        "hbo",
-        "primevideo",
-        "tvb",
-        "mytvsuper",
-        "dazn",
-        "spotify",
-        "amazon",
-        "paypal",
-        "cloudflare",
-        "zoom",
-        "wikimedia",
-        "bilibili",
-        "biliintl",
-        "bahamut",
-        "dmm",
-        "abema",
-        "ehentai",
-        "openai",
-        "anthropic",
-        "onedrive",
-        "pixiv",
-        "niconico",
-        "steam",
-        "cn",
-        "proxy",
-        "geolocation_not_cn",
-        "match",
+        OverridePresetItem.Proxy,
+        OverridePresetItem.Ads,
+        OverridePresetItem.Google,
+        OverridePresetItem.Telegram,
+        OverridePresetItem.GitHub,
+        OverridePresetItem.Microsoft,
+        OverridePresetItem.Bing,
+        OverridePresetItem.Apple,
+        OverridePresetItem.YouTube,
+        OverridePresetItem.Netflix,
+        OverridePresetItem.Spotify,
+        OverridePresetItem.OpenAI,
+        OverridePresetItem.Anthropic,
+        OverridePresetItem.Steam,
+        OverridePresetItem.Cn,
+        OverridePresetItem.GeolocationNotCn,
+        OverridePresetItem.Match,
     )
+
+private val deferredRuleItems =
+    listOf(
+        OverridePresetItem.Proxy,
+        OverridePresetItem.GeolocationNotCn,
+        OverridePresetItem.Match,
+    )
+
+internal val ruleOrder: List<OverridePresetItem> =
+    (orderedItems - deferredRuleItems.toSet()) + deferredRuleItems
+
 internal val templateRules = orderedItems.flatMap(OverridePresetItem::detectionRules).toSet()
 
 fun defaultEnabledPresetItems(): Set<OverridePresetItem> =
-    defaultEnabledItemIds.mapNotNull(itemById::get).toCollection(linkedSetOf())
+    defaultEnabledItems.toCollection(linkedSetOf())
 
 fun orderedPresetRegions(): List<OverridePresetRegion> = orderedRegions
 
@@ -966,8 +285,8 @@ fun orderedServicePresetItems(): List<OverridePresetItem> = orderedServiceItems
 
 fun presetGroupTypeIconUrl(type: String): String? =
     when (type) {
-        "urltest" -> officialMrsCatalogIconUrl("Urltest")
-        "fallback" -> officialMrsCatalogIconUrl("Available")
+        "urltest" -> OfficialMrs.catalogIconUrl("Urltest")
+        "fallback" -> OfficialMrs.catalogIconUrl("Available")
         else -> null
     }
 
@@ -988,15 +307,148 @@ fun defaultOverridePresetTemplateSelection(): OverridePresetTemplateSelection =
         enableFallbackGroup = false,
     )
 
-internal fun officialMrsCatalogIconUrl(iconName: String?): String? {
-    val normalizedIconName = iconName?.trim()?.takeIf(String::isNotBlank) ?: return null
-    return "$OFFICIAL_MRS_CATALOG_BASE_URL/${encodePathSegment(normalizedIconName)}.png"
+private class RegionDefinition(
+    val specId: String,
+    val displayName: String,
+    val groupName: String,
+    val fallbackGroupName: String,
+    val keywords: String?,
+    val iconName: String,
+)
+
+private fun region(
+    label: String,
+    displayName: String,
+    keywords: String? = null,
+    specId: String = label.lowercase(),
+    iconName: String = label,
+): RegionDefinition =
+    RegionDefinition(
+        specId = specId,
+        displayName = displayName,
+        groupName = "$label Auto",
+        fallbackGroupName = "$label Fallback",
+        keywords = keywords,
+        iconName = iconName,
+    )
+
+private enum class PresetIconKind {
+    Catalog,
+    App,
 }
 
-private fun officialMrsAppIconUrl(iconName: String?): String? {
-    val normalizedIconName = iconName?.trim()?.takeIf(String::isNotBlank) ?: return null
-    return "$OFFICIAL_MRS_ICON_APP_BASE_URL/${encodePathSegment(normalizedIconName)}"
+private class PresetIcon(
+    val name: String,
+    val kind: PresetIconKind,
+) {
+    fun url(): String? =
+        when (kind) {
+            PresetIconKind.Catalog -> OfficialMrs.catalogIconUrl(name)
+            PresetIconKind.App -> OfficialMrs.appIconUrl(name)
+        }
 }
+
+private fun catalogIcon(name: String) = PresetIcon(name, PresetIconKind.Catalog)
+
+private fun appIcon(name: String) = PresetIcon(name, PresetIconKind.App)
+
+private class RuleSource(
+    val remoteName: String,
+    val behavior: OfficialMrsRuleBehavior,
+    val policy: String,
+)
+
+private fun source(
+    policy: String,
+    remoteName: String,
+    behavior: OfficialMrsRuleBehavior = OfficialMrsRuleBehavior.Domain,
+): RuleSource = RuleSource(remoteName = remoteName, behavior = behavior, policy = policy)
+
+private class PresetItemDefinition(
+    val id: String,
+    val title: String,
+    val summary: String,
+    val icon: PresetIcon?,
+    val isService: Boolean,
+    val groupName: String?,
+    sources: List<RuleSource>,
+    fixedRule: String?,
+) {
+    val providers: List<OfficialMrsProviderSpec> =
+        sources.map { source ->
+            OfficialMrsProviderSpec(
+                id = source.providerId(id),
+                remoteName = source.remoteName,
+                behavior = source.behavior,
+            )
+        }
+
+    val detectionRules: List<String> =
+        buildList {
+            sources.forEach { source -> add(source.detectionRule(id)) }
+            fixedRule?.let(::add)
+        }
+}
+
+private fun RuleSource.providerId(itemId: String): String {
+    val kind =
+        when (behavior) {
+            OfficialMrsRuleBehavior.Domain -> "domain"
+            OfficialMrsRuleBehavior.IpCidr -> "ip"
+        }
+    return "${itemId}_$kind"
+}
+
+private fun RuleSource.detectionRule(itemId: String): String {
+    val noResolve = if (behavior == OfficialMrsRuleBehavior.IpCidr) ",no-resolve" else ""
+    return "RULE-SET,${providerId(itemId)},$policy$noResolve"
+}
+
+private fun service(
+    id: String,
+    title: String,
+    icon: PresetIcon,
+    groupName: String = title,
+    remoteName: String = id,
+    includeIp: Boolean = false,
+): PresetItemDefinition {
+    val sources =
+        buildList {
+            add(RuleSource(remoteName, OfficialMrsRuleBehavior.Domain, groupName))
+            if (includeIp) {
+                add(RuleSource(remoteName, OfficialMrsRuleBehavior.IpCidr, groupName))
+            }
+        }
+    return PresetItemDefinition(
+        id = id,
+        title = title,
+        summary = "启用 $title 分流和专属策略组.",
+        icon = icon,
+        isService = true,
+        groupName = groupName,
+        sources = sources,
+        fixedRule = null,
+    )
+}
+
+private fun route(
+    id: String,
+    title: String,
+    summary: String,
+    icon: PresetIcon,
+    sources: List<RuleSource> = emptyList(),
+    fixedRule: String? = null,
+): PresetItemDefinition =
+    PresetItemDefinition(
+        id = id,
+        title = title,
+        summary = summary,
+        icon = icon,
+        isService = false,
+        groupName = null,
+        sources = sources,
+        fixedRule = fixedRule,
+    )
 
 private fun encodePathSegment(value: String): String =
     URLEncoder.encode(value, StandardCharsets.UTF_8.toString()).replace("+", "%20")

@@ -65,7 +65,7 @@ internal fun AddProfileSheet(
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val form = rememberProfileAddFormState()
-    var selectedTypeIndex by form.typeIndex
+    var selectedImportType by form.importType
     var nameTextFieldValue by form.name
     var urlTextFieldValue by form.url
     var filePath by form.filePath
@@ -111,21 +111,21 @@ internal fun AddProfileSheet(
             hasCameraPermission = isGranted
             if (!isGranted) {
                 context.toast(YumeTxt.ProfilesPage.QrScanner.NeedCamera, Toast.LENGTH_LONG)
-                selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
+                selectedImportType = ProfileImportType.Url
             }
         }
 
-    LaunchedEffect(selectedTypeIndex) {
-        if (selectedTypeIndex == PROFILE_IMPORT_TYPE_QR && !hasCameraPermission) {
+    LaunchedEffect(selectedImportType) {
+        if (selectedImportType == ProfileImportType.Qr && !hasCameraPermission) {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
     val showCameraPreview by
-    remember(show.value, selectedTypeIndex, isDownloading, hasCameraPermission) {
+    remember(show.value, selectedImportType, isDownloading, hasCameraPermission) {
         derivedStateOf {
             show.value &&
-                    selectedTypeIndex == PROFILE_IMPORT_TYPE_QR &&
+                    selectedImportType == ProfileImportType.Qr &&
                     !isDownloading &&
                     hasCameraPermission
         }
@@ -137,18 +137,18 @@ internal fun AddProfileSheet(
             if (profileToEdit != null) {
                 applyNameText(profileToEdit.name)
                 if (profileToEdit.type == Profile.Type.Url) {
-                    selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
+                    selectedImportType = ProfileImportType.Url
                     applyUrlText(profileToEdit.source)
                 } else {
-                    selectedTypeIndex = importTypeIndexFor(profileToEdit.type)
+                    selectedImportType = ProfileImportType.fromProfile(profileToEdit.type)
                     filePath = profileToEdit.source
                     applyFileNameText(sourceFileName(profileToEdit.source))
                 }
             } else if (!importUrl.isNullOrBlank()) {
-                selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
+                selectedImportType = ProfileImportType.Url
                 applyUrlText(importUrl)
             } else {
-                selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
+                selectedImportType = ProfileImportType.Url
                 readClipboardSubscriptionUrl(context)?.let(applyUrlText)
             }
         }
@@ -207,7 +207,7 @@ internal fun AddProfileSheet(
             onUnsupportedFile = { error = YumeTxt.ProfilesPage.Validation.YamlOnly },
             onQrDecoded = { url ->
                 applyUrlText(url)
-                selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
+                selectedImportType = ProfileImportType.Url
             },
         )
 
@@ -219,7 +219,7 @@ internal fun AddProfileSheet(
             submit = {
                 val draft =
                     ProfileDraft(
-                        typeIndex = selectedTypeIndex,
+                        importType = selectedImportType,
                         name = nameTextFieldValue.text,
                         url = urlTextFieldValue.text,
                         filePath = filePath,
@@ -244,7 +244,7 @@ internal fun AddProfileSheet(
                 }
             },
             selectType = {
-                selectedTypeIndex = it
+                selectedImportType = it
                 clearCurrentTypeState()
             },
             changeName = { value ->
@@ -261,7 +261,7 @@ internal fun AddProfileSheet(
             selectQrImage = launchers.selectQrImage,
             qrScanned = { url ->
                 applyUrlText(url)
-                selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
+                selectedImportType = ProfileImportType.Url
             },
         )
     with(actions) {
@@ -269,7 +269,7 @@ internal fun AddProfileSheet(
             show = show.value,
             isEditing = profileToEdit != null,
             isDownloading = isDownloading,
-            selectedTypeIndex = selectedTypeIndex,
+            selectedImportType = selectedImportType,
             nameValue = nameTextFieldValue,
             urlValue = urlTextFieldValue,
             fileNameValue = fileNameTextFieldValue,

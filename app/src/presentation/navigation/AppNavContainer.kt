@@ -40,6 +40,9 @@ import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.screen.settings.MoeWallpaperCropScreen
 import kotlinx.coroutines.launch
 
+internal fun <C : Any, T : Any> yumeStackAnimation(): StackAnimation<C, T> =
+    stackAnimation(fade(tween(300)) + slide(tween(400)) + scale(tween(500)))
+
 @OptIn(ExperimentalDecomposeApi::class)
 private fun <T : Any> yumeAnimation(
     backHandler: BackHandler,
@@ -48,8 +51,7 @@ private fun <T : Any> yumeAnimation(
     predictiveBackAnimation(
         backHandler = backHandler,
         onBack = onBack,
-        fallbackAnimation =
-            stackAnimation(fade(tween(300)) + slide(tween(400)) + scale(tween(500))),
+        fallbackAnimation = yumeStackAnimation(),
         selector = { event, _, _ -> androidPredictiveBackAnimatableV1(event) },
     )
 
@@ -154,7 +156,7 @@ fun AppNavContainer(component: AppNavigationComponent) {
         if (predictiveBackEnabled) {
             yumeAnimation(componentContext.backHandler, commitBack)
         } else {
-            stackAnimation(fade(tween(300)) + slide(tween(400)) + scale(tween(500)))
+            yumeStackAnimation()
         }
     }
     Children(

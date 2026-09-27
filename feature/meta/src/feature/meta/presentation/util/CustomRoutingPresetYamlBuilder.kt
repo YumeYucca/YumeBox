@@ -81,8 +81,8 @@ private fun buildRuleProviders(
                         "format" to "mrs",
                         "behavior" to provider.behavior.wireName,
                         "url" to provider.urlTemplate().format(provider.remoteName),
-                        "path" to "./providers/rules/${provider.id}.mrs",
-                        "interval" to OFFICIAL_MRS_RULE_PROVIDER_INTERVAL,
+                        "path" to OfficialMrs.ruleProviderPath(provider.id),
+                        "interval" to OfficialMrs.ruleProviderIntervalSeconds,
                     ),
                 )
             }
@@ -115,7 +115,7 @@ private fun buildProxyGroups(
         if (enableUrlTestGroup) {
             add(
                 buildHealthCheckGroup(
-                    name = OFFICIAL_MRS_AUTO_GROUP_NAME,
+                    name = OfficialMrs.autoGroupName,
                     type = OfficialMrsHealthCheckGroupType.UrlTest,
                 )
             )
@@ -123,7 +123,7 @@ private fun buildProxyGroups(
         if (enableFallbackGroup) {
             add(
                 buildHealthCheckGroup(
-                    name = OFFICIAL_MRS_FALLBACK_GROUP_NAME,
+                    name = OfficialMrs.fallbackGroupName,
                     type = OfficialMrsHealthCheckGroupType.Fallback,
                 )
             )
@@ -173,12 +173,11 @@ private fun buildRules(enabledItems: Set<OverridePresetItem>): List<String> {
     val enabledItemIds = enabledItems.map(OverridePresetItem::id).toSet()
     return buildList {
         ruleOrder
-            .mapNotNull(itemById::get)
             .filter { it.id in enabledItemIds }
             .forEach { item -> addAll(item.detectionRules) }
-        if ("match" in enabledItemIds || isEmpty()) {
-            if ("MATCH,Proxy" !in this) {
-                add("MATCH,Proxy")
+        if (OverridePresetItem.Match.id in enabledItemIds || isEmpty()) {
+            if (OfficialMrs.matchRule !in this) {
+                add(OfficialMrs.matchRule)
             }
         }
     }
@@ -192,18 +191,18 @@ private fun buildHealthCheckGroup(
     icon: String =
         when (type) {
             OfficialMrsHealthCheckGroupType.UrlTest ->
-                officialMrsCatalogIconUrl("Urltest").orEmpty()
+                OfficialMrs.catalogIconUrl("Urltest").orEmpty()
 
             OfficialMrsHealthCheckGroupType.Fallback ->
-                officialMrsCatalogIconUrl("Available").orEmpty()
+                OfficialMrs.catalogIconUrl("Available").orEmpty()
         },
 ): Map<String, Any?> =
     linkedMapOf<String, Any?>().apply {
         put("name", name)
         put("type", type.wireName)
         put("icon", icon)
-        put("url", OFFICIAL_MRS_URL_TEST_URL)
-        put("interval", OFFICIAL_MRS_URL_TEST_INTERVAL)
+        put("url", OfficialMrs.urlTestUrl)
+        put("interval", OfficialMrs.urlTestIntervalSeconds)
         put("include-all", true)
         put("exclude-filter", combineOfficialMrsExcludeFilters(excludeFilter))
         filter?.let { put("filter", it) }
@@ -215,7 +214,7 @@ private fun buildProxySelectGroup(
     enableFallbackGroup: Boolean,
 ): Map<String, Any?> =
     linkedMapOf(
-        "name" to "Proxy",
+        "name" to OfficialMrs.proxyPolicy,
         "type" to "select",
         "icon" to OverridePresetItem.Proxy.icon.orEmpty(),
         "proxies" to
@@ -241,13 +240,13 @@ private fun buildServiceSelectGroup(
         put(
             "proxies",
             buildList {
-                add("Proxy")
-                add("DIRECT")
+                add(OfficialMrs.proxyPolicy)
+                add(OfficialMrs.directPolicy)
                 if (enableUrlTestGroup) {
-                    add(OFFICIAL_MRS_AUTO_GROUP_NAME)
+                    add(OfficialMrs.autoGroupName)
                 }
                 if (enableFallbackGroup) {
-                    add(OFFICIAL_MRS_FALLBACK_GROUP_NAME)
+                    add(OfficialMrs.fallbackGroupName)
                 }
                 addAll(regionNames)
             }
@@ -262,20 +261,20 @@ private fun buildSelectableGroupNames(
     enableFallbackGroup: Boolean,
 ): List<String> = buildList {
     if (enableUrlTestGroup) {
-        add(OFFICIAL_MRS_AUTO_GROUP_NAME)
+        add(OfficialMrs.autoGroupName)
     }
     if (enableFallbackGroup) {
-        add(OFFICIAL_MRS_FALLBACK_GROUP_NAME)
+        add(OfficialMrs.fallbackGroupName)
     }
     addAll(regionNames)
 }
     .distinct()
 
 private fun combineOfficialMrsExcludeFilters(extraExcludeFilter: String?): String =
-    listOf(OFFICIAL_MRS_EXCLUDE_FILTER, extraExcludeFilter).filterNotNull().joinToString("|")
+    listOf(OfficialMrs.nodeExcludeFilter, extraExcludeFilter).filterNotNull().joinToString("|")
 
 private fun OfficialMrsProviderSpec.urlTemplate(): String =
     when (behavior) {
-        OfficialMrsRuleBehavior.Domain -> OFFICIAL_MRS_GEOSITE_URL
-        OfficialMrsRuleBehavior.IpCidr -> OFFICIAL_MRS_GEOIP_URL
+        OfficialMrsRuleBehavior.Domain -> OfficialMrs.geositeUrlTemplate
+        OfficialMrsRuleBehavior.IpCidr -> OfficialMrs.geoipUrlTemplate
     }

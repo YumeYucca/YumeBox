@@ -7,6 +7,7 @@
 package com.github.yumeyucca.yumebox.runtime.service.preview
 
 import android.content.Context
+import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import com.github.yumeyucca.yumebox.core.model.ProxySort
 import com.github.yumeyucca.yumebox.domain.model.ProxyDelayPublishCoalescer
@@ -200,7 +201,7 @@ class PreviewRuntimeManager(context: Context) {
     private data class PreviewHealthCheckSnapshot(
         val controller: CoreController,
         val groupInfos: List<ProxyGroupInfo>,
-        val proxiesByGroup: Map<String, List<com.github.yumeyucca.yumebox.core.model.Proxy>>,
+        val proxiesByGroup: Map<String, List<Proxy>>,
     )
 
     private suspend fun prepareHealthCheckSnapshot(previewGeneration: Long): PreviewHealthCheckSnapshot? =
