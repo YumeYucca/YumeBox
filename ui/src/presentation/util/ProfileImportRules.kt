@@ -27,9 +27,23 @@ import android.provider.OpenableColumns
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import java.io.File
 
-const val PROFILE_IMPORT_TYPE_URL = 0
-const val PROFILE_IMPORT_TYPE_FILE = 1
-const val PROFILE_IMPORT_TYPE_QR = 2
+enum class ProfileImportType {
+    Url,
+    LocalFile,
+    Qr,
+    ;
+
+    companion object {
+        fun fromSpinnerIndex(index: Int): ProfileImportType = entries.getOrNull(index) ?: Url
+
+        fun fromProfile(profileType: Profile.Type): ProfileImportType =
+            when (profileType) {
+                Profile.Type.Url -> ProfileImportType.Url
+                Profile.Type.File -> ProfileImportType.LocalFile
+                Profile.Type.External -> ProfileImportType.LocalFile
+            }
+    }
+}
 
 private val subscriptionUrlPattern =
     Regex(pattern = "^https?://\\S+$", options = setOf(RegexOption.IGNORE_CASE))
@@ -71,13 +85,6 @@ fun readDisplayName(context: Context, uri: Uri, fallback: String): String =
                 cursor.getString(nameIndex)
             }
         } ?: fallback
-
-fun importTypeIndexFor(profileType: Profile.Type): Int =
-    when (profileType) {
-        Profile.Type.Url -> PROFILE_IMPORT_TYPE_URL
-        Profile.Type.File,
-        Profile.Type.External -> PROFILE_IMPORT_TYPE_FILE
-    }
 
 fun sourceFileName(source: String): String =
     source.takeIf(String::isNotEmpty)?.let { File(it).name }.orEmpty()

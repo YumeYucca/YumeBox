@@ -41,13 +41,13 @@ import com.github.yumeyucca.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetCloseAction
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetConfirmAction
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.util.PROFILE_IMPORT_TYPE_QR
+import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
 import tf.gal.yumebox.locale.YumeTxt
 
 internal class ProfileAddSheetActions(
     val dismiss: () -> Unit,
     val submit: () -> Unit,
-    val selectType: (Int) -> Unit,
+    val selectType: (ProfileImportType) -> Unit,
     val changeName: (TextFieldValue) -> Unit,
     val changeUrl: (TextFieldValue) -> Unit,
     val changeAgeSecretKey: (TextFieldValue) -> Unit,
@@ -63,7 +63,7 @@ internal fun ProfileAddSheetContent(
     show: Boolean,
     isEditing: Boolean,
     isDownloading: Boolean,
-    selectedTypeIndex: Int,
+    selectedImportType: ProfileImportType,
     nameValue: TextFieldValue,
     urlValue: TextFieldValue,
     fileNameValue: TextFieldValue,
@@ -86,7 +86,7 @@ internal fun ProfileAddSheetContent(
     // overlay-hosted action row can be re-rendered from a stale composable after the app returns
     // from background, and only a state read there keeps it subscribed to updates.
     val downloading by rememberUpdatedState(isDownloading)
-    val typeIndex by rememberUpdatedState(selectedTypeIndex)
+    val importType by rememberUpdatedState(selectedImportType)
 
     AppActionBottomSheet(
         show = show,
@@ -102,7 +102,7 @@ internal fun ProfileAddSheetContent(
             }
         },
         endAction = {
-            if (!downloading && typeIndex != PROFILE_IMPORT_TYPE_QR) {
+            if (!downloading && importType != ProfileImportType.Qr) {
                 AppBottomSheetConfirmAction(
                     contentDescription = YumeTxt.Component.Button.Confirm,
                     onClick = actions.submit,
@@ -152,7 +152,7 @@ internal fun ProfileAddSheetContent(
                     )
                 } else {
                     ProfileFormContent(
-                        selectedTypeIndex = selectedTypeIndex,
+                        selectedImportType = selectedImportType,
                         profileLocked = isEditing,
                         nameTextFieldValue = nameValue,
                         urlTextFieldValue = urlValue,

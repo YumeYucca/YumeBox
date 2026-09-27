@@ -22,12 +22,11 @@ package com.github.yumeyucca.yumebox.screen.profiles
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.text.input.TextFieldValue
-import com.github.yumeyucca.yumebox.presentation.util.PROFILE_IMPORT_TYPE_FILE
-import com.github.yumeyucca.yumebox.presentation.util.PROFILE_IMPORT_TYPE_URL
+import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
 
 @Stable
 internal class ProfileAddFormState {
-    val typeIndex = mutableIntStateOf(0)
+    val importType = mutableStateOf(ProfileImportType.Url)
     val name = mutableStateOf(TextFieldValue())
     val url = mutableStateOf(TextFieldValue())
     val filePath = mutableStateOf("")
@@ -50,12 +49,13 @@ internal class ProfileAddFormState {
     }
 
     fun clearTypeInput() {
-        when (typeIndex.intValue) {
-            PROFILE_IMPORT_TYPE_URL -> url.value = textValueAtEnd("")
-            PROFILE_IMPORT_TYPE_FILE -> {
+        when (importType.value) {
+            ProfileImportType.Url -> url.value = textValueAtEnd("")
+            ProfileImportType.LocalFile -> {
                 filePath.value = ""
                 fileName.value = textValueAtEnd("")
             }
+            ProfileImportType.Qr -> Unit
         }
         error.value = ""
     }

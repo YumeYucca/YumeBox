@@ -44,7 +44,7 @@ class SessionRuntime(
 
     private val rest
         get() =
-            com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess.controller(
+            CoreProcess.controller(
                 host.context.appContextOrSelf
             )
 
@@ -465,10 +465,10 @@ class SessionRuntime(
 
             if (
                 spec.owner == RuntimeOwner.VpnService &&
-                    !com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess.isLocalCoreAlive()
+                    !CoreProcess.isLocalCoreAlive()
             ) {
                 val coreTail =
-                    com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess.coreLogTail(
+                    CoreProcess.coreLogTail(
                         host.context.appContextOrSelf
                     )
                 error(
@@ -516,7 +516,7 @@ class SessionRuntime(
 
         ensureNotInterrupted(spec)
         val coreTail =
-            com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess.coreLogTail(
+            CoreProcess.coreLogTail(
                 host.context.appContextOrSelf
             )
         if (expectedGroups.isNotEmpty()) {

@@ -49,8 +49,7 @@ import com.github.yumeyucca.yumebox.presentation.component.OemTextField
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.PackageCheck
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.util.PROFILE_IMPORT_TYPE_QR
-import com.github.yumeyucca.yumebox.presentation.util.PROFILE_IMPORT_TYPE_URL
+import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
 import tf.gal.yumebox.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
@@ -132,7 +131,7 @@ internal fun DownloadProgressContent(
 
 @Composable
 internal fun ProfileFormContent(
-    selectedTypeIndex: Int,
+    selectedImportType: ProfileImportType,
     profileLocked: Boolean,
     nameTextFieldValue: TextFieldValue,
     urlTextFieldValue: TextFieldValue,
@@ -142,7 +141,7 @@ internal fun ProfileFormContent(
     hasCameraPermission: Boolean,
     showCameraPreview: Boolean,
     onContainerMeasured: (IntSize) -> Unit,
-    onTypeSelected: (Int) -> Unit,
+    onTypeSelected: (ProfileImportType) -> Unit,
     onNameChange: (TextFieldValue) -> Unit,
     onUrlChange: (TextFieldValue) -> Unit,
     onAgeSecretKeyChange: (TextFieldValue) -> Unit,
@@ -157,18 +156,18 @@ internal fun ProfileFormContent(
         verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
     ) {
         ProfileTypeSelectorCard(
-            selectedTypeIndex = selectedTypeIndex,
+            selectedImportType = selectedImportType,
             profileLocked = profileLocked,
             onTypeSelected = onTypeSelected,
         )
 
         Crossfade(
-            targetState = selectedTypeIndex,
+            targetState = selectedImportType,
             animationSpec = tween(200),
             label = "ProfileTypeContent",
-        ) { typeIndex ->
-            when (typeIndex) {
-                PROFILE_IMPORT_TYPE_QR ->
+        ) { importType ->
+            when (importType) {
+                ProfileImportType.Qr ->
                     QrScannerContent(
                         hasCameraPermission = hasCameraPermission,
                         showCameraPreview = showCameraPreview,
@@ -176,9 +175,10 @@ internal fun ProfileFormContent(
                         onQrScanned = onQrScanned,
                     )
 
-                else ->
+                ProfileImportType.Url,
+                ProfileImportType.LocalFile ->
                     ManualProfileContent(
-                        typeIndex = typeIndex,
+                        importType = importType,
                         profileLocked = profileLocked,
                         nameTextFieldValue = nameTextFieldValue,
                         urlTextFieldValue = urlTextFieldValue,
@@ -197,9 +197,9 @@ internal fun ProfileFormContent(
 
 @Composable
 private fun ProfileTypeSelectorCard(
-    selectedTypeIndex: Int,
+    selectedImportType: ProfileImportType,
     profileLocked: Boolean,
-    onTypeSelected: (Int) -> Unit,
+    onTypeSelected: (ProfileImportType) -> Unit,
 ) {
     AppCard(applyHorizontalPadding = false) {
         Box(
@@ -215,14 +215,11 @@ private fun ProfileTypeSelectorCard(
         ) {
             WindowSpinnerPreference(
                 title = YumeTxt.ProfilesPage.Type.Title,
-                items =
-                    listOf(
-                        DropdownItem(title = YumeTxt.ProfilesPage.Type.Subscription),
-                        DropdownItem(title = YumeTxt.ProfilesPage.Type.LocalFile),
-                        DropdownItem(title = YumeTxt.ProfilesPage.Type.QrScan),
-                    ),
-                selectedIndex = selectedTypeIndex,
-                onSelectedIndexChange = onTypeSelected,
+                items = ProfileImportType.entries.map { type -> DropdownItem(title = type.spinnerTitle()) },
+                selectedIndex = selectedImportType.ordinal,
+                onSelectedIndexChange = { index ->
+                    onTypeSelected(ProfileImportType.fromSpinnerIndex(index))
+                },
             )
         }
     }
@@ -268,7 +265,7 @@ private fun QrScannerContent(
 
 @Composable
 private fun ManualProfileContent(
-    typeIndex: Int,
+    importType: ProfileImportType,
     profileLocked: Boolean,
     nameTextFieldValue: TextFieldValue,
     urlTextFieldValue: TextFieldValue,
@@ -292,7 +289,7 @@ private fun ManualProfileContent(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        if (typeIndex == PROFILE_IMPORT_TYPE_URL) {
+        if (importType == ProfileImportType.Url) {
             OemTextField(
                 value = urlTextFieldValue,
                 onValueChange = onUrlChange,
@@ -342,3 +339,10 @@ private fun ManualProfileContent(
         }
     }
 }
+
+private fun ProfileImportType.spinnerTitle(): String =
+    when (this) {
+        ProfileImportType.Url -> YumeTxt.ProfilesPage.Type.Subscription
+        ProfileImportType.LocalFile -> YumeTxt.ProfilesPage.Type.LocalFile
+        ProfileImportType.Qr -> YumeTxt.ProfilesPage.Type.QrScan
+    }

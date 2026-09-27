@@ -28,6 +28,8 @@ import com.github.yumeyucca.yumebox.core.util.encodeTrafficValue
 import com.github.yumeyucca.yumebox.data.model.RemoteBackend
 import com.github.yumeyucca.yumebox.runtime.api.CoreApi
 import com.github.yumeyucca.yumebox.runtime.api.CoreAsyncQueries
+import com.github.yumeyucca.yumebox.runtime.api.LogObserver
+import com.github.yumeyucca.yumebox.runtime.api.LogSubscription
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
@@ -567,8 +569,7 @@ class CoreController(
         // No-op: we don't own the remote core, so there is nothing to stop.
     }
 
-    override fun subscribeLogs(observer: com.github.yumeyucca.yumebox.runtime.api.LogObserver):
-        com.github.yumeyucca.yumebox.runtime.api.LogSubscription = logStream.subscribe(observer)
+    override fun subscribeLogs(observer: LogObserver): LogSubscription = logStream.subscribe(observer)
 
     private fun RawRule.toRuntimeRule(): RuntimeRule =
         RuntimeRule(
