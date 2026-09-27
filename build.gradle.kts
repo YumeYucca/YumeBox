@@ -26,7 +26,7 @@ buildscript {
         resolutionStrategy.eachDependency {
             when (requested.group) {
                 "com.google.protobuf" -> useVersion("3.25.9")
-                "org.bouncycastle" -> useVersion("1.84")
+                "org.bouncycastle" -> useVersion("1.86")
                 "org.jdom" -> if (requested.name == "jdom2") useVersion("2.0.6.1")
                 "org.bitbucket.b_c" -> if (requested.name == "jose4j") useVersion("0.9.6")
                 "com.fasterxml.jackson.core" ->
@@ -58,7 +58,7 @@ allprojects {
     configurations.configureEach {
         resolutionStrategy.eachDependency {
             when (requested.group) {
-                "org.bouncycastle" -> useVersion("1.84")
+                "org.bouncycastle" -> useVersion("1.86")
                 "io.netty" -> useVersion("4.1.136.Final")
                 "org.apache.httpcomponents" -> if (requested.name == "httpclient") useVersion("4.5.14")
                 "org.apache.commons" -> if (requested.name == "commons-lang3") useVersion("3.20.0")
