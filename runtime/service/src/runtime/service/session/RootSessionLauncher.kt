@@ -72,11 +72,14 @@ object RootSessionLauncher {
             }
         }
         appContext.requireBuiltinGeoAssets()
-        stopLocked(appContext, broadcastStopped = false)
         val log = RuntimeLog.writer(appContext, mode)
         log.beginSession(RuntimeLog.Type.Launcher, "root start mode=${mode.name}")
+        // Compile against the daemon that is still serving. startRoot reaps it under the
+        // lifecycle lock immediately before the new exec, so the gap is the swap, not the compile.
+        val servingMode = CoreProcess.rootDaemonMode()?.takeIf { CoreProcess.isTrackedRootProcessAlive() }
 
         RootForegroundService.start(appContext)
+        var launched = false
         try {
             StatusProvider.markRuntimeStarting(mode)
             StartupTaskCoordinator.awaitWarmup()
@@ -89,6 +92,7 @@ object RootSessionLauncher {
             val compiled = CompiledConfigPipeline(appContext).compileDetailed(spec)
             log.i(RuntimeLog.Type.Launcher, "compiled groups=${compiled.proxyGroupNames.size}")
             CoreProcess(appContext).startRoot(mode.coreArg, compiled.finalYaml)
+            launched = true
             awaitControllerReady(appContext)
             log.i(RuntimeLog.Type.Launcher, "controller ready")
 
@@ -96,13 +100,28 @@ object RootSessionLauncher {
             broadcast(appContext, Intents.actionRuntimeStarted(appContext.packageName))
             log.i(RuntimeLog.Type.Launcher, "success: root daemon running mode=${mode.name}")
         } catch (error: Throwable) {
-            runCatching { CoreProcess.stopRoot(appContext) }
-            CoreProcess.awaitRootStopGrace()
-            StatusProvider.markRuntimeFailed(mode, error.message)
-            RootForegroundService.stop(appContext)
+            val stillServing =
+                servingMode != null && !launched && CoreProcess.isTrackedRootProcessAlive()
+            if (stillServing) {
+                StatusProvider.markRuntimeRunning(servingMode)
+            } else {
+                runCatching { CoreProcess.stopRoot() }
+                StatusProvider.markRuntimeFailed(mode, error.message)
+                RootForegroundService.stop(appContext)
+            }
             log.e(RuntimeLog.Type.Launcher, "root start failed", error)
             throw error
         }
+    }
+
+    /**
+     * VPN launch reaps a root daemon inside [CoreProcess]. The notification host follows the
+     * record: once that record is gone, this is the same idle transition as an explicit stop.
+     */
+    fun releaseReapedHost(context: Context, modeBeforeLaunch: RunMode?) {
+        if (modeBeforeLaunch == null || CoreProcess.rootDaemonMode() != null) return
+        StatusProvider.markRuntimeIdle(modeBeforeLaunch)
+        RootForegroundService.stop(context.appContextOrSelf)
     }
 
     /** Explicitly stop the daemon and release its status slot. */
@@ -114,8 +133,7 @@ object RootSessionLauncher {
 
     private fun stopLocked(context: Context, broadcastStopped: Boolean) {
         val mode = CoreProcess.rootDaemonMode()
-        runCatching { CoreProcess.stopRoot(context) }
-        CoreProcess.awaitRootStopGrace()
+        runCatching { CoreProcess.stopRoot() }
         mode?.let { StatusProvider.markRuntimeIdle(it) }
         RootForegroundService.stop(context)
         if (broadcastStopped) {
@@ -132,13 +150,8 @@ object RootSessionLauncher {
     private suspend fun awaitControllerReady(context: Context) {
         val deadline = SystemClock.elapsedRealtime() + STARTUP_PROBE_TIMEOUT_MS
         var lastError: Throwable? = null
+        var nextLivenessCheckAt = 0L
         while (true) {
-            // The native eBPF listener is part of the mihomo process; core liveness is enough.
-            if (!CoreProcess.isRootCoreAlive()) {
-                val reason = CoreProcess.coreLogTail(context) ?: "root core exited during startup"
-                error(reason)
-            }
-
             val remainingMillis = deadline - SystemClock.elapsedRealtime()
             if (remainingMillis <= 0L) break
             val result =
@@ -149,6 +162,17 @@ object RootSessionLauncher {
                 }
             if (result.isSuccess) return
             lastError = result.exceptionOrNull()
+
+            val now = SystemClock.elapsedRealtime()
+            if (now >= nextLivenessCheckAt) {
+                nextLivenessCheckAt = now + STARTUP_LIVENESS_INTERVAL_MS
+                // The socket probe is the ready signal. A shell liveness check is only there to
+                // fail fast once the process has actually exited.
+                if (!CoreProcess.isTrackedRootProcessAlive()) {
+                    val reason = CoreProcess.coreLogTail(context) ?: "root core exited during startup"
+                    error(reason)
+                }
+            }
 
             val retryDelay =
                 minOf(
@@ -175,5 +199,6 @@ object RootSessionLauncher {
     }
 
     private const val STARTUP_PROBE_INTERVAL_MS = 75L
+    private const val STARTUP_LIVENESS_INTERVAL_MS = 300L
     private const val STARTUP_PROBE_TIMEOUT_MS = 2_000L
 }

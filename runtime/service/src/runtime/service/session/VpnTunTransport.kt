@@ -33,6 +33,7 @@ import com.github.yumeyucca.yumebox.runtime.service.R
 import com.github.yumeyucca.yumebox.runtime.service.config.AccessControlMode
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
 import com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess
+import com.github.yumeyucca.yumebox.runtime.service.core.VpnTunnel
 import com.github.yumeyucca.yumebox.runtime.service.log.RuntimeLog
 import com.github.yumeyucca.yumebox.runtime.service.util.buildIncludedRoutesFromExcludedCidrs
 import com.github.yumeyucca.yumebox.runtime.service.util.parseCIDR
@@ -57,6 +58,20 @@ class VpnTunTransport(
             } else {
                 runBlocking { pipeline.compile(spec) }
             }
+        val rootMode = CoreProcess.rootDaemonMode()
+        try {
+            core.startVpn(
+                config = config,
+                stack = vpnTunStack(store.tunStackMode),
+                openTunnel = { openTunnel(config) },
+            )
+        } finally {
+            RootSessionLauncher.releaseReapedHost(vpnService, rootMode)
+        }
+        log.i(RuntimeLog.Type.Transport, "success: tun attached and core launched")
+    }
+
+    private fun openTunnel(config: String): VpnTunnel {
         val device =
             with(vpnService.Builder()) {
                 val explicitRouteExcludes =
@@ -112,7 +127,7 @@ class VpnTunTransport(
                     }
                 }
 
-                TunDevice(
+                VpnTunnel(
                     fd = establish()?.detachFd() ?: error("Establish VPN rejected by system"),
                     gateway =
                         "$TUN_GATEWAY/$TUN_SUBNET_PREFIX" +
@@ -125,15 +140,7 @@ class VpnTunTransport(
                         },
                 )
             }
-
-        core.startVpn(
-            tunFd = device.fd,
-            gateway = device.gateway,
-            dns = device.dns,
-            config = config,
-            stack = vpnTunStack(store.tunStackMode),
-        )
-        log.i(RuntimeLog.Type.Transport, "success: tun attached and core launched")
+        return device
     }
 
     /**
@@ -245,12 +252,6 @@ class VpnTunTransport(
             @Suppress("DEPRECATION") vpnService.setUnderlyingNetworks(null)
         }
     }
-
-    private data class TunDevice(
-        val fd: Int,
-        val gateway: String,
-        val dns: String,
-    )
 
     private companion object {
         fun vpnTunStack(mode: String): String =

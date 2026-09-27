@@ -18,7 +18,7 @@
  *
  */
 
-@file:Suppress("SimplifiableCallChain", "CanConvertToMultiDollarString", "CanUnescapeDollarLiteral")
+@file:Suppress("SimplifiableCallChain")
 
 package com.github.yumeyucca.yumebox.runtime.service.core
 
@@ -37,7 +37,6 @@ import com.github.yumeyucca.yumebox.runtime.api.CoreApi
 import com.github.yumeyucca.yumebox.runtime.service.controller.CoreController
 import com.github.yumeyucca.yumebox.runtime.service.util.SocketOwnerResolver
 import com.topjohnwu.superuser.Shell
-import kotlinx.coroutines.*
 import timber.log.Timber
 import java.io.File
 import java.io.FileInputStream
@@ -45,9 +44,13 @@ import java.io.FileOutputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.util.*
+import java.util.concurrent.locks.ReentrantLock
 
 /** The running core's UNIX REST controller: socket path + bearer secret. */
 data class CoreEndpoint(val sock: String, val secret: String)
+
+/** Tun fd created only after the previous core has exited. */
+data class VpnTunnel(val fd: Int, val gateway: String, val dns: String)
 
 /**
  * Launches and owns the out-of-process mihomo core. A tiny `libmihomo.so` PIE shell is fork+exec'd
@@ -63,8 +66,21 @@ class CoreProcess(private val context: Context) {
     private var ownerChannel: Channel? = null
     private var ownerQueryThread: Thread? = null
 
-    /** Fork the core for VpnService mode, deliver [config] and [tunFd], and publish [current]. */
+    /**
+     * Reap any live core, then open the tun, then fork. The tun is created inside the lifecycle
+     * lock so a root daemon and this VPN cannot hold a tunnel at the same time.
+     */
     fun startVpn(
+        config: String,
+        stack: String,
+        openTunnel: () -> VpnTunnel,
+    ): CoreEndpoint = withLifecycleLock {
+        reapBeforeLaunch()
+        val tunnel = openTunnel()
+        launchVpn(tunnel.fd, tunnel.gateway, tunnel.dns, config, stack)
+    }
+
+    private fun launchVpn(
         tunFd: Int,
         gateway: String,
         dns: String,
@@ -231,8 +247,12 @@ class CoreProcess(private val context: Context) {
      * child core, outlives the app process — reattached over the REST socket ([reconnectRoot]).
      * [mode] = "tun" or "ebpf".
      */
-    fun startRoot(mode: String, config: String): CoreEndpoint {
-        awaitRootStopGrace()
+    fun startRoot(mode: String, config: String): CoreEndpoint = withLifecycleLock {
+        reapBeforeLaunch()
+        launchRoot(mode, config)
+    }
+
+    private fun launchRoot(mode: String, config: String): CoreEndpoint {
         val home = context.runtimeHomeDir.apply { mkdirs() }
         prepareSelectorCache(home)
         File(home, SOCK).delete()
@@ -294,14 +314,14 @@ class CoreProcess(private val context: Context) {
         }
         fifo.delete()
 
-        RootDaemonState.save(
+        val record =
             RootDaemonState.Record(
                 pid = pid,
                 secret = secret,
                 mode = mode,
-                startTimeTicks = rootProcessStartTimeTicks(pid) ?: 0L,
+                startTimeTicks = RootDaemonProbe.startTimeTicks(pid) ?: 0L,
             )
-        )
+        RootDaemonProbe.commit(record)
         Timber.tag(TAG).i("root core launched, pid=%d mode=%s", pid, mode)
         return CoreEndpoint(sock, secret).also { current = it }
     }
@@ -343,13 +363,36 @@ class CoreProcess(private val context: Context) {
         check(cache.canRead() && cache.canWrite()) { "Selector cache is not accessible to app" }
     }
 
-    fun stop() {
-        val stoppedProcess = process
-        stoppedProcess?.let(::stopVpnProcess)
+    fun stop() = withLifecycleLock {
+        val stoppedProcess = process ?: running
+        if (stoppedProcess != null) {
+            stopVpnProcess(stoppedProcess)
+            if (!isVpnProcessAlive(stoppedProcess.pid)) {
+                if (running === stoppedProcess) running = null
+                process = null
+                current = null
+            }
+        }
         stopOwnerQueryLoop()
-        if (running === stoppedProcess) running = null
+    }
+
+    /**
+     * The previous core must be gone before a new one is forked. VPN and root share tun,
+     * routes and the controller socket, so a successor that starts during teardown races the
+     * predecessor and leaves two mihomo processes up.
+     */
+    private fun reapBeforeLaunch() {
+        PreviewCoreProcess.stopActive()
+        val child = running
+        if (child != null) {
+            stopVpnProcess(child)
+            if (isVpnProcessAlive(child.pid)) {
+                error("VPN core ${child.pid} is still running")
+            }
+            if (running === child) running = null
+        }
         process = null
-        current = null
+        reapRootDaemon()
     }
 
     /**
@@ -358,22 +401,13 @@ class CoreProcess(private val context: Context) {
      */
     private fun stopVpnProcess(process: NativeProcess) {
         runCatching { process.terminate() }
-        val deadline = SystemClock.elapsedRealtime() + VPN_STOP_GRACE_MS
-        while (isVpnProcessAlive(process.pid) && SystemClock.elapsedRealtime() < deadline) {
-            Thread.sleep(VPN_STOP_POLL_MS)
-        }
-        if (isVpnProcessAlive(process.pid)) {
-            Timber.tag(TAG).w("VPN core did not exit after SIGTERM; sending SIGKILL")
-            runCatching { process.kill() }
+        if (waitVpnExit(process.pid, VPN_STOP_GRACE_MS)) return
+        Timber.tag(TAG).w("VPN core did not exit after SIGTERM; sending SIGKILL")
+        runCatching { process.kill() }
+        if (!waitVpnExit(process.pid, VPN_STOP_KILL_WAIT_MS)) {
+            Timber.tag(TAG).w("VPN core %d still alive after SIGKILL", process.pid)
         }
     }
-
-    private fun isVpnProcessAlive(pid: Int): Boolean =
-        runCatching {
-                Os.kill(pid, 0)
-                true
-            }
-            .getOrDefault(false)
 
     private fun stopOwnerQueryLoop() {
         val channel = ownerChannel
@@ -457,54 +491,40 @@ class CoreProcess(private val context: Context) {
          */
         @Volatile private var running: NativeProcess? = null
 
-        /** Last-resort SIGKILL of the VPN child after its normal SIGTERM shutdown timed out. */
-        fun killRunning() {
-            running?.let { runCatching { it.kill() } }
-            running = null
+        private fun waitVpnExit(pid: Int, timeoutMs: Long): Boolean {
+            val deadline = SystemClock.elapsedRealtime() + timeoutMs
+            while (isVpnProcessAlive(pid) && SystemClock.elapsedRealtime() < deadline) {
+                Thread.sleep(VPN_STOP_POLL_MS)
+            }
+            return !isVpnProcessAlive(pid)
         }
 
-        /** True if the persisted mihomo root process still has the recorded process identity. */
-        fun isRootCoreAlive(): Boolean {
-            val record = RootDaemonState.load() ?: return false
-            return isRootRecordAlive(record)
-        }
-
-        /** True if the persisted root daemon still has the recorded process identity. */
-        fun isRootDaemonAlive(): Boolean = isRootCoreAlive()
-
-        private fun isRootRecordAlive(record: RootDaemonState.Record): Boolean {
-            val alive =
-                runCatching { Shell.cmd("kill -0 ${record.pid}").exec().isSuccess }
-                    .getOrDefault(false)
-            if (!alive) return false
-
-            val executable =
-                runCatching {
-                        Shell.cmd("readlink /proc/${record.pid}/exe")
-                            .exec()
-                            .out
-                            .firstOrNull()
-                            ?.substringBefore(" (deleted)")
-                            ?.let(::File)
-                            ?.name
-                    }
-                    .getOrNull()
-            if (executable !in ROOT_CORE_EXECUTABLE_NAMES) return false
-
-            val recordedStartTime = record.startTimeTicks
-            return recordedStartTime <= 0L ||
-                rootProcessStartTimeTicks(record.pid) == recordedStartTime
-        }
-
-        private fun rootProcessStartTimeTicks(pid: Int): Long? =
+        private fun isVpnProcessAlive(pid: Int): Boolean =
             runCatching {
-                    val stat = Shell.cmd("cat /proc/$pid/stat").exec().out.joinToString(" ")
-                    stat.substringAfterLast(") ", missingDelimiterValue = "")
-                        .split(Regex("\\s+"))
-                        .getOrNull(PROC_STAT_START_TIME_INDEX_AFTER_COMM)
-                        ?.toLongOrNull()
+                    Os.kill(pid, 0)
+                    true
                 }
-                .getOrNull()
+                .getOrDefault(false)
+
+        /** Last-resort SIGKILL of the VPN child after its normal SIGTERM shutdown timed out. */
+        fun killRunning() = withLifecycleLock {
+            val child = running ?: return@withLifecycleLock
+            runCatching { child.kill() }
+            if (waitVpnExit(child.pid, VPN_STOP_KILL_WAIT_MS)) {
+                if (running === child) running = null
+            } else {
+                Timber.tag(TAG).w("VPN core %d still alive after SIGKILL", child.pid)
+            }
+        }
+
+        /** One `kill -0`. Identity stays on reattach, where a recycled pid matters. */
+        fun isTrackedRootProcessAlive(): Boolean = RootDaemonProbe.trackedAlive()
+
+        /** Status and tile polling. The probe caches the combined pid, exe and start-time check. */
+        fun isRootDaemonAlive(): Boolean = RootDaemonProbe.isAlive()
+
+        /** True when a VPN child or a live root record already owns tun, routes and the socket. */
+        internal fun realCoreReserved(): Boolean = isLocalCoreAlive() || RootDaemonProbe.trackedAlive()
 
         /**
          * True if the non-root VPN child core is still alive. Used by LOCAL_TUN startup verify so a
@@ -550,76 +570,50 @@ class CoreProcess(private val context: Context) {
          * [current] from the persisted secret without relaunching. Returns the mode, or null
          * (clearing stale state).
          */
-        fun reconnectRoot(context: Context): String? {
-            val record = RootDaemonState.load() ?: return null
-            if (!isRootRecordAlive(record)) {
-                RootDaemonState.clear()
-                return null
-            }
-            current = CoreEndpoint(context.runtimeHomeDir.resolve(SOCK).absolutePath, record.secret)
-            return record.mode
-        }
-
-        /** Stops the detached root runtime. */
-        fun stopRoot(context: Context) {
-            stopRoot()
-        }
-
-        // The su kill returns fast, but libsu's shell round-trip + mihomo's SIGTERM teardown
-        // (Tun route/rule cleanup) adds latency the stop path must not
-        // block on.
-        private val stopScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-        /** Pid of a daemon whose SIGTERM teardown is still running; see [awaitRootStopGrace]. */
-        @Volatile private var dyingRootPid: Int? = null
-
-        /**
-         * Explicitly stop the root daemon: SIGTERM so mihomo tears down its tun/iptables state, a
-         * bounded grace for that teardown, then SIGKILL to close the window for good.
-         */
-        fun stopRoot() {
-            val record = RootDaemonState.load()
-            // Clear state FIRST so isRootDaemonAlive() reports "stopped" immediately; the UI
-            // must never wait on the kill.
-            RootDaemonState.clear()
-            current = null
-            record ?: return
-            if (!isRootRecordAlive(record)) return
-            dyingRootPid = record.pid
-            stopScope.launch {
-                try {
-                    runCatching { Shell.cmd("kill -TERM ${record.pid}").exec() }
-                    val deadline = SystemClock.elapsedRealtime() + ROOT_STOP_GRACE_MS
-                    while (
-                        SystemClock.elapsedRealtime() < deadline &&
-                            isRootRecordAlive(record)
-                    ) {
-                        delay(ROOT_STOP_POLL_MS)
-                    }
-                    if (isRootRecordAlive(record)) {
-                        runCatching { Shell.cmd("kill -KILL ${record.pid}").exec() }
-                    }
-                } finally {
-                    dyingRootPid = null
+        fun reconnectRoot(context: Context): String? = withLifecycleLock {
+            val record = RootDaemonState.load() ?: return@withLifecycleLock null
+            when (RootDaemonProbe.identity(record)) {
+                null -> null
+                false -> {
+                    RootDaemonProbe.discard()
+                    null
+                }
+                true -> {
+                    RootDaemonProbe.commit(record)
+                    current =
+                        CoreEndpoint(context.runtimeHomeDir.resolve(SOCK).absolutePath, record.secret)
+                    record.mode
                 }
             }
         }
 
-        /**
-         * Block (bounded) until a dying predecessor has finished tearing down. The daemon's ip
-         * rules, nftables table and iptables chains all carry fixed names, so a teardown that
-         * outlives the stop can dismantle what a freshly launched successor just set up.
-         */
-        fun awaitRootStopGrace() {
-            val deadline = SystemClock.elapsedRealtime() + ROOT_STOP_GRACE_MS + ROOT_STOP_POLL_MS
-            while (dyingRootPid != null && SystemClock.elapsedRealtime() < deadline) {
-                Thread.sleep(ROOT_STOP_POLL_MS)
+        /** Stop the root daemon and return only after that pid is gone. */
+        fun stopRoot() = withLifecycleLock {
+            reapRootDaemon()
+        }
+
+        private val lifecycleLock = ReentrantLock()
+
+        internal inline fun <T> withLifecycleLock(body: () -> T): T {
+            lifecycleLock.lock()
+            try {
+                return body()
+            } finally {
+                lifecycleLock.unlock()
             }
         }
 
-        private const val ROOT_STOP_GRACE_MS = 2_000L
-        private const val ROOT_STOP_POLL_MS = 100L
+        private fun reapRootDaemon() {
+            val record = RootDaemonState.load() ?: return
+            if (!RootDaemonProbe.reap(record)) {
+                error("root core ${record.pid} is still running")
+            }
+            RootDaemonProbe.discard()
+            current = null
+        }
+
         private const val VPN_STOP_GRACE_MS = 2_000L
+        private const val VPN_STOP_KILL_WAIT_MS = 500L
         private const val VPN_STOP_POLL_MS = 25L
 
         // Config is delivered over this named pipe (never persisted); LEGACY_ROOT_CONFIG is the old
@@ -660,9 +654,6 @@ class CoreProcess(private val context: Context) {
                     .also { controller = it }
 
         private const val TAG = "CoreProcess"
-        private val ROOT_CORE_EXECUTABLE_NAMES = setOf(CoreArtifacts.SHELL_NAME, "mihomo")
-        // After stripping "pid (comm) ", index 0 is field 3 (state), so field 22 is index 19.
-        private const val PROC_STAT_START_TIME_INDEX_AFTER_COMM = 19
         private const val CHUNK = 32 * 1024
         private const val OWNER_QUERY_BUFFER_SIZE = 4096
         private const val UNKNOWN_SOCKET_OWNER = "-1\t"

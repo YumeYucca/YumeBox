@@ -221,6 +221,7 @@ static NativeArchive *open_native_archive(
         free(archive);
         return NULL;
     }
+    (void)posix_fadvise(archive->fd, 0, 0, POSIX_FADV_SEQUENTIAL);
     struct stat status;
     if (fstat(archive->fd, &status) != 0 || status.st_size < 22) {
         set_error(error, error_capacity, "invalid APK: %s", strerror(errno));
@@ -393,7 +394,8 @@ static bool extract_payload(
         set_error(error, error_capacity, "allocate decompression buffers");
         goto cleanup;
     }
-    lzma_ret result = lzma_stream_decoder(&stream, UINT64_MAX, 0);
+    // The uncompressed bytes are hashed below, so the xz container check is redundant work.
+    lzma_ret result = lzma_stream_decoder(&stream, UINT64_MAX, LZMA_IGNORE_CHECK);
     if (result != LZMA_OK) {
         set_error(error, error_capacity, "initialize liblzma decoder: %d", result);
         goto cleanup;
@@ -449,7 +451,7 @@ static bool extract_payload(
                 (unsigned long long)output_size, (unsigned long long)expected_size);
         goto cleanup;
     }
-    if (fsync(output) != 0) {
+    if (fdatasync(output) != 0) {
         set_error(error, error_capacity, "sync payload: %s", strerror(errno));
         goto cleanup;
     }
