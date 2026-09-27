@@ -27,9 +27,11 @@ import com.github.yumeyucca.yumebox.data.network.NetworkInfoService
 import com.github.yumeyucca.yumebox.data.store.*
 import com.github.yumeyucca.yumebox.data.store.room.createTrafficStatisticsDao
 import com.github.yumeyucca.yumebox.domain.model.TrafficData
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
 import com.github.yumeyucca.yumebox.runtime.client.ProfilesRepository
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
 import com.github.yumeyucca.yumebox.runtime.client.RuntimeStateMapper
+import com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -89,8 +91,8 @@ val appDataRuntimeModule = module {
             resolveActiveMode = {
                 proxyFacade.runtimeSnapshot.value.let { snapshot ->
                     snapshot.runMode.takeIf {
-                        snapshot.owner != com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner.None &&
-                                snapshot.owner != com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner.RemoteController
+                        snapshot.owner != RuntimeOwner.None &&
+                            snapshot.owner != RuntimeOwner.RemoteController
                     }
                 }
             },
@@ -110,14 +112,12 @@ val appDataRuntimeModule = module {
         ProvidersController(
             context = appContext,
             queryProvidersAction = {
-                com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess.connect(appContext)
-                com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess.core()
-                    .queryProviders()
+                RuntimeAccess.connect(appContext)
+                RuntimeAccess.core().queryProviders()
             },
             updateProviderAction = { type, name ->
-                com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess.connect(appContext)
-                com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess.core()
-                    .updateProvider(type, name)
+                RuntimeAccess.connect(appContext)
+                RuntimeAccess.core().updateProvider(type, name)
             },
         )
     }
@@ -129,12 +129,7 @@ val appDataRuntimeModule = module {
     single<OverrideConfigProvider> { get<OverrideConfigStore>() }
 
     single { OverrideResolver(get(), get()) }
-    single {
-        val appContext = androidContext()
-        OverrideService(appContext, get()) {
-            // Override-change reload hook (RootTun removed; VPN reloads via the normal path).
-        }
-    }
+    single { OverrideService(androidContext(), get()) }
     single {
         val profilesRepository = get<ProfilesRepository>()
         ActiveProfileOverrideReloader(

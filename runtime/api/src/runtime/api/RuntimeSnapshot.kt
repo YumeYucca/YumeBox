@@ -51,14 +51,8 @@ enum class RuntimePhase {
     val running: Boolean
         get() = this == Running
 
-    val isNotIdle: Boolean
-        get() = this != Idle
-
     val isActiveOrStopping: Boolean
         get() = this == Starting || this == Running || this == Stopping
-
-    val isRecovering: Boolean
-        get() = this == Starting || this == Stopping
 }
 
 @Serializable
@@ -69,17 +63,12 @@ data class RuntimeSnapshot(
     val profileReady: Boolean = false,
     val groupsReady: Boolean = false,
     val trafficReady: Boolean = false,
-    val configReady: Boolean = false,
-    val transportReady: Boolean = false,
-    val logReady: Boolean = false,
     val profileUuid: String? = null,
     val profileName: String? = null,
     val lastError: String? = null,
     val startedAt: Long? = null,
-    val effectiveFingerprint: String? = null,
     val generation: Long = 0L,
-    val running: Boolean = phase.running,
 ) {
-    val payloadReady: Boolean
-        get() = profileReady && groupsReady && trafficReady
+    val running: Boolean
+        get() = phase.running
 }

@@ -21,21 +21,17 @@
 package com.github.yumeyucca.yumebox.runtime.service.session
 
 import android.content.Context
-import com.github.yumeyucca.yumebox.core.model.OverrideSpec
 import com.github.yumeyucca.yumebox.core.model.RunMode
 import com.github.yumeyucca.yumebox.core.model.TunConfig
 import com.github.yumeyucca.yumebox.data.store.MMKVProvider
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
-import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
 import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
 import com.github.yumeyucca.yumebox.runtime.service.config.AccessControlMode
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
+import com.github.yumeyucca.yumebox.runtime.service.profile.Imported
 import com.github.yumeyucca.yumebox.runtime.service.profile.ImportedDao
 import com.github.yumeyucca.yumebox.runtime.service.root.RootPackageShell
-import com.github.yumeyucca.yumebox.runtime.service.util.directoryLastModified
 import com.github.yumeyucca.yumebox.runtime.service.util.importedDir
-import java.io.File
-import java.security.MessageDigest
 
 class SessionRuntimeSpecFactory(
     context: Context,
@@ -47,18 +43,14 @@ class SessionRuntimeSpecFactory(
         NetworkSettingsStore(MMKVProvider().getMMKV("network_settings"))
     }
 
-    fun createVpnSpec(): RuntimeSpec = createSpec(RuntimeOwner.VpnService, RunMode.VpnService)
+    fun createVpnSpec(): RuntimeSpec = createSpec(RunMode.VpnService)
 
-    fun createRootSpec(runMode: RunMode): RuntimeSpec = createSpec(RuntimeOwner.RootDaemon, runMode)
+    fun createRootSpec(runMode: RunMode): RuntimeSpec = createSpec(runMode)
 
     /** A local, no-TUN core used only to materialize proxy-group state while the app is foregrounded. */
-    fun createPreviewSpec(): RuntimeSpec = createSpec(RuntimeOwner.VpnService, RunMode.VpnService, preview = true)
+    fun createPreviewSpec(): RuntimeSpec = createSpec(RunMode.VpnService, preview = true)
 
-    private fun createSpec(
-        owner: RuntimeOwner,
-        runMode: RunMode,
-        preview: Boolean = false,
-    ): RuntimeSpec {
+    private fun createSpec(runMode: RunMode, preview: Boolean = false): RuntimeSpec {
         val profile = requireActiveProfile()
         val profileDir = context.importedDir.resolve(profile.uuid.toString())
         val disableAllUserOverrides = networkSettings.disableAllOverride.value
@@ -91,29 +83,16 @@ class SessionRuntimeSpecFactory(
         val overrideSpecs =
             if (runMode == RunMode.Ebpf) modeOverrides
             else modeOverrides + GlobalUaOverride.materialize(profileDir)
-        val ageSecretKey = normalizeAgeSecretKey(profile.ageSecretKey)
         return RuntimeSpec(
-            owner = owner,
             profileUuid = profile.uuid.toString(),
             profileName = profile.name,
             profileDir = profileDir.absolutePath,
-            runtimeConfigPath = profileDir.resolve("runtime.yaml").absolutePath,
-            ageSecretKey = ageSecretKey,
+            ageSecretKey = profile.ageSecretKey?.trim()?.takeIf { it.isNotEmpty() },
             overrideSpecs = overrideSpecs,
             runMode = runMode,
             // eBPF keeps the profile authoritative; Root Tun only skips patches for disable-all.
             skipRuntimePatches = skipRuntimePatches,
             preview = preview,
-            tunConfig = tunConfig,
-            effectiveFingerprint =
-                buildEffectiveFingerprint(
-                    profile.uuid.toString(),
-                    overrideSpecs,
-                    ageSecretKey,
-                    skipModePatches,
-                    preview,
-                ),
-            profileFingerprint = buildProfileFingerprint(profile.uuid.toString()),
         )
     }
 
@@ -194,81 +173,9 @@ class SessionRuntimeSpecFactory(
         private val LEGACY_INCLUDE_ANDROID_USERS = listOf(0, 10)
     }
 
-    private fun requireActiveProfile():
-        com.github.yumeyucca.yumebox.runtime.service.profile.Imported {
+    private fun requireActiveProfile(): Imported {
         val profileId = store.activeProfile ?: error("No active profile selected")
         return ImportedDao.queryByUUID(profileId)
             ?: error("Active profile metadata not found: $profileId")
-    }
-
-    private fun buildProfileFingerprint(profileUuid: String): String {
-        val dir = context.importedDir.resolve(profileUuid)
-        return sha256 {
-            update(profileUuid.toByteArray())
-            updateFile(dir.resolve("config.yaml"))
-            update((dir.directoryLastModified ?: -1L).toString().toByteArray())
-        }
-    }
-
-    private fun buildEffectiveFingerprint(
-        profileUuid: String,
-        overrideSpecs: List<OverrideSpec>,
-        ageSecretKey: String?,
-        skipRuntimePatches: Boolean,
-        preview: Boolean,
-    ): String {
-        val profileDir = context.importedDir.resolve(profileUuid)
-        val metadataFile = context.filesDir.resolve("overrides/metadata.yaml")
-        return sha256 {
-            update(profileUuid.toByteArray())
-            updateAgeSecretKeyDigest(ageSecretKey)
-            update("skip-runtime-patches:$skipRuntimePatches".toByteArray())
-            update("preview:$preview".toByteArray())
-            updateFile(profileDir.resolve("config.yaml"))
-            updateFile(metadataFile)
-            overrideSpecs.forEach { overrideSpec ->
-                update(overrideSpec.path.toByteArray())
-                update(overrideSpec.ext.toByteArray())
-                updateFile(File(overrideSpec.path))
-            }
-        }
-    }
-
-    private fun MessageDigest.updateAgeSecretKeyDigest(ageSecretKey: String?) {
-        update("age-secret-key:".toByteArray())
-        update((ageSecretKey?.let(::sha256String) ?: "none").toByteArray())
-    }
-
-    private inline fun sha256(block: MessageDigest.() -> Unit): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        digest.block()
-        return digest.digest().joinToString("") { "%02x".format(it) }
-    }
-
-    private fun MessageDigest.updateFile(file: File) {
-        if (!file.exists()) {
-            update("missing:${file.absolutePath}".toByteArray())
-            return
-        }
-        // Stream path + size + mtime + content hash without loading the whole file into a byte[].
-        update(file.absolutePath.toByteArray())
-        update(file.length().toString().toByteArray())
-        update(file.lastModified().toString().toByteArray())
-        file.inputStream().use { input ->
-            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-            while (true) {
-                val read = input.read(buffer)
-                if (read < 0) break
-                update(buffer, 0, read)
-            }
-        }
-    }
-
-    private fun normalizeAgeSecretKey(value: String?): String? =
-        value?.trim()?.takeIf { it.isNotEmpty() }
-
-    private fun sha256String(value: String): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(value.toByteArray())
-        return digest.joinToString("") { "%02x".format(it) }
     }
 }

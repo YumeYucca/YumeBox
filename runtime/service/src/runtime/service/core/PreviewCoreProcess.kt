@@ -23,10 +23,9 @@ import timber.log.Timber
  */
 class PreviewCoreProcess(private val context: Context) {
     private var process: NativeProcess? = null
-    private var endpoint: CoreEndpoint? = null
     private var controller: CoreController? = null
 
-    fun start(config: String): CoreEndpoint = CoreProcess.withLifecycleLock {
+    fun start(config: String): Unit = CoreProcess.withLifecycleLock {
         synchronized(gate) {
             if (CoreProcess.realCoreReserved()) {
                 error("preview refused while a runtime core is active")
@@ -69,10 +68,8 @@ class PreviewCoreProcess(private val context: Context) {
             }
             process = proc
             active = this
-            endpoint = nextEndpoint
             controller = CoreController(local = CoreController.Local(nextEndpoint.sock) { nextEndpoint.secret })
             Timber.tag(TAG).i("preview core launched, pid=%d", proc.pid)
-            nextEndpoint
         }
     }
 
@@ -84,7 +81,6 @@ class PreviewCoreProcess(private val context: Context) {
         if (active === this) active = null
         val previous = process
         process = null
-        endpoint = null
         controller = null
         if (previous != null) {
             reap(previous)
@@ -102,8 +98,6 @@ class PreviewCoreProcess(private val context: Context) {
     fun controller(): CoreController = synchronized(gate) {
         checkNotNull(controller) { "Preview core is not running" }
     }
-
-    fun endpoint(): CoreEndpoint? = synchronized(gate) { endpoint }
 
     private fun spawn(home: File, workdir: File, args: Array<String>): NativeProcess {
         val launchArgs = CoreArtifacts.previewArguments(context, args)

@@ -31,10 +31,7 @@ data class ProviderPrefetchReport(
     val discoveryAnomaly: Boolean = false,
     /** Text-scan / incomplete header parse path; download may miss custom headers. */
     val headerDegraded: Boolean = false,
-) {
-    val hasSoftWarning: Boolean
-        get() = failedNames.isNotEmpty() || discoveryAnomaly
-}
+)
 
 /** Result of a successful profile update (main config committed). */
 data class ProfileUpdateReport(

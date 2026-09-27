@@ -29,7 +29,6 @@ import timber.log.Timber
 class OverrideService(
     context: Context,
     private val resolver: OverrideResolver,
-    private val onRuntimeOverrideChanged: () -> Unit = {},
 ) {
     private val appContext = context.appContextOrSelf
 
@@ -74,6 +73,5 @@ class OverrideService(
             Intent(Intents.actionOverrideChanged(appContext.packageName))
                 .setPackage(appContext.packageName)
         )
-        onRuntimeOverrideChanged()
     }
 }

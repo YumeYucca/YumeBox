@@ -18,13 +18,16 @@
  *
  */
 
-@file:Suppress("UnusedSymbol")
-
 package com.github.yumeyucca.yumebox.runtime.service.session
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.net.ConnectivityManager
 import android.net.IpPrefix
+import android.net.LinkProperties
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.ProxyInfo
 import android.net.VpnService
 import android.os.Build
@@ -37,172 +40,117 @@ import com.github.yumeyucca.yumebox.runtime.service.core.VpnTunnel
 import com.github.yumeyucca.yumebox.runtime.service.log.RuntimeLog
 import com.github.yumeyucca.yumebox.runtime.service.util.buildIncludedRoutesFromExcludedCidrs
 import com.github.yumeyucca.yumebox.runtime.service.util.parseCIDR
-import kotlinx.coroutines.runBlocking
 import java.net.InetAddress
 
 class VpnTunTransport(
     private val vpnService: VpnService,
     private val store: ServiceStore = ServiceStore(),
-) : RuntimeTransport {
+) {
     private val log = RuntimeLog.writer(vpnService, RuntimeLog.Source.LocalTun)
-    private val pipeline = CompiledConfigPipeline(vpnService)
     private val core = CoreProcess(vpnService)
+    private val connectivity = vpnService.getSystemService(ConnectivityManager::class.java)
+    private var underlyingNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
-    override fun start(spec: RuntimeSpec) {
+    /** Blocking: reaps any previous core, establishes the tun and forks the child with [runtime]. */
+    fun start(runtime: LoadedRuntime) {
         log.i(RuntimeLog.Type.Transport, "start begin")
-        // Prefer the precompiled YAML attached to the spec (single compile on the start path).
-        // Fall back to a local compile only for callers that have not prepared the spec yet.
-        val config =
-            if (spec.compiledFinalYaml.isNotBlank()) {
-                spec.compiledFinalYaml
-            } else {
-                runBlocking { pipeline.compile(spec) }
-            }
-        val rootMode = CoreProcess.rootDaemonMode()
-        try {
-            core.startVpn(
-                config = config,
-                stack = vpnTunStack(store.tunStackMode),
-                openTunnel = { openTunnel(config) },
-            )
-        } finally {
-            RootSessionLauncher.releaseReapedHost(vpnService, rootMode)
-        }
+        core.startVpn(
+            config = runtime.config,
+            stack = vpnTunStack(store.tunStackMode),
+            openTunnel = { openTunnel(runtime.config) },
+        )
+        trackUnderlyingNetworks()
         log.i(RuntimeLog.Type.Transport, "success: tun attached and core launched")
     }
 
-    private fun openTunnel(config: String): VpnTunnel {
-        val device =
-            with(vpnService.Builder()) {
-                val explicitRouteExcludes =
-                    store.tunRouteExcludeAddress.map(String::trim).filter(String::isNotEmpty)
+    private fun openTunnel(config: String): VpnTunnel =
+        with(vpnService.Builder()) {
+            val ipv6 = store.allowIpv6
+            addAddress(TUN_GATEWAY, TUN_SUBNET_PREFIX)
+            if (ipv6) addAddress(TUN_GATEWAY6, TUN_SUBNET_PREFIX6)
 
-                addAddress(TUN_GATEWAY, TUN_SUBNET_PREFIX)
-                if (store.allowIpv6) {
-                    addAddress(TUN_GATEWAY6, TUN_SUBNET_PREFIX6)
-                }
+            configureRoutes(ipv6)
+            configurePerAppRouting()
 
-                configureRoutes(explicitRouteExcludes)
-                configurePerAppRouting()
-
-                setBlocking(false)
-                setMtu(TUN_MTU)
-                setSession("YumeBox")
-                addDnsServer(TUN_DNS)
-                if (store.allowIpv6) {
-                    addDnsServer(TUN_DNS6)
-                }
-                setConfigureIntent(
-                    PendingIntent.getActivity(
-                        vpnService,
-                        R.id.nf_vpn_status,
-                        Intent()
-                            .setComponent(Components.PROXY_SHEET_ACTIVITY)
-                            .addFlags(
-                                Intent.FLAG_ACTIVITY_NEW_TASK or
-                                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                                    Intent.FLAG_ACTIVITY_NO_ANIMATION
-                            ),
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                    )
+            setBlocking(false)
+            setMtu(TUN_MTU)
+            setSession("YumeBox")
+            addDnsServer(TUN_DNS)
+            if (ipv6) addDnsServer(TUN_DNS6)
+            setConfigureIntent(
+                PendingIntent.getActivity(
+                    vpnService,
+                    R.id.nf_vpn_status,
+                    Intent()
+                        .setComponent(Components.PROXY_SHEET_ACTIVITY)
+                        .addFlags(
+                            Intent.FLAG_ACTIVITY_NEW_TASK or
+                                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                                Intent.FLAG_ACTIVITY_NO_ANIMATION
+                        ),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 )
+            )
+            if (store.allowBypass) allowBypass()
 
-                if (Build.VERSION.SDK_INT >= 29) {
-                    setMetered(false)
-                }
-
-                if (store.allowBypass) {
-                    allowBypass()
-                }
-
-                // VPN system HTTP proxy: point apps at the core's mixed/http port so apps that
-                // honour
-                // the system proxy (rather than only the TUN) still route through the core. API
-                // 29+.
-                if (Build.VERSION.SDK_INT >= 29 && store.systemProxy) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                setMetered(false)
+                // Apps that honour the system proxy rather than only the tun still reach the core.
+                if (store.systemProxy) {
                     httpProxyPort(config)?.let { port ->
                         setHttpProxy(
                             ProxyInfo.buildDirectProxy("127.0.0.1", port, httpProxyExclusionList)
                         )
                     }
                 }
-
-                VpnTunnel(
-                    fd = establish()?.detachFd() ?: error("Establish VPN rejected by system"),
-                    gateway =
-                        "$TUN_GATEWAY/$TUN_SUBNET_PREFIX" +
-                            if (store.allowIpv6) ",$TUN_GATEWAY6/$TUN_SUBNET_PREFIX6" else "",
-                    dns =
-                        if (store.dnsHijacking) {
-                            NET_ANY
-                        } else {
-                            (TUN_DNS + if (store.allowIpv6) ",$TUN_DNS6" else "")
-                        },
-                )
             }
-        return device
-    }
+
+            VpnTunnel(
+                fd = establish()?.detachFd() ?: error("Establish VPN rejected by system"),
+                gateway =
+                    "$TUN_GATEWAY/$TUN_SUBNET_PREFIX" +
+                        if (ipv6) ",$TUN_GATEWAY6/$TUN_SUBNET_PREFIX6" else "",
+                dns = if (store.dnsHijacking) NET_ANY else TUN_DNS + if (ipv6) ",$TUN_DNS6" else "",
+            )
+        }
 
     /**
      * Route table: explicit config route excludes win (native excludeRoute on API 33+, computed
      * included routes below), then the private-network bypass list, otherwise route everything.
+     * Every partial table also routes the tun DNS address.
      */
-    private fun VpnService.Builder.configureRoutes(explicitRouteExcludes: List<String>) {
-        val hasExplicitRouteExcludes = explicitRouteExcludes.isNotEmpty()
-        val canUseExcludeRoute = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-        val includedRoutes =
-            if (hasExplicitRouteExcludes && !canUseExcludeRoute) {
-                buildIncludedRoutesFromExcludedCidrs(
-                    cidrs = explicitRouteExcludes,
-                    includeIpv6 = store.allowIpv6,
-                )
-            } else {
-                null
-            }
-
-        if (hasExplicitRouteExcludes && canUseExcludeRoute) {
-            addRoute(NET_ANY, 0)
-            if (store.allowIpv6) {
-                addRoute(NET_ANY6, 0)
-            }
-            explicitRouteExcludes.map(::parseCIDR).forEach {
-                runCatching {
-                    excludeRoute(IpPrefix(InetAddress.getByName(it.ip), it.prefix))
+    private fun VpnService.Builder.configureRoutes(ipv6: Boolean) {
+        val excludes = store.tunRouteExcludeAddress.map(String::trim).filter(String::isNotEmpty)
+        when {
+            excludes.isNotEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+                addRoute(NET_ANY, 0)
+                if (ipv6) addRoute(NET_ANY6, 0)
+                excludes.map(::parseCIDR).forEach {
+                    runCatching { excludeRoute(IpPrefix(InetAddress.getByName(it.ip), it.prefix)) }
                 }
             }
-            addRoute(TUN_DNS, 32)
-            if (store.allowIpv6) {
-                addRoute(TUN_DNS6, 128)
+            excludes.isNotEmpty() -> {
+                val routes = buildIncludedRoutesFromExcludedCidrs(excludes, includeIpv6 = ipv6)
+                routes.ipv4.forEach { addRoute(it.ip, it.prefix) }
+                if (ipv6) routes.ipv6.forEach { addRoute(it.ip, it.prefix) }
             }
-        } else if (includedRoutes != null) {
-            includedRoutes.ipv4.forEach { addRoute(it.ip, it.prefix) }
-            if (store.allowIpv6) {
-                includedRoutes.ipv6.forEach { addRoute(it.ip, it.prefix) }
+            store.bypassPrivateNetwork -> {
+                addRoutes(R.array.bypass_private_route)
+                if (ipv6) addRoutes(R.array.bypass_private_route6)
             }
-            addRoute(TUN_DNS, 32)
-            if (store.allowIpv6) {
-                addRoute(TUN_DNS6, 128)
+            else -> {
+                addRoute(NET_ANY, 0)
+                if (ipv6) addRoute(NET_ANY6, 0)
+                return
             }
-        } else if (store.bypassPrivateNetwork) {
-            vpnService.resources
-                .getStringArray(R.array.bypass_private_route)
-                .map(::parseCIDR)
-                .forEach { addRoute(it.ip, it.prefix) }
-            if (store.allowIpv6) {
-                vpnService.resources
-                    .getStringArray(R.array.bypass_private_route6)
-                    .map(::parseCIDR)
-                    .forEach { addRoute(it.ip, it.prefix) }
-            }
-            addRoute(TUN_DNS, 32)
-            if (store.allowIpv6) {
-                addRoute(TUN_DNS6, 128)
-            }
-        } else {
-            addRoute(NET_ANY, 0)
-            if (store.allowIpv6) {
-                addRoute(NET_ANY6, 0)
-            }
+        }
+        addRoute(TUN_DNS, 32)
+        if (ipv6) addRoute(TUN_DNS6, 128)
+    }
+
+    private fun VpnService.Builder.addRoutes(cidrArray: Int) {
+        vpnService.resources.getStringArray(cidrArray).map(::parseCIDR).forEach {
+            addRoute(it.ip, it.prefix)
         }
     }
 
@@ -243,14 +191,49 @@ class VpnTunTransport(
             ?.toIntOrNull()
             ?.takeIf { it in 1..65535 }
 
-    override fun stop() {
+    /** Blocking: SIGTERM with a grace period, then SIGKILL. */
+    fun stop() {
+        underlyingNetworkCallback?.let { callback ->
+            runCatching { connectivity?.unregisterNetworkCallback(callback) }
+        }
+        underlyingNetworkCallback = null
         core.stop()
     }
 
-    override fun onNetworkChanged() {
-        if (Build.VERSION.SDK_INT in 22..28) {
-            @Suppress("DEPRECATION") vpnService.setUnderlyingNetworks(null)
+    /**
+     * Before API 29 a VPN does not follow default-network switches on its own; re-declaring "use
+     * the default network" on every change keeps the tun's egress from sticking to a dead link.
+     */
+    private fun trackUnderlyingNetworks() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || underlyingNetworkCallback != null) {
+            return
         }
+        val callback =
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) = resetUnderlyingNetworks()
+
+                override fun onLosing(network: Network, maxMsToLive: Int) =
+                    resetUnderlyingNetworks()
+
+                override fun onLost(network: Network) = resetUnderlyingNetworks()
+
+                override fun onLinkPropertiesChanged(
+                    network: Network,
+                    linkProperties: LinkProperties,
+                ) = resetUnderlyingNetworks()
+            }
+        val request =
+            NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+                .build()
+        runCatching { connectivity?.registerNetworkCallback(request, callback) }
+            .onSuccess { underlyingNetworkCallback = callback }
+    }
+
+    private fun resetUnderlyingNetworks() {
+        vpnService.setUnderlyingNetworks(null)
     }
 
     private companion object {

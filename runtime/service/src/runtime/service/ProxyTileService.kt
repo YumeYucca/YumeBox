@@ -18,33 +18,33 @@
  *
  */
 
-@file:Suppress("KotlinConstantConditions")
-
 package com.github.yumeyucca.yumebox.runtime.service
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.drawable.Icon
-import android.net.VpnService
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import com.github.yumeyucca.yumebox.core.util.AutoStartSessionGate
-import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
-import com.github.yumeyucca.yumebox.core.util.PollingTimers
-import com.github.yumeyucca.yumebox.data.model.RunMode
 import com.github.yumeyucca.yumebox.data.store.MMKVProvider
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
-import com.github.yumeyucca.yumebox.runtime.api.*
-import com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess
+import com.github.yumeyucca.yumebox.runtime.api.Components
+import com.github.yumeyucca.yumebox.runtime.api.RuntimePhase
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeStartSource
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeState
+import com.github.yumeyucca.yumebox.runtime.api.VpnPermissionRequired
 import com.github.yumeyucca.yumebox.runtime.service.profile.ProfileService
-import com.github.yumeyucca.yumebox.runtime.service.session.RootSessionLauncher
-import com.github.yumeyucca.yumebox.runtime.service.session.RuntimeServiceLauncher
 import com.github.yumeyucca.yumebox.runtime.service.util.ServiceLogoIcons
-import com.github.yumeyucca.yumebox.runtime.service.util.sendBroadcastSelf
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tf.gal.yumebox.locale.YumeTxt
 import timber.log.Timber
 
@@ -70,16 +70,7 @@ class ProxyTileService : TileService() {
     override fun onStartListening() {
         super.onStartListening()
         updateJob?.cancel()
-        updateJob = scope.launch {
-            // Refresh once up front: requestListeningState() (fired on every start/stop) only opens
-            // a
-            // brief listening window, so we must update immediately rather than wait for the first
-            // tick.
-            updateTileStateFromRuntime()
-            PollingTimers.ticks(PollingTimerSpecs.ProxyTileRefresh).collect {
-                updateTileStateFromRuntime()
-            }
-        }
+        updateJob = scope.launch { RuntimeCoordinator.state.collect(::render) }
     }
 
     override fun onStopListening() {
@@ -87,200 +78,72 @@ class ProxyTileService : TileService() {
         updateJob?.cancel()
     }
 
-    @Suppress("TooGenericExceptionCaught")
     override fun onClick() {
         super.onClick()
-        if (toggleJob?.isActive == true) return
+        val state = RuntimeCoordinator.state.value
+        // A second tap while a start is still coming up cancels it.
+        if (toggleJob?.isActive == true && state.phase != RuntimePhase.Starting) return
 
         toggleJob = scope.launch {
             if (RemoteControllerStore.isActive()) {
-                updateTileState(true)
+                showTile(active = true, YumeTxt.Service.Tile.ClickToStopProxy)
                 return@launch
             }
-            val snapshot = withContext(Dispatchers.IO) { currentSnapshot() }
-            val isActive = snapshot.phase.isActiveOrStopping
-            val currentMode = effectiveMode(snapshot)
-
-            // If the tile visual state is stale vs the actual runtime state, sync it
-            // immediately but still perform the user's requested action — the user's tap
-            // is their intent to toggle, not just to reconcile state.
-            val tileState = qsTile?.state
-            val tileStaleInactive = isActive && tileState == Tile.STATE_INACTIVE
-            val tileStaleActive = !isActive && tileState == Tile.STATE_ACTIVE
-            if (tileStaleInactive || tileStaleActive) {
-                updateTileState(isActive)
-            }
-
             try {
-                if (isActive) {
+                if (state.phase.isActiveOrStopping) {
                     AutoStartSessionGate.markManualPaused()
-                    updateTilePendingState(isStarting = false)
-                    withContext(Dispatchers.IO) { stopLocalRuntime() }
+                    showTile(active = true, YumeTxt.Service.Tile.Disconnecting)
+                    RuntimeCoordinator.stop()
                 } else {
-                    val activeProfile = withContext(Dispatchers.IO) { profileManager.queryActive() }
-                    if (activeProfile == null) {
-                        updateTileInactiveState(subtitle = YumeTxt.Service.Tile.ClickToOpen)
-
-                        val intent =
-                            Intent(Intent.ACTION_MAIN).apply {
-                                component = Components.MAIN_ACTIVITY
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                        startActivityAndCollapseCompat(intent, requestCode = 1001)
-                        return@launch
-                    }
-
-                    updateTilePendingState(isStarting = true)
-                    when (currentMode) {
-                        RunMode.VpnService -> {
-                            val vpnIntent = VpnService.prepare(this@ProxyTileService)
-                            if (vpnIntent != null) {
-                                updateTileInactiveState(subtitle = YumeTxt.Service.Tile.ClickToOpen)
-                                vpnIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                startActivityAndCollapseCompat(vpnIntent, requestCode = 1002)
-                                return@launch
-                            }
-
-                            RuntimeServiceLauncher.start(
-                                this@ProxyTileService,
-                                RunMode.VpnService,
-                                RuntimeServiceLauncher.SOURCE_TILE,
-                            )
-                        }
-
-                        RunMode.Tun -> {
-                            withContext(Dispatchers.IO) {
-                                RootSessionLauncher.start(this@ProxyTileService, currentMode)
-                            }
-                        }
-
-                        RunMode.Ebpf -> {
-                            withContext(Dispatchers.IO) {
-                                RootSessionLauncher.start(this@ProxyTileService, RunMode.Ebpf)
-                            }
-                        }
-                    }
+                    startFromTile()
                 }
-            } catch (error: Exception) {
-                // fault barrier: toggle spans root bridge / service start; the tile must recover
-                // to the real runtime state instead of crashing the SystemUI-bound service.
+            } catch (error: VpnPermissionRequired) {
+                showTile(active = false, YumeTxt.Service.Tile.ClickToOpen)
+                error.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivityAndCollapseCompat(error.intent, requestCode = 1002)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+                // fault barrier: the tile must fall back to the real state instead of crashing
+                // the SystemUI-bound service.
                 Timber.e(error, "Error toggling proxy from tile")
             } finally {
-                PollingTimers.awaitTick(
-                    PollingTimerSpecs.dynamic(
-                        name = "proxy_tile_toggle_state_sync",
-                        intervalMillis = 300L,
-                        initialDelayMillis = 300L,
-                    )
-                )
-                updateTileStateFromRuntime()
+                render(RuntimeCoordinator.state.value)
             }
         }
     }
 
-    private suspend fun updateTileStateFromRuntime() {
-        updateTileState(withContext(Dispatchers.IO) { currentSnapshot() }.phase.isActiveOrStopping)
-    }
-
-    private fun currentSnapshot(): RuntimeSnapshot {
-        val configuredMode = networkSettingsStorage.runMode.value
-        val vpnPhase = StatusProvider.queryRuntimePhase(RunMode.VpnService)
-        val owner =
-            when {
-                vpnPhase != RuntimePhase.Idle -> RuntimeOwner.VpnService
-                CoreProcess.isRootDaemonAlive() -> RuntimeOwner.RootDaemon
-                else -> RuntimeOwner.None
-            }
-
-        return if (owner == RuntimeOwner.None) {
-            RuntimeSnapshot(
-                owner = RuntimeOwner.None,
-                phase = RuntimePhase.Idle,
-                runMode = configuredMode,
-            )
-        } else {
-            RuntimeSnapshot(
-                owner = owner,
-                phase =
-                    when (owner) {
-                        RuntimeOwner.VpnService -> vpnPhase
-                        RuntimeOwner.RootDaemon -> RuntimePhase.Running
-                        RuntimeOwner.None -> error("unreachable: None handled above")
-                        else -> RuntimePhase.Running
-                    },
-                // VpnService owner is always the VPN mode. A root daemon can outlive a settings
-                // change, so use its persisted mode instead of the current selection.
-                runMode =
-                    if (owner == RuntimeOwner.VpnService) RunMode.VpnService
-                    else CoreProcess.rootDaemonMode() ?: configuredMode,
-            )
-        }
-    }
-
-    // Mirrors the home-screen stop path: broadcast a stop, tear down the VPN service, and — since
-    // the
-    // root daemon isn't a service — explicitly stop it (this is a deliberate user stop).
-    private suspend fun stopLocalRuntime() {
-        runCatching { sendBroadcastSelf(Intent(Intents.ACTION_RUNTIME_REQUEST_STOP)) }
-        runCatching {
-            applicationContext.stopService(Intent(applicationContext, TunService::class.java))
-        }
-        try {
-            RootSessionLauncher.stop(applicationContext)
-        } catch (error: Exception) {
-            Timber.w(error, "Failed to stop root runtime from tile")
-        }
-    }
-
-    private fun effectiveMode(snapshot: RuntimeSnapshot): RunMode = snapshot.runMode
-
-    private fun updateTileState(isRunning: Boolean) {
-        val tile = qsTile ?: return
-        tile.state = if (isRunning) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-
-        tile.label = tileLabelText
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle =
-                if (isRunning) {
-                    YumeTxt.Service.Tile.ClickToStopProxy
-                } else {
-                    YumeTxt.Service.Tile.ClickToStartProxy
+    private suspend fun startFromTile() {
+        val activeProfile = withContext(Dispatchers.IO) { profileManager.queryActive() }
+        if (activeProfile == null) {
+            showTile(active = false, YumeTxt.Service.Tile.ClickToOpen)
+            val intent =
+                Intent(Intent.ACTION_MAIN).apply {
+                    component = Components.MAIN_ACTIVITY
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
+            startActivityAndCollapseCompat(intent, requestCode = 1001)
+            return
         }
-
-        tile.icon = Icon.createWithResource(this, ServiceLogoIcons.resId())
-
-        tile.updateTile()
+        showTile(active = false, YumeTxt.Service.Tile.Connecting)
+        RuntimeCoordinator.start(networkSettingsStorage.runMode.value, RuntimeStartSource.Tile)
     }
 
-    private fun updateTilePendingState(isStarting: Boolean) {
-        val tile = qsTile ?: return
-        tile.state = if (isStarting) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
-        tile.label = tileLabelText
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle =
-                if (isStarting) {
-                    YumeTxt.Service.Tile.Connecting
-                } else {
-                    YumeTxt.Service.Tile.Disconnecting
-                }
+    private fun render(state: RuntimeState) {
+        when (state.phase) {
+            RuntimePhase.Starting -> showTile(active = false, YumeTxt.Service.Tile.Connecting)
+            RuntimePhase.Stopping -> showTile(active = true, YumeTxt.Service.Tile.Disconnecting)
+            RuntimePhase.Running -> showTile(active = true, YumeTxt.Service.Tile.ClickToStopProxy)
+            RuntimePhase.Idle,
+            RuntimePhase.Failed -> showTile(active = false, YumeTxt.Service.Tile.ClickToStartProxy)
         }
-
-        tile.icon = Icon.createWithResource(this, ServiceLogoIcons.resId())
-        tile.updateTile()
     }
 
-    private fun updateTileInactiveState(subtitle: String) {
+    private fun showTile(active: Boolean, subtitle: String) {
         val tile = qsTile ?: return
-        tile.state = Tile.STATE_INACTIVE
+        tile.state = if (active) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
         tile.label = tileLabelText
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle = subtitle
-        }
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tile.subtitle = subtitle
         tile.icon = Icon.createWithResource(this, ServiceLogoIcons.resId())
         tile.updateTile()
     }
@@ -296,7 +159,7 @@ class ProxyTileService : TileService() {
         }
 
         @Suppress("DEPRECATION")
-        @android.annotation.SuppressLint("StartActivityAndCollapseDeprecated")
+        @SuppressLint("StartActivityAndCollapseDeprecated")
         startActivityAndCollapse(intent)
     }
 }

@@ -18,8 +18,6 @@
  *
  */
 
-@file:Suppress("UnusedSymbol", "RedundantSuspendModifier")
-
 package com.github.yumeyucca.yumebox.runtime.client.access
 
 import android.content.Context
@@ -30,6 +28,7 @@ import com.github.yumeyucca.yumebox.runtime.api.ProfileApi
 import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
 import com.github.yumeyucca.yumebox.runtime.api.initializeServiceGlobal
 import com.github.yumeyucca.yumebox.runtime.service.controller.CoreController
+import com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess
 import com.github.yumeyucca.yumebox.runtime.service.profile.ProfileService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -40,56 +39,37 @@ import timber.log.Timber
 
 object RuntimeAccess {
     private val mutex = Mutex()
-    private var initialized = false
     private var coreApi: CoreApi? = null
     private var profileApi: ProfileApi? = null
-    private var remoteStore: RemoteControllerStore? = null
     private var remoteApi: CoreController? = null
 
-    private fun ensureRemoteController(): CoreController {
-        val store =
-            remoteStore
-                ?: RemoteControllerStore(MMKVProvider().getMMKV(RemoteControllerStore.MMKV_ID)).also {
-                    remoteStore = it
-                }
-        return remoteApi
-            ?: CoreController(backendProvider = { store.activeBackend() }).also { remoteApi = it }
-    }
+    private fun ensureRemoteController(): CoreController =
+        remoteApi
+            ?: RemoteControllerStore(MMKVProvider().getMMKV(RemoteControllerStore.MMKV_ID))
+                .let { store -> CoreController(backendProvider = { store.activeBackend() }) }
+                .also { remoteApi = it }
 
-    @Suppress("TooGenericExceptionCaught")
     suspend fun connect(ctx: Context) {
         withContext(Dispatchers.IO) {
             mutex.withLock {
+                if (coreApi != null && profileApi != null) return@withLock
                 val appContext = ctx.appContextOrSelf
-                if (initialized && coreApi != null && profileApi != null) {
-                    return@withLock
-                }
-
-                val startedAt = System.currentTimeMillis()
-                try {
+                runCatching {
                     initializeServiceGlobal(appContext)
-                    val remote = ensureRemoteController()
                     coreApi =
                         CoreRouter(
-                            local =
-                                com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess
-                                    .controller(appContext),
-                            remote = remote,
+                            local = CoreProcess.controller(appContext),
+                            remote = ensureRemoteController(),
                             isRemoteControllerActive = { RemoteControllerStore.isActive() },
                         )
                     profileApi = ProfileService(appContext)
-                    initialized = true
-                    Timber.d(
-                        "RuntimeAccess ready pid=${android.os.Process.myPid()} cost=${System.currentTimeMillis() - startedAt}ms"
-                    )
-                } catch (error: Exception) {
-                    if (error is CancellationException) throw error
-                    initialized = false
-                    coreApi = null
-                    profileApi = null
-                    Timber.e(error, "RuntimeAccess init failed")
-                    throw error
                 }
+                    .onFailure { error ->
+                        coreApi = null
+                        profileApi = null
+                        if (error !is CancellationException) Timber.e(error, "RuntimeAccess init failed")
+                    }
+                    .getOrThrow()
             }
         }
     }
@@ -104,29 +84,7 @@ object RuntimeAccess {
             remote.probe()
         }
 
-    suspend fun disconnect() {
-        withContext(Dispatchers.IO) {
-            mutex.withLock {
-                coreApi = null
-                profileApi = null
-                initialized = false
-            }
-        }
-    }
+    fun core(): CoreApi = checkNotNull(coreApi) { "RuntimeAccess not connected" }
 
-    fun core(): CoreApi =
-        coreApi ?: throw IllegalStateException("RuntimeAccess not connected")
-
-    suspend fun profile(): ProfileApi =
-        profileApi ?: throw IllegalStateException("RuntimeAccess not connected")
-
-    fun isConnected(): Boolean = initialized && coreApi != null && profileApi != null
-
-    /**
-     * Drop cached controller bindings and reconnect (remote backend / process endpoint changes).
-     */
-    suspend fun reconnect(ctx: Context) {
-        disconnect()
-        connect(ctx)
-    }
+    fun profile(): ProfileApi = checkNotNull(profileApi) { "RuntimeAccess not connected" }
 }

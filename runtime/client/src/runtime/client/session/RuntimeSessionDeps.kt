@@ -23,12 +23,8 @@ package com.github.yumeyucca.yumebox.runtime.client.session
 import android.content.Context
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
-import com.github.yumeyucca.yumebox.runtime.api.ProcessController
-import com.github.yumeyucca.yumebox.runtime.api.RuntimeLauncher
-import com.github.yumeyucca.yumebox.runtime.api.RuntimeStatusStore
-import com.github.yumeyucca.yumebox.runtime.service.AndroidRuntimeStatusStore
-import com.github.yumeyucca.yumebox.runtime.service.core.AndroidProcessController
-import com.github.yumeyucca.yumebox.runtime.service.session.AndroidRuntimeLauncher
+import com.github.yumeyucca.yumebox.runtime.api.RuntimeControl
+import com.github.yumeyucca.yumebox.runtime.service.RuntimeCoordinator
 import kotlinx.coroutines.CoroutineScope
 
 /** Construction bag for [RuntimeSession]. Keeps the session entry free of long argument lists. */
@@ -37,9 +33,7 @@ internal data class RuntimeSessionDeps(
     val scope: CoroutineScope,
     val networkSettingsStorage: NetworkSettingsStore,
     val remoteControllerStore: RemoteControllerStore,
-    val statusStore: RuntimeStatusStore = AndroidRuntimeStatusStore,
-    val processController: ProcessController = AndroidProcessController(context),
-    val launcher: RuntimeLauncher = AndroidRuntimeLauncher(context),
+    val control: RuntimeControl = RuntimeCoordinator,
     val queryTrafficNowAction: suspend () -> Long = { 0L },
     val queryTrafficTotalAction: suspend () -> Long = { 0L },
     val onAfterRunning: suspend () -> Unit = {},

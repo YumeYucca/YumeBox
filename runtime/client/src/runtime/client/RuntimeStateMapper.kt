@@ -32,18 +32,6 @@ object RuntimeStateMapper {
     fun isActuallyRunning(snapshot: RuntimeSnapshot): Boolean =
         snapshot.phase == RuntimePhase.Running
 
-    /**
-     * VpnService maps 1:1 to [RunMode.VpnService]. RootDaemon has two concrete modes and is
-     * resolved from the persisted root process record by [RuntimeOwnership].
-     */
-    fun modeForOwner(owner: RuntimeOwner): RunMode? =
-        when (owner) {
-            RuntimeOwner.VpnService -> RunMode.VpnService
-            RuntimeOwner.RootDaemon,
-            RuntimeOwner.RemoteController,
-            RuntimeOwner.None -> null
-        }
-
     fun resolveDisplayMode(snapshot: RuntimeSnapshot, configuredMode: RunMode): RunMode =
         if (isRunningOrStarting(snapshot)) snapshot.runMode else configuredMode
 
@@ -60,3 +48,7 @@ object RuntimeStateMapper {
             generation = generation,
         )
 }
+
+/** A running local core or the remote controller answers node queries. */
+internal val RuntimeSnapshot.servesNodes: Boolean
+    get() = phase == RuntimePhase.Running || owner == RuntimeOwner.RemoteController

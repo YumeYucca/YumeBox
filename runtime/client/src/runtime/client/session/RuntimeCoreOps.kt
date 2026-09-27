@@ -24,33 +24,32 @@ import com.github.yumeyucca.yumebox.core.model.ConnectionSnapshot
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import com.github.yumeyucca.yumebox.core.model.ProxySort
 import com.github.yumeyucca.yumebox.runtime.api.CoreApi
-import com.github.yumeyucca.yumebox.runtime.client.CoreQueries
 import com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess
 
-/** Shared CoreApi resolve + query helpers used by the runtime client facade. */
+/** Connects the backend on demand, then queries the routed controller. */
 internal class RuntimeCoreOps(private val connect: suspend () -> Unit = {}) {
-    suspend fun api(): CoreApi {
+    private suspend fun api(): CoreApi {
         connect()
         return RuntimeAccess.core()
     }
 
-    suspend fun queryTrafficNow(): Long = CoreQueries.queryTrafficNow(api())
+    suspend fun queryTrafficNow(): Long = api().queryTrafficNow()
 
-    suspend fun queryTrafficTotal(): Long = CoreQueries.queryTrafficTotal(api())
+    suspend fun queryTrafficTotal(): Long = api().queryTrafficTotal()
 
-    suspend fun queryConnections(): ConnectionSnapshot = CoreQueries.queryConnections(api())
+    suspend fun queryConnections(): ConnectionSnapshot = api().queryConnections()
 
     suspend fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> =
-        CoreQueries.queryAllProxyGroups(api(), excludeNotSelectable)
+        api().queryAllProxyGroups(excludeNotSelectable)
 
     suspend fun queryProxyGroup(name: String, sort: ProxySort): ProxyGroup =
-        CoreQueries.queryProxyGroup(api(), name, sort)
+        api().queryProxyGroup(name, sort)
 
     suspend fun patchSelector(group: String, name: String): Boolean =
-        CoreQueries.patchSelector(api(), group, name)
+        api().patchSelector(group, name)
 
-    suspend fun healthCheck(group: String): Map<String, Int> = CoreQueries.healthCheck(api(), group)
+    suspend fun healthCheck(group: String): Map<String, Int> = api().healthCheck(group)
 
     suspend fun healthCheckProxy(group: String, proxyName: String): Int =
-        CoreQueries.healthCheckProxy(api(), group, proxyName)
+        api().healthCheckProxy(group, proxyName)
 }

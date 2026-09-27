@@ -30,42 +30,23 @@ import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
 import timber.log.Timber
 
 /**
- * Registers runtime service broadcasts and dispatches them to facade callbacks. Keeps IntentFilter
- * / BroadcastReceiver out of the main facade body.
+ * Forwards profile / override edits to the session. Runtime lifecycle arrives through the
+ * control's state flow, not broadcasts.
  */
 internal class RuntimeEventBridge(
     context: Context,
-    private val isConfigReloading: () -> Boolean,
-    private val onRuntimeStarted: () -> Unit,
-    private val onRuntimeStopped: (reason: String?) -> Unit,
     private val onConfigChanged: () -> Unit,
-    private val onReconcile: () -> Unit,
-    private val onRootFailed: (error: String?) -> Unit,
 ) {
     private val appContext = context.appContextOrSelf
     private val packageName = appContext.packageName
 
-    private val actionRuntimeStarted = Intents.actionRuntimeStarted(packageName)
-    private val actionRuntimeStopped = Intents.actionRuntimeStopped(packageName)
     private val actionProfileChanged = Intents.actionProfileChanged(packageName)
-    private val actionProfileLoaded = Intents.actionProfileLoaded(packageName)
     private val actionOverrideChanged = Intents.actionOverrideChanged(packageName)
-    private val actionServiceRecreated = Intents.actionServiceRecreated(packageName)
-    private val actionRootRuntimeFailed = Intents.actionRootRuntimeFailed(packageName)
 
     private val receiver =
         object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action ?: return) {
-                    actionRuntimeStarted -> onRuntimeStarted()
-                    actionRuntimeStopped -> {
-                        if (isConfigReloading()) {
-                            Timber.d("Ignoring stale runtime-stopped event during config reload")
-                        } else {
-                            onRuntimeStopped(intent.getStringExtra(Intents.EXTRA_STOP_REASON))
-                        }
-                    }
-
                     actionProfileChanged -> {
                         if (intent.getBooleanExtra(Intents.EXTRA_AFFECTS_RUNTIME, true)) {
                             onConfigChanged()
@@ -73,14 +54,6 @@ internal class RuntimeEventBridge(
                     }
 
                     actionOverrideChanged -> onConfigChanged()
-                    actionProfileLoaded,
-                    actionServiceRecreated -> onReconcile()
-
-                    actionRootRuntimeFailed -> {
-                        val error = intent.getStringExtra("error")
-                        Timber.w("Root runtime failed: $error")
-                        onRootFailed(error)
-                    }
                 }
             }
         }
@@ -88,13 +61,8 @@ internal class RuntimeEventBridge(
     fun register() {
         val filter =
             IntentFilter().apply {
-                addAction(actionRuntimeStarted)
-                addAction(actionRuntimeStopped)
                 addAction(actionProfileChanged)
-                addAction(actionProfileLoaded)
                 addAction(actionOverrideChanged)
-                addAction(actionServiceRecreated)
-                addAction(actionRootRuntimeFailed)
             }
         runCatching {
             ContextCompat.registerReceiver(

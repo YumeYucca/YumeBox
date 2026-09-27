@@ -18,77 +18,56 @@
  *
  */
 
-@file:Suppress("UnusedSymbol")
-
 package com.github.yumeyucca.yumebox.runtime.api
 
-
 import com.github.yumeyucca.yumebox.core.model.RunMode
+import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Platform-neutral core process control. Android wires
- * `com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess`; desktop can implement the same
- * contract without VpnService/libsu.
+ * The one authoritative lifecycle state of the local core. [owner] is [RuntimeOwner.VpnService]
+ * or [RuntimeOwner.RootDaemon] while anything is starting, running or stopping; [mode] is the
+ * concrete run mode of that owner. [lastError] survives into Idle/Failed so callers can show why
+ * the last session ended. [generation] increases on every published transition.
  */
-interface ProcessController {
-    /** Active controller endpoint for the running core, or null when stopped. */
-    fun currentEndpoint(): CoreEndpointRef?
-
-    fun stop()
-
-    fun stopRoot()
-
-    fun isRootDaemonAlive(): Boolean
-
-    /** Persisted root mode, allowing the owner to distinguish Tun from the native eBPF listener. */
-    fun rootDaemonMode(): RunMode?
-
-    fun reconnectRoot(): String?
+data class RuntimeState(
+    val owner: RuntimeOwner = RuntimeOwner.None,
+    val mode: RunMode? = null,
+    val phase: RuntimePhase = RuntimePhase.Idle,
+    val startedAt: Long? = null,
+    val lastError: String? = null,
+    val reloading: Boolean = false,
+    val generation: Long = 0L,
+) {
+    val active: Boolean
+        get() = phase == RuntimePhase.Starting || phase == RuntimePhase.Running
 }
 
-/** Sock path + bearer secret for the mihomo controller. */
-data class CoreEndpointRef(val sock: String, val secret: String)
-
-/**
- * Cross-process / cross-host runtime phase store. Android: ContentProvider-backed StatusProvider.
- */
-interface RuntimeStatusStore {
-    fun isRuntimeActive(runModeName: String): Boolean
-
-    fun queryRuntimePhase(runModeName: String): RuntimePhase
-
-    fun queryRuntimeStartedAt(runModeName: String): Long?
-
-    fun queryRuntimeLastError(runModeName: String): String?
-
-    fun markRuntimeIdle(runModeName: String)
-
-    fun reconcilePersistedRuntimeState()
-
-    /** Platform-local service/process liveness for a configured run mode name. */
-    fun isLocalRuntimeServiceAlive(runModeName: String): Boolean
-
-    fun clearLegacyStateFiles()
+enum class RuntimeStartSource {
+    Ui,
+    Tile,
+    AutoRestart,
+    AutoRestartBoot,
+    AutoRestartReplaced,
+    WifiAutomation,
+    System,
 }
 
 /**
- * Platform-specific start/stop of the local runtime host (VPN service, root daemon, etc.). Desktop
- * can implement without Android Service APIs.
+ * Single entry point for starting, stopping and reloading the local core. Every call is
+ * serialized; [start] returns once the core answers on its controller socket and throws (after
+ * publishing Failed) when it cannot get there. Starting a different owner stops the current one
+ * first.
  */
-interface RuntimeLauncher {
-    suspend fun start(owner: RuntimeOwner, mode: RunMode)
+interface RuntimeControl {
+    val state: StateFlow<RuntimeState>
 
-    suspend fun stop(owner: RuntimeOwner)
-}
+    suspend fun start(mode: RunMode, source: RuntimeStartSource)
 
-/**
- * Resolves the live core controller endpoint (local unix path + secret, or remote backend
- * metadata).
- */
-interface CoreEndpointSource {
-    fun localSocketPath(): String?
+    suspend fun stop(reason: String? = null)
 
-    fun localSecret(): String?
+    /** Recompile the active profile into the running owner; no-op when nothing runs. */
+    suspend fun reload()
 
-    fun isRemoteActive(): Boolean
+    /** Re-check that the published owner still has a live core; drops to Idle if it vanished. */
+    suspend fun verify()
 }

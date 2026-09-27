@@ -18,10 +18,7 @@
  *
  */
 
-@file:Suppress("UnusedSymbol")
-
 package com.github.yumeyucca.yumebox.runtime.client.session
-
 
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
@@ -43,12 +40,6 @@ internal class RuntimePolling(
     private var trafficJob: Job? = null
     private var groupJob: Job? = null
     private var activeGroupPriority: ProxyGroupSyncPriority = ProxyGroupSyncPriority.OFF
-
-    val isTrafficActive: Boolean
-        get() = trafficJob?.isActive == true
-
-    val isGroupActive: Boolean
-        get() = groupJob?.isActive == true
 
     fun startTraffic() {
         if (trafficJob?.isActive == true) return
@@ -72,10 +63,8 @@ internal class RuntimePolling(
             return
         }
         activeGroupPriority = priority
-        stopGroups(clearPriority = false)
-        if (priority == ProxyGroupSyncPriority.OFF) {
-            return
-        }
+        groupJob?.cancel()
+        groupJob = null
         val timerSpec =
             when (priority) {
                 ProxyGroupSyncPriority.FAST -> PollingTimerSpecs.RuntimeProxyGroupSyncFast
@@ -85,18 +74,5 @@ internal class RuntimePolling(
         groupJob = scope.launch {
             PollingTimers.ticks(timerSpec).collect { onGroupTick() }
         }
-    }
-
-    fun stopGroups(clearPriority: Boolean = true) {
-        groupJob?.cancel()
-        groupJob = null
-        if (clearPriority) {
-            activeGroupPriority = ProxyGroupSyncPriority.OFF
-        }
-    }
-
-    fun stopAll() {
-        stopTraffic()
-        stopGroups()
     }
 }

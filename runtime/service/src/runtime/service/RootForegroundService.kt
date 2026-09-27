@@ -23,7 +23,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 
 /**
  * Foreground notification host for the detached root Tun daemon. The core itself remains a

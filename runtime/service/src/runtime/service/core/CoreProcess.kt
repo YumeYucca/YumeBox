@@ -31,7 +31,6 @@ import android.os.SystemClock
 import android.system.Os
 import com.github.yumeyucca.yumebox.core.bridge.Channel
 import com.github.yumeyucca.yumebox.core.bridge.NativeProcess
-import com.github.yumeyucca.yumebox.core.model.RunMode
 import com.github.yumeyucca.yumebox.core.util.runtimeHomeDir
 import com.github.yumeyucca.yumebox.runtime.api.CoreApi
 import com.github.yumeyucca.yumebox.runtime.service.controller.CoreController
@@ -62,9 +61,7 @@ data class VpnTunnel(val fd: Int, val gateway: String, val dns: String)
  */
 class CoreProcess(private val context: Context) {
 
-    private var process: NativeProcess? = null
     private var ownerChannel: Channel? = null
-    private var ownerQueryThread: Thread? = null
 
     /**
      * Reap any live core, then open the tun, then fork. The tun is created inside the lifecycle
@@ -117,12 +114,10 @@ class CoreProcess(private val context: Context) {
             )
         Timber.tag(TAG).i("launch core, tunFd=%d", tunFd)
         val proc = spawn(home, args)
-        process = proc
         running = proc
 
         // Stream config over the socketpair (in memory), then the TUN fd as a terminating
-        // SCM_RIGHTS
-        // message. The core dups the fd; the app closes its own copy.
+        // SCM_RIGHTS message. The core dups the fd; the app closes its own copy.
         val handoff =
             runCatching {
                 val channel = Channel(proc.channelFd)
@@ -149,7 +144,6 @@ class CoreProcess(private val context: Context) {
             runCatching { proc.kill() }
             stopOwnerQueryLoop()
             if (running === proc) running = null
-            if (process === proc) process = null
             current = null
             throw IllegalStateException("config/fd handoff failed", error)
         }
@@ -160,45 +154,39 @@ class CoreProcess(private val context: Context) {
     private fun startOwnerQueryLoop(channel: Channel) {
         val resolver = SocketOwnerResolver(context)
         ownerChannel = channel
-        ownerQueryThread =
-            Thread {
-                    val buffer = ByteArray(OWNER_QUERY_BUFFER_SIZE)
-                    try {
-                        while (true) {
-                            val result = channel.readMessage(buffer, 0, buffer.size)
-                            if (result.count <= 0) break
-                            val request = buffer.decodeToString(0, result.count)
-                            val response =
-                                if (result.fd >= 0) {
-                                    if (request == PROTECT_SOCKET_REQUEST) {
-                                        protectCoreSocket(result.fd)
-                                    } else {
-                                        closeReceivedFd(result.fd)
-                                        PROTECT_SOCKET_DENIED
-                                    }
-                                } else {
-                                    resolveOwnerQuery(resolver, request)
+        Thread {
+                val buffer = ByteArray(OWNER_QUERY_BUFFER_SIZE)
+                try {
+                    while (true) {
+                        val result = channel.readMessage(buffer, 0, buffer.size)
+                        if (result.count <= 0) break
+                        val request = buffer.decodeToString(0, result.count)
+                        val response =
+                            when {
+                                result.fd < 0 -> resolveOwnerQuery(resolver, request)
+                                request == PROTECT_SOCKET_REQUEST -> protectCoreSocket(result.fd)
+                                else -> {
+                                    closeReceivedFd(result.fd)
+                                    PROTECT_SOCKET_DENIED
                                 }
-                            val responseBytes = response.toByteArray(Charsets.UTF_8)
-                            channel.writeMessage(responseBytes, 0, responseBytes.size)
-                        }
-                    } catch (error: Throwable) {
-                        if (ownerChannel === channel && isLocalCoreAlive()) {
-                            Timber.tag(TAG).w(error, "socket owner RPC stopped unexpectedly")
-                        }
-                    } finally {
-                        if (ownerChannel === channel) {
-                            ownerChannel = null
-                            ownerQueryThread = null
-                        }
-                        runCatching { channel.close() }
+                            }
+                        val responseBytes = response.toByteArray(Charsets.UTF_8)
+                        channel.writeMessage(responseBytes, 0, responseBytes.size)
                     }
+                } catch (error: Throwable) {
+                    if (ownerChannel === channel && isLocalCoreAlive()) {
+                        Timber.tag(TAG).w(error, "socket owner RPC stopped unexpectedly")
+                    }
+                } finally {
+                    if (ownerChannel === channel) ownerChannel = null
+                    runCatching { channel.close() }
                 }
-                .apply {
-                    name = "Core-SocketOwner"
-                    isDaemon = true
-                    start()
-                }
+            }
+            .apply {
+                name = "Core-SocketOwner"
+                isDaemon = true
+                start()
+            }
     }
 
     /** Protect only the child core's socket; regular app traffic must remain inside the VPN. */
@@ -262,8 +250,8 @@ class CoreProcess(private val context: Context) {
         // A detached `su` daemon can't inherit the config socketpair the VPN core streams over, so
         // hand the compiled config (proxy secrets) through a named pipe instead of a file: the core
         // reads it once via --config and nothing is ever written to disk — the same
-        // no-plaintext-at-
-        // rest posture as VPN. Drop any legacy plaintext run.yaml an older build left behind.
+        // no-plaintext-at-rest posture as VPN. Drop any legacy plaintext run.yaml an older build
+        // left behind.
         File(home, LEGACY_ROOT_CONFIG).delete()
         val fifo = File(home, ROOT_CONFIG_PIPE).apply { delete() }
         Os.mkfifo(fifo.absolutePath, ROOT_PIPE_MODE)
@@ -288,8 +276,7 @@ class CoreProcess(private val context: Context) {
         }
 
         // Feed the config into the pipe; the core's ReadFile blocks until we open+write. Run it on
-        // a
-        // daemon thread with a timeout so a core that died on launch (no reader) can't block the
+        // a daemon thread with a timeout so a core that died on launch (no reader) can't block the
         // caller forever; then unlink the pipe node (it holds nothing at rest either way).
         val writer = Thread {
             runCatching {
@@ -306,9 +293,7 @@ class CoreProcess(private val context: Context) {
         writer.join(FIFO_WRITE_TIMEOUT_MS)
         if (writer.isAlive) {
             // No reader turned up: open one ourselves to release the blocked writer thread. The
-            // dead
-            // daemon then surfaces via the launcher's startup probe (core.log shows the read
-            // failure).
+            // dead daemon then surfaces via the startup probe (core.log shows the read failure).
             Timber.tag(TAG).w("root config handoff timed out; core likely died on launch")
             runCatching { FileInputStream(fifo).use { it.readBytes() } }
         }
@@ -320,6 +305,7 @@ class CoreProcess(private val context: Context) {
                 secret = secret,
                 mode = mode,
                 startTimeTicks = RootDaemonProbe.startTimeTicks(pid) ?: 0L,
+                launchedAt = System.currentTimeMillis(),
             )
         RootDaemonProbe.commit(record)
         Timber.tag(TAG).i("root core launched, pid=%d mode=%s", pid, mode)
@@ -364,12 +350,11 @@ class CoreProcess(private val context: Context) {
     }
 
     fun stop() = withLifecycleLock {
-        val stoppedProcess = process ?: running
-        if (stoppedProcess != null) {
-            stopVpnProcess(stoppedProcess)
-            if (!isVpnProcessAlive(stoppedProcess.pid)) {
-                if (running === stoppedProcess) running = null
-                process = null
+        val child = running
+        if (child != null) {
+            stopVpnProcess(child)
+            if (!isVpnProcessAlive(child.pid)) {
+                if (running === child) running = null
                 current = null
             }
         }
@@ -391,7 +376,6 @@ class CoreProcess(private val context: Context) {
             }
             if (running === child) running = null
         }
-        process = null
         reapRootDaemon()
     }
 
@@ -413,7 +397,6 @@ class CoreProcess(private val context: Context) {
         val channel = ownerChannel
         ownerChannel = null
         runCatching { channel?.close() }
-        ownerQueryThread = null
     }
 
     /**
@@ -517,33 +500,11 @@ class CoreProcess(private val context: Context) {
             }
         }
 
-        /** One `kill -0`. Identity stays on reattach, where a recycled pid matters. */
-        fun isTrackedRootProcessAlive(): Boolean = RootDaemonProbe.trackedAlive()
-
-        /** Status and tile polling. The probe caches the combined pid, exe and start-time check. */
-        fun isRootDaemonAlive(): Boolean = RootDaemonProbe.isAlive()
-
         /** True when a VPN child or a live root record already owns tun, routes and the socket. */
         internal fun realCoreReserved(): Boolean = isLocalCoreAlive() || RootDaemonProbe.trackedAlive()
 
-        /**
-         * True if the non-root VPN child core is still alive. Used by LOCAL_TUN startup verify so a
-         * dead process fails immediately instead of spinning on a missing clash.sock.
-         */
-        fun isLocalCoreAlive(): Boolean {
-            val pid = running?.pid ?: return false
-            return runCatching {
-                    Os.kill(pid, 0)
-                    true
-                }
-                .getOrDefault(false)
-        }
-
-        /**
-         * The run mode of the persisted root daemon ("tun"/"ebpf" → [RunMode]), or null when
-         * none.
-         */
-        fun rootDaemonMode(): RunMode? = RunMode.fromCoreArg(RootDaemonState.load()?.mode)
+        /** True while the non-root VPN child core is alive. */
+        fun isLocalCoreAlive(): Boolean = running?.pid?.let(::isVpnProcessAlive) == true
 
         /** Last non-blank line of `<runtimeHome>/core.log`. */
         fun coreLogTail(context: Context): String? = runCatching {
@@ -637,10 +598,14 @@ class CoreProcess(private val context: Context) {
         /** Shared local-core controller client (unix socket path fixed, secret from [current]). */
         fun controller(context: Context): CoreApi = sharedController(context)
 
-        /** Suspendable startup probe so launch deadlines are not hidden by the synchronous API. */
+        /** Root startup probe: `/configs` answers as soon as the controller listens. */
         internal suspend fun probeController(context: Context) {
-            sharedController(context).queryTunnelStateAsync()
+            sharedController(context).queryTunnelState()
         }
+
+        /** VPN startup probe: number of groups the loaded config exposes. */
+        internal suspend fun probeGroupCount(context: Context): Int =
+            sharedController(context).queryGroupCount()
 
         private fun sharedController(context: Context): CoreController =
             controller

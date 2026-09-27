@@ -22,54 +22,67 @@ package com.github.yumeyucca.yumebox.runtime.service
 
 import android.content.Intent
 import android.net.VpnService
-import com.github.yumeyucca.yumebox.data.model.RunMode
+import androidx.core.app.ServiceCompat
 import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
 import com.github.yumeyucca.yumebox.runtime.api.initializeServiceGlobal
-import com.github.yumeyucca.yumebox.runtime.service.log.RuntimeLog
 import com.github.yumeyucca.yumebox.runtime.service.notification.ServiceNotificationManager
-import com.github.yumeyucca.yumebox.runtime.service.session.SessionRuntimeSpecFactory
-import com.github.yumeyucca.yumebox.runtime.service.session.VpnTunTransport
+import com.github.yumeyucca.yumebox.runtime.service.session.VpnSession
 import com.github.yumeyucca.yumebox.runtime.service.util.cancelAndJoinBlocking
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 
+/**
+ * Android host of the VPN core. It only owns what Android requires of a VpnService (the
+ * foreground notification, revoke and destroy callbacks); [RuntimeCoordinator] decides when the
+ * [session] starts, reloads and stops.
+ */
 class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.Default) {
-    private val controller =
-        RuntimeForegroundController(
-            service = this,
-            scope = this,
-            mode = RunMode.VpnService,
-            label = "Tun",
-            notificationConfig = ServiceNotificationManager.vpnConfig,
-            logSource = RuntimeLog.Source.LocalTun,
-            createTransport = { VpnTunTransport(this) },
-            createSpec = { SessionRuntimeSpecFactory(appContextOrSelf).createVpnSpec() },
-        )
+    internal val session by lazy { VpnSession(this) }
+    private val notificationManager by lazy {
+        ServiceNotificationManager(this, ServiceNotificationManager.vpnConfig)
+    }
+    private var notificationJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
         initializeServiceGlobal(appContextOrSelf)
-        controller.onCreate()
+        notificationManager.createChannel()
+        startForeground(
+            ServiceNotificationManager.vpnConfig.notificationId,
+            notificationManager.createInitialNotification(),
+        )
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
-        controller.onStartCommand(startId)
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (notificationJob?.isActive != true) {
+            notificationJob = notificationManager.startTrafficUpdate(this)
+        }
+        RuntimeCoordinator.onVpnServiceStarted(this)
+        // A killed service is recreated with its command; the coordinator adopts it as a start.
+        return START_REDELIVER_INTENT
+    }
 
-    override fun onDestroy() {
-        // RuntimeForegroundController delegates the normal stop to SessionRuntime, whose VPN
-        // transport gives mihomo time to flush selector state before falling back to SIGKILL.
-        controller.onDestroy()
-        super.onDestroy()
-        cancelAndJoinBlocking()
+    /** Drops the notification and ends this instance; the session is already stopped. */
+    internal fun finish() {
+        notificationJob?.cancel()
+        notificationJob = null
+        notificationManager.release()
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     override fun onRevoke() {
-        controller.onVpnRevoked()
+        RuntimeCoordinator.onVpnRevoked(this)
         super.onRevoke()
     }
 
-    override fun onTrimMemory(level: Int) {
-        super.onTrimMemory(level)
-        controller.onTrimMemory()
+    override fun onDestroy() {
+        notificationJob?.cancel()
+        notificationJob = null
+        notificationManager.release()
+        RuntimeCoordinator.onVpnServiceDestroyed(this)
+        super.onDestroy()
+        cancelAndJoinBlocking()
     }
 }
