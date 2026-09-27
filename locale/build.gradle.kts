@@ -36,6 +36,6 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.compose.ui)
-    implementation(libs.lyricist)
+    api(libs.lyricist)
     ksp(libs.lyricist.processor)
 }

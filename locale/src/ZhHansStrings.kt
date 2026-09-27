@@ -2,7 +2,7 @@ package com.github.yumeyucca.yumebox.core.locale
 
 import cafe.adriel.lyricist.LyricistStrings
 
-@LyricistStrings(languageTag = "zh-CN", default = true)
+@LyricistStrings(languageTag = "zh-cn", default = true)
 public val ZhHansStrings: YumeStrings = YumeStrings(
     About = ZhHansYumeStrings_About,
     AccessControl = ZhHansYumeStrings_AccessControl,

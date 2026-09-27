@@ -12,12 +12,14 @@ public val LocalYumeStrings: ProvidableCompositionLocal<YumeStrings> =
     staticCompositionLocalOf { ZhHansStrings }
 
 public val yumeStrings: Map<String, YumeStrings> = mapOf(
-    "zh-CN" to ZhHansStrings,
-    "zh-Hans" to ZhHansStrings,
+    "zh-cn" to ZhHansStrings,
+    "zh-hans" to ZhHansStrings,
+    "zh-sg" to ZhHansStrings,
     "zh" to ZhHansStrings,
-    "zh-TW" to ZhStrings,
-    "zh-Hant" to ZhStrings,
-    "zh-HK" to ZhStrings,
+    "zh-tw" to ZhStrings,
+    "zh-hant" to ZhStrings,
+    "zh-hk" to ZhStrings,
+    "zh-mo" to ZhStrings,
     "en" to EnStrings,
     "ja" to JaStrings,
     "ru" to RuStrings,
@@ -29,8 +31,8 @@ public val currentYumeStrings: YumeStrings
 
 @Composable
 public fun rememberYumeStrings(
-    defaultLanguageTag: String = "zh-CN",
-    currentLanguageTag: String = java.util.Locale.getDefault().toLanguageTag(),
+    defaultLanguageTag: String = "zh-cn",
+    currentLanguageTag: String = java.util.Locale.getDefault().toLanguageTag().lowercase(),
 ): Lyricist<YumeStrings> =
     rememberStrings(yumeStrings, defaultLanguageTag, currentLanguageTag)
 
@@ -48,8 +50,9 @@ public object YumeLocaleManager {
         internal set
 
     public fun updateLocale(tag: String) {
-        val resolved = yumeStrings[tag]
-            ?: yumeStrings[tag.split("-")[0]]
+        val lower = tag.lowercase()
+        val resolved = yumeStrings[lower]
+            ?: yumeStrings[lower.split("-")[0]]
             ?: ZhHansStrings
         activeStrings = resolved
     }

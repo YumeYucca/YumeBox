@@ -59,9 +59,19 @@ object AppLanguageManager {
         Locale.setDefault(locale)
         LocaleUtil.setCurrentLocale(locale)
         val lyricistTag = when (language) {
-            AppLanguage.System -> locale.toLanguageTag()
-            AppLanguage.Zh -> "zh-CN"
-            AppLanguage.ZhHant -> "zh-TW"
+            AppLanguage.System ->
+                if (locale.language.equals("zh", ignoreCase = true) &&
+                    (locale.script.equals("Hant", ignoreCase = true) ||
+                     locale.country.equals("TW", ignoreCase = true) ||
+                     locale.country.equals("HK", ignoreCase = true) ||
+                     locale.country.equals("MO", ignoreCase = true))
+                ) {
+                    "zh-tw"
+                } else {
+                    locale.toLanguageTag().lowercase()
+                }
+            AppLanguage.Zh -> "zh-cn"
+            AppLanguage.ZhHant -> "zh-tw"
             AppLanguage.En -> "en"
             AppLanguage.Ja -> "ja"
             AppLanguage.Ru -> "ru"
