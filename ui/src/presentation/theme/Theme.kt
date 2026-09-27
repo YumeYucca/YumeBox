@@ -29,7 +29,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
-import tf.gal.shirosu.fyl.fytxt.compose.FYTxtProvider
+import com.github.yumeyucca.yumebox.core.locale.ProvideYumeStrings
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal val LocalPlatformSystemUiEffect = compositionLocalOf<@Composable () -> Unit> { {} }
@@ -45,7 +45,7 @@ fun YumeTheme(
     opacity: Opacity = Opacity(),
     appColors: AppColors = AppColors(),
     content: @Composable () -> Unit,
-) = FYTxtProvider {
+) = ProvideYumeStrings {
     LocalPlatformSystemUiEffect.current()
     val effectiveThemeMode = themeMode ?: ThemeMode.Auto
     val isDark =

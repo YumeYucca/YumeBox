@@ -1,6 +1,0 @@
-<Util>
-Util = {
-    Error = {
-        UnknownError = "未知错误"
-    }
-}

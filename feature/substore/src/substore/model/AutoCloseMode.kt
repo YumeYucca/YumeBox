@@ -20,7 +20,7 @@
 
 package com.github.yumeyucca.yumebox.substore.model
 
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 enum class AutoCloseMode(val minutes: Int?) {
     ALWAYS_ON(null),

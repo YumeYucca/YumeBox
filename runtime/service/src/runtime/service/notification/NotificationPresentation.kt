@@ -25,7 +25,7 @@ import com.github.yumeyucca.yumebox.common.util.formatSpeed
 import com.github.yumeyucca.yumebox.runtime.service.profile.Imported
 import java.time.Instant
 import java.time.ZoneId
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 /** What the ongoing notification renders. */
 internal sealed class NotificationPresentation {

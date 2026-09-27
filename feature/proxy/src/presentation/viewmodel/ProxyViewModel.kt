@@ -35,7 +35,7 @@ import com.github.yumeyucca.yumebox.runtime.client.ProxyGroupSyncPriority
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 sealed interface ProxyDelayTestProgress {
     data class Running(val completed: Int, val total: Int) : ProxyDelayTestProgress

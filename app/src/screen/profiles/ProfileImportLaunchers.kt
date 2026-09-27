@@ -31,7 +31,7 @@ import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.presentation.util.isYamlConfigFileName
 import com.github.yumeyucca.yumebox.presentation.util.readDisplayName
 import kotlinx.coroutines.launch
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import timber.log.Timber
 
 internal data class ProfileImportLaunchers(

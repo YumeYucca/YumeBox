@@ -33,7 +33,7 @@ import com.github.yumeyucca.yumebox.data.store.ProfileLink
 import com.github.yumeyucca.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumeyucca.yumebox.presentation.component.AppFormDialog
 import com.github.yumeyucca.yumebox.presentation.component.OemTextField
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 @Composable
 internal fun LinkSettingsDialog(

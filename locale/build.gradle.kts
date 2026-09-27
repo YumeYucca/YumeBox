@@ -21,24 +21,7 @@
 plugins {
     id("com.android.library")
     kotlin("plugin.compose")
-
-    id("ren.shiror.fyl.fytxt") version "2.+"
-}
-
-fytxt {
-    packageName = "tf.gal.yumebox.locale"
-    objectName = "YumeTxt"
-
-    langSrcs = mapOf("Locale" to layout.projectDirectory.dir("lang"))
-    langAliases = mapOf(
-        "ZH_HANS" to "^ZH_.*(HANS|CN|SG)",
-        "ZH" to "^ZH_(?!.*(HANS|CN|SG)).*"
-    )
-    defaultLang = "ZH_HANS"
-
-    composeGen = true
-    internalClass = false
-    exportDeps = true
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -52,4 +35,7 @@ android {
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.lyricist)
+    ksp(libs.lyricist.processor)
 }

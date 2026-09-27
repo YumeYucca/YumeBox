@@ -35,7 +35,7 @@ import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldDialog
 import com.github.yumeyucca.yumebox.presentation.component.DialogButtonRow
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text

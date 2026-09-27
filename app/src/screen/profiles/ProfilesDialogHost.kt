@@ -38,7 +38,7 @@ import com.github.yumeyucca.yumebox.runtime.client.ProfilePatch
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import timber.log.Timber
 
 @Composable

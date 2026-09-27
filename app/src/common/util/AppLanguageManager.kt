@@ -29,7 +29,7 @@ import android.content.res.Resources
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
-import tf.gal.shirosu.fyl.fytxt.FYTxtConfig
+import com.github.yumeyucca.yumebox.core.locale.YumeLocaleManager
 import java.util.*
 
 @SuppressLint("AppBundleLocaleChanges")
@@ -58,14 +58,15 @@ object AppLanguageManager {
 
         Locale.setDefault(locale)
         LocaleUtil.setCurrentLocale(locale)
-        when (language) {
-            AppLanguage.System -> FYTxtConfig.updateTags(lock = false)
-            AppLanguage.Zh -> FYTxtConfig.updateTags(listOf("ZH_HANS"), lock = true)
-            AppLanguage.ZhHant -> FYTxtConfig.updateTags(listOf("ZH_HANT"), lock = true)
-            AppLanguage.En -> FYTxtConfig.updateTags(listOf("EN"), lock = true)
-            AppLanguage.Ja -> FYTxtConfig.updateTags(listOf("JA"), lock = true)
-            AppLanguage.Ru -> FYTxtConfig.updateTags(listOf("RU"), lock = true)
+        val lyricistTag = when (language) {
+            AppLanguage.System -> locale.toLanguageTag()
+            AppLanguage.Zh -> "zh-CN"
+            AppLanguage.ZhHant -> "zh-TW"
+            AppLanguage.En -> "en"
+            AppLanguage.Ja -> "ja"
+            AppLanguage.Ru -> "ru"
         }
+        YumeLocaleManager.updateLocale(lyricistTag)
     }
 
     fun wrap(base: Context): Context {

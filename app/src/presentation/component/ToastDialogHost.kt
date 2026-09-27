@@ -38,7 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.common.util.ToastDialogBridge
 import com.github.yumeyucca.yumebox.common.util.ToastDialogEvent
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.layout.DialogDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme

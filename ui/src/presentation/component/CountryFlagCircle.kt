@@ -42,7 +42,7 @@ import com.github.panpf.sketch.request.ImageRequest
 import com.github.yumeyucca.yumebox.common.util.LocaleUtil
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 @Composable
 fun CountryFlagCircle(countryCode: String?, modifier: Modifier = Modifier, size: Dp = UiDp.dp18) {

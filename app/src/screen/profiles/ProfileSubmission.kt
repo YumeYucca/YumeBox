@@ -23,7 +23,7 @@ import android.net.Uri
 import androidx.core.net.toUri
 import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import java.util.*
 
 internal typealias AddProfile = (String, String, Profile.Type, Long, Uri?, String) -> Unit

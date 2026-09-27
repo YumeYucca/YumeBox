@@ -23,7 +23,7 @@
 package com.github.yumeyucca.yumebox.data.model
 
 
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 const val PROXY_SHEET_HEIGHT_FRACTION_MIN = 0.5f
 const val PROXY_SHEET_HEIGHT_FRACTION_MAX = 0.8f

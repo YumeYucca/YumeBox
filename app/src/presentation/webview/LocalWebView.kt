@@ -41,7 +41,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.github.yumeyucca.yumebox.BuildConfig
 import com.github.yumeyucca.yumebox.WebViewActivity
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import timber.log.Timber
 import top.yukonga.miuix.kmp.basic.Text
 

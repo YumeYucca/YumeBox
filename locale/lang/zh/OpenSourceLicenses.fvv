@@ -1,8 +1,0 @@
-<Open Source Licenses Page>
-OpenSourceLicenses = {
-    Title = "開源授權"
-
-    LicenseSheet = {
-        NoContent = "暫無授權內容"
-    }
-}

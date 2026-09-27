@@ -120,7 +120,7 @@ enum class StatisticsTimeRange(val days: Int) {
     val label: String
         get() =
             when (this) {
-                TODAY -> tf.gal.yumebox.locale.YumeTxt.TrafficStatistics.TimeRange.Today
-                WEEK -> tf.gal.yumebox.locale.YumeTxt.TrafficStatistics.TimeRange.Week
+                TODAY -> com.github.yumeyucca.yumebox.core.locale.YumeTxt.TrafficStatistics.TimeRange.Today
+                WEEK -> com.github.yumeyucca.yumebox.core.locale.YumeTxt.TrafficStatistics.TimeRange.Week
             }
 }

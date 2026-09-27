@@ -42,7 +42,7 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.Palette
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.colorFromArgb
 import com.github.yumeyucca.yumebox.presentation.theme.colorToArgbLong
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ColorPicker
 import top.yukonga.miuix.kmp.basic.Icon

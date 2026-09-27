@@ -1,8 +1,0 @@
-<Open Source Licenses Page>
-OpenSourceLicenses = {
-    Title = "Лицензии с открытым исходным кодом"
-
-    LicenseSheet = {
-        NoContent = "Содержимое лицензии отсутствует"
-    }
-}

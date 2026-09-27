@@ -21,7 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 @Composable
 internal fun MoeHomeSettingsSheet(

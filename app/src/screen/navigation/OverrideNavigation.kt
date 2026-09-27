@@ -33,7 +33,7 @@ import com.github.yumeyucca.yumebox.presentation.screen.OverrideListScreen
 import com.github.yumeyucca.yumebox.presentation.util.OverrideEditorStore
 import com.github.yumeyucca.yumebox.presentation.viewmodel.OverrideConfigViewModel
 import org.koin.androidx.compose.koinViewModel
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 @Composable
 fun OverrideScreen(navigator: Navigator) {
