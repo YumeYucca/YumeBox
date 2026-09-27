@@ -52,6 +52,7 @@ buildscript {
         when {
             requested.group.startsWith("tools.jackson") -> useVersion("3.1.5")
             requested.group == "io.netty" -> useVersion("4.1.136.Final")
+            requested.group == "org.bouncycastle" -> useVersion("1.86")
         }
     }
 }
