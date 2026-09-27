@@ -32,7 +32,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.github.yumeyucca.yumebox.runtime.api.Components
 import com.github.yumeyucca.yumebox.runtime.service.util.ServiceLogoIcons
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import timber.log.Timber
 
 class DialerReceiver : BroadcastReceiver() {

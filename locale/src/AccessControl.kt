@@ -1,0 +1,217 @@
+package com.github.yumeyucca.yumebox.core.locale
+
+internal val ZhHansYumeStrings_AccessControl: YumeStrings_AccessControl = YumeStrings_AccessControl(
+    Title = "访问控制",
+    Search = YumeStrings_AccessControl_Search(
+        Placeholder = "搜索应用...",
+        Empty = "没有匹配的应用",
+    ),
+    AppList = YumeStrings_AccessControl_AppList(
+        Title = "应用列表 (%d 已选择)",
+        Loading = "加载中...",
+    ),
+    Settings = YumeStrings_AccessControl_Settings(
+        Title = "访问控制设置",
+        ShowSystemApps = "显示系统应用",
+        SelectedFirst = "已选应用优先",
+        SortMode = "排序方式",
+        SortModeCurrent = "当前：%s",
+        BatchOperation = "批量操作",
+        SelectAll = "全选",
+        DeselectAll = "全不选",
+        Invert = "反选",
+        ImportExport = "导入/导出",
+        Import = "从剪贴板导入",
+        Export = "导出到剪贴板",
+        ImportSuccess = "导入成功：%d 个包名",
+        ExportSuccess = "已复制 %d 个包名到剪贴板",
+        ImportFailed = "导入失败",
+        RegionQuickSelect = "地区快捷选择",
+        ChinaApps = "中国应用",
+        OverseasApps = "非中国应用",
+        RegionSelectResult = "已按「%s」快捷选择，共 %d 个",
+    ),
+    SortMode = YumeStrings_AccessControl_SortMode(
+        PackageName = "包名",
+        Label = "应用名称",
+        InstallTime = "安装时间",
+        UpdateTime = "更新时间",
+    ),
+    Button = YumeStrings_AccessControl_Button(
+        Cancel = "取消",
+        Confirm = "确定",
+    ),
+)
+
+internal val ZhYumeStrings_AccessControl: YumeStrings_AccessControl = YumeStrings_AccessControl(
+    Title = "存取控制",
+    Search = YumeStrings_AccessControl_Search(
+        Placeholder = "搜尋應用...",
+        Empty = "沒有符合的應用",
+    ),
+    AppList = YumeStrings_AccessControl_AppList(
+        Title = "應用列表 (%d 已選取)",
+        Loading = "載入中...",
+    ),
+    Settings = YumeStrings_AccessControl_Settings(
+        Title = "存取控制設定",
+        ShowSystemApps = "顯示系統應用",
+        SelectedFirst = "已選應用優先",
+        SortMode = "排序方式",
+        SortModeCurrent = "目前：%s",
+        BatchOperation = "批次操作",
+        SelectAll = "全選",
+        DeselectAll = "全不選",
+        Invert = "反選",
+        ImportExport = "匯入/匯出",
+        Import = "從剪貼簿匯入",
+        Export = "匯出到剪貼簿",
+        ImportSuccess = "匯入成功：%d 個套件名稱",
+        ExportSuccess = "已複製 %d 個套件名稱到剪貼簿",
+        ImportFailed = "匯入失敗",
+        RegionQuickSelect = "地區快速選取",
+        ChinaApps = "中國應用",
+        OverseasApps = "非中國應用",
+        RegionSelectResult = "已依「%s」快速選取，共 %d 個",
+    ),
+    SortMode = YumeStrings_AccessControl_SortMode(
+        PackageName = "套件名稱",
+        Label = "應用名稱",
+        InstallTime = "安裝時間",
+        UpdateTime = "更新時間",
+    ),
+    Button = YumeStrings_AccessControl_Button(
+        Cancel = "取消",
+        Confirm = "確定",
+    ),
+)
+
+internal val EnYumeStrings_AccessControl: YumeStrings_AccessControl = YumeStrings_AccessControl(
+    Title = "Access Control",
+    Search = YumeStrings_AccessControl_Search(
+        Placeholder = "Search apps...",
+        Empty = "No matching apps",
+    ),
+    AppList = YumeStrings_AccessControl_AppList(
+        Title = "App List (%d selected)",
+        Loading = "Loading...",
+    ),
+    Settings = YumeStrings_AccessControl_Settings(
+        Title = "Access Control Settings",
+        ShowSystemApps = "Show System Apps",
+        SelectedFirst = "Selected Apps First",
+        SortMode = "Sort Mode",
+        SortModeCurrent = "Current: %s",
+        BatchOperation = "Batch Operation",
+        SelectAll = "Select All",
+        DeselectAll = "Deselect All",
+        Invert = "Invert",
+        ImportExport = "Import/Export",
+        Import = "Import from Clipboard",
+        Export = "Export to Clipboard",
+        ImportSuccess = "Imported: %d package names",
+        ExportSuccess = "Copied %d package names to clipboard",
+        ImportFailed = "Import failed",
+        RegionQuickSelect = "Region Quick Select",
+        ChinaApps = "China Apps",
+        OverseasApps = "Non-China Apps",
+        RegionSelectResult = "Quick selected by \\\"%s\\\", total %d",
+    ),
+    SortMode = YumeStrings_AccessControl_SortMode(
+        PackageName = "Package Name",
+        Label = "App Name",
+        InstallTime = "Install Time",
+        UpdateTime = "Update Time",
+    ),
+    Button = YumeStrings_AccessControl_Button(
+        Cancel = "Cancel",
+        Confirm = "Confirm",
+    ),
+)
+
+internal val JaYumeStrings_AccessControl: YumeStrings_AccessControl = YumeStrings_AccessControl(
+    Title = "アクセス制御",
+    Search = YumeStrings_AccessControl_Search(
+        Placeholder = "アプリを検索...",
+        Empty = "一致するアプリがありません",
+    ),
+    AppList = YumeStrings_AccessControl_AppList(
+        Title = "アプリ一覧（%d 件選択中）",
+        Loading = "読み込み中...",
+    ),
+    Settings = YumeStrings_AccessControl_Settings(
+        Title = "アクセス制御設定",
+        ShowSystemApps = "システムアプリを表示",
+        SelectedFirst = "選択済みを先頭に",
+        SortMode = "並び替え",
+        SortModeCurrent = "現在: %s",
+        BatchOperation = "一括操作",
+        SelectAll = "すべて選択",
+        DeselectAll = "すべて解除",
+        Invert = "選択を反転",
+        ImportExport = "インポート/エクスポート",
+        Import = "クリップボードからインポート",
+        Export = "クリップボードへエクスポート",
+        ImportSuccess = "インポート完了: パッケージ名 %d 件",
+        ExportSuccess = "パッケージ名 %d 件をクリップボードにコピーしました",
+        ImportFailed = "インポートに失敗しました",
+        RegionQuickSelect = "地域クイック選択",
+        ChinaApps = "中国向けアプリ",
+        OverseasApps = "中国以外のアプリ",
+        RegionSelectResult = "「%s」でクイック選択、合計 %d 件",
+    ),
+    SortMode = YumeStrings_AccessControl_SortMode(
+        PackageName = "パッケージ名",
+        Label = "アプリ名",
+        InstallTime = "インストール日時",
+        UpdateTime = "更新日時",
+    ),
+    Button = YumeStrings_AccessControl_Button(
+        Cancel = "キャンセル",
+        Confirm = "確定",
+    ),
+)
+
+internal val RuYumeStrings_AccessControl: YumeStrings_AccessControl = YumeStrings_AccessControl(
+    Title = "Контроль доступа",
+    Search = YumeStrings_AccessControl_Search(
+        Placeholder = "Поиск приложений...",
+        Empty = "Нет подходящих приложений",
+    ),
+    AppList = YumeStrings_AccessControl_AppList(
+        Title = "Список приложений (выбрано: %d)",
+        Loading = "Загрузка...",
+    ),
+    Settings = YumeStrings_AccessControl_Settings(
+        Title = "Настройки контроля доступа",
+        ShowSystemApps = "Показывать системные приложения",
+        SelectedFirst = "Выбранные сначала",
+        SortMode = "Сортировка",
+        SortModeCurrent = "Сейчас: %s",
+        BatchOperation = "Пакетные действия",
+        SelectAll = "Выбрать все",
+        DeselectAll = "Снять выбор",
+        Invert = "Инвертировать",
+        ImportExport = "Импорт/экспорт",
+        Import = "Импорт из буфера",
+        Export = "Экспорт в буфер",
+        ImportSuccess = "Импортировано имён пакетов: %d",
+        ExportSuccess = "Скопировано имён пакетов в буфер: %d",
+        ImportFailed = "Импорт не удался",
+        RegionQuickSelect = "Быстрый выбор по региону",
+        ChinaApps = "Китайские приложения",
+        OverseasApps = "Некитайские приложения",
+        RegionSelectResult = "Быстрый выбор «%s», всего %d",
+    ),
+    SortMode = YumeStrings_AccessControl_SortMode(
+        PackageName = "Имя пакета",
+        Label = "Название приложения",
+        InstallTime = "Время установки",
+        UpdateTime = "Время обновления",
+    ),
+    Button = YumeStrings_AccessControl_Button(
+        Cancel = "Отмена",
+        Confirm = "Подтвердить",
+    ),
+)
+

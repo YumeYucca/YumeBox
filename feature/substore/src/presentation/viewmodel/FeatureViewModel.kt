@@ -44,7 +44,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 class FeatureViewModel(
     store: FeatureStore,

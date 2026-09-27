@@ -42,7 +42,7 @@ import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Atom
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Save
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior

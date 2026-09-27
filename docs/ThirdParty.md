@@ -10,4 +10,4 @@ to express our sincere gratitude to the developers and communities behind these 
 - [Gropify](https://github.com/HighCapable/Gropify)
 - [Lucide](https://github.com/lucide-icons/lucide)
 - [Circle Flags](https://github.com/HatScripts/circle-flags)
-- [ShiroSU FYL](https://github.com/OOM-WG/ShiroSU-FYL)
+- [Lyricist](https://github.com/adrielcafe/lyricist)

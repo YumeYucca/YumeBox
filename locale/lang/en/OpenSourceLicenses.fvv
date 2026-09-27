@@ -1,8 +1,0 @@
-<Open Source Licenses Page>
-OpenSourceLicenses = {
-    Title = "Open Source Licenses"
-
-    LicenseSheet = {
-        NoContent = "No license content"
-    }
-}

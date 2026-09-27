@@ -42,7 +42,7 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.Share
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.util.*
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.File

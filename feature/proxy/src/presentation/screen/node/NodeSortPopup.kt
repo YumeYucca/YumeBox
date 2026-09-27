@@ -25,7 +25,7 @@ package com.github.yumeyucca.yumebox.presentation.screen.node
 
 import androidx.compose.runtime.Composable
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider

@@ -36,7 +36,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowCompat
 import com.github.yumeyucca.yumebox.common.util.AppLanguageManager
 import com.github.yumeyucca.yumebox.presentation.webview.WebViewScreen
-import tf.gal.shirosu.fyl.fytxt.compose.FYTxtProvider
+import com.github.yumeyucca.yumebox.core.locale.ProvideYumeStrings
 
 class WebViewActivity : ComponentActivity() {
     companion object {
@@ -112,6 +112,6 @@ class WebViewActivity : ComponentActivity() {
         val initialUrl =
             intent.getStringExtra(EXTRA_INITIAL_URL) ?: "file://$filesDir/frontend/index.html"
 
-        setContent { FYTxtProvider { WebViewScreen(initialUrl = initialUrl) } }
+        setContent { ProvideYumeStrings { WebViewScreen(initialUrl = initialUrl) } }
     }
 }

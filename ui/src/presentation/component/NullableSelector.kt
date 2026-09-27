@@ -24,7 +24,7 @@ package com.github.yumeyucca.yumebox.presentation.component
 
 
 import androidx.compose.runtime.Composable
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 
 @Composable

@@ -1,4 +1,5 @@
 [versions]
+lyricist = "1.9.0"
 soraEditor = "0.24.6"
 composeBom = "2026.09.00"
 desugarJdkLibs = "2.1.5"
@@ -35,6 +36,8 @@ room = "2.8.5"
 smaliDexlib2 = "3.0.10"
 
 [libraries]
+lyricist = { module = "cafe.adriel.lyricist:lyricist", version.ref = "lyricist" }
+lyricist-processor = { module = "cafe.adriel.lyricist:lyricist-processor", version.ref = "lyricist" }
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-runtime = { module = "androidx.compose.runtime:runtime" }

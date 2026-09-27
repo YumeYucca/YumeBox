@@ -47,7 +47,7 @@ import com.github.yumeyucca.yumebox.R
 import com.github.yumeyucca.yumebox.presentation.component.AppFormDialog
 import com.github.yumeyucca.yumebox.presentation.component.OemTextField
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.TextButton

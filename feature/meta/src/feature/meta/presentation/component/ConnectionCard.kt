@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.core.model.ConnectionInfo
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import kotlinx.serialization.json.jsonPrimitive
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.SinkFeedback

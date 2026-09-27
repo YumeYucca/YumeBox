@@ -42,7 +42,7 @@ import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetCloseAc
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetConfirmAction
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 internal class ProfileAddSheetActions(
     val dismiss: () -> Unit,

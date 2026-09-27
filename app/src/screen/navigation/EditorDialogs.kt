@@ -30,7 +30,7 @@ import com.github.yumeyucca.yumebox.presentation.component.AppFormDialog
 import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldDialog
 import com.github.yumeyucca.yumebox.presentation.component.OemTextField
 import com.github.yumeyucca.yumebox.presentation.component.PreferenceValueItem
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference

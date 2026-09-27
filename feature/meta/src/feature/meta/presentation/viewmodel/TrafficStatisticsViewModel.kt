@@ -32,7 +32,7 @@ import com.github.yumeyucca.yumebox.presentation.component.BarChartItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import java.util.*
 
 class TrafficStatisticsViewModel(private val trafficStatisticsStore: TrafficStatisticsStore) :

@@ -36,7 +36,7 @@ import com.github.yumeyucca.yumebox.presentation.component.LocalNavigator
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.util.OverrideEditorStore
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 @Composable
 internal fun ProfileShareDialog(

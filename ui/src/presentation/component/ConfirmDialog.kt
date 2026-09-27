@@ -26,7 +26,7 @@ package com.github.yumeyucca.yumebox.presentation.component
 import androidx.compose.runtime.Composable
 import com.github.yumeyucca.yumebox.presentation.util.DialogState
 import com.github.yumeyucca.yumebox.presentation.util.rememberDialogVisibilityState
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 @Composable
 fun ConfirmDialog(

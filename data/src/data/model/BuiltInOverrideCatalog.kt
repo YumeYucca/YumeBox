@@ -21,7 +21,7 @@
 package com.github.yumeyucca.yumebox.data.model
 
 import com.github.yumeyucca.yumebox.core.model.OverrideInternalConstants
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 /**
  * APK-bundled override templates (from override-hub). Content lives under

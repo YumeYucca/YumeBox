@@ -46,7 +46,7 @@ import com.github.yumeyucca.yumebox.runtime.service.WifiAutomationService
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
-import tf.gal.yumebox.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.util.BuiltinGeoAssetsRequiredException
 import timber.log.Timber
 
