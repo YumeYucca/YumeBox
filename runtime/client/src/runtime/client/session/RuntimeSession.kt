@@ -353,7 +353,12 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
             val currentOwner =
                 ownership.detectActiveOwner().takeIf { it != RuntimeOwner.None }
                     ?: _runtimeSnapshot.value.owner
-            if (currentOwner != RuntimeOwner.None) {
+            // Root reload keeps the live daemon through config compile. The launcher swaps it
+            // under the core lifecycle lock. VPN and cross-mode starts still stop first: the
+            // service owns the tun and will not apply a second start while it is running.
+            val replacingSameRoot =
+                currentOwner == RuntimeOwner.RootDaemon && targetOwner == RuntimeOwner.RootDaemon
+            if (currentOwner != RuntimeOwner.None && !replacingSameRoot) {
                 stopInternal(
                     RuntimeStopRequest(
                         owner = currentOwner,
@@ -377,16 +382,26 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
 
             runCatching { launcher.start(targetOwner, mode) }
                 .onFailure { error ->
-                    clearRuntimePayload(resetGroups = false)
-                    publishSnapshot(
-                        RuntimeStateMapper.idleSnapshot(
-                            configuredMode = mode,
-                            generation = generation,
-                            lastError = error.message,
+                    val liveRoot =
+                        if (replacingSameRoot) {
+                            ownership.liveRootSnapshot(activeProfile, generation, error.message)
+                        } else {
+                            null
+                        }
+                    if (liveRoot != null) {
+                        publishSnapshot(liveRoot)
+                    } else {
+                        clearRuntimePayload(resetGroups = false)
+                        publishSnapshot(
+                            RuntimeStateMapper.idleSnapshot(
+                                configuredMode = mode,
+                                generation = generation,
+                                lastError = error.message,
+                            )
                         )
-                    )
-                    stopTrafficPolling()
-                    scope.launch { onAfterIdle() }
+                        stopTrafficPolling()
+                        scope.launch { onAfterIdle() }
+                    }
                     throw error
                 }
         }

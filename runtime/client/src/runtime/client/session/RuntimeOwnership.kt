@@ -139,6 +139,24 @@ internal class RuntimeOwnership(
                 },
         )
 
+    /** The root daemon is still the runtime. Used when a replacement start fails before the swap. */
+    fun liveRootSnapshot(profile: Profile, generation: Long, lastError: String?): RuntimeSnapshot? {
+        if (!isRootDaemonActive()) return null
+        val mode = localModeForOwner(RuntimeOwner.RootDaemon) ?: return null
+        return activeSnapshot(
+            owner = RuntimeOwner.RootDaemon,
+            runMode = mode,
+            localPhase = localRuntimePhaseForOwner(RuntimeOwner.RootDaemon),
+            localStartedAt = localRuntimeStartedAtForOwner(RuntimeOwner.RootDaemon),
+        ).copy(
+            profileReady = true,
+            profileUuid = profile.uuid.toString(),
+            profileName = profile.name,
+            generation = generation,
+            lastError = lastError,
+        )
+    }
+
     fun startedSnapshot(
         current: RuntimeSnapshot,
         owner: RuntimeOwner,

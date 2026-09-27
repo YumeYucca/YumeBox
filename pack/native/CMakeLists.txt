@@ -18,6 +18,10 @@ set(XZ_MICROLZMA_ENCODER OFF CACHE BOOL "" FORCE)
 set(XZ_MICROLZMA_DECODER OFF CACHE BOOL "" FORCE)
 set(XZ_LZIP_DECODER OFF CACHE BOOL "" FORCE)
 set(XZ_THREADS no CACHE STRING "" FORCE)
+set(XZ_MATCH_FINDERS "" CACHE STRING "" FORCE)
+
+# Section-per-function so the loader link can drop xz encoders and unused checks.
+add_compile_options(-ffunction-sections -fdata-sections)
 
 FetchContent_Declare(
     xz
@@ -26,9 +30,33 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(xz)
 
+if(TARGET liblzma)
+    # -O2 keeps the decompress loop fast. Sections, hidden visibility and no unwind
+    # tables let --gc-sections and --icf drop the unused xz encoder without slowing it.
+    target_compile_options(liblzma PRIVATE
+        -O2
+        -ffunction-sections
+        -fdata-sections
+        -fvisibility=hidden
+        -fno-unwind-tables
+        -fno-asynchronous-unwind-tables)
+endif()
+
 add_library(loader SHARED loader.c)
 target_compile_features(loader PRIVATE c_std_17)
-target_compile_options(loader PRIVATE -O3 -fvisibility=hidden -Wall -Wextra -Werror)
+target_compile_options(loader PRIVATE
+    -Os
+    -fvisibility=hidden
+    -fno-unwind-tables
+    -fno-asynchronous-unwind-tables
+    -Wall
+    -Wextra
+    -Werror)
 target_include_directories(loader PRIVATE "${xz_SOURCE_DIR}/src/liblzma/api")
-target_link_options(loader PRIVATE -Wl,--gc-sections -Wl,--exclude-libs,ALL -Wl,-soname,libloader.so)
+target_link_options(loader PRIVATE
+    -Wl,--gc-sections
+    -Wl,--icf=safe
+    -Wl,--exclude-libs,ALL
+    -Wl,-s
+    -Wl,-soname,libloader.so)
 target_link_libraries(loader PRIVATE liblzma)

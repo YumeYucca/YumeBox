@@ -41,7 +41,7 @@ class AndroidProcessController(context: Context) : ProcessController {
     }
 
     override fun stopRoot() {
-        CoreProcess.stopRoot(appContext)
+        CoreProcess.stopRoot()
     }
 
     override fun isRootDaemonAlive(): Boolean = CoreProcess.isRootDaemonAlive()
