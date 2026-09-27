@@ -1,0 +1,87 @@
+name: Prebuild Modules
+
+on:
+  workflow_call:
+    inputs:
+      channel:
+        required: true
+        type: string
+      build_type:
+        description: "Gradle build type (release or debug); defaults to release."
+        required: false
+        type: string
+        default: "release"
+
+permissions:
+  contents: read
+
+jobs:
+  prebuild:
+    name: Prebuild Resources & Java (${{ inputs.build_type }})
+    runs-on: ubuntu-26.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "24"
+
+      - name: Setup Kotlin
+        uses: fwilhe2/setup-kotlin@88d53291848568823e529973af5d0cdb8ddf8d87 # main
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          packages: ""
+
+      - name: Cache NDK
+        id: cache-ndk
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/30.0.14904198
+          key: ${{ runner.os }}-ndk-30.0.14904198-v2
+          restore-keys: |
+            ${{ runner.os }}-ndk-30.0.14904198-v2-
+
+      - name: Install NDK
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
+        run: sdkmanager "ndk;30.0.14904198"
+
+      - name: Configure local.properties
+        run: |
+          echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+          echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/30.0.14904198" >> local.properties
+
+      - name: Compile sources & generate resources
+        shell: bash
+        run: |
+          set -eu
+          chmod +x gradlew
+          build_type="${{ inputs.build_type }}"
+          cap_type="$(tr '[:lower:]' '[:upper:]' <<< "${build_type:0:1}")${build_type:1}"
+
+          # Prebuild all module resources, Kotlin, Java, and AAR packages before native build finishes.
+          # The Gradle local build-cache will capture all compiled classes, generated resources, and DEX components.
+          ./gradlew --no-daemon --build-cache \
+            -Pupdate.channel="${{ inputs.channel }}" \
+            compile${cap_type}Sources \
+            :pack:bundle${cap_type}Aar
+
+      - name: Upload Gradle build cache
+        uses: actions/upload-artifact@v7
+        with:
+          name: gradle-build-cache-${{ inputs.channel }}
+          path: /home/runner/.gradle/caches/build-cache-1
+          if-no-files-found: error
+          compression-level: 0

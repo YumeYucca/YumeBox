@@ -16,6 +16,15 @@ permissions:
   contents: read
 
 jobs:
+  # Prebuild Java/Kotlin & module resources in parallel with the native build jobs.
+  prebuild-modules-pr:
+    name: Prebuild Modules (PR)
+    uses: ./.github/workflows/reusable-prebuild-modules.yml
+    with:
+      channel: pr
+      build_type: debug
+    secrets: inherit
+
   build-geo-pr:
     name: Geo (PR)
     uses: ./.github/workflows/reusable-build-geo.yml
@@ -49,7 +58,9 @@ jobs:
   # number in the release tag) additionally identifies the build.
   build-apk-pr-app:
     name: APK (PR)
-    needs: bundle-native-pr
+    needs:
+      - bundle-native-pr
+      - prebuild-modules-pr
     uses: ./.github/workflows/reusable-build-apk-only.yml
     with:
       channel: pr
@@ -57,6 +68,7 @@ jobs:
       release_tag: pr-${{ github.event.pull_request.number }}
       meta_asset_name: YumeBox-pr-meta.json
       raw_apk_artifact_name: apk-raw-pr-app
+      build_type: debug
       build_hash: ${{ github.event.pull_request.head.sha }}
       build_branch: ${{ github.event.pull_request.head.ref }}
     secrets: inherit

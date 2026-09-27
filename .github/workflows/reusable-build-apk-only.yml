@@ -18,6 +18,11 @@ on:
       raw_apk_artifact_name:
         required: true
         type: string
+      build_type:
+        description: "Gradle build type (release or debug); defaults to release."
+        required: false
+        type: string
+        default: "release"
       build_hash:
         description: "Commit sha of the build; first 8 chars go into versionName (<base>[.<branch>].<hash8>)."
         required: false
@@ -31,16 +36,62 @@ on:
     outputs:
       apk_name_tail:
         description: "Tail used in Gradle's published APK file names; channel and PR builds use one Asia/Shanghai packaging date, stable builds use the clean version name."
-        value: ${{ jobs.build.outputs.apk_name_tail }}
+        value: ${{ jobs.prepare-build.outputs.apk_name_tail }}
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  prepare-build:
+    name: Prepare Build Meta
     runs-on: ubuntu-26.04
     outputs:
+      build_number: ${{ steps.build_number.outputs.value }}
       apk_name_tail: ${{ steps.apk_name.outputs.tail }}
+      channel_segment: ${{ steps.apk_name.outputs.channel_segment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Compute build number
+        id: build_number
+        shell: bash
+        run: echo "value=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Compute APK output name
+        id: apk_name
+        shell: bash
+        env:
+          BUILD_HASH: ${{ inputs.build_hash }}
+        run: |
+          set -eu
+          if [ -n "${BUILD_HASH}" ]; then
+            tail="$(TZ=Asia/Shanghai date +%y.%m.%d)"
+          else
+            tail="$(grep '^project.version.name=' gradle.properties | cut -d= -f2-)"
+          fi
+          case "${{ inputs.channel }}" in
+            pr) channel_segment="${{ inputs.channel }}" ;;
+            pre|stable) channel_segment="" ;;
+            *) echo "Unsupported APK output channel: ${{ inputs.channel }}" >&2; exit 1 ;;
+          esac
+          echo "tail=${tail}" >> "$GITHUB_OUTPUT"
+          echo "channel_segment=${channel_segment}" >> "$GITHUB_OUTPUT"
+
+  build-variant:
+    name: APK (${{ matrix.variant }})
+    needs: prepare-build
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: builtin
+            geo_bundle: "true"
+          - variant: external
+            geo_bundle: "false"
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
@@ -49,18 +100,6 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-
-      # Build number N = commit count of the built commit's parent chain. Computed here
-      # instead of taken from the caller so ci-channel, pull-request and release all share
-      # one versionCode formula: epoch (project.version.code in gradle.properties) + N.
-      # Requires the fetch-depth:0 checkout above - a shallow clone would count 1.
-      # Monotonic vs the retired ci-channel run_number scheme (commit count >= pushes >=
-      # run_number) and immune to workflow-file renames. reusable-prepare-publish.yml
-      # recomputes the same N from the same github.sha.
-      - name: Compute build number
-        id: build_number
-        shell: bash
-        run: echo "value=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -73,6 +112,13 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+
+      - name: Download prebuilt gradle build-cache
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: gradle-build-cache-${{ inputs.channel }}
+          path: /home/runner/.gradle/caches/build-cache-1
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
@@ -116,12 +162,15 @@ jobs:
           done
           # Core branch/hash stamp from the native job (About / BuildConfig.CORE_*).
           test -f "jniLibs/arm64-v8a/core-version.properties" || test -f "build/generated/core-version.properties"
-          test -f "build/generated/assets/geo/geoip.metadb.xz"
-          test -f "build/generated/assets/geo/geosite.dat.xz"
-          test -f "build/generated/assets/geo/ASN.mmdb.xz"
-          test ! -e "build/generated/assets/geo/BundleMRS.7z"
+          if [ "${{ matrix.geo_bundle }}" = "true" ]; then
+            test -f "build/generated/assets/geo/geoip.metadb.xz"
+            test -f "build/generated/assets/geo/geosite.dat.xz"
+            test -f "build/generated/assets/geo/ASN.mmdb.xz"
+            test ! -e "build/generated/assets/geo/BundleMRS.7z"
+          fi
 
       - name: Restore signing keystore
+        if: inputs.build_type == 'release'
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
         run: |
@@ -130,6 +179,7 @@ jobs:
           fi
 
       - name: Write signing config
+        if: inputs.build_type == 'release'
         run: |
           if [ -n "${{ secrets.SIGNING_STORE_PASSWORD }}" ]; then
             echo "keystore.password=${{ secrets.SIGNING_STORE_PASSWORD }}" > signing.properties
@@ -138,35 +188,18 @@ jobs:
             echo "keystore.path=release.keystore" >> signing.properties
           fi
 
-      - name: Compute APK output name
-        id: apk_name
+      - name: Assemble APK
         shell: bash
         env:
-          BUILD_HASH: ${{ inputs.build_hash }}
-        run: |
-          set -eu
-          if [ -n "${BUILD_HASH}" ]; then
-            tail="$(TZ=Asia/Shanghai date +%y.%m.%d)"
-          else
-            tail="$(grep '^project.version.name=' gradle.properties | cut -d= -f2-)"
-          fi
-          case "${{ inputs.channel }}" in
-            pr) channel_segment="${{ inputs.channel }}" ;;
-            pre|stable) channel_segment="" ;;
-            *) echo "Unsupported APK output channel: ${{ inputs.channel }}" >&2; exit 1 ;;
-          esac
-          echo "tail=${tail}" >> "$GITHUB_OUTPUT"
-          echo "channel_segment=${channel_segment}" >> "$GITHUB_OUTPUT"
-
-      - name: Build Release APKs (geo + nogeo)
-        shell: bash
-        env:
-          BUILD_NUMBER: ${{ steps.build_number.outputs.value }}
+          BUILD_NUMBER: ${{ needs.prepare-build.outputs.build_number }}
           BUILD_HASH: ${{ inputs.build_hash }}
           BUILD_BRANCH: ${{ inputs.build_branch }}
         run: |
           set -eu
           chmod +x gradlew
+          build_type="${{ inputs.build_type }}"
+          cap_type="$(tr '[:lower:]' '[:upper:]' <<< "${build_type:0:1}")${build_type:1}"
+
           common_args=(
             -Pupdate.channel="${{ inputs.channel }}"
             -Pupdate.tag="${{ inputs.release_tag }}"
@@ -174,40 +207,56 @@ jobs:
             -Pbuild.number="${BUILD_NUMBER}"
             -Pbuild.hash="${BUILD_HASH:0:8}"
             -Pbuild.branch="${BUILD_BRANCH}"
-            -Papk.output.tail="${{ steps.apk_name.outputs.tail }}"
-            -Papk.output.channel="${{ steps.apk_name.outputs.channel_segment }}"
+            -Papk.output.tail="${{ needs.prepare-build.outputs.apk_name_tail }}"
+            -Papk.output.channel="${{ needs.prepare-build.outputs.channel_segment }}"
+            -Pgeo.bundle="${{ matrix.geo_bundle }}"
           )
 
-          apk_output_dir="${{ inputs.module }}/build/outputs/apk/release"
+          apk_output_dir="${{ inputs.module }}/build/outputs/apk/${build_type}"
           shopt -s nullglob
           mkdir -p apk-stage
-          # Do not let a rerun or a second packaging pass reuse an APK left in either
-          # staging directory. Each pass must contribute exactly one named variant.
           rm -f apk-stage/*.apk "${apk_output_dir}"/*.apk
 
-          ./gradlew --no-daemon "${common_args[@]}" -Pgeo.bundle=true :${{ inputs.module }}:assembleRelease
-          builtin_apks=("${apk_output_dir}"/*-builtin-*.apk)
-          test "${#builtin_apks[@]}" -eq 1
-          cp "${builtin_apks[0]}" apk-stage/
+          ./gradlew --no-daemon --build-cache "${common_args[@]}" :${{ inputs.module }}:assemble${cap_type}
 
-          # AGP may leave the previous variant in its output directory when only a
-          # packaging property changes. Remove it before the external pass so a broad
-          # glob can never copy the builtin APK a second time.
-          rm -f "${apk_output_dir}"/*.apk
+          variant_name="${{ matrix.variant }}"
+          built_apks=("${apk_output_dir}"/*-${variant_name}-*.apk)
+          test "${#built_apks[@]}" -eq 1
+          cp "${built_apks[0]}" apk-stage/
 
-          # Second pass only re-merges assets and re-packages; compile and R8 stay
-          # up to date because geo.bundle feeds no compiler input (no BuildConfig field).
-          ./gradlew --no-daemon "${common_args[@]}" -Pgeo.bundle=false :${{ inputs.module }}:assembleRelease
-          external_apks=("${apk_output_dir}"/*-external-*.apk)
-          test "${#external_apks[@]}" -eq 1
-          cp "${external_apks[0]}" apk-stage/
+      - name: Upload variant APK artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.raw_apk_artifact_name }}-${{ matrix.variant }}
+          path: apk-stage/*.apk
+          if-no-files-found: error
+          compression-level: 0
+
+  aggregate-raw-apks:
+    name: Aggregate Raw APKs
+    needs:
+      - prepare-build
+      - build-variant
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Download builtin APK
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.raw_apk_artifact_name }}-builtin
+          path: apk-stage
+
+      - name: Download external APK
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.raw_apk_artifact_name }}-external
+          path: apk-stage
 
       - name: Verify staged APK matrix
         shell: bash
         run: |
           set -eu
-          tail="${{ steps.apk_name.outputs.tail }}"
-          channel_segment="${{ steps.apk_name.outputs.channel_segment }}"
+          tail="${{ needs.prepare-build.outputs.apk_name_tail }}"
+          channel_segment="${{ needs.prepare-build.outputs.channel_segment }}"
           channel_suffix="${channel_segment:+-${channel_segment}}"
           ls "apk-stage/YumeBox-external${channel_suffix}-${tail}.apk"
           ls "apk-stage/YumeBox-builtin${channel_suffix}-${tail}.apk"
@@ -223,7 +272,7 @@ jobs:
           - First-time users should choose `builtin` with bundled Geo data; both variants provide the same application features and core code.
           EOF
 
-      - name: Upload raw APK artifact
+      - name: Upload aggregated raw APK artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.raw_apk_artifact_name }}

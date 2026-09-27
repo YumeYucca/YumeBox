@@ -51,6 +51,16 @@ jobs:
           test -f kernel.properties
           ! rg -q 'channel: smart|kernel_channel: smart|YumeBox-smart' .github/workflows/ci-channel.yml
 
+  # Prebuild Java/Kotlin & module resources in parallel with the native build jobs.
+  prebuild-modules-pre:
+    name: "01 · Prebuild Modules (Pre)"
+    needs: validate-channel
+    uses: ./.github/workflows/reusable-prebuild-modules.yml
+    with:
+      channel: pre
+      build_type: release
+    secrets: inherit
+
   # Keep the channel and ABI as matrix inputs even while each has one supported value.
   # Adding a supported target later expands the graph without changing artifact wiring.
   build-geo-pre:
@@ -100,7 +110,9 @@ jobs:
 
   build-apk-pre-app:
     name: "05 · APK (Pre)"
-    needs: bundle-native-pre
+    needs:
+      - bundle-native-pre
+      - prebuild-modules-pre
     uses: ./.github/workflows/reusable-build-apk-only.yml
     with:
       channel: pre
@@ -108,6 +120,7 @@ jobs:
       release_tag: Pre-release
       meta_asset_name: YumeBox-pre-meta.json
       raw_apk_artifact_name: apk-raw-pre-app
+      build_type: release
       build_hash: ${{ github.sha }}
       build_branch: ${{ github.ref_name }}
     secrets: inherit
