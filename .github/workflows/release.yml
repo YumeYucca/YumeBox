@@ -32,6 +32,15 @@ permissions:
 # publish-release runs with prerelease=false -> generate_release_notes=false (empty body,
 # edited by hand afterwards) and make_latest=true (channel == 'stable').
 jobs:
+  # Prebuild Java/Kotlin & module resources in parallel with the native build jobs.
+  prebuild-modules-stable:
+    name: Prebuild Modules (Stable)
+    uses: ./.github/workflows/reusable-prebuild-modules.yml
+    with:
+      channel: stable
+      build_type: release
+    secrets: inherit
+
   build-geo-stable:
     name: Geo (Stable)
     uses: ./.github/workflows/reusable-build-geo.yml
@@ -60,7 +69,9 @@ jobs:
 
   build-apk-stable-app:
     name: APK (Stable)
-    needs: bundle-native-stable
+    needs:
+      - bundle-native-stable
+      - prebuild-modules-stable
     uses: ./.github/workflows/reusable-build-apk-only.yml
     with:
       channel: stable
@@ -68,6 +79,7 @@ jobs:
       release_tag: ${{ inputs.release_tag }}
       meta_asset_name: YumeBox-stable-meta.json
       raw_apk_artifact_name: apk-raw-stable-app
+      build_type: release
     secrets: inherit
 
   prepare-publish-stable-app:

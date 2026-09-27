@@ -1,7 +1,7 @@
 name: Cleanup Artifacts
 
 # Deletes this run's intermediate artifacts (native libs, geo payloads, raw
-# APK stages) once the pipeline has succeeded, keeping only the user-facing
+# APK stages, prebuild gradle caches) once the pipeline has succeeded, keeping only the user-facing
 # APK artifacts (publish-* aggregates and per-ABI installers). Callers wire
 # it behind their terminal jobs, so a failed run keeps everything for
 # debugging and job re-runs.
@@ -22,7 +22,7 @@ jobs:
         run: |
           set -eu
           ids=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate \
-            --jq '.artifacts[] | select(.name | startswith("native-") or startswith("apk-raw-")) | .id')
+            --jq '.artifacts[] | select(.name | startswith("native-") or startswith("apk-raw-") or startswith("gradle-build-cache-")) | .id')
           if [ -z "${ids}" ]; then
             echo "No intermediate artifacts to delete."
             exit 0
