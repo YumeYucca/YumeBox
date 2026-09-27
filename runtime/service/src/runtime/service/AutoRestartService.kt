@@ -35,7 +35,6 @@ import com.github.yumeyucca.yumebox.core.util.AutoStartSessionGate
 import com.github.yumeyucca.yumebox.core.util.StartupTaskCoordinator
 import com.github.yumeyucca.yumebox.data.model.RunMode
 import com.github.yumeyucca.yumebox.data.store.*
-import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
 import com.github.yumeyucca.yumebox.runtime.api.RuntimePhase
 import com.github.yumeyucca.yumebox.runtime.api.RuntimeStartSource
@@ -120,19 +119,13 @@ class AutoRestartService : Service() {
         if (!foregroundStarted.compareAndSet(false, true)) return
 
         createNotificationChannel()
-        val notification = createNotification()
-        val foregroundFlags =
-            when {
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE ->
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-
-                else -> 0
+        val type =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            } else {
+                0
             }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, foregroundFlags)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
-        }
+        ServiceCompat.startForeground(this, NOTIFICATION_ID, createNotification(), type)
     }
 
     private suspend fun checkAndAutoStart(reason: String) {
@@ -155,19 +148,15 @@ class AutoRestartService : Service() {
             return
         }
         StartupTaskCoordinator.awaitWarmup()
-        val skipUpdateOnPostUpdateColdStart = featureStore.consumePostUpdateColdStartPending()
+        // This background start is the post-update cold start; the next UI launch must not skip.
+        // Boot and replace starts never auto-update the profile: the network may not be up yet.
+        featureStore.consumePostUpdateColdStartPending()
 
         val activeProfile = profileManager.queryActive()
         if (activeProfile == null) {
             Timber.tag(TAG).w("No active profile for auto start")
             return
         }
-
-        tryUpdateActiveProfileOnStart(
-            activeProfile = activeProfile,
-            reason = reason,
-            skipForPostUpdateColdStart = skipUpdateOnPostUpdateColdStart,
-        )
 
         val runMode = networkSettingsStorage.runMode.value
         // A restart against an already-active runtime would tear down the live core.
@@ -203,52 +192,6 @@ class AutoRestartService : Service() {
             log.i(RuntimeLog.Type.AutoStart, "success: running reason=$reason mode=$runMode")
             Timber.tag(TAG)
                 .i("Auto start active: reason=$reason profile=${activeProfile.name}, mode=$runMode")
-        }
-    }
-
-    @Suppress("TooGenericExceptionCaught")
-    private suspend fun tryUpdateActiveProfileOnStart(
-        activeProfile: Profile,
-        reason: String,
-        skipForPostUpdateColdStart: Boolean,
-    ) {
-        when (
-            AutoStartUpdatePolicy.decide(
-                autoUpdateEnabled = appSettingsStorage.autoUpdateCurrentProfileOnStart.value,
-                activeProfile = activeProfile,
-                skipForPostUpdateColdStart = skipForPostUpdateColdStart,
-                startupReason = reason,
-                coldStartReasons = setOf(REASON_BOOT_COMPLETED, REASON_PACKAGE_REPLACED),
-            )
-        ) {
-            AutoStartUpdatePolicy.Decision.Proceed -> Unit
-            AutoStartUpdatePolicy.Decision.AutoUpdateDisabled -> return
-            AutoStartUpdatePolicy.Decision.SkipPostUpdateColdStart -> {
-                Timber.tag(TAG).d("Skip auto update: post-update cold-start marker consumed")
-                return
-            }
-
-            AutoStartUpdatePolicy.Decision.SkipColdStartReason -> {
-                Timber.tag(TAG).d("Skip auto update on cold-start reason=$reason")
-                return
-            }
-
-            AutoStartUpdatePolicy.Decision.UnsupportedProfileType -> {
-                Timber.tag(TAG)
-                    .d("Skip boot update: unsupported profile type=${activeProfile.type}")
-                return
-            }
-
-            AutoStartUpdatePolicy.Decision.NoActiveProfile -> return
-        }
-
-        try {
-            profileManager.update(activeProfile.uuid, null)
-            Timber.tag(TAG).i("Boot update ok: ${activeProfile.uuid}")
-        } catch (error: Exception) {
-            // fault barrier: best-effort boot update goes through the core fetch bridge; any
-            // failure must not block the auto restart itself.
-            Timber.tag(TAG).w(error, "Boot update failed")
         }
     }
 

@@ -18,8 +18,6 @@
  *
  */
 
-@file:Suppress("KotlinConstantConditions")
-
 package com.github.yumeyucca.yumebox.runtime.service
 
 import android.annotation.SuppressLint
@@ -88,19 +86,19 @@ class ProxyTileService : TileService() {
 
         toggleJob = scope.launch {
             if (RemoteControllerStore.isActive()) {
-                updateTileState(true)
+                showTile(active = true, YumeTxt.Service.Tile.ClickToStopProxy)
                 return@launch
             }
             try {
                 if (state.phase.isActiveOrStopping) {
                     AutoStartSessionGate.markManualPaused()
-                    updateTilePendingState(isStarting = false)
+                    showTile(active = true, YumeTxt.Service.Tile.Disconnecting)
                     RuntimeCoordinator.stop()
                 } else {
                     startFromTile()
                 }
             } catch (error: VpnPermissionRequired) {
-                updateTileInactiveState(subtitle = YumeTxt.Service.Tile.ClickToOpen)
+                showTile(active = false, YumeTxt.Service.Tile.ClickToOpen)
                 error.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivityAndCollapseCompat(error.intent, requestCode = 1002)
             } catch (error: CancellationException) {
@@ -118,7 +116,7 @@ class ProxyTileService : TileService() {
     private suspend fun startFromTile() {
         val activeProfile = withContext(Dispatchers.IO) { profileManager.queryActive() }
         if (activeProfile == null) {
-            updateTileInactiveState(subtitle = YumeTxt.Service.Tile.ClickToOpen)
+            showTile(active = false, YumeTxt.Service.Tile.ClickToOpen)
             val intent =
                 Intent(Intent.ACTION_MAIN).apply {
                     component = Components.MAIN_ACTIVITY
@@ -127,67 +125,25 @@ class ProxyTileService : TileService() {
             startActivityAndCollapseCompat(intent, requestCode = 1001)
             return
         }
-        updateTilePendingState(isStarting = true)
+        showTile(active = false, YumeTxt.Service.Tile.Connecting)
         RuntimeCoordinator.start(networkSettingsStorage.runMode.value, RuntimeStartSource.Tile)
     }
 
     private fun render(state: RuntimeState) {
         when (state.phase) {
-            RuntimePhase.Starting -> updateTilePendingState(isStarting = true)
-            RuntimePhase.Stopping -> updateTilePendingState(isStarting = false)
-            RuntimePhase.Running -> updateTileState(true)
+            RuntimePhase.Starting -> showTile(active = false, YumeTxt.Service.Tile.Connecting)
+            RuntimePhase.Stopping -> showTile(active = true, YumeTxt.Service.Tile.Disconnecting)
+            RuntimePhase.Running -> showTile(active = true, YumeTxt.Service.Tile.ClickToStopProxy)
             RuntimePhase.Idle,
-            RuntimePhase.Failed -> updateTileState(false)
+            RuntimePhase.Failed -> showTile(active = false, YumeTxt.Service.Tile.ClickToStartProxy)
         }
     }
 
-    private fun updateTileState(isRunning: Boolean) {
+    private fun showTile(active: Boolean, subtitle: String) {
         val tile = qsTile ?: return
-        tile.state = if (isRunning) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-
+        tile.state = if (active) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
         tile.label = tileLabelText
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle =
-                if (isRunning) {
-                    YumeTxt.Service.Tile.ClickToStopProxy
-                } else {
-                    YumeTxt.Service.Tile.ClickToStartProxy
-                }
-        }
-
-        tile.icon = Icon.createWithResource(this, ServiceLogoIcons.resId())
-
-        tile.updateTile()
-    }
-
-    private fun updateTilePendingState(isStarting: Boolean) {
-        val tile = qsTile ?: return
-        tile.state = if (isStarting) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
-        tile.label = tileLabelText
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle =
-                if (isStarting) {
-                    YumeTxt.Service.Tile.Connecting
-                } else {
-                    YumeTxt.Service.Tile.Disconnecting
-                }
-        }
-
-        tile.icon = Icon.createWithResource(this, ServiceLogoIcons.resId())
-        tile.updateTile()
-    }
-
-    private fun updateTileInactiveState(subtitle: String) {
-        val tile = qsTile ?: return
-        tile.state = Tile.STATE_INACTIVE
-        tile.label = tileLabelText
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle = subtitle
-        }
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tile.subtitle = subtitle
         tile.icon = Icon.createWithResource(this, ServiceLogoIcons.resId())
         tile.updateTile()
     }

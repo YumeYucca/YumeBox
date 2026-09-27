@@ -29,7 +29,6 @@ import com.github.yumeyucca.yumebox.core.util.AutoStartSessionGate
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.runtime.service.RuntimeCoordinator
 import com.github.yumeyucca.yumebox.runtime.service.util.AutoStartExecutionGate
-import com.github.yumeyucca.yumebox.runtime.service.util.AutoStartUpdatePolicy
 import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 
@@ -104,35 +103,12 @@ object ProxyAutoStartHelper {
     context(deps: AutoStartDependencies)
     @Suppress("TooGenericExceptionCaught")
     private suspend fun tryUpdateActiveProfileOnStart(activeProfile: Profile?) {
-        when (
-            AutoStartUpdatePolicy.decide(
-                autoUpdateEnabled = deps.appSettingsStorage.autoUpdateCurrentProfileOnStart.value,
-                activeProfile = activeProfile,
-                skipForPostUpdateColdStart = false,
-            )
-        ) {
-            AutoStartUpdatePolicy.Decision.Proceed -> Unit
-            AutoStartUpdatePolicy.Decision.AutoUpdateDisabled -> return
-            AutoStartUpdatePolicy.Decision.SkipPostUpdateColdStart -> {
-                Timber.tag(TAG).d("Skip auto update: post-update cold-start marker consumed")
-                return
-            }
-
-            AutoStartUpdatePolicy.Decision.NoActiveProfile -> {
-                Timber.tag(TAG).d("Skip auto update: no active profile")
-                return
-            }
-
-            AutoStartUpdatePolicy.Decision.UnsupportedProfileType -> {
-                Timber.tag(TAG)
-                    .d("Skip auto update: unsupported profile type=${activeProfile?.type}")
-                return
-            }
-
-            AutoStartUpdatePolicy.Decision.SkipColdStartReason -> return
-        }
-
+        if (!deps.appSettingsStorage.autoUpdateCurrentProfileOnStart.value) return
         val target = activeProfile ?: return
+        if (target.type != Profile.Type.Url) {
+            Timber.tag(TAG).d("Skip auto update: unsupported profile type=${target.type}")
+            return
+        }
         try {
             deps.profilesRepository.updateProfile(target.uuid)
             Timber.tag(TAG).i("Auto update on start ok: ${target.uuid}")

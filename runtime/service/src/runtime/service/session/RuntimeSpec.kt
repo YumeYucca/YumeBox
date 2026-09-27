@@ -22,24 +22,17 @@ package com.github.yumeyucca.yumebox.runtime.service.session
 
 import com.github.yumeyucca.yumebox.core.model.OverrideSpec
 import com.github.yumeyucca.yumebox.core.model.RunMode
-import com.github.yumeyucca.yumebox.core.model.TunConfig
-import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
-import kotlinx.serialization.Serializable
 
-@Serializable
 data class RuntimeSpec(
-    val owner: RuntimeOwner,
     val profileUuid: String,
     val profileName: String,
     val profileDir: String,
-    val runtimeConfigPath: String = "",
-    val ageSecretKey: String? = null,
-    val overrideSpecs: List<OverrideSpec> = emptyList(),
-    val runMode: RunMode = RunMode.VpnService,
-    val skipRuntimePatches: Boolean = false,
+    val ageSecretKey: String?,
+    val overrideSpecs: List<OverrideSpec>,
+    val runMode: RunMode,
+    val skipRuntimePatches: Boolean,
     /** Compiles an inspect-only core configuration; never expose this as a user run mode. */
-    val preview: Boolean = false,
-    val tunConfig: TunConfig? = null,
+    val preview: Boolean,
 )
 
 /** A spec together with its one compile result; everything downstream reuses this YAML. */

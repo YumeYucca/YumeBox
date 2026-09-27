@@ -40,14 +40,12 @@ internal class VpnSession(service: VpnService) {
     private val transport = VpnTunTransport(service)
     private val log = RuntimeLog.writer(context, RuntimeLog.Source.LocalTun)
 
-    @Volatile
-    var loaded: LoadedRuntime? = null
-        private set
+    @Volatile private var loaded: LoadedRuntime? = null
 
     suspend fun start(spec: RuntimeSpec) {
         val startedAt = SystemClock.elapsedRealtime()
         log.i(RuntimeLog.Type.Session, "start begin profile=${spec.profileName}")
-        val runtime = load(spec)
+        val runtime = LoadedRuntime(spec, pipeline.compile(spec).finalYaml)
         log.i(RuntimeLog.Type.Session, "compiled elapsedMs=${elapsedSince(startedAt)}")
         launch(runtime)
         log.i(RuntimeLog.Type.Session, "success: started elapsedMs=${elapsedSince(startedAt)}")
@@ -61,7 +59,7 @@ internal class VpnSession(service: VpnService) {
     suspend fun reload(spec: RuntimeSpec) {
         val previous = checkNotNull(loaded) { "runtime not started" }
         log.i(RuntimeLog.Type.Reload, "begin profile=${spec.profileName}")
-        val runtime = load(spec)
+        val runtime = LoadedRuntime(spec, pipeline.compile(spec).finalYaml)
         try {
             launch(runtime)
         } catch (error: CancellationException) {
@@ -80,9 +78,6 @@ internal class VpnSession(service: VpnService) {
         runCatching { transport.stop() }
             .onFailure { error -> log.e(RuntimeLog.Type.Session, "stop failed", error) }
     }
-
-    private suspend fun load(spec: RuntimeSpec): LoadedRuntime =
-        LoadedRuntime(spec, pipeline.compile(spec))
 
     private suspend fun launch(runtime: LoadedRuntime) {
         withContext(Dispatchers.IO) { transport.start(runtime) }

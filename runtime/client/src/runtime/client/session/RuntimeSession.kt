@@ -50,17 +50,10 @@ import timber.log.Timber
  * [RuntimeRemoteSwitch].
  */
 internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
-    private val scope
-        get() = deps.scope
-
-    private val control
-        get() = deps.control
-
-    private val networkSettingsStorage
-        get() = deps.networkSettingsStorage
-
-    private val remoteControllerStore
-        get() = deps.remoteControllerStore
+    private val scope = deps.scope
+    private val control = deps.control
+    private val networkSettingsStorage = deps.networkSettingsStorage
+    private val remoteControllerStore = deps.remoteControllerStore
 
     private companion object {
         const val TRAFFIC_TOTAL_POLL_TICKS = 10
@@ -157,15 +150,11 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
     fun snapshotValue(): RuntimeSnapshot = _runtimeSnapshot.value
 
     private fun publishSnapshot(snapshot: RuntimeSnapshot) {
-        val normalized = snapshot.copy(running = snapshot.phase.running)
-        _runtimeSnapshot.value = normalized
-        _isRunning.value = normalized.running
+        _runtimeSnapshot.value = snapshot
+        _isRunning.value = snapshot.running
     }
 
-    private fun nextGeneration(): Long {
-        generationCounter += 1L
-        return generationCounter
-    }
+    private fun nextGeneration(): Long = ++generationCounter
 
     fun startTrafficPolling() {
         if (AppVisibilityTracker.isForeground.value) {
@@ -184,7 +173,8 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
         _trafficTotal.value = 0L
     }
 
-    fun updateProfileReady(profile: Profile?) {
+    fun setCurrentProfile(profile: Profile?) {
+        _currentProfile.value = profile
         val snapshot = _runtimeSnapshot.value
         publishSnapshot(
             snapshot.copy(
@@ -288,8 +278,6 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
         }
     }
 
-    suspend fun reconcileAndRefresh() = reconcile(refreshPayload = true)
-
     /** Idle config edits change what the preview shows; running ones arrive as a reload. */
     private suspend fun onConfigChanged() {
         if (isRemoteControllerActive() || control.state.value.active) return
@@ -343,38 +331,20 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
         return !control.state.value.active
     }
 
-    suspend fun queryTrafficTotal(query: suspend () -> Long): Long {
+    suspend fun queryTrafficTotal(query: suspend () -> Long): Long = queryTraffic(_trafficTotal, query)
+
+    suspend fun queryTrafficNow(query: suspend () -> Long): Long = queryTraffic(_trafficNow, query)
+
+    /** Reads 0 without touching the core while nothing is running. */
+    private suspend fun queryTraffic(target: MutableStateFlow<Long>, query: suspend () -> Long): Long {
         if (!_runtimeSnapshot.value.running) {
-            _trafficTotal.value = 0L
+            target.value = 0L
             return 0L
         }
         val traffic = query()
-        _trafficTotal.value = traffic
+        target.value = traffic
         updateTrafficReady()
         return traffic
-    }
-
-    suspend fun queryTrafficNow(query: suspend () -> Long): Long {
-        if (!_runtimeSnapshot.value.running) {
-            _trafficNow.value = 0L
-            return 0L
-        }
-        val traffic = query()
-        _trafficNow.value = traffic
-        updateTrafficReady()
-        return traffic
-    }
-
-    fun setCurrentProfile(profile: Profile?) {
-        _currentProfile.value = profile
-    }
-
-    fun setTrafficNow(value: Long) {
-        _trafficNow.value = value
-    }
-
-    fun setTrafficTotal(value: Long) {
-        _trafficTotal.value = value
     }
 
     suspend fun connectBackend() {

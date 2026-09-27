@@ -20,10 +20,7 @@
 
 @file:UseSerializers(UUIDSerializer::class)
 
-@file:Suppress("UnusedSymbol")
-
 package com.github.yumeyucca.yumebox.runtime.service.profile
-
 
 import com.github.yumeyucca.yumebox.runtime.api.UUIDSerializer
 import com.tencent.mmkv.MMKV
@@ -46,7 +43,7 @@ object ProfileStore {
 
     fun saveImported(list: List<Imported>) {
         val jsonString = json.encodeToString(ListSerializer(Imported.serializer()), list)
-        mmkv.encode("imported", jsonString)
+        mmkv.encode(IMPORTED_KEY, jsonString)
     }
 
     fun loadImported(): List<Imported> {
@@ -62,7 +59,7 @@ object ProfileStore {
 
     fun saveProfileOrder(order: List<UUID>) {
         val jsonString = json.encodeToString(ListSerializer(UUIDSerializer()), order)
-        mmkv.encode("profile_order", jsonString)
+        mmkv.encode(PROFILE_ORDER_KEY, jsonString)
     }
 
     fun loadProfileOrder(): List<UUID> {
@@ -74,12 +71,5 @@ object ProfileStore {
         } catch (error: IllegalArgumentException) {
             emptyList()
         }
-    }
-
-    fun countStoredKeys(): Int {
-        var count = 0
-        if (mmkv.decodeString(IMPORTED_KEY) != null) count++
-        if (mmkv.decodeString(PROFILE_ORDER_KEY) != null) count++
-        return count
     }
 }

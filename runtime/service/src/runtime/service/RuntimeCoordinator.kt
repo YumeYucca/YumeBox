@@ -42,6 +42,7 @@ import com.github.yumeyucca.yumebox.runtime.api.RuntimeState
 import com.github.yumeyucca.yumebox.runtime.api.VpnPermissionRequired
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
 import com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess
+import com.github.yumeyucca.yumebox.runtime.service.core.RootDaemonProbe
 import com.github.yumeyucca.yumebox.runtime.service.core.RootDaemonState
 import com.github.yumeyucca.yumebox.runtime.service.log.RuntimeLog
 import com.github.yumeyucca.yumebox.runtime.service.session.ConnectionTracker
@@ -300,7 +301,7 @@ object RuntimeCoordinator : RuntimeControl {
         previous: RuntimeState,
         lastError: String?,
     ): Boolean {
-        if (!swapsRoot || !withContext(Dispatchers.IO) { CoreProcess.isTrackedRootProcessAlive() }) {
+        if (!swapsRoot || !withContext(Dispatchers.IO) { RootDaemonProbe.trackedAlive() }) {
             return false
         }
         publish(
@@ -405,7 +406,7 @@ object RuntimeCoordinator : RuntimeControl {
             when (current.owner) {
                 RuntimeOwner.VpnService -> CoreProcess.isLocalCoreAlive()
                 RuntimeOwner.RootDaemon ->
-                    withContext(Dispatchers.IO) { CoreProcess.isRootDaemonAlive() }
+                    withContext(Dispatchers.IO) { RootDaemonProbe.isAlive() }
                 else -> true
             }
         if (alive) return

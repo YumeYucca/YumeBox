@@ -51,20 +51,10 @@ internal class RuntimeRemoteSwitch(
     private val stopTrafficPolling: () -> Unit,
     private val connectBackend: suspend () -> Unit,
 ) {
-    private val scope
-        get() = deps.scope
-
-    private val store
-        get() = deps.remoteControllerStore
-
-    private val control
-        get() = deps.control
-
-    private val probe
-        get() = deps.probeRemote
-
-    private fun configuredMode(): RunMode = deps.networkSettingsStorage.runMode.value
-
+    private val scope = deps.scope
+    private val store = deps.remoteControllerStore
+    private val control = deps.control
+    private val probe = deps.probeRemote
     private val mutex = Mutex()
     private var probeJob: Job? = null
     private var refreshJob: Job? = null
@@ -107,9 +97,7 @@ internal class RuntimeRemoteSwitch(
             attach(refresh)
             return
         }
-        val holding =
-            store.controllerAttached.value || snapshot().owner == RuntimeOwner.RemoteController
-        if (!holding) return
+        if (!isHolding()) return
         unreachableStreak += 1
         if (unreachableStreak < DETACH_AFTER_MISSES) return
         unreachableStreak = 0
@@ -160,12 +148,11 @@ internal class RuntimeRemoteSwitch(
         }
     }
 
+    private fun isHolding(): Boolean =
+        store.controllerAttached.value || snapshot().owner == RuntimeOwner.RemoteController
+
     private suspend fun detachIfHolding() {
-        if (store.controllerAttached.value ||
-                snapshot().owner == RuntimeOwner.RemoteController
-        ) {
-            detach()
-        }
+        if (isHolding()) detach()
     }
 
     private suspend fun detach() {
@@ -173,11 +160,12 @@ internal class RuntimeRemoteSwitch(
         refreshJob = null
         store.controllerAttached.set(false)
         stopTrafficPolling()
-        val paused = store.takePausedLocal()?.toTypedOrNull()
+        val paused = store.takePausedLocal()
+        val pausedMode = paused?.resumableMode()
         if (snapshot().owner == RuntimeOwner.RemoteController) {
             reconcile()
         }
-        if (paused == null) {
+        if (pausedMode == null) {
             refreshJob = scope.launch {
                 if (snapshot().phase == RuntimePhase.Running) {
                     deps.onAfterRunning()
@@ -188,9 +176,9 @@ internal class RuntimeRemoteSwitch(
             return
         }
         Timber.i(
-            "Controller fallback: resuming local runtime owner=${paused.owner} mode=${paused.mode}"
+            "Controller fallback: resuming local runtime owner=${paused?.ownerName} mode=$pausedMode"
         )
-        runCatching { startLocal(paused.mode) }
+        runCatching { startLocal(pausedMode) }
             .onFailure { error ->
                 if (error is CancellationException) throw error
                 Timber.w(error, "Failed to resume local runtime after controller fallback")
@@ -206,7 +194,7 @@ internal class RuntimeRemoteSwitch(
             ) {
                 return
             }
-            val mode = state.mode ?: configuredMode()
+            val mode = state.mode ?: deps.networkSettingsStorage.runMode.value
             store.rememberPausedLocal(owner.name, mode.name)
             Timber.i("Controller switch: pausing local runtime owner=$owner mode=$mode")
             control.stop()
@@ -218,20 +206,11 @@ internal class RuntimeRemoteSwitch(
             }
     }
 
-    private data class TypedPausedLocal(
-        val owner: RuntimeOwner,
-        val mode: RunMode,
-    )
-
-    private fun PausedLocalRuntime.toTypedOrNull(): TypedPausedLocal? {
-        val owner = enumByNameOrNull<RuntimeOwner>(ownerName) ?: return null
-        val mode = enumByNameOrNull<RunMode>(modeName) ?: return null
-        return when (owner) {
-            RuntimeOwner.VpnService,
-            RuntimeOwner.RootDaemon -> TypedPausedLocal(owner, mode)
-            RuntimeOwner.RemoteController,
-            RuntimeOwner.None -> null
-        }
+    /** Only a paused local core (VPN or root) is resumed. */
+    private fun PausedLocalRuntime.resumableMode(): RunMode? {
+        val owner = enumByNameOrNull<RuntimeOwner>(ownerName)
+        if (owner != RuntimeOwner.VpnService && owner != RuntimeOwner.RootDaemon) return null
+        return enumByNameOrNull<RunMode>(modeName)
     }
 
     private companion object {

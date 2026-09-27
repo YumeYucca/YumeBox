@@ -25,7 +25,6 @@ import com.github.yumeyucca.yumebox.core.model.RunMode
 import com.github.yumeyucca.yumebox.core.model.TunConfig
 import com.github.yumeyucca.yumebox.data.store.MMKVProvider
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
-import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
 import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
 import com.github.yumeyucca.yumebox.runtime.service.config.AccessControlMode
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
@@ -44,18 +43,14 @@ class SessionRuntimeSpecFactory(
         NetworkSettingsStore(MMKVProvider().getMMKV("network_settings"))
     }
 
-    fun createVpnSpec(): RuntimeSpec = createSpec(RuntimeOwner.VpnService, RunMode.VpnService)
+    fun createVpnSpec(): RuntimeSpec = createSpec(RunMode.VpnService)
 
-    fun createRootSpec(runMode: RunMode): RuntimeSpec = createSpec(RuntimeOwner.RootDaemon, runMode)
+    fun createRootSpec(runMode: RunMode): RuntimeSpec = createSpec(runMode)
 
     /** A local, no-TUN core used only to materialize proxy-group state while the app is foregrounded. */
-    fun createPreviewSpec(): RuntimeSpec = createSpec(RuntimeOwner.VpnService, RunMode.VpnService, preview = true)
+    fun createPreviewSpec(): RuntimeSpec = createSpec(RunMode.VpnService, preview = true)
 
-    private fun createSpec(
-        owner: RuntimeOwner,
-        runMode: RunMode,
-        preview: Boolean = false,
-    ): RuntimeSpec {
+    private fun createSpec(runMode: RunMode, preview: Boolean = false): RuntimeSpec {
         val profile = requireActiveProfile()
         val profileDir = context.importedDir.resolve(profile.uuid.toString())
         val disableAllUserOverrides = networkSettings.disableAllOverride.value
@@ -88,20 +83,16 @@ class SessionRuntimeSpecFactory(
         val overrideSpecs =
             if (runMode == RunMode.Ebpf) modeOverrides
             else modeOverrides + GlobalUaOverride.materialize(profileDir)
-        val ageSecretKey = normalizeAgeSecretKey(profile.ageSecretKey)
         return RuntimeSpec(
-            owner = owner,
             profileUuid = profile.uuid.toString(),
             profileName = profile.name,
             profileDir = profileDir.absolutePath,
-            runtimeConfigPath = profileDir.resolve("runtime.yaml").absolutePath,
-            ageSecretKey = ageSecretKey,
+            ageSecretKey = profile.ageSecretKey?.trim()?.takeIf { it.isNotEmpty() },
             overrideSpecs = overrideSpecs,
             runMode = runMode,
             // eBPF keeps the profile authoritative; Root Tun only skips patches for disable-all.
             skipRuntimePatches = skipRuntimePatches,
             preview = preview,
-            tunConfig = tunConfig,
         )
     }
 
@@ -187,7 +178,4 @@ class SessionRuntimeSpecFactory(
         return ImportedDao.queryByUUID(profileId)
             ?: error("Active profile metadata not found: $profileId")
     }
-
-    private fun normalizeAgeSecretKey(value: String?): String? =
-        value?.trim()?.takeIf { it.isNotEmpty() }
 }

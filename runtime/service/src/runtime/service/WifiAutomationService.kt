@@ -16,7 +16,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.VpnService
-import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -173,16 +172,13 @@ class WifiAutomationService : Service() {
     }
 
     private fun startForegroundNotification() {
-        val manager = getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            manager.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    getString(R.string.wifi_automation_channel_name),
-                    NotificationManager.IMPORTANCE_LOW,
-                )
+        getSystemService(NotificationManager::class.java).createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                getString(R.string.wifi_automation_channel_name),
+                NotificationManager.IMPORTANCE_LOW,
             )
-        }
+        )
         val notification =
             NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_logo_service)
@@ -190,15 +186,12 @@ class WifiAutomationService : Service() {
                 .setContentText(getString(R.string.wifi_automation_notification_text))
                 .setOngoing(true)
                 .build()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
-        }
+        ServiceCompat.startForeground(
+            this,
+            NOTIFICATION_ID,
+            notification,
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
+        )
     }
 
     companion object {
@@ -219,6 +212,5 @@ class WifiAutomationService : Service() {
             val appContext = context.appContextOrSelf
             appContext.stopService(Intent(appContext, WifiAutomationService::class.java))
         }
-
     }
 }

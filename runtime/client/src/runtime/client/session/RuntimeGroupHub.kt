@@ -27,9 +27,8 @@ import com.github.yumeyucca.yumebox.domain.model.ProxyDelayPublishCoalescer
 import com.github.yumeyucca.yumebox.domain.model.ProxyDelayTestProgressCallback
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.runProxyGroupDelayTests
-import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
-import com.github.yumeyucca.yumebox.runtime.api.RuntimePhase
 import com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess
+import com.github.yumeyucca.yumebox.runtime.client.servesNodes
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -49,7 +48,7 @@ internal class RuntimeGroupHub(
 
     private val groupStore =
         ProxyGroupStore(
-            isRuntimeRunning = { session.snapshotValue().phase == RuntimePhase.Running },
+            isRuntimeRunning = { session.snapshotValue().running },
             onGroupsReady = { ready -> session.updateGroupsReady(ready) },
         )
     private val refreshMutex = Mutex()
@@ -111,46 +110,14 @@ internal class RuntimeGroupHub(
         }
     }
 
-    suspend fun healthCheck(
-        group: String,
-        onProgress: ProxyDelayTestProgressCallback? = null,
-    ) {
+    suspend fun healthCheck(group: String, onProgress: ProxyDelayTestProgressCallback? = null) {
         Timber.d("Health check request: group=%s", group)
-        val context = delayTestMutex.withLock { currentDelayTestContext() } ?: return
-        val success =
-            delayPublish.session(
-                flush = { delays -> publishDirectDelaysImmediate(context.epoch, delays) },
-            ) {
-                runGroupDelayTests(context, listOf(group), onProgress)
-            }
-        if (success && isCurrentEpoch(context.epoch)) {
-            Timber.d("Health check completed: group=%s", group)
-            scheduleGroupsRefresh(
-                delayMillis = PollingTimerSpecs.ProxyHealthcheckRefresh.intervalMillis,
-                epoch = context.epoch,
-            )
-        }
+        runDelayTests(onProgress) { listOf(group) }
     }
 
     suspend fun healthCheckAll(onProgress: ProxyDelayTestProgressCallback? = null) {
         Timber.d("Health check all request")
-        val context = delayTestMutex.withLock { currentDelayTestContext() } ?: return
-        val success =
-            delayPublish.session(
-                flush = { delays -> publishDirectDelaysImmediate(context.epoch, delays) },
-            ) {
-                runGroupDelayTests(
-                    context,
-                    context.groups.map(ProxyGroupInfo::name),
-                    onProgress,
-                )
-            }
-        if (success && isCurrentEpoch(context.epoch)) {
-            scheduleGroupsRefresh(
-                delayMillis = PollingTimerSpecs.ProxyHealthcheckRefresh.intervalMillis,
-                epoch = context.epoch,
-            )
-        }
+        runDelayTests(onProgress) { groups -> groups.map(ProxyGroupInfo::name) }
     }
 
     suspend fun healthCheckProxy(group: String, proxyName: String): Int {
@@ -163,12 +130,7 @@ internal class RuntimeGroupHub(
                 result
             }
         Timber.d("Health check proxy done: group=%s proxy=%s delay=%s", group, proxyName, delay)
-        if (isCurrentEpoch(epoch)) {
-            scheduleGroupsRefresh(
-                delayMillis = PollingTimerSpecs.ProxyHealthcheckRefresh.intervalMillis,
-                epoch = epoch,
-            )
-        }
+        scheduleHealthcheckRefresh(epoch)
         return delay
     }
 
@@ -184,9 +146,7 @@ internal class RuntimeGroupHub(
                         if (!snapshot.running) {
                             return@runCatching queryPreviewProxyGroups()
                         }
-                        coreOps
-                            .queryAllProxyGroups(excludeNotSelectable = false)
-                            .map(groupStore::toInfo)
+                        queryGroups()
                         }
                         .getOrElse { error ->
                             if (error is CancellationException) throw error
@@ -243,14 +203,7 @@ internal class RuntimeGroupHub(
     }
 
     suspend fun refreshSafely() {
-        if (delayPublish.isActive) return
-        val snapshot = session.snapshotValue()
-        if (
-            snapshot.phase != RuntimePhase.Running &&
-                snapshot.owner != RuntimeOwner.RemoteController
-        ) {
-            return
-        }
+        if (delayPublish.isActive || !session.snapshotValue().servesNodes) return
         runCatching { refreshProxyGroups() }
             .onFailure { error ->
                 if (error is CancellationException) throw error
@@ -285,30 +238,39 @@ internal class RuntimeGroupHub(
         }
     }
 
-    private suspend fun runGroupDelayTests(
-        context: DelayTestContext,
-        groupNames: List<String>,
+    private suspend fun runDelayTests(
         onProgress: ProxyDelayTestProgressCallback?,
-    ): Boolean =
-        runProxyGroupDelayTests(
-            groupNames = groupNames,
-            proxiesByGroup = context.proxiesByGroup,
-            isActive = { isCurrentEpoch(context.epoch) },
-            measureProxy = { groupName, proxyName -> coreOps.healthCheckProxy(groupName, proxyName) },
-            measureGroup = { groupName -> coreOps.healthCheck(groupName) },
-            publish = { delays -> publishDirectDelays(context.epoch, delays) },
-            onProgress = onProgress,
-        )
+        groupNames: (groups: List<ProxyGroupInfo>) -> List<String>,
+    ) {
+        val context = delayTestMutex.withLock { currentDelayTestContext() } ?: return
+        val success =
+            delayPublish.session(flush = { delays -> publishDirectDelaysImmediate(context.epoch, delays) }) {
+                runProxyGroupDelayTests(
+                    groupNames = groupNames(context.groups),
+                    proxiesByGroup = context.proxiesByGroup,
+                    isActive = { isCurrentEpoch(context.epoch) },
+                    measureProxy = { groupName, proxyName -> coreOps.healthCheckProxy(groupName, proxyName) },
+                    measureGroup = { groupName -> coreOps.healthCheck(groupName) },
+                    publish = { delays -> publishDirectDelays(context.epoch, delays) },
+                    onProgress = onProgress,
+                )
+            }
+        if (success) scheduleHealthcheckRefresh(context.epoch)
+    }
+
+    private fun scheduleHealthcheckRefresh(epoch: GroupSessionEpoch) {
+        if (!isCurrentEpoch(epoch)) return
+        scheduleGroupsRefresh(PollingTimerSpecs.ProxyHealthcheckRefresh.intervalMillis, epoch)
+    }
+
+    private suspend fun queryGroups(): List<ProxyGroupInfo> =
+        coreOps.queryAllProxyGroups(excludeNotSelectable = false).map(groupStore::toInfo)
 
     private suspend fun currentDelayTestContext(): DelayTestContext? {
         val epoch = currentEpoch()
         val freshGroups =
             withContext(Dispatchers.IO) {
-                runCatching {
-                    coreOps
-                        .queryAllProxyGroups(excludeNotSelectable = false)
-                        .map(groupStore::toInfo)
-                }
+                runCatching { queryGroups() }
                     .onFailure { error ->
                         if (error is CancellationException) throw error
                         Timber.d(error, "Delay-test group snapshot unavailable")
@@ -378,18 +340,12 @@ internal class RuntimeGroupHub(
     }
 
     private suspend fun queryPreviewProxyGroups(): List<ProxyGroupInfo> {
-        if (isRemoteControllerActive()) {
-            return coreOps.queryAllProxyGroups(excludeNotSelectable = false).map(groupStore::toInfo)
+        if (!isRemoteControllerActive()) {
+            session.connectBackend()
+            val activeProfile = RuntimeAccess.profile().queryActive()
+            session.setCurrentProfile(activeProfile)
+            if (activeProfile == null) return emptyList()
         }
-        session.connectBackend()
-        val activeProfile =
-            RuntimeAccess.profile().queryActive().also {
-                session.setCurrentProfile(it)
-                session.updateProfileReady(it)
-            }
-        if (activeProfile == null) {
-            return emptyList()
-        }
-        return coreOps.queryAllProxyGroups(excludeNotSelectable = false).map(groupStore::toInfo)
+        return queryGroups()
     }
 }

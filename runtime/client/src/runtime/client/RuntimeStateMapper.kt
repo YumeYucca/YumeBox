@@ -48,3 +48,7 @@ object RuntimeStateMapper {
             generation = generation,
         )
 }
+
+/** A running local core or the remote controller answers node queries. */
+internal val RuntimeSnapshot.servesNodes: Boolean
+    get() = phase == RuntimePhase.Running || owner == RuntimeOwner.RemoteController

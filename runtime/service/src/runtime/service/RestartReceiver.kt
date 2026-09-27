@@ -27,23 +27,16 @@ import timber.log.Timber
 
 class RestartReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED,
-            Intent.ACTION_MY_PACKAGE_REPLACED -> {
-                val reason =
-                    when (intent.action) {
-                        Intent.ACTION_BOOT_COMPLETED -> AutoRestartService.REASON_BOOT_COMPLETED
-                        Intent.ACTION_MY_PACKAGE_REPLACED ->
-                            AutoRestartService.REASON_PACKAGE_REPLACED
-
-                        else -> "unknown"
-                    }
-                val serviceIntent =
-                    Intent(context, AutoRestartService::class.java)
-                        .putExtra(AutoRestartService.EXTRA_REASON, reason)
-                runCatching { context.startForegroundService(serviceIntent) }
-                    .onFailure { error -> Timber.e(error, "Start auto-restart service failed") }
+        val reason =
+            when (intent.action) {
+                Intent.ACTION_BOOT_COMPLETED -> AutoRestartService.REASON_BOOT_COMPLETED
+                Intent.ACTION_MY_PACKAGE_REPLACED -> AutoRestartService.REASON_PACKAGE_REPLACED
+                else -> return
             }
-        }
+        val serviceIntent =
+            Intent(context, AutoRestartService::class.java)
+                .putExtra(AutoRestartService.EXTRA_REASON, reason)
+        runCatching { context.startForegroundService(serviceIntent) }
+            .onFailure { error -> Timber.e(error, "Start auto-restart service failed") }
     }
 }

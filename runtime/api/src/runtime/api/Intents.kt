@@ -18,18 +18,11 @@
  *
  */
 
-@file:Suppress("UnusedSymbol")
-
 package com.github.yumeyucca.yumebox.runtime.api
-
 
 object Intents {
     private fun intentAction(packageName: String, actionName: String): String =
         "$packageName.intent.action.$actionName"
-
-    fun actionStartRuntime(packageName: String): String = "$packageName.action.START_CLASH"
-
-    fun actionStopRuntime(packageName: String): String = "$packageName.action.STOP_CLASH"
 
     fun actionProfileChanged(packageName: String): String =
         intentAction(packageName, "PROFILE_CHANGED")

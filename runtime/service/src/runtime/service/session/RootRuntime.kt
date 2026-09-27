@@ -26,6 +26,7 @@ import com.github.yumeyucca.yumebox.core.model.RunMode
 import com.github.yumeyucca.yumebox.core.util.StartupTaskCoordinator
 import com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess
 import com.github.yumeyucca.yumebox.runtime.service.core.KernelManager
+import com.github.yumeyucca.yumebox.runtime.service.core.RootDaemonProbe
 import com.github.yumeyucca.yumebox.runtime.service.core.RootDaemonState
 import com.github.yumeyucca.yumebox.runtime.service.log.RuntimeLog
 import com.github.yumeyucca.yumebox.runtime.service.root.RootAccessSupport
@@ -42,7 +43,7 @@ import kotlinx.coroutines.withContext
 internal object RootRuntime {
     /**
      * On failure the daemon this call launched is reaped again, so afterwards
-     * [CoreProcess.isTrackedRootProcessAlive] tells whether the previous daemon still serves.
+     * [RootDaemonProbe.trackedAlive] tells whether the previous daemon still serves.
      */
     suspend fun start(context: Context, mode: RunMode) {
         require(mode == RunMode.Tun || mode == RunMode.Ebpf) {
@@ -53,7 +54,7 @@ internal object RootRuntime {
         val previousPid = RootDaemonState.load()?.pid
         try {
             withContext(Dispatchers.IO) {
-                RootAccessSupport.requireRootAccess(context)
+                RootAccessSupport.require()
                 if (mode == RunMode.Ebpf) {
                     check(KernelManager.isEbpfKernelActive(context)) {
                         "eBPF mode requires an active kernel with the ebpf capability"
@@ -68,7 +69,7 @@ internal object RootRuntime {
                 RuntimeLog.Type.Launcher,
                 "profile=${spec.profileName} overrides=${spec.overrideSpecs.size}",
             )
-            val config = CompiledConfigPipeline(context).compile(spec)
+            val config = CompiledConfigPipeline(context).compile(spec).finalYaml
             log.i(RuntimeLog.Type.Launcher, "compiled")
             withContext(Dispatchers.IO) { CoreProcess(context).startRoot(mode.coreArg, config) }
             awaitReady(context)
@@ -95,7 +96,7 @@ internal object RootRuntime {
                 val now = SystemClock.elapsedRealtime()
                 if (now >= nextLivenessCheckAt) {
                     nextLivenessCheckAt = now + LIVENESS_INTERVAL_MS
-                    if (!CoreProcess.isTrackedRootProcessAlive()) {
+                    if (!RootDaemonProbe.trackedAlive()) {
                         error(CoreProcess.coreLogTail(context) ?: "root core exited during startup")
                     }
                 }

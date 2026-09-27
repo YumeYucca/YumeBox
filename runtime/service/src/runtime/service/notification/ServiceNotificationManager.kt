@@ -38,6 +38,7 @@ import com.github.yumeyucca.yumebox.runtime.api.Components
 import com.github.yumeyucca.yumebox.runtime.api.CoreApi
 import com.github.yumeyucca.yumebox.runtime.service.R
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
+import com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess
 import com.github.yumeyucca.yumebox.runtime.service.profile.Imported
 import com.github.yumeyucca.yumebox.runtime.service.profile.ImportedDao
 import com.github.yumeyucca.yumebox.runtime.service.shizuku.ShizukuManager
@@ -131,7 +132,7 @@ class ServiceNotificationManager(
         data class Island(val running: NotificationPresentation.Running) : NoticeFrame
     }
 
-    private fun loadFrame(): NoticeFrame {
+    private suspend fun loadFrame(): NoticeFrame {
         // Reading the profile deserializes the whole stored list, so resolve it only once.
         val profile = resolveProfile()
         val profileName =
@@ -149,11 +150,11 @@ class ServiceNotificationManager(
         return if (isIslandEnabled()) NoticeFrame.Island(running) else NoticeFrame.Plain(running)
     }
 
-    private fun loadRunning(
+    private suspend fun loadRunning(
         profile: Imported?,
         profileName: String,
     ): NotificationPresentation.Running {
-        val core = com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess.controller(service)
+        val core = CoreProcess.controller(service)
         val now = runCatching { core.queryTrafficNow() }.getOrDefault(0L)
         return NotificationPresentationFactory.createRunning(
             profileName = profileName,
@@ -268,7 +269,7 @@ class ServiceNotificationManager(
     private fun resolveProfile(): Imported? =
         serviceStore.activeProfile?.let { ImportedDao.queryByUUID(it) }
 
-    private fun resolveCurrentNode(core: CoreApi): String? {
+    private suspend fun resolveCurrentNode(core: CoreApi): String? {
         val now = SystemClock.elapsedRealtime()
         if (now - currentNodeUpdatedAt < CURRENT_NODE_REFRESH_MS) {
             return currentNode
@@ -281,19 +282,16 @@ class ServiceNotificationManager(
         return currentNode
     }
 
-    private fun shouldShowTrafficNotification(): Boolean {
-        val settings = settingsStore
-        if (settings.containsKey("showTrafficNotification")) {
-            return settings.decodeBool("showTrafficNotification", true)
+    private fun shouldShowTrafficNotification(): Boolean =
+        if (settingsStore.containsKey("showTrafficNotification")) {
+            settingsStore.decodeBool("showTrafficNotification", true)
+        } else {
+            serviceStore.showTrafficNotification
         }
-        return serviceStore.showTrafficNotification
-    }
-
-    private fun isSuperIslandEnabled(): Boolean = appSettings.superIslandEnabled.value
 
     private fun isIslandEnabled(): Boolean =
         !RemoteControllerStore.isActive() &&
-            isSuperIslandEnabled() &&
+            appSettings.superIslandEnabled.value &&
             HyperOsIsland.isSupported()
 
     companion object {

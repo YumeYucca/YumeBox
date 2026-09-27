@@ -27,7 +27,6 @@ import com.github.yumeyucca.yumebox.core.model.*
 import com.github.yumeyucca.yumebox.core.util.encodeTrafficValue
 import com.github.yumeyucca.yumebox.data.model.RemoteBackend
 import com.github.yumeyucca.yumebox.runtime.api.CoreApi
-import com.github.yumeyucca.yumebox.runtime.api.CoreAsyncQueries
 import com.github.yumeyucca.yumebox.runtime.api.LogObserver
 import com.github.yumeyucca.yumebox.runtime.api.LogSubscription
 import io.ktor.client.*
@@ -50,7 +49,7 @@ import java.time.Instant
 class CoreController(
     private val local: Local? = null,
     private val backendProvider: () -> RemoteBackend? = { null },
-) : CoreApi, CoreAsyncQueries {
+) : CoreApi {
 
     /** Local controller endpoint: fixed socket path, secret read per request. */
     class Local(val socketPath: String, val secret: () -> String)
@@ -110,7 +109,7 @@ class CoreController(
     suspend fun probe(): Boolean {
         if (local != null) return false
         return try {
-            queryTunnelStateAsync()
+            queryTunnelState()
             true
         } catch (error: CancellationException) {
             throw error
@@ -180,29 +179,21 @@ class CoreController(
     private inline fun <reified T> jsonBody(value: T): TextContent =
         TextContent(json.encodeToString(value), ContentType.Application.Json)
 
-    override suspend fun queryTunnelStateAsync(): TunnelState {
+    /** `GET /configs`: answers as soon as the controller listens. */
+    internal suspend fun queryTunnelState(): TunnelState {
         val raw = request(HttpMethod.Get, "configs").bodyAsText()
-        val configs = json.decodeFromString<RawConfigs>(raw)
-        return TunnelState(configs.mode)
+        return TunnelState(json.decodeFromString<RawConfigs>(raw).mode)
     }
 
-    override fun queryTunnelState(): TunnelState =
-        runBlocking(Dispatchers.IO) { queryTunnelStateAsync() }
-
-    override suspend fun queryTrafficNowAsync(): Long {
+    override suspend fun queryTrafficNow(): Long {
         val sample = readTrafficSample() ?: return 0L
         return (encodeTrafficValue(sample.up) shl 32) or encodeTrafficValue(sample.down)
     }
 
-    override fun queryTrafficNow(): Long = runBlocking(Dispatchers.IO) { queryTrafficNowAsync() }
-
-    override suspend fun queryTrafficTotalAsync(): Long {
+    override suspend fun queryTrafficTotal(): Long {
         val sample = readTrafficSample() ?: return 0L
         return (encodeTrafficValue(sample.upTotal) shl 32) or encodeTrafficValue(sample.downTotal)
     }
-
-    override fun queryTrafficTotal(): Long =
-        runBlocking(Dispatchers.IO) { queryTrafficTotalAsync() }
 
     /** Reuse one stream sample for the adjacent now/total reads performed by the UI. */
     private suspend fun readTrafficSample(): RawTraffic? {
@@ -224,12 +215,7 @@ class CoreController(
             }
     }
 
-    override suspend fun queryConnectionsAsync(): ConnectionSnapshot = fetchConnections()
-
-    override fun queryConnections(): ConnectionSnapshot =
-        runBlocking(Dispatchers.IO) { queryConnectionsAsync() }
-
-    private suspend fun fetchConnections(): ConnectionSnapshot =
+    override suspend fun queryConnections(): ConnectionSnapshot =
         client
             .prepareGet(buildUrl("connections", query = CONNECTIONS_QUERY)) {
                 applyAuth()
@@ -241,24 +227,12 @@ class CoreController(
                 json.decodeFromString<ConnectionSnapshot>(line)
             }
 
-    override suspend fun queryAllProxyGroupsAsync(excludeNotSelectable: Boolean): List<ProxyGroup> =
-        withGroupQueryTimeout {
-            val nodes = fetchProxies()
-            val groups = orderGroups(fetchGroups(), nodes)
-            groups
-                .filter { !excludeNotSelectable || it.type in Proxy.Type.manuallySelectable }
-                .map { buildGroup(it, nodes, ProxySort.Default) }
-        }
-
-    override fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> =
-        runBlocking(Dispatchers.IO) { queryAllProxyGroupsAsync(excludeNotSelectable) }
-
-    override suspend fun queryProxyGroupNamesAsync(excludeNotSelectable: Boolean): List<String> =
+    override suspend fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> =
         withGroupQueryTimeout {
             val nodes = fetchProxies()
             orderGroups(fetchGroups(), nodes)
                 .filter { !excludeNotSelectable || it.type in Proxy.Type.manuallySelectable }
-                .map { it.name }
+                .map { buildGroup(it, nodes, ProxySort.Default) }
         }
 
     private suspend fun <T> withGroupQueryTimeout(block: suspend () -> T): T =
@@ -268,9 +242,6 @@ class CoreController(
             block()
         }
 
-    override fun queryProxyGroupNames(excludeNotSelectable: Boolean): List<String> =
-        runBlocking(Dispatchers.IO) { queryProxyGroupNamesAsync(excludeNotSelectable) }
-
     /** Prefer GLOBAL.all order, then name. */
     private fun orderGroups(groups: List<RawProxy>, nodes: Map<String, RawProxy>): List<RawProxy> {
         val canonical = nodes["GLOBAL"]?.all ?: emptyList()
@@ -278,7 +249,7 @@ class CoreController(
         return groups.sortedWith(compareBy({ indexOf[it.name] ?: Int.MAX_VALUE }, { it.name }))
     }
 
-    override suspend fun queryProxyGroupAsync(name: String, proxySort: ProxySort): ProxyGroup {
+    override suspend fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup {
         val nodes = fetchProxies()
         val group =
             nodes[name]
@@ -290,9 +261,6 @@ class CoreController(
                 )
         return buildGroup(group, nodes, proxySort)
     }
-
-    override fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup =
-        runBlocking(Dispatchers.IO) { queryProxyGroupAsync(name, proxySort) }
 
     /**
      * Every node the UI can render, keyed by name.
@@ -392,41 +360,20 @@ class CoreController(
     }
 
     @Suppress("TooGenericExceptionCaught")
-    override suspend fun patchSelectorAsync(group: String, name: String): Boolean =
+    override suspend fun patchSelector(group: String, name: String): Boolean =
         try {
-            val response =
-                request(
-                    HttpMethod.Put,
-                    "proxies",
-                    group,
-                    body = SelectBody(name),
-                )
-            response.status.isSuccess()
+            request(HttpMethod.Put, "proxies", group, body = SelectBody(name)).status.isSuccess()
         } catch (_: Throwable) { // fault barrier: remote REST call must degrade to "not selected"
             false
         }
 
-    override fun patchSelector(group: String, name: String): Boolean =
-        runBlocking(Dispatchers.IO) { patchSelectorAsync(group, name) }
-
     @Suppress("TooGenericExceptionCaught")
-    override suspend fun closeConnectionAsync(id: String): Boolean =
+    override suspend fun closeConnection(id: String): Boolean =
         try {
             request(HttpMethod.Delete, "connections", id).status.isSuccess()
         } catch (_: Throwable) { // fault barrier: remote REST call must degrade to "not closed"
             false
         }
-
-    override fun closeConnection(id: String): Boolean =
-        runBlocking(Dispatchers.IO) { closeConnectionAsync(id) }
-
-    override suspend fun closeAllConnectionsAsync() {
-        runCatching { request(HttpMethod.Delete, "connections") }
-    }
-
-    override fun closeAllConnections() {
-        runBlocking(Dispatchers.IO) { closeAllConnectionsAsync() }
-    }
 
     override suspend fun healthCheck(group: String): Map<String, Int> =
         runCatching {
@@ -475,7 +422,7 @@ class CoreController(
         }
 
     /** Proxy + rule providers; built-in Compatible entries are omitted. */
-    override suspend fun queryProvidersAsync(): ProviderList {
+    override suspend fun queryProviders(): ProviderList {
         val proxies = runCatching {
             fetchProviders(category = "proxies", type = Provider.Type.Proxy)
         }
@@ -489,9 +436,6 @@ class CoreController(
         }
         return ProviderList(proxies.getOrDefault(emptyList()) + rules.getOrDefault(emptyList()))
     }
-
-    override fun queryProviders(): ProviderList =
-        runBlocking(Dispatchers.IO) { queryProvidersAsync() }
 
     private suspend fun fetchProvidersResponse(category: String): RawProvidersResponse {
         val raw = request(HttpMethod.Get, "providers", category).bodyAsText()
@@ -541,13 +485,10 @@ class CoreController(
         request(HttpMethod.Put, "providers", category, name)
     }
 
-    override suspend fun queryConfigurationAsync(): UiConfiguration = UiConfiguration()
-
-    override fun queryConfiguration(): UiConfiguration = UiConfiguration()
-
-    override suspend fun queryRulesAsync(): List<RuntimeRule> = fetchRules()
-
-    override fun queryRules(): List<RuntimeRule> = runBlocking(Dispatchers.IO) { queryRulesAsync() }
+    override suspend fun queryRules(): List<RuntimeRule> {
+        val raw = request(HttpMethod.Get, "rules").bodyAsText()
+        return json.decodeFromString<RawRulesResponse>(raw).rules.map { it.toRuntimeRule() }
+    }
 
     /** Toggle a rule, then re-fetch `/rules`. */
     override suspend fun setRuleDisabled(
@@ -560,16 +501,7 @@ class CoreController(
             "disable",
             body = jsonBody(mapOf(rule.index.toString() to disabled)),
         )
-        return fetchRules()
-    }
-
-    private suspend fun fetchRules(): List<RuntimeRule> {
-        val raw = request(HttpMethod.Get, "rules").bodyAsText()
-        return json.decodeFromString<RawRulesResponse>(raw).rules.map { it.toRuntimeRule() }
-    }
-
-    override fun requestStop() {
-        // No-op: we don't own the remote core, so there is nothing to stop.
+        return queryRules()
     }
 
     override fun subscribeLogs(observer: LogObserver): LogSubscription = logStream.subscribe(observer)

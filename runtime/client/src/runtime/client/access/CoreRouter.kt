@@ -18,23 +18,31 @@
  *
  */
 
-@file:Suppress("ConvertLongToDuration")
-
 package com.github.yumeyucca.yumebox.runtime.client.access
 
-import com.github.yumeyucca.yumebox.core.model.*
+import com.github.yumeyucca.yumebox.core.model.ConnectionSnapshot
+import com.github.yumeyucca.yumebox.core.model.Provider
+import com.github.yumeyucca.yumebox.core.model.ProviderList
+import com.github.yumeyucca.yumebox.core.model.ProxyGroup
+import com.github.yumeyucca.yumebox.core.model.ProxySort
+import com.github.yumeyucca.yumebox.core.model.RuntimeRule
 import com.github.yumeyucca.yumebox.runtime.api.CoreApi
-import com.github.yumeyucca.yumebox.runtime.api.CoreAsyncQueries
 import com.github.yumeyucca.yumebox.runtime.api.LogObserver
 import com.github.yumeyucca.yumebox.runtime.api.LogSubscription
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /** Routes [CoreApi] to remote controller when active, otherwise the local controller. */
 class CoreRouter(
     private val local: CoreApi,
     private val remote: CoreApi,
     private val isRemoteControllerActive: () -> Boolean,
-) : CoreApi, CoreAsyncQueries {
+) : CoreApi {
     private val logScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var logRoutingJob: Job? = null
     private var activeLogToken: Any? = null
@@ -42,94 +50,29 @@ class CoreRouter(
 
     private fun pick(): CoreApi = if (isRemoteControllerActive()) remote else local
 
-    private suspend fun <T> routeAsync(
-        block: suspend CoreAsyncQueries.() -> T,
-        sync: CoreApi.() -> T,
-    ): T {
-        val target = pick()
-        val async = target as? CoreAsyncQueries
-        return if (async != null) async.block() else sync(target)
-    }
+    override suspend fun queryTrafficNow(): Long = pick().queryTrafficNow()
 
-    override suspend fun queryTunnelStateAsync(): TunnelState =
-        routeAsync({ queryTunnelStateAsync() }, { queryTunnelState() })
+    override suspend fun queryTrafficTotal(): Long = pick().queryTrafficTotal()
 
-    override suspend fun queryTrafficNowAsync(): Long =
-        routeAsync({ queryTrafficNowAsync() }, { queryTrafficNow() })
+    override suspend fun queryConnections(): ConnectionSnapshot = pick().queryConnections()
 
-    override suspend fun queryTrafficTotalAsync(): Long =
-        routeAsync({ queryTrafficTotalAsync() }, { queryTrafficTotal() })
-
-    override suspend fun queryConnectionsAsync(): ConnectionSnapshot =
-        routeAsync({ queryConnectionsAsync() }, { queryConnections() })
-
-    override suspend fun queryAllProxyGroupsAsync(excludeNotSelectable: Boolean): List<ProxyGroup> =
-        routeAsync(
-            { queryAllProxyGroupsAsync(excludeNotSelectable) },
-            { queryAllProxyGroups(excludeNotSelectable) },
-        )
-
-    override suspend fun queryProxyGroupNamesAsync(excludeNotSelectable: Boolean): List<String> =
-        routeAsync(
-            { queryProxyGroupNamesAsync(excludeNotSelectable) },
-            { queryProxyGroupNames(excludeNotSelectable) },
-        )
-
-    override suspend fun queryProxyGroupAsync(name: String, proxySort: ProxySort): ProxyGroup =
-        routeAsync({ queryProxyGroupAsync(name, proxySort) }, { queryProxyGroup(name, proxySort) })
-
-    override suspend fun queryConfigurationAsync(): UiConfiguration =
-        routeAsync({ queryConfigurationAsync() }, { queryConfiguration() })
-
-    override suspend fun queryProvidersAsync(): ProviderList =
-        routeAsync({ queryProvidersAsync() }, { queryProviders() })
-
-    override suspend fun queryRulesAsync(): List<RuntimeRule> =
-        routeAsync({ queryRulesAsync() }, { queryRules() })
-
-    override suspend fun patchSelectorAsync(group: String, name: String): Boolean =
-        routeAsync({ patchSelectorAsync(group, name) }, { patchSelector(group, name) })
-
-    override suspend fun closeConnectionAsync(id: String): Boolean =
-        routeAsync({ closeConnectionAsync(id) }, { closeConnection(id) })
-
-    override suspend fun closeAllConnectionsAsync() =
-        routeAsync({ closeAllConnectionsAsync() }, { closeAllConnections() })
-
-    override fun queryTunnelState(): TunnelState = pick().queryTunnelState()
-
-    override fun queryTrafficNow(): Long = pick().queryTrafficNow()
-
-    override fun queryTrafficTotal(): Long = pick().queryTrafficTotal()
-
-    override fun queryConnections(): ConnectionSnapshot = pick().queryConnections()
-
-    override fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> =
+    override suspend fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> =
         pick().queryAllProxyGroups(excludeNotSelectable)
 
-    override fun queryProxyGroupNames(excludeNotSelectable: Boolean): List<String> =
-        pick().queryProxyGroupNames(excludeNotSelectable)
-
-    override fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup =
+    override suspend fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup =
         pick().queryProxyGroup(name, proxySort)
 
-    override fun queryConfiguration(): UiConfiguration = pick().queryConfiguration()
+    override suspend fun queryProviders(): ProviderList = pick().queryProviders()
 
-    override fun queryProviders(): ProviderList = pick().queryProviders()
+    override suspend fun queryRules(): List<RuntimeRule> = pick().queryRules()
 
-    override fun queryRules(): List<RuntimeRule> = pick().queryRules()
+    override suspend fun setRuleDisabled(rule: RuntimeRule, disabled: Boolean): List<RuntimeRule> =
+        pick().setRuleDisabled(rule, disabled)
 
-    override suspend fun setRuleDisabled(rule: RuntimeRule, disabled: Boolean): List<RuntimeRule> {
-        val target = pick()
-        return target.setRuleDisabled(rule, disabled)
-    }
-
-    override fun patchSelector(group: String, name: String): Boolean =
+    override suspend fun patchSelector(group: String, name: String): Boolean =
         pick().patchSelector(group, name)
 
-    override fun closeConnection(id: String): Boolean = pick().closeConnection(id)
-
-    override fun closeAllConnections() = pick().closeAllConnections()
+    override suspend fun closeConnection(id: String): Boolean = pick().closeConnection(id)
 
     override suspend fun healthCheck(group: String): Map<String, Int> = pick().healthCheck(group)
 
@@ -138,8 +81,6 @@ class CoreRouter(
 
     override suspend fun updateProvider(type: Provider.Type, name: String) =
         pick().updateProvider(type, name)
-
-    override fun requestStop() = pick().requestStop()
 
     @Synchronized
     override fun subscribeLogs(observer: LogObserver): LogSubscription {

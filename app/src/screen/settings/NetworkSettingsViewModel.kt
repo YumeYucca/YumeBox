@@ -203,8 +203,7 @@ class NetworkSettingsViewModel(
         _activeKernelId.value = KernelManager.activeKernelId(getApplication())
         viewModelScope.launch {
             refreshInstalledKernelCommits()
-            val root = RootAccessSupport.evaluateAsync(getApplication()).canStartRoot
-            _rootAvailable.value = root
+            _rootAvailable.value = RootAccessSupport.isGranted()
             refreshEbpfAvailability()
         }
     }

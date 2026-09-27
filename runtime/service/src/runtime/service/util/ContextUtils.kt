@@ -18,8 +18,6 @@
  *
  */
 
-@file:Suppress("UnusedSymbol", "SimplifiableCallChain")
-
 package com.github.yumeyucca.yumebox.runtime.service.util
 
 import android.content.Context
@@ -32,9 +30,7 @@ val Context.importedDir: File
     get() = filesDir.resolve("imported")
 
 val File.directoryLastModified: Long?
-    get() {
-        return walk().map { it.lastModified() }.maxOrNull()
-    }
+    get() = walk().maxOfOrNull { it.lastModified() }
 
 fun Context.sendBroadcastSelf(intent: Intent) {
     sendBroadcast(intent.setPackage(this.packageName))
@@ -47,8 +43,4 @@ fun Context.sendProfileChanged(uuid: UUID, affectsRuntime: Boolean) {
             .putExtra(Intents.EXTRA_AFFECTS_RUNTIME, affectsRuntime)
 
     sendBroadcastSelf(intent)
-}
-
-fun Context.sendOverrideChanged() {
-    sendBroadcastSelf(Intent(Intents.ACTION_OVERRIDE_CHANGED))
 }
