@@ -48,7 +48,7 @@ plugins {
     id("com.google.devtools.ksp") version "2.3.12" apply false
     id("androidx.room") version "2.8.5" apply false
     id("com.mikepenz.aboutlibraries.plugin.android") version "15.2.0" apply false
-    id("com.diffplug.spotless") version "8.10.2" apply false
+    id("com.diffplug.spotless") version "8.10.3" apply false
 }
 
 // AGP-created tool configurations (unified-test-platform-*, androidLintTool) and test
