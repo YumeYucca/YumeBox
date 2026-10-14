@@ -42,13 +42,13 @@ plugins {
     `jvm-toolchains`
     id("com.android.application") version "9.4.1" apply false
     id("com.android.library") version "9.4.1" apply false
-    kotlin("jvm") version "2.4.20" apply false
-    kotlin("plugin.serialization") version "2.4.20" apply false
-    kotlin("plugin.compose") version "2.4.20" apply false
+    kotlin("jvm") version "2.4.21" apply false
+    kotlin("plugin.serialization") version "2.4.21" apply false
+    kotlin("plugin.compose") version "2.4.21" apply false
     id("com.google.devtools.ksp") version "2.3.12" apply false
     id("androidx.room") version "2.8.5" apply false
     id("com.mikepenz.aboutlibraries.plugin.android") version "15.2.0" apply false
-    id("com.diffplug.spotless") version "8.10.3" apply false
+    id("com.diffplug.spotless") version "8.10.4" apply false
 }
 
 // AGP-created tool configurations (unified-test-platform-*, androidLintTool) and test
