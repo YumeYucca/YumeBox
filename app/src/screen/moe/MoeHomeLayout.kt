@@ -43,6 +43,7 @@ import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.getRoundedCorner
 
@@ -164,15 +165,14 @@ private fun MoeHomePanel(
         Modifier
             .fillMaxSize()
             .padding(start = lerpDp(UiDp.dp0, contentStart, sidebar))
-            .graphicsLayer {
+            .background(
+                color = state.contentSurface,
                 shape =
                     RoundedCornerShape(
                         topStart = corner,
                         bottomStart = corner,
-                    )
-                clip = true
-            }
-            .background(state.contentSurface)
+                    ),
+            )
     ) {
         MoeHero(state, heroScale)
         MoeHomeCopy(state, heroHeight)
@@ -201,12 +201,11 @@ private fun BoxScope.MoeHero(state: MoeHomeLayoutState, scale: Float) {
                 )
             }
             .graphicsLayer {
-                shape = MoeUi.Shape.hero
-                clip = true
                 transformOrigin = TransformOrigin(0.5f, 0f)
                 scaleX = scale
                 scaleY = scale
             }
+            .squircleClip(MoeUi.Shape.heroRadius)
     ) {
         MoeWallpaperBackground(
             wallpaperUri = state.wallpaperUri,
@@ -339,10 +338,7 @@ private fun MoeTabletHomeLayout(
                     .pointerInput(Unit) {
                         detectTapGestures(onLongPress = { pickWallpaper() })
                     }
-                    .graphicsLayer {
-                        shape = MoeUi.Shape.hero
-                        clip = true
-                    }
+                    .squircleClip(MoeUi.Shape.heroRadius)
             ) {
                 MoeWallpaperBackground(
                     wallpaperUri = state.wallpaperUri,

@@ -61,8 +61,9 @@ import dev.chrisbanes.haze.blur.hazeBlur
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.squircle.squircleBackground
 import top.yukonga.miuix.kmp.squircle.squircleBorder
-import top.yukonga.miuix.kmp.squircle.squircleSurface
+import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -220,7 +221,7 @@ private fun MoeLaunchConfigButton(surfaceColor: Color, onClick: () -> Unit) {
                     ambientColor = Color.Black.copy(alpha = 0.04f),
                     spotColor = Color.Black.copy(alpha = 0.08f),
                 )
-                .squircleSurface(surfaceColor, MoeUi.Shape.launchButtonRadius)
+                .squircleBackground(surfaceColor, MoeUi.Shape.launchButtonRadius)
                 .squircleBorder(
                     width = MoeUi.Button.borderWidth,
                     color = borderColor,
@@ -304,12 +305,13 @@ internal fun MoeLaunchButton(
                     spotColor = Color.Black.copy(alpha = 0.08f),
                 )
                 .height(MoeUi.Button.height)
-                .squircleSurface(surfaceColor, MoeUi.Shape.launchButtonRadius)
+                .squircleBackground(surfaceColor, MoeUi.Shape.launchButtonRadius)
                 .squircleBorder(
                     width = MoeUi.Button.borderWidth,
                     color = borderColor,
                     cornerRadius = MoeUi.Shape.launchButtonRadius,
                 )
+                .squircleClip(MoeUi.Shape.launchButtonRadius)
                 .clickable(
                     enabled = enabled,
                     interactionSource = interactionSource,
