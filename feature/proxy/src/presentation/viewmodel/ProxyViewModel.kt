@@ -33,6 +33,7 @@ import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
 import com.github.yumeyucca.yumebox.runtime.client.ProxyGroupSyncPriority
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
@@ -81,7 +82,10 @@ class ProxyViewModel(
     val proxyGroups: StateFlow<List<ProxyGroupInfo>> =
         proxyFacade.proxyGroups
             .map { groups -> groups.filterNot(ProxyGroupInfo::hidden) }
+            .flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun proxyDelayFlow(name: String) = proxyFacade.proxyDelayFlow(name)
 
     private val activeSyncSources = mutableSetOf<String>()
 
@@ -90,6 +94,7 @@ class ProxyViewModel(
         viewModelScope.launch {
             proxyGroups
                 .distinctUntilChangedBy { groups -> groups.map(ProxyGroupInfo::name) }
+                .flowOn(Dispatchers.Default)
                 .collect { groups -> groupSorter.track(groups) }
         }
     }

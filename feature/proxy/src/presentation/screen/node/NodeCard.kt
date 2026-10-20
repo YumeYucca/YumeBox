@@ -30,6 +30,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -171,7 +172,7 @@ internal fun NodeSelectableCard(
     val sizes = AppTheme.sizes
     val interactionSource = remember { MutableInteractionSource() }
     val hapticFeedback = LocalHapticFeedback.current
-    val shape = RoundedCornerShape(radii.radius18)
+    val shape = RoundedCornerShape(radii.radius24)
     val backgroundColor = MiuixTheme.colorScheme.background
 
     Box(
@@ -236,7 +237,6 @@ internal fun NodeCard(
                 resolveProxyDisplayPresentation(name = proxy.name, title = proxy.title)
             }
         val tags = remember(proxy.name) { extractNodeTags(proxy.name) }
-        val delayLabel = nodeLatencyLabel(proxy.delay)
         val typeLabel = remember(proxy.type) { displayName(proxy.type) }
         val iconLabel = remember(proxy.type) { iconLabel(proxy.type) }
 
@@ -274,14 +274,11 @@ internal fun NodeCard(
                     tags.multiplier?.let { multiplier ->
                         if (multiplier > 0f) NodeMultiplierChip(multiplier = multiplier)
                     }
-                    delayLabel?.let { (delayText, delayColor) ->
-                        NodeLatencyChip(
-                            label = delayText,
-                            color = delayColor,
-                            isTesting = isDelayTesting,
-                            onClick = onTestClick?.let { test -> { test(proxy.name) } },
-                        )
-                    }
+                    LiveNodeLatencyChip(
+                        proxy = proxy,
+                        isDelayTesting = isDelayTesting,
+                        onTestClick = onTestClick,
+                    )
                 }
             }
 
@@ -290,6 +287,26 @@ internal fun NodeCard(
                 modifier = Modifier.align(Alignment.CenterVertically),
             )
         }
+    }
+}
+
+@Composable
+private fun LiveNodeLatencyChip(
+    proxy: Proxy,
+    isDelayTesting: Boolean,
+    onTestClick: ((String) -> Unit)?,
+) {
+    val delayProvider = LocalProxyDelayFlow.current
+    val delayFlow = remember(proxy.name, delayProvider) { delayProvider(proxy.name) }
+    val liveDelay by delayFlow.collectAsState()
+    val delayLabel = nodeLatencyLabel(liveDelay ?: proxy.delay)
+    delayLabel?.let { (delayText, delayColor) ->
+        NodeLatencyChip(
+            label = delayText,
+            color = delayColor,
+            isTesting = isDelayTesting,
+            onClick = onTestClick?.let { test -> { test(proxy.name) } },
+        )
     }
 }
 

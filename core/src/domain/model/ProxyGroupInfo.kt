@@ -84,21 +84,42 @@ fun List<ProxyGroupInfo>.displayedSelectionDelay(group: ProxyGroupInfo): Int =
  * Copies group members so each nested group row carries the delay a direct tap would show.
  * Leaf rows stay as they are.
  */
-fun ProxyGroupInfo.resolveMemberDelays(allGroups: List<ProxyGroupInfo>): ProxyGroupInfo {
-    if (proxies.isEmpty()) return this
-    val index = GroupDelayIndex(allGroups)
-    var changed = false
+fun ProxyGroupInfo.resolveMemberDelays(allGroups: List<ProxyGroupInfo>): ProxyGroupInfo =
+    allGroups.resolveMemberDelays().firstOrNull { it.name == name } ?: this
+
+/**
+ * Batch form of [resolveMemberDelays]. Builds the lookup index once instead of once per group,
+ * which is what a delay-test publish needs to stay off the main thread's critical path.
+ */
+fun List<ProxyGroupInfo>.resolveMemberDelays(): List<ProxyGroupInfo> {
+    if (isEmpty()) return this
+    val index = GroupDelayIndex(this)
+    var anyChanged = false
     val resolved =
-        proxies.map { proxy ->
-            val delay = index.displayedMemberDelay(proxy)
-            if (delay == proxy.delay) {
-                proxy
+        map { group ->
+            if (group.proxies.isEmpty()) {
+                group
             } else {
-                changed = true
-                proxy.copy(delay = delay)
+                var changed = false
+                val proxies =
+                    group.proxies.map { proxy ->
+                        val delay = index.displayedMemberDelay(proxy)
+                        if (delay == proxy.delay) {
+                            proxy
+                        } else {
+                            changed = true
+                            proxy.copy(delay = delay)
+                        }
+                    }
+                if (changed) {
+                    anyChanged = true
+                    group.copy(proxies = proxies)
+                } else {
+                    group
+                }
             }
         }
-    return if (changed) copy(proxies = resolved) else this
+    return if (anyChanged) resolved else this
 }
 
 /**

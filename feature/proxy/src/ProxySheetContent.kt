@@ -42,6 +42,7 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.Speed
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeGroupSheetContent
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSheetContent
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSortPopup
+import com.github.yumeyucca.yumebox.presentation.screen.node.ProvideProxyDelayFlows
 import com.github.yumeyucca.yumebox.presentation.screen.rememberProxyGroupSelectionState
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
@@ -169,6 +170,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
         insideMargin = DpSize(UiDp.dp16, UiDp.dp16),
         enableNestedScroll = false,
     ) {
+        ProvideProxyDelayFlows(proxyViewModel) {
         AnimatedContent(
             targetState = selectedGroupName,
             transitionSpec = {
@@ -215,6 +217,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                     listState = nodeListState,
                 )
             }
+        }
         }
     }
 }

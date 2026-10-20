@@ -52,4 +52,6 @@ internal class RuntimeCoreOps(private val connect: suspend () -> Unit = {}) {
 
     suspend fun healthCheckProxy(group: String, proxyName: String): Int =
         api().healthCheckProxy(group, proxyName)
+
+    suspend fun warmUpProviderSnapshot() = api().warmUpProviderSnapshot()
 }

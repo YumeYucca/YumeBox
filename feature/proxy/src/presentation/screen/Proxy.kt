@@ -36,6 +36,7 @@ import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Folders
+import com.github.yumeyucca.yumebox.presentation.screen.node.ProvideProxyDelayFlows
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGroupItems
 import com.github.yumeyucca.yumebox.presentation.theme.*
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
@@ -161,7 +162,8 @@ fun ProxyPager(
         onDispose { proxyViewModel.ensureCoreLoaded(false, source = "proxy_page") }
     }
 
-    Scaffold(
+    ProvideProxyDelayFlows(proxyViewModel) {
+        Scaffold(
             topBar = {
                 ProxyTopBar(
                     title = YumeTxt.Proxy.Title,
@@ -301,6 +303,7 @@ fun ProxyPager(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -430,7 +433,8 @@ internal fun ProxyShellNodeDetailContent(
                         }
                 }
             }
-        Scaffold(
+        ProvideProxyDelayFlows(proxyViewModel) {
+            Scaffold(
                 topBar = {
                     ProxyTopBar(
                         title = pageGroup?.name ?: YumeTxt.Proxy.Title,
@@ -478,6 +482,7 @@ internal fun ProxyShellNodeDetailContent(
                     )
                 }
             }
+        }
     }
 }
 

@@ -32,6 +32,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -136,9 +138,6 @@ internal fun NodeGroupCard(
             allGroups.displayedSelectionDelay(group)
         }
     val badge = remember(group.type) { groupBadge(group.type) }
-    // The group card keeps its navigation chevron until a real delay is available. The number is
-    // the selected node's measurement, including a copy published on another group.
-    val delayLabel = currentDelay.takeIf { it != 0 }?.let { delay -> nodeLatencyLabel(delay) }
 
     Column(
         modifier =
@@ -280,28 +279,41 @@ internal fun NodeGroupCard(
                             modifier = Modifier.padding(start = UiDp.dp8),
                             contentAlignment = Alignment.CenterEnd,
                         ) {
-                            when {
-                                delayLabel != null -> {
-                                    val (delayText, delayColor) = delayLabel
-                                    Text(
-                                        text = delayText,
-                                        style = MiuixTheme.textStyles.footnote1,
-                                        color = delayColor,
-                                    )
-                                }
-                                else ->
-                                    Icon(
-                                        Yume.chevron,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(UiDp.dp18),
-                                        tint = AppTheme.colors.state.subtleDivider,
-                                    )
-                            }
+                            GroupDelayLabel(
+                                proxyName = currentProxy?.name ?: group.now,
+                                fallbackDelay = currentDelay,
+                            )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GroupDelayLabel(proxyName: String, fallbackDelay: Int) {
+    val delayProvider = LocalProxyDelayFlow.current
+    val delayFlow = remember(proxyName, delayProvider) { delayProvider(proxyName) }
+    val liveDelay by delayFlow.collectAsState()
+    // The group card keeps its navigation chevron until a real delay is available. The number is
+    // the selected node's measurement, including a copy published on another group.
+    val delay = liveDelay ?: fallbackDelay
+    val delayLabel = if (delay != 0) nodeLatencyLabel(delay) else null
+    if (delayLabel != null) {
+        val (delayText, delayColor) = delayLabel
+        Text(
+            text = delayText,
+            style = MiuixTheme.textStyles.footnote1,
+            color = delayColor,
+        )
+    } else {
+        Icon(
+            Yume.chevron,
+            contentDescription = null,
+            modifier = Modifier.size(UiDp.dp18),
+            tint = AppTheme.colors.state.subtleDivider,
+        )
     }
 }
 

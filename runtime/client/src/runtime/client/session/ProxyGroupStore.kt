@@ -22,6 +22,7 @@ package com.github.yumeyucca.yumebox.runtime.client.session
 
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
+import com.github.yumeyucca.yumebox.domain.model.ProxyDelayStore
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupOverlay
 import com.github.yumeyucca.yumebox.domain.model.membersByGroup
@@ -41,6 +42,7 @@ internal class ProxyGroupStore(
     private val onGroupsReady: (Boolean) -> Unit,
     private val nowNanos: () -> Long = System::nanoTime,
     private val directDelayGraceNanos: Long = 10_000_000_000L,
+    private val delayStore: ProxyDelayStore = ProxyDelayStore(),
 ) {
     private val _groups = MutableStateFlow<List<ProxyGroupInfo>>(emptyList())
     val groups: StateFlow<List<ProxyGroupInfo>> = _groups.asStateFlow()
@@ -51,31 +53,39 @@ internal class ProxyGroupStore(
     private var lastSummary: String? = null
     private val overlay = ProxyGroupOverlay(nowNanos, directDelayGraceNanos)
     private var sourceGroups: List<ProxyGroupInfo> = emptyList()
+    // Reverse index: proxy name → indices of groups that contain it, rebuilt on every publish.
+    private var proxyToGroupIndex: Map<String, List<Int>> = emptyMap()
 
     fun toInfo(group: ProxyGroup): ProxyGroupInfo = group.toInfo()
 
+    @Synchronized
     fun publish(groups: List<ProxyGroupInfo>) {
         sourceGroups = groups
+        proxyToGroupIndex = buildProxyToGroupIndex(groups)
         val resolved = overlay.paint(groups)
         val summary = summarize(resolved)
         if (summary != lastSummary) {
             _groups.value = resolved
             lastSummary = summary
         }
+        delayStore.publish(resolved)
         onGroupsReady(resolved.isNotEmpty())
         updateResolvedPrimaryNode(resolved)
     }
 
+    @Synchronized
     fun recordSelectedNow(groupName: String, proxyName: String) {
         overlay.recordNow(groupName, proxyName)
         publish(sourceGroups.ifEmpty { _groups.value })
     }
 
+    @Synchronized
     fun clearSelectedNow(groupName: String, expected: String? = null) {
         overlay.clearNow(groupName, expected)
         publish(sourceGroups.ifEmpty { _groups.value })
     }
 
+    @Synchronized
     fun upsert(updated: ProxyGroupInfo): List<ProxyGroupInfo> {
         val currentGroups = _groups.value
         if (currentGroups.isEmpty()) return listOf(updated)
@@ -85,28 +95,54 @@ internal class ProxyGroupStore(
         return currentGroups.map { group -> if (group.name == updated.name) updated else group }
     }
 
-    fun recordDirectDelaysEverywhere(delays: Map<String, Int>): List<ProxyGroupInfo> {
+    /**
+     * Publishes a batch of direct measurements to the per-node delay flows. The immutable group
+     * list stays untouched until [commitDirectDelays] runs once at the end of the test.
+     */
+    @Synchronized
+    fun applyDirectDelays(delays: Map<String, Int>) {
         val measuredDelays = delays.filterValues { delay -> delay != 0 }
-        if (measuredDelays.isEmpty()) return sourceGroups.ifEmpty { _groups.value }
-        val currentGroups = sourceGroups.ifEmpty { _groups.value }
-        val updated =
-            currentGroups.map { group ->
-                group.copy(
-                    proxies =
-                        group.proxies.map { proxy ->
-                            measuredDelays[proxy.name]?.let { delay -> proxy.copy(delay = delay) }
-                                ?: proxy
-                        }
-                )
+        if (measuredDelays.isEmpty()) return
+        val currentGroups = _groups.value
+        if (currentGroups.isEmpty()) return
+        val index =
+            proxyToGroupIndex.ifEmpty {
+                buildProxyToGroupIndex(currentGroups).also { proxyToGroupIndex = it }
             }
-        overlay.recordDelays(measuredDelays, membersByGroup(updated.map { it.name to it.proxies }))
-        return updated
+        val affectedMembers = HashMap<String, MutableSet<String>>()
+        measuredDelays.keys.forEach { name ->
+            index[name]?.forEach { idx ->
+                affectedMembers.getOrPut(currentGroups[idx].name) { mutableSetOf() } += name
+            }
+        }
+        if (affectedMembers.isEmpty()) return
+        overlay.recordDelays(measuredDelays, affectedMembers)
+        delayStore.apply(measuredDelays)
+    }
+
+    /** Reconciles the immutable group list once, after a test session has finished. */
+    @Synchronized
+    fun commitDirectDelays() {
+        publish(sourceGroups.ifEmpty { _groups.value })
+    }
+
+    fun proxyDelayFlow(name: String): StateFlow<Int?> = delayStore.delayFlow(name)
+
+    private fun buildProxyToGroupIndex(groups: List<ProxyGroupInfo>): Map<String, List<Int>> {
+        val index = HashMap<String, MutableList<Int>>()
+        groups.forEachIndexed { i, group ->
+            group.proxies.forEach { proxy ->
+                index.getOrPut(proxy.name) { mutableListOf() } += i
+            }
+        }
+        return index
     }
 
     /**
      * The controller's aggregate proxy snapshot can lag behind a direct `/delay` or selector write.
      * Keep the direct result until an equal snapshot arrives or a short grace window expires.
      */
+    @Synchronized
     fun mergeReportedDelays(incoming: List<ProxyGroupInfo>): List<ProxyGroupInfo> {
         overlay.prune(membersByGroup(incoming.map { group -> group.name to group.proxies }))
         val previousByGroup = _groups.value.associateBy(ProxyGroupInfo::name)
@@ -131,8 +167,10 @@ internal class ProxyGroupStore(
         }
     }
 
+    @Synchronized
     fun clear(resetGroups: Boolean) {
         overlay.clear()
+        delayStore.clear()
         sourceGroups = emptyList()
         if (resetGroups) {
             _groups.value = emptyList()

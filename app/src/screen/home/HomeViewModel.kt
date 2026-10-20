@@ -161,9 +161,17 @@ class HomeViewModel(
     val selectedServerName: StateFlow<String?> =
         mainProxyNode.map { it?.name }.stateInWhileSubscribed(viewModelScope, null)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val selectedServerPing: StateFlow<Int?> =
         mainProxyNode
-            .map { node -> node?.delay?.takeIf { delay -> delay > 0 } }
+            .flatMapLatest { node ->
+                if (node == null) {
+                    flowOf(null)
+                } else {
+                    proxyFacade.proxyDelayFlow(node.name)
+                        .map { liveDelay -> (liveDelay ?: node.delay).takeIf { it > 0 } }
+                }
+            }
             .stateInWhileSubscribed(viewModelScope, null)
 
     @OptIn(ExperimentalCoroutinesApi::class)

@@ -55,6 +55,9 @@ interface CoreApi {
 
     suspend fun healthCheckProxy(group: String, proxyName: String): Int
 
+    /** Starts resolving provider ownership before a bulk delay test. */
+    suspend fun warmUpProviderSnapshot()
+
     suspend fun updateProvider(type: Provider.Type, name: String)
 
     fun subscribeLogs(observer: LogObserver): LogSubscription

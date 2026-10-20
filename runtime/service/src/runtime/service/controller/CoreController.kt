@@ -375,6 +375,18 @@ class CoreController(
             false
         }
 
+    /**
+     * Starts a provider snapshot refresh without blocking the test. Probe requests share the
+     * in-flight refresh, so a cold cache still resolves ownership once instead of per proxy.
+     */
+    override suspend fun warmUpProviderSnapshot() {
+        val snapshot = providerSnapshotCache
+        if (snapshot != null && System.nanoTime() - snapshot.capturedAtNanos <= PROVIDER_SNAPSHOT_CACHE_NS) {
+            return
+        }
+        refreshProviderSnapshot()
+    }
+
     override suspend fun healthCheck(group: String): Map<String, Int> =
         runCatching {
             request(

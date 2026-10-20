@@ -27,6 +27,7 @@ import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.resolveMemberDelays
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 
 internal class ProxyGroupSorter {
@@ -52,6 +53,7 @@ internal class ProxyGroupSorter {
         combine(proxyGroups, sortMode, groupOriginalOrder) { groups, mode, originalOrderCache ->
             buildSortedProxyGroups(groups, mode, originalOrderCache)
         }
+            .flowOn(Dispatchers.Default)
             .stateIn(
                 scope = scope,
                 started = SharingStarted.WhileSubscribed(5000),
@@ -131,11 +133,12 @@ internal class ProxyGroupSorter {
     ): List<ProxyGroupInfo> {
         val previousCache = sortedGroupCache
         val nextCache = HashMap<String, SortedGroupCacheEntry>(groups.size)
-        val results = groups.map { group ->
+        val resolvedGroups = groups.resolveMemberDelays()
+        val results = groups.mapIndexed { index, group ->
             val originalOrder = originalOrderCache[group.name].orEmpty()
             // Resolve before the cache check. A parent of other groups does not change when a
             // nested leaf delay arrives, but its rows must show the selected node's delay.
-            val resolved = group.resolveMemberDelays(groups)
+            val resolved = resolvedGroups[index]
             val cached =
                 previousCache[group.name]?.takeIf { entry ->
                     entry.sourceGroup == resolved &&
