@@ -9,6 +9,7 @@ from pathlib import Path
 import shutil
 import stat
 import subprocess
+import time
 
 
 REPO_URL = "https://github.com/MetaCubeX/mihomo.git"
@@ -62,7 +63,17 @@ def run_tidy(path: Path) -> None:
         print(f"Skipping tidy for {path} (no go.mod found)")
         return
     print(f"Running go mod tidy in {path}")
-    run(["go", "mod", "tidy"], cwd=path)
+    attempts = 4
+    for attempt in range(1, attempts + 1):
+        try:
+            run(["go", "mod", "tidy"], cwd=path)
+            return
+        except subprocess.CalledProcessError:
+            if attempt == attempts:
+                raise
+            delay = 5 * attempt
+            print(f"go mod tidy failed (attempt {attempt}/{attempts}), retrying in {delay}s")
+            time.sleep(delay)
 
 
 def main() -> int:
