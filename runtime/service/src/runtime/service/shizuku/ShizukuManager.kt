@@ -105,17 +105,14 @@ object ShizukuManager {
         bindLatch.countDown()
     }
 
-    fun isAvailable(): Boolean =
-        runCatching {
-            Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-        }.getOrDefault(false)
+    fun isAvailable(): Boolean = isRunning() && hasPermission()
 
     fun isRunning(): Boolean = runCatching { Shizuku.pingBinder() }.getOrDefault(false)
 
     fun hasPermission(): Boolean =
-        runCatching {
-            Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-        }.getOrDefault(false)
+        runCatching { Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED }
+            .onFailure { error -> Log.w(TAG, "Shizuku permission check failed", error) }
+            .getOrDefault(false)
 
     fun requestPermission(callback: (Boolean) -> Unit) {
         if (!isRunning()) {

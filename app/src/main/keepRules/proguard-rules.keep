@@ -79,6 +79,10 @@
 # Shizuku UserService
 # ========================================
 # Instantiated by ComponentName(packageName, className); Shizuku API classes use reflection.
+# moe.shizuku.server.* are the AIDL contracts spoken with the Shizuku server and their Binder
+# descriptor is the interface name. Renaming them makes -adaptclassstrings rewrite the descriptor,
+# and the server then rejects every call with "Binder invocation to an incorrect interface".
+-keep class moe.shizuku.** { *; }
 -keep class rikka.shizuku.** { *; }
 -keep class rikka.sui.** { *; }
 -keep class com.github.yumeyucca.yumebox.runtime.service.shizuku.** { *; }
