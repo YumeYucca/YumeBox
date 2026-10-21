@@ -402,7 +402,7 @@ class CoreController(
             .onFailure { error -> Timber.d(error, "Group delay test failed: %s", group) }
             .getOrDefault(emptyMap())
 
-    override suspend fun healthCheckProxy(group: String, proxyName: String): Int {
+    override suspend fun healthCheckProxy(proxyName: String): Int {
         readDelay("proxies", proxyName, "delay")?.let {
             return it
         }

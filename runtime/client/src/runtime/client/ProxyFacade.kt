@@ -251,10 +251,10 @@ class ProxyFacade(
         }
     }
 
-    suspend fun healthCheckProxy(group: String, proxyName: String): Int =
+    suspend fun healthCheckProxy(proxyName: String): Int =
         when (nodeSession.value.source) {
-            NodeDataSource.Active -> groups.healthCheckProxy(group, proxyName)
-            NodeDataSource.Preview -> preview.healthCheckProxy(group, proxyName)
+            NodeDataSource.Active -> groups.healthCheckProxy(proxyName)
+            NodeDataSource.Preview -> preview.healthCheckProxy(proxyName)
             NodeDataSource.None -> 0
         }
 

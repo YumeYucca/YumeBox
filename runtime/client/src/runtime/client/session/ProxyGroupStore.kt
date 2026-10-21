@@ -28,6 +28,7 @@ import com.github.yumeyucca.yumebox.domain.model.ProxyGroupOverlay
 import com.github.yumeyucca.yumebox.domain.model.membersByGroup
 import com.github.yumeyucca.yumebox.domain.model.resolvePrimaryNode
 import com.github.yumeyucca.yumebox.domain.model.toInfo
+import com.github.yumeyucca.yumebox.domain.model.withDelays
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -96,34 +97,44 @@ internal class ProxyGroupStore(
     }
 
     /**
-     * Publishes a batch of direct measurements to the per-node delay flows. The immutable group
-     * list stays untouched until [commitDirectDelays] runs once at the end of the test.
+     * Applies one measured batch to the live per-node flows and shields it from aggregate
+     * snapshots that have not caught up yet. The immutable group list stays untouched until
+     * [commitDirectDelays] folds the finished run in.
      */
     @Synchronized
-    fun applyDirectDelays(delays: Map<String, Int>) {
-        val measuredDelays = delays.filterValues { delay -> delay != 0 }
-        if (measuredDelays.isEmpty()) return
+    fun recordDirectDelays(delays: Map<String, Int>) {
+        val measured = delays.filterValues { delay -> delay != 0 }
+        if (measured.isEmpty()) return
         val currentGroups = _groups.value
-        if (currentGroups.isEmpty()) return
-        val index =
-            proxyToGroupIndex.ifEmpty {
-                buildProxyToGroupIndex(currentGroups).also { proxyToGroupIndex = it }
+        if (currentGroups.isNotEmpty()) {
+            val index =
+                proxyToGroupIndex.ifEmpty {
+                    buildProxyToGroupIndex(currentGroups).also { proxyToGroupIndex = it }
+                }
+            val affectedMembers = HashMap<String, MutableSet<String>>()
+            measured.keys.forEach { name ->
+                index[name]?.forEach { groupIndex ->
+                    affectedMembers.getOrPut(currentGroups[groupIndex].name) { mutableSetOf() } +=
+                        name
+                }
             }
-        val affectedMembers = HashMap<String, MutableSet<String>>()
-        measuredDelays.keys.forEach { name ->
-            index[name]?.forEach { idx ->
-                affectedMembers.getOrPut(currentGroups[idx].name) { mutableSetOf() } += name
-            }
+            if (affectedMembers.isNotEmpty()) overlay.recordDelays(measured, affectedMembers)
         }
-        if (affectedMembers.isEmpty()) return
-        overlay.recordDelays(measuredDelays, affectedMembers)
-        delayStore.apply(measuredDelays)
+        delayStore.apply(measured)
     }
 
-    /** Reconciles the immutable group list once, after a test session has finished. */
+    /** Folds a finished run into the immutable group list exactly once, then republishes it. */
     @Synchronized
-    fun commitDirectDelays() {
-        publish(sourceGroups.ifEmpty { _groups.value })
+    fun commitDirectDelays(measured: Map<String, Int>) {
+        val base = sourceGroups.ifEmpty { _groups.value }
+        if (base.isEmpty()) return
+        publish(
+            if (measured.isEmpty()) {
+                base
+            } else {
+                base.map { group -> group.copy(proxies = group.proxies.withDelays(measured)) }
+            }
+        )
     }
 
     fun proxyDelayFlow(name: String): StateFlow<Int?> = delayStore.delayFlow(name)

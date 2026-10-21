@@ -10,12 +10,13 @@ import android.content.Context
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import com.github.yumeyucca.yumebox.core.model.ProxySort
-import com.github.yumeyucca.yumebox.domain.model.ProxyDelayPublishCoalescer
 import com.github.yumeyucca.yumebox.domain.model.ProxyDelayStore
 import com.github.yumeyucca.yumebox.domain.model.ProxyDelayTestProgressCallback
+import com.github.yumeyucca.yumebox.domain.model.ProxyDelayTestSession
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupOverlay
 import com.github.yumeyucca.yumebox.domain.model.membersByGroup
-import com.github.yumeyucca.yumebox.domain.model.runProxyGroupDelayTests
+import com.github.yumeyucca.yumebox.domain.model.planProxyDelayTests
+import com.github.yumeyucca.yumebox.domain.model.withDelays
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
 import com.github.yumeyucca.yumebox.runtime.service.core.PreviewCoreProcess
 import com.github.yumeyucca.yumebox.runtime.service.profile.ImportedDao
@@ -60,10 +61,6 @@ class PreviewRuntimeManager(
     private val delayOverlay = ProxyGroupOverlay()
     private var indexedGroups: List<ProxyGroup>? = null
     private var proxyToGroupIndex: Map<String, List<Int>> = emptyMap()
-    private val delayPublish = ProxyDelayPublishCoalescer(
-        minFlushCount = 1,
-        minFlushIntervalMs = 0L,
-    )
     val state: StateFlow<PreviewNodeState> = _state.asStateFlow()
 
     /** Local storage only: preview must not depend on the service/controller backend being alive. */
@@ -116,15 +113,16 @@ class PreviewRuntimeManager(
     suspend fun healthCheckAll(onProgress: ProxyDelayTestProgressCallback? = null) =
         runDelayTests(onProgress) { proxiesByGroup -> proxiesByGroup.keys.toList() }
 
-    suspend fun healthCheckProxy(group: String, proxyName: String): Int {
+    suspend fun healthCheckProxy(proxyName: String): Int {
         val previewGeneration = generation.get()
         return mutex.withLock {
             withContext(Dispatchers.Default) {
                 if (!isCurrentGeneration(previewGeneration)) return@withContext -1
-                val delay = process.controller().healthCheckProxy(group, proxyName)
-                publishDirectDelays(previewGeneration, mapOf(proxyName to delay))
-                commitDirectDelays(previewGeneration)
-                delay
+                val measured = process.controller().healthCheckProxy(proxyName)
+                val batch = mapOf(proxyName to measured)
+                recordDirectDelays(previewGeneration, batch)
+                commitDirectDelays(previewGeneration, batch)
+                measured
             }
         }
     }
@@ -201,53 +199,43 @@ class PreviewRuntimeManager(
             runCatching { controller.warmUpProviderSnapshot() }
                 .onFailure { error -> if (error is CancellationException) throw error }
         }
-        withContext(Dispatchers.Default) {
-            delayPublish.session(flush = { delays -> applyDirectDelays(previewGeneration, delays) }) {
-                runProxyGroupDelayTests(
-                    groupNames = groupNames(proxiesByGroup),
-                    proxiesByGroup = proxiesByGroup,
+        val measured =
+            withContext(Dispatchers.Default) {
+                ProxyDelayTestSession(
+                    targets = planProxyDelayTests(groupNames(proxiesByGroup), proxiesByGroup),
                     isActive = { isCurrentGeneration(previewGeneration) },
-                    measureProxy = { groupName, proxyName ->
-                        controller.healthCheckProxy(groupName, proxyName)
-                    },
+                    onResult = { batch -> recordDirectDelays(previewGeneration, batch) },
+                    measureNode = { proxyName -> controller.healthCheckProxy(proxyName) },
                     measureGroup = { groupName -> controller.healthCheck(groupName) },
-                    publish = { delays -> publishDirectDelays(previewGeneration, delays) },
                     onProgress = onProgress,
                 )
-            }
-            mutex.withLock { commitDirectDelays(previewGeneration) }
-        }
+                    .run()
+            } ?: return
+        mutex.withLock { commitDirectDelays(previewGeneration, measured) }
     }
 
-    private suspend fun publishDirectDelays(
-        previewGeneration: Long,
-        delays: Map<String, Int>,
-    ): Boolean {
-        if (!isCurrentGeneration(previewGeneration)) return false
-        if (delays.none { (_, delay) -> delay != 0 }) return true
-        if (delayPublish.enqueue(delays)) return true
-        applyDirectDelays(previewGeneration, delays)
-        return isCurrentGeneration(previewGeneration)
-    }
-
-    private fun applyDirectDelays(
+    /** Publishes one measured batch to the live flows and shields it from stale snapshots. */
+    @Synchronized
+    private fun recordDirectDelays(
         previewGeneration: Long,
         delays: Map<String, Int>,
     ) {
         if (!isCurrentGeneration(previewGeneration)) return
-        val measuredDelays = delays.filterValues { delay -> delay != 0 }
-        if (measuredDelays.isEmpty()) return
+        val measured = delays.filterValues { delay -> delay != 0 }
+        if (measured.isEmpty()) return
         val currentGroups = _state.value.groups
-        val index = proxyGroupIndex(currentGroups)
-        val affectedMembers = HashMap<String, MutableSet<String>>()
-        measuredDelays.keys.forEach { name ->
-            index[name]?.forEach { groupIndex ->
-                affectedMembers.getOrPut(currentGroups[groupIndex].name) { mutableSetOf() } += name
+        if (currentGroups.isNotEmpty()) {
+            val index = proxyGroupIndex(currentGroups)
+            val affectedMembers = HashMap<String, MutableSet<String>>()
+            measured.keys.forEach { name ->
+                index[name]?.forEach { groupIndex ->
+                    affectedMembers.getOrPut(currentGroups[groupIndex].name) { mutableSetOf() } +=
+                        name
+                }
             }
+            if (affectedMembers.isNotEmpty()) delayOverlay.recordDelays(measured, affectedMembers)
         }
-        if (affectedMembers.isEmpty()) return
-        delayOverlay.recordDelays(measuredDelays, affectedMembers)
-        delayStore.apply(measuredDelays)
+        delayStore.apply(measured)
     }
 
     private fun proxyGroupIndex(groups: List<ProxyGroup>): Map<String, List<Int>> {
@@ -264,11 +252,23 @@ class PreviewRuntimeManager(
         return proxyToGroupIndex
     }
 
-    /** Reconciles the immutable preview group list once, after the delay test finishes. */
-    private fun commitDirectDelays(previewGeneration: Long) {
+    /** Folds a finished run into the immutable preview group list exactly once, then republishes. */
+    @Synchronized
+    private fun commitDirectDelays(
+        previewGeneration: Long,
+        measured: Map<String, Int>,
+    ) {
         if (!isCurrentGeneration(previewGeneration)) return
         val previous = _state.value
-        val painted = delayOverlay.paintProxyGroups(previous.groups)
+        val merged =
+            if (measured.isEmpty()) {
+                previous.groups
+            } else {
+                previous.groups.map { group ->
+                    group.copy(proxies = group.proxies.withDelays(measured))
+                }
+            }
+        val painted = delayOverlay.paintProxyGroups(merged)
         _state.value = previous.copy(groups = painted)
         delayStore.publishProxyGroups(painted)
     }

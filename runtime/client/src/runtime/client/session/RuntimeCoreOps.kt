@@ -50,8 +50,7 @@ internal class RuntimeCoreOps(private val connect: suspend () -> Unit = {}) {
 
     suspend fun healthCheck(group: String): Map<String, Int> = api().healthCheck(group)
 
-    suspend fun healthCheckProxy(group: String, proxyName: String): Int =
-        api().healthCheckProxy(group, proxyName)
+    suspend fun healthCheckProxy(proxyName: String): Int = api().healthCheckProxy(proxyName)
 
     suspend fun warmUpProviderSnapshot() = api().warmUpProviderSnapshot()
 }

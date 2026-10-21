@@ -53,7 +53,8 @@ interface CoreApi {
     /** Tests every member of [group] and returns its directly measured delays by proxy name. */
     suspend fun healthCheck(group: String): Map<String, Int>
 
-    suspend fun healthCheckProxy(group: String, proxyName: String): Int
+    /** Probes one node and returns its delay, or a negative value when the probe failed. */
+    suspend fun healthCheckProxy(proxyName: String): Int
 
     /** Starts resolving provider ownership before a bulk delay test. */
     suspend fun warmUpProviderSnapshot()
