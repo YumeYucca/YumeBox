@@ -57,11 +57,14 @@ plugins {
 allprojects {
     configurations.configureEach {
         resolutionStrategy.eachDependency {
-            when (requested.group) {
-                "org.bouncycastle" -> useVersion("1.86")
-                "io.netty" -> useVersion("4.1.136.Final")
-                "org.apache.httpcomponents" -> if (requested.name == "httpclient") useVersion("4.5.14")
-                "org.apache.commons" -> if (requested.name == "commons-lang3") useVersion("3.20.0")
+            when {
+                requested.group.startsWith("tools.jackson") -> useVersion("3.1.8")
+                requested.group == "org.bouncycastle" -> useVersion("1.86")
+                requested.group == "io.netty" -> useVersion("4.1.136.Final")
+                requested.group == "org.apache.httpcomponents" ->
+                    if (requested.name == "httpclient") useVersion("4.5.14")
+                requested.group == "org.apache.commons" ->
+                    if (requested.name == "commons-lang3") useVersion("3.20.0")
             }
         }
     }
