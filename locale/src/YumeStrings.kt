@@ -147,6 +147,7 @@ public data class YumeStrings_AppSettings_Section(
 public data class YumeStrings_AppSettings_Behavior(
     public val AutoStartTitle: String,
     public val AutoUpdateOnStartTitle: String,
+    public val SystemAutoStartGrantToast: String,
 )
 
 public data class YumeStrings_AppSettings_Interface(

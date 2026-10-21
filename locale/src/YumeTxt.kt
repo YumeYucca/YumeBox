@@ -399,6 +399,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun AutoUpdateOnStartTitle(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Behavior.AutoUpdateOnStartTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Behavior.AutoUpdateOnStartTitle, *args)
+            public val SystemAutoStartGrantToast: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Behavior.SystemAutoStartGrantToast
+            @androidx.compose.runtime.Composable
+            public fun SystemAutoStartGrantToast(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Behavior.SystemAutoStartGrantToast else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Behavior.SystemAutoStartGrantToast, *args)
         }
         public object Interface {
             public val ThemeModeTitle: String
