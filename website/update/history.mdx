@@ -7,6 +7,30 @@ icon: clock
 
 <Card title="GitHub Releases" icon="download" horizontal href="https://github.com/YumeYucca/YumeBox/releases" />
 
+<Update label="2026-10-22" tags={["功能更新","优化","修复"]} description="v0.6.5">
+  ## 更改
+
+  - 新增 HyperOS 超级岛通知：显示当前配置、节点与实时速率，可在服务设置中开关
+  - 新增 Shizuku 授权支持：更新超级岛时临时放行小米 XMSF 防火墙，服务设置中可查看授权状态
+  - 运行时启动统一由 RuntimeCoordinator 调度：界面、快捷开关、自动重启、Wi-Fi 自动化与配置重载共用同一入口，启停与重载更稳定
+  - 优化内核就绪探测与 VPN 停止流程，缩短启动等待并避免状态误判
+  - 优化 Root 守护进程的启动与回收
+  - 使用外部控制器时不再重复启动本地运行时，连续探测失败后才回退本地
+  - 重构多语言实现，改进系统语言识别与繁体中文（zh-TW / zh-HK / zh-MO）支持
+  - 代理页节点与分组行加入错峰入场动画
+  - 嵌套分组无需点按即可显示延迟
+  - 优化测速栏展开与排序弹窗，避免列表重新测量、动画重放与顺序跳动
+  - 测速结果按节点独立更新，测试过程中不再重建并重排整个分组列表
+  - 修复圆角边框与 Moe 首页壁纸圆角被裁剪的问题
+  - 修复 Shizuku 相关类被混淆导致授权状态检测失败的问题
+  - 修复 HyperOS / MIUI 开机无法自启动的问题：开启「自动启动」时会跳转系统自启动设置授权
+  - Substore 的 Javet 原生库改为按版本下载并校验 SHA-256，避免版本不匹配导致进程崩溃
+  - 不再打包未使用的 BundleMRS.7z，减小安装包体积
+  - 更新 Kotlin、Gradle、Javet、Haze、Sketch 等依赖，并修复多项依赖安全告警
+
+  **Full Changelog**: [https://github.com/YumeYucca/YumeBox/compare/v0.6.4...v0.6.5](https://github.com/YumeYucca/YumeBox/compare/v0.6.4...v0.6.5)
+</Update>
+
 <Update label="2026-9-19" tags={["功能更新","优化","修复"]} description="v0.6.4">
   ## 更改
 
