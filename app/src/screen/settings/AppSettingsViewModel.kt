@@ -25,6 +25,7 @@ package com.github.yumeyucca.yumebox.screen.settings
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumeyucca.yumebox.common.util.XiaomiAutoStart
 import com.github.yumeyucca.yumebox.common.util.stateInWhileSubscribed
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.util.moeWallpaperFile
@@ -401,7 +402,17 @@ class AppSettingsViewModel(
 
     fun onPageScaleChange(scale: Float) = pageScale.set(scale)
 
-    fun onAutomaticRestartChange(enabled: Boolean) = automaticRestart.set(enabled)
+    /**
+     * One switch owns boot autostart. On MIUI/HyperOS the ROM additionally gates the boot dispatch
+     * behind a private autostart switch, so enabling sends the user there when it is still off.
+     */
+    fun onAutomaticRestartChange(enabled: Boolean) {
+        automaticRestart.set(enabled)
+        if (!enabled || !XiaomiAutoStart.isSupported()) return
+        if (XiaomiAutoStart.readState(application) == XiaomiAutoStart.State.ENABLED) return
+        application.toast(YumeTxt.AppSettings.Behavior.SystemAutoStartGrantToast)
+        XiaomiAutoStart.openSettings(application)
+    }
 
     fun onAutoUpdateCurrentProfileOnStartChange(enabled: Boolean) =
         autoUpdateCurrentProfileOnStart.set(enabled)

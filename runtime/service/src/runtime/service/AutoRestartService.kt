@@ -31,6 +31,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.github.yumeyucca.yumebox.common.util.XiaomiAutoStart
 import com.github.yumeyucca.yumebox.core.util.AutoStartSessionGate
 import com.github.yumeyucca.yumebox.core.util.StartupTaskCoordinator
 import com.github.yumeyucca.yumebox.data.model.RunMode
@@ -129,6 +130,18 @@ class AutoRestartService : Service() {
     }
 
     private suspend fun checkAndAutoStart(reason: String) {
+        val runMode = networkSettingsStorage.runMode.value
+        val log = RuntimeLog.writer(this, runMode)
+        // This line is the first evidence that the broadcast reached the app. If a boot is not
+        // logged at all, the process was never started (on MIUI/HyperOS: autostart not allowed).
+        log.i(RuntimeLog.Type.AutoStart, "check reason=$reason mode=$runMode")
+        if (XiaomiAutoStart.isSupported()) {
+            log.i(
+                RuntimeLog.Type.AutoStart,
+                "system autostart=${XiaomiAutoStart.readState(this)}",
+            )
+        }
+
         // An APK replacement kills app-owned services but not the detached root daemon. Tear it
         // down before checking the restart preference so no process keeps running replaced code.
         // verify() also reattaches a surviving root daemon before anything below reads state.
@@ -138,13 +151,16 @@ class AutoRestartService : Service() {
         ) {
             RuntimeCoordinator.stop()
         }
-        if (!appSettingsStorage.automaticRestart.value) return
+        if (!appSettingsStorage.automaticRestart.value) {
+            log.skip("automatic restart is disabled")
+            return
+        }
         if (RemoteControllerStore.isActive()) {
-            Timber.tag(TAG).i("Skip auto start: remote controller mode active")
+            log.skip("remote controller mode active")
             return
         }
         if (AutoStartSessionGate.shouldSkipAutoStart()) {
-            Timber.tag(TAG).i("Skip auto start: manual pause gate is active in current session")
+            log.skip("manual pause gate is active in current session")
             return
         }
         StartupTaskCoordinator.awaitWarmup()
@@ -154,18 +170,19 @@ class AutoRestartService : Service() {
 
         val activeProfile = profileManager.queryActive()
         if (activeProfile == null) {
+            log.w(RuntimeLog.Type.AutoStart, "skip: no active profile")
             Timber.tag(TAG).w("No active profile for auto start")
             return
         }
 
-        val runMode = networkSettingsStorage.runMode.value
         // A restart against an already-active runtime would tear down the live core.
         if (RuntimeCoordinator.state.value.active) {
-            Timber.tag(TAG).i("Skip auto start: ${runMode.name} runtime already active")
+            log.skip("${runMode.name} runtime already active")
             return
         }
         if (runMode == RunMode.VpnService && VpnService.prepare(this) != null) {
-            Timber.tag(TAG).i("Skip auto start: VPN permission is missing")
+            // The consent dialog cannot be shown from the background; the user must open the app.
+            log.skip("VPN permission is missing")
             return
         }
 
@@ -175,7 +192,6 @@ class AutoRestartService : Service() {
                 REASON_PACKAGE_REPLACED -> RuntimeStartSource.AutoRestartReplaced
                 else -> RuntimeStartSource.AutoRestart
             }
-        val log = RuntimeLog.writer(this, runMode)
         try {
             withTimeout(ACTIVATION_TIMEOUT_MS) { RuntimeCoordinator.start(runMode, source) }
         } catch (error: TimeoutCancellationException) {
@@ -193,6 +209,12 @@ class AutoRestartService : Service() {
             Timber.tag(TAG)
                 .i("Auto start active: reason=$reason profile=${activeProfile.name}, mode=$runMode")
         }
+    }
+
+    /** Mirrors a skipped gate into both logcat and the in-app runtime log. */
+    private fun RuntimeLog.Writer.skip(message: String) {
+        i(RuntimeLog.Type.AutoStart, "skip: $message")
+        Timber.tag(TAG).i("Skip auto start: $message")
     }
 
     private fun createNotificationChannel() {

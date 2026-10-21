@@ -14,6 +14,7 @@ internal val ZhHansYumeStrings_AppSettings: YumeStrings_AppSettings = YumeString
     Behavior = YumeStrings_AppSettings_Behavior(
         AutoStartTitle = "自动启动",
         AutoUpdateOnStartTitle = "启动更新配置",
+        SystemAutoStartGrantToast = "授予自启动权限",
     ),
     Interface = YumeStrings_AppSettings_Interface(
         ThemeModeTitle = "主题模式",
@@ -94,6 +95,7 @@ internal val ZhYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
     Behavior = YumeStrings_AppSettings_Behavior(
         AutoStartTitle = "自動啟動",
         AutoUpdateOnStartTitle = "啟動時更新設定檔",
+        SystemAutoStartGrantToast = "授予自啟動權限",
     ),
     Interface = YumeStrings_AppSettings_Interface(
         ThemeModeTitle = "主題模式",
@@ -174,6 +176,7 @@ internal val EnYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
     Behavior = YumeStrings_AppSettings_Behavior(
         AutoStartTitle = "Auto Start",
         AutoUpdateOnStartTitle = "Update on Start",
+        SystemAutoStartGrantToast = "Grant autostart permission",
     ),
     Interface = YumeStrings_AppSettings_Interface(
         ThemeModeTitle = "Theme Mode",
@@ -254,6 +257,7 @@ internal val JaYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
     Behavior = YumeStrings_AppSettings_Behavior(
         AutoStartTitle = "自動開始",
         AutoUpdateOnStartTitle = "開始時に更新",
+        SystemAutoStartGrantToast = "自起動権限を許可",
     ),
     Interface = YumeStrings_AppSettings_Interface(
         ThemeModeTitle = "テーマモード",
@@ -334,6 +338,7 @@ internal val RuYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
     Behavior = YumeStrings_AppSettings_Behavior(
         AutoStartTitle = "Автозапуск",
         AutoUpdateOnStartTitle = "Обновлять при запуске",
+        SystemAutoStartGrantToast = "Разрешить автозапуск",
     ),
     Interface = YumeStrings_AppSettings_Interface(
         ThemeModeTitle = "Режим темы",
