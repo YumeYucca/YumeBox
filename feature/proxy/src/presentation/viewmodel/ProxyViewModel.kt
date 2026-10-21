@@ -201,12 +201,12 @@ class ProxyViewModel(
         }
     }
 
-    fun testProxyDelay(groupName: String, proxyName: String) {
+    fun testProxyDelay(proxyName: String) {
         if (!pendingProxyDelayTests.add(proxyName)) return
         viewModelScope.launch {
             _testingProxyNames.update { it + proxyName }
             try {
-                runCatching { proxyFacade.healthCheckProxy(groupName, proxyName) }
+                runCatching { proxyFacade.healthCheckProxy(proxyName) }
                     .onFailure { error ->
                         if (error is CancellationException) throw error
                         showError(YumeTxt.Proxy.Testing.Failed.format(error.message))

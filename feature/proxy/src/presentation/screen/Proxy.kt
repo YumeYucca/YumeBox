@@ -284,11 +284,7 @@ fun ProxyPager(
                                 proxyViewModel.selectProxy(groupName, proxyName)
                             },
                             onTestDelay = requestSelectedGroupDelayTest,
-                            onTestProxyDelay = { proxyName ->
-                                selectedGroupName?.let { groupName ->
-                                    proxyViewModel.testProxyDelay(groupName, proxyName)
-                                }
-                            },
+                            onTestProxyDelay = proxyViewModel::testProxyDelay,
                             onScrollDirectionChanged = {},
                             useAdaptiveGrid = false,
                             searchQuery = nodeSearchQuery,
@@ -466,11 +462,7 @@ internal fun ProxyShellNodeDetailContent(
                             proxyViewModel.selectProxy(selectedGroup, proxyName)
                         },
                         onTestDelay = requestSelectedGroupDelayTest,
-                        onTestProxyDelay = { proxyName ->
-                            selectedGroupName?.let { groupName ->
-                                proxyViewModel.testProxyDelay(groupName, proxyName)
-                            }
-                        },
+                        onTestProxyDelay = proxyViewModel::testProxyDelay,
                         onScrollDirectionChanged = {},
                         useAdaptiveGrid = true,
                         searchQuery = nodeSearchQuery,

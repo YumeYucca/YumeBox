@@ -265,7 +265,7 @@ private fun ProxySheetNodeContent(
         onSelectProxy = onSelectProxy,
         onTestDelay = onTestDelay,
         testingProxyNames = testingProxyNames,
-        onTestProxyDelay = { proxyName -> proxyViewModel.testProxyDelay(group.name, proxyName) },
+        onTestProxyDelay = proxyViewModel::testProxyDelay,
         sheetHeightFraction = sheetHeightFraction,
         listState = listState,
     )
