@@ -7,6 +7,30 @@ icon: clock
 
 <Card title="GitHub Releases" icon="download" horizontal href="https://github.com/YumeYucca/YumeBox/releases" />
 
+<Update label="2026-10-22" tags={["Feature updates","optimization","repair"]} description="v0.6.5">
+## Change
+
+- Added a HyperOS Super Island notification showing the current profile, node, and live speed, with a toggle in Service settings
+- Added Shizuku support: the Xiaomi XMSF firewall is temporarily bypassed while the island updates, and the authorization status is shown in Service settings
+- Runtime starts now go through one RuntimeCoordinator: the UI, quick tile, auto-restart, Wi-Fi automation, and config reloads share a single entry point, making start/stop/reload more reliable
+- Improved core readiness probing and VPN shutdown to shorten startup waits and avoid stale state
+- Improved Root daemon startup and reaping
+- The app no longer starts a local runtime while a remote controller is active, falling back only after repeated probe failures
+- Reworked the locale implementation with better system-language detection and Traditional Chinese support (zh-TW / zh-HK / zh-MO)
+- Added staggered entry animations for node and group rows on the proxy page
+- Nested groups now show a delay without tapping the row
+- Improved the delay test bar and sort sheet so the list is not remeasured, re-animated, or reordered
+- Delay results now update per node, so a test no longer rebuilds and re-sorts the whole group list
+- Fixed clipped squircle borders and Moe Home wallpaper corners
+- Fixed Shizuku classes being obfuscated and breaking authorization detection
+- Fixed boot auto-start on HyperOS / MIUI: enabling "Auto Start" now opens the system autostart settings when the permission is missing
+- The Substore Javet native is now downloaded per version and verified with SHA-256, preventing version-mismatch crashes
+- Stopped packaging the unused BundleMRS.7z, reducing APK size
+- Updated Kotlin, Gradle, Javet, Haze, Sketch, and other dependencies, and fixed dependency security alerts
+
+  **Full Changelog**: [https://github.com/YumeYucca/YumeBox/compare/v0.6.4...v0.6.5](https://github.com/YumeYucca/YumeBox/compare/v0.6.4...v0.6.5)
+</Update>
+
 <Update label="2026-9-19" tags={["Feature updates","optimization","repair"]} description="v0.6.4">
 ## Change
 

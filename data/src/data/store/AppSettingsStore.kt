@@ -48,7 +48,7 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     val moeWallpaperZoom by floatFlow(1.0f)
     val moeWallpaperBiasX by floatFlow(0.0f)
     val moeWallpaperBiasY by floatFlow(0.0f)
-    val moeHomeQuote by strFlow("君の隣、感じちゃうの")
+    val moeHomeQuote by strFlow("さよなら君の声 忘れたりしない ずっと")
     val moeSidebarExpanded by boolFlow(true)
     val splitLeftRatio by floatFlow(0.42f)
     val pageScale by floatFlow(1.0f)
