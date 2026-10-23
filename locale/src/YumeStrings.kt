@@ -175,7 +175,6 @@ public data class YumeStrings_AppSettings_Interface(
     public val PredictiveBackTitle: String,
     public val PredictiveBackRestartSummary: String,
     public val PredictiveBackProgressTitle: String,
-    public val ClassicHomeTitle: String,
     public val SystemWallpaperTitle: String,
     public val CustomIconTitle: String,
     public val HomeQuoteTitle: String,
@@ -582,16 +581,11 @@ public data class YumeStrings_Home_Message(
 )
 
 public data class YumeStrings_Home_Control(
-    public val HintAddProfile: String,
-    public val HintEnableProfile: String,
     public val Start: String,
     public val Stop: String,
 )
 
 public data class YumeStrings_Home_NodeInfo(
-    public val Node: String,
-    public val Delay: String,
-    public val Unknown: String,
     public val DelayValue: String,
 )
 
@@ -603,30 +597,18 @@ public data class YumeStrings_Home_Traffic(
     public val NoProfile: String,
 )
 
-public data class YumeStrings_Home_IpInfo(
-    public val ExitIp: String,
-)
-
 public data class YumeStrings_Home_Status(
     public val Connecting: String,
     public val Disconnecting: String,
     public val Running: String,
     public val Lost: String,
-    public val TapToStart: String,
 )
 
 public data class YumeStrings_Home_Settings(
     public val Title: String,
     public val Quote: String,
-    public val ClassicHome: String,
     public val ExpandSidebar: String,
     public val ChangeWallpaper: String,
-)
-
-public data class YumeStrings_Home_ProxyMode(
-    public val Vpn: String,
-    public val Tun: String,
-    public val Ebpf: String,
 )
 
 public data class YumeStrings_Home_PreviewGuide(
@@ -643,15 +625,12 @@ public data class YumeStrings_Home_PreviewGuide(
 )
 
 public data class YumeStrings_Home(
-    public val Title: String,
     public val Message: YumeStrings_Home_Message,
     public val Control: YumeStrings_Home_Control,
     public val NodeInfo: YumeStrings_Home_NodeInfo,
     public val Traffic: YumeStrings_Home_Traffic,
-    public val IpInfo: YumeStrings_Home_IpInfo,
     public val Status: YumeStrings_Home_Status,
     public val Settings: YumeStrings_Home_Settings,
-    public val ProxyMode: YumeStrings_Home_ProxyMode,
     public val PreviewGuide: YumeStrings_Home_PreviewGuide,
 )
 

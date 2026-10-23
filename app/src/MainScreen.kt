@@ -43,7 +43,6 @@ import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.screen.ProxyPager
 import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze
 import com.github.yumeyucca.yumebox.presentation.webview.WebViewUtils
-import com.github.yumeyucca.yumebox.screen.home.HomePager
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import com.github.yumeyucca.yumebox.screen.moe.LocalUseSystemWallpaper
 import com.github.yumeyucca.yumebox.screen.moe.MoeHomePage
@@ -112,7 +111,6 @@ fun MainScreen(
 
     val bottomBarAutoHideEnabled by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
     val topBarBlurEnabled by appSettingsViewModel.topBarBlurEnabled.state.collectAsState()
-    val classicHomeEnabled by appSettingsViewModel.classicHomeEnabled.state.collectAsState()
     val splitLeftFraction by appSettingsViewModel.splitLeftRatio.state.collectAsState()
     val moeWallpaperUri by appSettingsViewModel.moeWallpaperUri.state.collectAsState()
     val moeWallpaperZoom by appSettingsViewModel.moeWallpaperZoom.state.collectAsState()
@@ -169,21 +167,13 @@ fun MainScreen(
                 )
             }
         }
-    // Floating nav bar (with the proxy FAB) shows on the classic home and every other page; the
-    // default home has its own chrome, so it stays hidden there.
+    // Floating nav bar (with the proxy FAB) shows on every page except the home, which has its
+    // own chrome; it also stays hidden while a swipe towards home has selected but not settled.
     val bottomBarVisible by
-        remember(classicHomeEnabled, settledDestination, selectedDestination) {
+        remember(settledDestination, selectedDestination) {
             derivedStateOf {
-                when {
-                    // Dual-pane shell: still float the left-pane bottom bar when not on Moe home.
-                    classicHomeEnabled -> true
-
-                    selectedDestination == BottomBarDestination.Home -> false
-
-                    settledDestination != BottomBarDestination.Home -> true
-
-                    else -> false
-                }
+                selectedDestination != BottomBarDestination.Home &&
+                    settledDestination != BottomBarDestination.Home
             }
         }
     val bottomBarBackground =
@@ -336,7 +326,6 @@ fun MainScreen(
             topBarBlurEnabled = topBarBlurEnabled,
             hazeState = hazeState,
             bottomBarScrimColor = bottomBarScrimColor,
-            classicHomeEnabled = classicHomeEnabled,
             moeWallpaperUri = moeWallpaperUri,
             moeWallpaperZoom = moeWallpaperZoom,
             moeWallpaperBiasX = moeWallpaperBiasX,
@@ -367,7 +356,6 @@ private fun MainScreenBackHandler(
 internal data class MainRootPageState(
     val destination: BottomBarDestination,
     val mainInnerPadding: PaddingValues,
-    val classicHomeEnabled: Boolean,
     val moeWallpaperUri: String,
     val moeWallpaperZoom: Float,
     val moeWallpaperBiasX: Float,
@@ -388,25 +376,17 @@ internal fun MainRootPageContent(state: MainRootPageState) {
     }
     when (state.destination) {
         BottomBarDestination.Home -> {
-            if (state.classicHomeEnabled) {
-                HomePager(
-                    mainInnerPadding = state.mainInnerPadding,
-                    isActive = state.selectedDestination == BottomBarDestination.Home,
-                    onOpenPanel = state.onOpenPanel,
-                )
-            } else {
-                MoeHomePage(
-                    mainInnerPadding = state.mainInnerPadding,
-                    wallpaperUri = state.moeWallpaperUri,
-                    wallpaperZoom = state.moeWallpaperZoom,
-                    wallpaperBiasX = state.moeWallpaperBiasX,
-                    wallpaperBiasY = state.moeWallpaperBiasY,
-                    isActive = state.selectedDestination == BottomBarDestination.Home,
-                    pageProgress = state.homePageProgress,
-                    onOpenPanel = state.onOpenPanel,
-                    windowLayoutMode = state.windowLayoutMode,
-                )
-            }
+            MoeHomePage(
+                mainInnerPadding = state.mainInnerPadding,
+                wallpaperUri = state.moeWallpaperUri,
+                wallpaperZoom = state.moeWallpaperZoom,
+                wallpaperBiasX = state.moeWallpaperBiasX,
+                wallpaperBiasY = state.moeWallpaperBiasY,
+                isActive = state.selectedDestination == BottomBarDestination.Home,
+                pageProgress = state.homePageProgress,
+                onOpenPanel = state.onOpenPanel,
+                windowLayoutMode = state.windowLayoutMode,
+            )
         }
 
         BottomBarDestination.Proxy -> {

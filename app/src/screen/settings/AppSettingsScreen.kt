@@ -107,7 +107,6 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
     val pageScale = section.pageScale
     val predictiveBackEnabled by viewModel.predictiveBackEnabled.state.collectAsState()
     val predictiveBackMaxProgress by viewModel.predictiveBackMaxProgress.state.collectAsState()
-    val classicHomeEnabled = section.classicHomeEnabled
     val useSystemWallpaper = section.useSystemWallpaper
 
     Title(YumeTxt.AppSettings.Interface.ColorThemeTitle)
@@ -180,11 +179,6 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
     }
     Title(YumeTxt.AppSettings.Section.Home)
     AppCard {
-        PreferenceSwitchItem(
-            title = YumeTxt.AppSettings.Interface.ClassicHomeTitle,
-            checked = classicHomeEnabled,
-            onCheckedChange = viewModel::onClassicHomeEnabledChange,
-        )
         SystemWallpaperPreferenceItem(
             checked = useSystemWallpaper,
             onCheckedChange = viewModel::onUseSystemWallpaperChange,

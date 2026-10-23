@@ -67,7 +67,6 @@ class AppSettingsViewModel(
     val showTrafficNotification: Preference<Boolean> = settings.showTrafficNotification
     val bottomBarAutoHide: Preference<Boolean> = settings.bottomBarAutoHide
     val topBarBlurEnabled: Preference<Boolean> = settings.topBarBlurEnabled
-    val classicHomeEnabled: Preference<Boolean> = settings.classicHomeEnabled
     val useSystemWallpaper: Preference<Boolean> = settings.useSystemWallpaper
     val moeWallpaperUri: Preference<String> = settings.moeWallpaperUri
     val moeWallpaperSourceUri: Preference<String> = settings.moeWallpaperSourceUri
@@ -114,7 +113,6 @@ class AppSettingsViewModel(
         val bottomBarAutoHide: Boolean = false,
         val topBarBlurEnabled: Boolean = false,
         val pageScale: Float = 1f,
-        val classicHomeEnabled: Boolean = false,
         val useSystemWallpaper: Boolean = true,
     )
 
@@ -138,13 +136,11 @@ class AppSettingsViewModel(
             combine(
                 topBarBlurEnabled.state,
                 pageScale.state,
-                classicHomeEnabled.state,
                 useSystemWallpaper.state,
-            ) { blur, scale, classic, systemWallpaper ->
+            ) { blur, scale, systemWallpaper ->
                 InterfaceSectionExtras(
                     topBarBlurEnabled = blur,
                     pageScale = scale,
-                    classicHomeEnabled = classic,
                     useSystemWallpaper = systemWallpaper,
                 )
             },
@@ -152,7 +148,6 @@ class AppSettingsViewModel(
             base.copy(
                 topBarBlurEnabled = extra.topBarBlurEnabled,
                 pageScale = extra.pageScale,
-                classicHomeEnabled = extra.classicHomeEnabled,
                 useSystemWallpaper = extra.useSystemWallpaper,
             )
         }
@@ -166,7 +161,6 @@ class AppSettingsViewModel(
                     bottomBarAutoHide = bottomBarAutoHide.value,
                     topBarBlurEnabled = topBarBlurEnabled.value,
                     pageScale = pageScale.value,
-                    classicHomeEnabled = classicHomeEnabled.value,
                     useSystemWallpaper = useSystemWallpaper.value,
                 ),
             )
@@ -174,7 +168,6 @@ class AppSettingsViewModel(
     private data class InterfaceSectionExtras(
         val topBarBlurEnabled: Boolean,
         val pageScale: Float,
-        val classicHomeEnabled: Boolean,
         val useSystemWallpaper: Boolean,
     )
 
@@ -295,7 +288,6 @@ class AppSettingsViewModel(
 
     data class MoeHomeSectionState(
         val themeMode: ThemeMode = ThemeMode.Auto,
-        val classicHomeEnabled: Boolean = false,
         val useSystemWallpaper: Boolean = true,
         val moeHomeQuote: String = "",
         val sidebarExpanded: Boolean = false,
@@ -304,14 +296,12 @@ class AppSettingsViewModel(
     val moeHomeSectionState: StateFlow<MoeHomeSectionState> =
         combine(
             themeMode.state,
-            classicHomeEnabled.state,
             useSystemWallpaper.state,
             moeHomeQuote.state,
             moeSidebarExpanded.state,
-        ) { theme, classic, systemWallpaper, quote, sidebar ->
+        ) { theme, systemWallpaper, quote, sidebar ->
             MoeHomeSectionState(
                 themeMode = theme,
-                classicHomeEnabled = classic,
                 useSystemWallpaper = systemWallpaper,
                 moeHomeQuote = quote,
                 sidebarExpanded = sidebar,
@@ -321,7 +311,6 @@ class AppSettingsViewModel(
                 viewModelScope,
                 MoeHomeSectionState(
                     themeMode = themeMode.value,
-                    classicHomeEnabled = classicHomeEnabled.value,
                     useSystemWallpaper = useSystemWallpaper.value,
                     moeHomeQuote = moeHomeQuote.value,
                     sidebarExpanded = moeSidebarExpanded.value,
@@ -348,8 +337,6 @@ class AppSettingsViewModel(
         predictiveBackMaxProgress.set(progress.coerceIn(1f, 100f))
 
     fun onPredictiveBackEnabledChange(enabled: Boolean) = predictiveBackEnabled.set(enabled)
-
-    fun onClassicHomeEnabledChange(enabled: Boolean) = classicHomeEnabled.set(enabled)
 
     fun onUseSystemWallpaperChange(enabled: Boolean) = useSystemWallpaper.set(enabled)
 

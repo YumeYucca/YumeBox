@@ -526,11 +526,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun PredictiveBackProgressTitle(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.PredictiveBackProgressTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.PredictiveBackProgressTitle, *args)
-            public val ClassicHomeTitle: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.Interface.ClassicHomeTitle
-            @androidx.compose.runtime.Composable
-            public fun ClassicHomeTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.ClassicHomeTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.ClassicHomeTitle, *args)
             public val SystemWallpaperTitle: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Interface.SystemWallpaperTitle
             @androidx.compose.runtime.Composable
@@ -1624,11 +1619,6 @@ public object YumeTxt {
         }
     }
     public object Home {
-        public val Title: String
-            get() = YumeLocaleManager.activeStrings.Home.Title
-        @androidx.compose.runtime.Composable
-        public fun Title(vararg args: Any?): String =
-            if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Title else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Title, *args)
         public object Message {
             public val ConfigSwitched: String
                 get() = YumeLocaleManager.activeStrings.Home.Message.ConfigSwitched
@@ -1667,16 +1657,6 @@ public object YumeTxt {
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Message.StopFailed else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Message.StopFailed, *args)
         }
         public object Control {
-            public val HintAddProfile: String
-                get() = YumeLocaleManager.activeStrings.Home.Control.HintAddProfile
-            @androidx.compose.runtime.Composable
-            public fun HintAddProfile(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Control.HintAddProfile else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Control.HintAddProfile, *args)
-            public val HintEnableProfile: String
-                get() = YumeLocaleManager.activeStrings.Home.Control.HintEnableProfile
-            @androidx.compose.runtime.Composable
-            public fun HintEnableProfile(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Control.HintEnableProfile else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Control.HintEnableProfile, *args)
             public val Start: String
                 get() = YumeLocaleManager.activeStrings.Home.Control.Start
             @androidx.compose.runtime.Composable
@@ -1689,21 +1669,6 @@ public object YumeTxt {
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Control.Stop else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Control.Stop, *args)
         }
         public object NodeInfo {
-            public val Node: String
-                get() = YumeLocaleManager.activeStrings.Home.NodeInfo.Node
-            @androidx.compose.runtime.Composable
-            public fun Node(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.NodeInfo.Node else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.NodeInfo.Node, *args)
-            public val Delay: String
-                get() = YumeLocaleManager.activeStrings.Home.NodeInfo.Delay
-            @androidx.compose.runtime.Composable
-            public fun Delay(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.NodeInfo.Delay else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.NodeInfo.Delay, *args)
-            public val Unknown: String
-                get() = YumeLocaleManager.activeStrings.Home.NodeInfo.Unknown
-            @androidx.compose.runtime.Composable
-            public fun Unknown(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.NodeInfo.Unknown else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.NodeInfo.Unknown, *args)
             public val DelayValue: String
                 get() = YumeLocaleManager.activeStrings.Home.NodeInfo.DelayValue
             @androidx.compose.runtime.Composable
@@ -1737,13 +1702,6 @@ public object YumeTxt {
             public fun NoProfile(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Traffic.NoProfile else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Traffic.NoProfile, *args)
         }
-        public object IpInfo {
-            public val ExitIp: String
-                get() = YumeLocaleManager.activeStrings.Home.IpInfo.ExitIp
-            @androidx.compose.runtime.Composable
-            public fun ExitIp(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.IpInfo.ExitIp else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.IpInfo.ExitIp, *args)
-        }
         public object Status {
             public val Connecting: String
                 get() = YumeLocaleManager.activeStrings.Home.Status.Connecting
@@ -1765,11 +1723,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun Lost(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Status.Lost else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Status.Lost, *args)
-            public val TapToStart: String
-                get() = YumeLocaleManager.activeStrings.Home.Status.TapToStart
-            @androidx.compose.runtime.Composable
-            public fun TapToStart(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Status.TapToStart else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Status.TapToStart, *args)
         }
         public object Settings {
             public val Title: String
@@ -1782,11 +1735,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun Quote(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Settings.Quote else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Settings.Quote, *args)
-            public val ClassicHome: String
-                get() = YumeLocaleManager.activeStrings.Home.Settings.ClassicHome
-            @androidx.compose.runtime.Composable
-            public fun ClassicHome(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Settings.ClassicHome else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Settings.ClassicHome, *args)
             public val ExpandSidebar: String
                 get() = YumeLocaleManager.activeStrings.Home.Settings.ExpandSidebar
             @androidx.compose.runtime.Composable
@@ -1797,23 +1745,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun ChangeWallpaper(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Settings.ChangeWallpaper else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Settings.ChangeWallpaper, *args)
-        }
-        public object ProxyMode {
-            public val Vpn: String
-                get() = YumeLocaleManager.activeStrings.Home.ProxyMode.Vpn
-            @androidx.compose.runtime.Composable
-            public fun Vpn(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.ProxyMode.Vpn else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.ProxyMode.Vpn, *args)
-            public val Tun: String
-                get() = YumeLocaleManager.activeStrings.Home.ProxyMode.Tun
-            @androidx.compose.runtime.Composable
-            public fun Tun(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.ProxyMode.Tun else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.ProxyMode.Tun, *args)
-            public val Ebpf: String
-                get() = YumeLocaleManager.activeStrings.Home.ProxyMode.Ebpf
-            @androidx.compose.runtime.Composable
-            public fun Ebpf(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.ProxyMode.Ebpf else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.ProxyMode.Ebpf, *args)
         }
         public object PreviewGuide {
             public val Title: String

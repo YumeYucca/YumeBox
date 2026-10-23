@@ -27,11 +27,9 @@ import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 internal fun MoeHomeSettingsSheet(
     show: Boolean,
     quote: String,
-    classicHomeEnabled: Boolean,
     sidebarExpanded: Boolean,
     useSystemWallpaper: Boolean,
     onQuoteChange: (String) -> Unit,
-    onClassicHomeEnabledChange: (Boolean) -> Unit,
     onSidebarExpandedChange: (Boolean) -> Unit,
     onUseSystemWallpaperChange: (Boolean) -> Unit,
     onChangeWallpaper: () -> Unit,
@@ -39,14 +37,9 @@ internal fun MoeHomeSettingsSheet(
 ) {
     val spacing = AppTheme.spacing
     var draftQuote by remember(show, quote) { mutableStateOf(quote) }
-    var draftClassicHomeEnabled by
-    remember(show, classicHomeEnabled) {
-        mutableStateOf(classicHomeEnabled)
-    }
     var draftSidebarExpanded by remember(show, sidebarExpanded) { mutableStateOf(sidebarExpanded) }
     val save = {
         onQuoteChange(draftQuote)
-        onClassicHomeEnabledChange(draftClassicHomeEnabled)
         onSidebarExpandedChange(draftSidebarExpanded)
         onDismiss()
     }
@@ -82,11 +75,6 @@ internal fun MoeHomeSettingsSheet(
                     applyHorizontalPadding = false,
                 ) {
                     Column {
-                        PreferenceSwitchItem(
-                            title = YumeTxt.Home.Settings.ClassicHome,
-                            checked = draftClassicHomeEnabled,
-                            onCheckedChange = { draftClassicHomeEnabled = it },
-                        )
                         PreferenceSwitchItem(
                             title = YumeTxt.Home.Settings.ExpandSidebar,
                             checked = draftSidebarExpanded,
