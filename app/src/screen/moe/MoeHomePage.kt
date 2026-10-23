@@ -100,7 +100,6 @@ fun MoeHomePage(
     val trafficNow = screen.trafficNow
     val isRemoteController = screen.isRemoteController
     val themeMode = moe.themeMode
-    val classicHomeEnabled = moe.classicHomeEnabled
     val moeHomeQuote = moe.moeHomeQuote
     val sidebarExpanded = moe.sidebarExpanded
     val useSystemWallpaper = moe.useSystemWallpaper
@@ -304,11 +303,9 @@ fun MoeHomePage(
     MoeHomeSettingsSheet(
         show = showHomeSettingsSheet,
         quote = moe.moeHomeQuote,
-        classicHomeEnabled = classicHomeEnabled,
         sidebarExpanded = sidebarExpanded,
         useSystemWallpaper = useSystemWallpaper,
         onQuoteChange = appSettingsViewModel::onMoeHomeQuoteChange,
-        onClassicHomeEnabledChange = appSettingsViewModel::onClassicHomeEnabledChange,
         onSidebarExpandedChange = appSettingsViewModel::onMoeSidebarExpandedChange,
         onUseSystemWallpaperChange = appSettingsViewModel::onUseSystemWallpaperChange,
         onChangeWallpaper = {

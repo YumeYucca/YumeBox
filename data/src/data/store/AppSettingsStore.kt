@@ -40,7 +40,6 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     val superIslandEnabled by boolFlow(true)
     val bottomBarAutoHide by boolFlow(true)
     val topBarBlurEnabled by boolFlow(false)
-    val classicHomeEnabled by boolFlow(false)
     val useSystemWallpaper by boolFlow(true)
     val systemWallpaperPermissionRequested by boolFlow(false)
     val moeWallpaperUri by strFlow("")

@@ -1,7 +1,6 @@
 package com.github.yumeyucca.yumebox.core.locale
 
 internal val ZhHansYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
-    Title = "YumeBox",
     Message = YumeStrings_Home_Message(
         ConfigSwitched = "配置已切换",
         ConfigSwitchFailed = "配置切换失败：%s",
@@ -12,15 +11,10 @@ internal val ZhHansYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         StopFailed = "停止失败：%s",
     ),
     Control = YumeStrings_Home_Control(
-        HintAddProfile = "请先添加配置文件",
-        HintEnableProfile = "请先在「配置」页面启用一个配置",
         Start = "启动",
         Stop = "停止",
     ),
     NodeInfo = YumeStrings_Home_NodeInfo(
-        Node = "节点",
-        Delay = "延迟",
-        Unknown = "未知",
         DelayValue = "%dms",
     ),
     Traffic = YumeStrings_Home_Traffic(
@@ -30,27 +24,17 @@ internal val ZhHansYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         Download = "下载",
         NoProfile = "无配置",
     ),
-    IpInfo = YumeStrings_Home_IpInfo(
-        ExitIp = "出口 IP",
-    ),
     Status = YumeStrings_Home_Status(
         Connecting = "连接中",
         Disconnecting = "断开中",
         Running = "运行中",
         Lost = "失联",
-        TapToStart = "轻触启动",
     ),
     Settings = YumeStrings_Home_Settings(
         Title = "首页设置",
         Quote = "一言",
-        ClassicHome = "回退经典首页",
         ExpandSidebar = "展开侧边栏",
         ChangeWallpaper = "更换壁纸",
-    ),
-    ProxyMode = YumeStrings_Home_ProxyMode(
-        Vpn = "VPN",
-        Tun = "TUN",
-        Ebpf = "eBPF",
     ),
     PreviewGuide = YumeStrings_Home_PreviewGuide(
         Title = "欢迎使用 YumeBox",
@@ -67,7 +51,6 @@ internal val ZhHansYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
 )
 
 internal val ZhYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
-    Title = "YumeBox",
     Message = YumeStrings_Home_Message(
         ConfigSwitched = "設定檔已切換",
         ConfigSwitchFailed = "設定檔切換失敗：%s",
@@ -78,15 +61,10 @@ internal val ZhYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         StopFailed = "停止失敗：%s",
     ),
     Control = YumeStrings_Home_Control(
-        HintAddProfile = "請先新增設定檔",
-        HintEnableProfile = "請先在「設定檔」頁面啟用一個設定",
         Start = "啟動",
         Stop = "停止",
     ),
     NodeInfo = YumeStrings_Home_NodeInfo(
-        Node = "節點",
-        Delay = "延遲",
-        Unknown = "未知",
         DelayValue = "%dms",
     ),
     Traffic = YumeStrings_Home_Traffic(
@@ -96,27 +74,17 @@ internal val ZhYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         Download = "下載",
         NoProfile = "無設定檔",
     ),
-    IpInfo = YumeStrings_Home_IpInfo(
-        ExitIp = "出口 IP",
-    ),
     Status = YumeStrings_Home_Status(
         Connecting = "連線中",
         Disconnecting = "斷線中",
         Running = "執行中",
         Lost = "失聯",
-        TapToStart = "輕觸啟動",
     ),
     Settings = YumeStrings_Home_Settings(
         Title = "首頁設定",
         Quote = "一言",
-        ClassicHome = "使用經典首頁",
         ExpandSidebar = "展開側邊欄",
         ChangeWallpaper = "更換桌布",
-    ),
-    ProxyMode = YumeStrings_Home_ProxyMode(
-        Vpn = "VPN",
-        Tun = "TUN",
-        Ebpf = "eBPF",
     ),
     PreviewGuide = YumeStrings_Home_PreviewGuide(
         Title = "歡迎使用 YumeBox",
@@ -133,7 +101,6 @@ internal val ZhYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
 )
 
 internal val EnYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
-    Title = "YumeBox",
     Message = YumeStrings_Home_Message(
         ConfigSwitched = "Config switched",
         ConfigSwitchFailed = "Config switch failed: %s",
@@ -144,15 +111,10 @@ internal val EnYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         StopFailed = "Stop failed: %s",
     ),
     Control = YumeStrings_Home_Control(
-        HintAddProfile = "Please add a profile first",
-        HintEnableProfile = "Please enable a profile in Config page first",
         Start = "Start",
         Stop = "Stop",
     ),
     NodeInfo = YumeStrings_Home_NodeInfo(
-        Node = "Node",
-        Delay = "Delay",
-        Unknown = "Unknown",
         DelayValue = "%dms",
     ),
     Traffic = YumeStrings_Home_Traffic(
@@ -162,27 +124,17 @@ internal val EnYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         Download = "DOWNLOAD",
         NoProfile = "No Profile",
     ),
-    IpInfo = YumeStrings_Home_IpInfo(
-        ExitIp = "Exit IP",
-    ),
     Status = YumeStrings_Home_Status(
         Connecting = "Connecting",
         Disconnecting = "Disconnecting",
         Running = "Running",
         Lost = "Disconnected",
-        TapToStart = "Tap to start",
     ),
     Settings = YumeStrings_Home_Settings(
         Title = "Home settings",
         Quote = "Quote",
-        ClassicHome = "Use classic Home",
         ExpandSidebar = "Expand sidebar",
         ChangeWallpaper = "Change wallpaper",
-    ),
-    ProxyMode = YumeStrings_Home_ProxyMode(
-        Vpn = "VPN",
-        Tun = "TUN",
-        Ebpf = "eBPF",
     ),
     PreviewGuide = YumeStrings_Home_PreviewGuide(
         Title = "Welcome to YumeBox",
@@ -199,7 +151,6 @@ internal val EnYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
 )
 
 internal val JaYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
-    Title = "YumeBox",
     Message = YumeStrings_Home_Message(
         ConfigSwitched = "設定を切り替えました",
         ConfigSwitchFailed = "設定の切り替えに失敗しました: %s",
@@ -210,15 +161,10 @@ internal val JaYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         StopFailed = "停止に失敗しました: %s",
     ),
     Control = YumeStrings_Home_Control(
-        HintAddProfile = "先にプロファイルを追加してください",
-        HintEnableProfile = "先に「設定」ページでプロファイルを有効にしてください",
         Start = "開始",
         Stop = "停止",
     ),
     NodeInfo = YumeStrings_Home_NodeInfo(
-        Node = "ノード",
-        Delay = "遅延",
-        Unknown = "不明",
         DelayValue = "%dms",
     ),
     Traffic = YumeStrings_Home_Traffic(
@@ -228,27 +174,17 @@ internal val JaYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         Download = "ダウンロード",
         NoProfile = "プロファイルなし",
     ),
-    IpInfo = YumeStrings_Home_IpInfo(
-        ExitIp = "出口 IP",
-    ),
     Status = YumeStrings_Home_Status(
         Connecting = "接続中",
         Disconnecting = "切断中",
         Running = "実行中",
         Lost = "切断されました",
-        TapToStart = "タップして開始",
     ),
     Settings = YumeStrings_Home_Settings(
         Title = "ホーム設定",
         Quote = "一言",
-        ClassicHome = "クラシックホームを使用",
         ExpandSidebar = "サイドバーを展開",
         ChangeWallpaper = "壁紙を変更",
-    ),
-    ProxyMode = YumeStrings_Home_ProxyMode(
-        Vpn = "VPN",
-        Tun = "TUN",
-        Ebpf = "eBPF",
     ),
     PreviewGuide = YumeStrings_Home_PreviewGuide(
         Title = "YumeBox へようこそ",
@@ -265,7 +201,6 @@ internal val JaYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
 )
 
 internal val RuYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
-    Title = "YumeBox",
     Message = YumeStrings_Home_Message(
         ConfigSwitched = "Профиль переключён",
         ConfigSwitchFailed = "Не удалось переключить профиль: %s",
@@ -276,15 +211,10 @@ internal val RuYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         StopFailed = "Не удалось остановить: %s",
     ),
     Control = YumeStrings_Home_Control(
-        HintAddProfile = "Сначала добавьте профиль",
-        HintEnableProfile = "Сначала включите профиль на странице «Профили»",
         Start = "Старт",
         Stop = "Стоп",
     ),
     NodeInfo = YumeStrings_Home_NodeInfo(
-        Node = "Узел",
-        Delay = "Задержка",
-        Unknown = "Неизвестно",
         DelayValue = "%dms",
     ),
     Traffic = YumeStrings_Home_Traffic(
@@ -294,27 +224,17 @@ internal val RuYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         Download = "СКАЧИВАНИЕ",
         NoProfile = "Нет профиля",
     ),
-    IpInfo = YumeStrings_Home_IpInfo(
-        ExitIp = "Выходной IP",
-    ),
     Status = YumeStrings_Home_Status(
         Connecting = "Подключение",
         Disconnecting = "Отключение",
         Running = "Работает",
         Lost = "Связь потеряна",
-        TapToStart = "Нажмите, чтобы запустить",
     ),
     Settings = YumeStrings_Home_Settings(
         Title = "Настройки главной",
         Quote = "Цитата",
-        ClassicHome = "Использовать классическую главную",
         ExpandSidebar = "Развернуть боковую панель",
         ChangeWallpaper = "Сменить обои",
-    ),
-    ProxyMode = YumeStrings_Home_ProxyMode(
-        Vpn = "VPN",
-        Tun = "TUN",
-        Ebpf = "eBPF",
     ),
     PreviewGuide = YumeStrings_Home_PreviewGuide(
         Title = "Добро пожаловать в YumeBox",
