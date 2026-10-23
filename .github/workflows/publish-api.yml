@@ -18,27 +18,32 @@ permissions:
 
 jobs:
   publish:
-    runs-on: ubuntu-26.04
+    runs-on: macos-26
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       GITHUB_ACTOR: ${{ github.actor }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7.0.1
 
       - name: Setup Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6.1.0
         with:
           distribution: temurin
-          java-version: "24"
-          cache: gradle
+          java-version: "25"
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x gradlew
+      - name: Cache Kotlin Toolchain
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/Library/Caches/JetBrains/Kotlin
+            .kotlin/yumebox/maven
+            .kotlin/yumebox/gradle-*
+          key: ${{ runner.os }}-toolchain-${{ hashFiles('kotlin', '*module-template.yaml', '**/module.yaml', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-toolchain-
 
       - name: Publish API package
-        run: >-
-          ./gradlew :api:publishMavenPublicationToGitHubPackagesRepository
-          --console=plain
-          -Papi.version="${{ inputs.version }}"
+        env:
+          API_VERSION: ${{ inputs.version }}
+        run: sh kotlin run --module=packaging -- --publish-api "-Papi.version=${API_VERSION}"

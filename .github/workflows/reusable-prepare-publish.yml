@@ -58,21 +58,19 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: ubuntu-26.04
+    runs-on: macos-26
     outputs:
       default_apk_name: ${{ steps.stem.outputs.external_arm64 }}.apk
       builtin_apk_name: ${{ steps.stem.outputs.builtin_arm64 }}.apk
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7.0.1
         with:
           submodules: recursive
           fetch-depth: 0
 
       - name: Download raw APK artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: ${{ inputs.raw_apk_artifact_name }}
           path: raw-apk
@@ -85,14 +83,14 @@ jobs:
           BUILD_BRANCH: ${{ inputs.build_branch }}
         run: |
           set -eu
-          # Must mirror the versioning logic in app/build.gradle.kts:
-          # versionCode = project.version.code (gradle.properties) + `git rev-list --count
+          # Must mirror the versioning logic in build-logic/src/BuildPlan.kt:
+          # versionCode = project.version.code (product.properties) + `git rev-list --count
           # HEAD` (needs the fetch-depth:0 checkout above; same commit count as the one
           # reusable-build-apk-only.yml baked into the APK, since both jobs of a run check
           # out the same github.sha), versionName = <base>[.<branch>].<hash8>, branch
           # normalized as lowercase, [^a-z0-9] runs -> '-', leading/trailing '-' trimmed.
-          base_version_name="$(grep '^project.version.name=' gradle.properties | cut -d= -f2-)"
-          base_version_code="$(grep '^project.version.code=' gradle.properties | cut -d= -f2-)"
+          base_version_name="$(grep '^project.version.name=' product.properties | cut -d= -f2-)"
+          base_version_code="$(grep '^project.version.code=' product.properties | cut -d= -f2-)"
           build_number="$(git rev-list --count HEAD)"
           branch_segment="$(printf '%s' "${BUILD_BRANCH}" \
             | tr '[:upper:]' '[:lower:]' \
@@ -110,7 +108,7 @@ jobs:
           echo "version_name=${version_name}" >> "$GITHUB_OUTPUT"
           echo "version_code=${version_code}" >> "$GITHUB_OUTPUT"
 
-      # Use the exact tail calculated before Gradle assembled the APKs. This avoids
+      # Use the exact tail calculated before Toolchain packaged the APKs. This avoids
       # a date rollover between the build and publishing jobs.
       - name: Compute publish file stems
         id: stem
@@ -168,7 +166,11 @@ jobs:
             cp -f "raw-apk/${name}" "publish/${name}"
           done
 
-          actual="$(find publish -maxdepth 1 -type f -name '*.apk' | wc -l)"
+          actual=0
+          for apk in publish/*.apk; do
+            test -f "${apk}" || continue
+            actual=$((actual + 1))
+          done
           expected=2
           if [ "${actual}" -ne "${expected}" ]; then
             echo "Expected ${expected} publish APKs, got ${actual}:" >&2
@@ -253,7 +255,7 @@ jobs:
 
       - name: Upload publish artifact
         if: inputs.publish_artifact_name != ''
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ inputs.publish_artifact_name }}
           path: publish/*.apk
@@ -269,7 +271,7 @@ jobs:
       # publish file names from "Prepare publish artifacts". The notification workflow downloads
       # both arm64-v8a variants via the outputs above.
       - name: Upload arm64-v8a APK artifact (external geo)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ steps.stem.outputs.external_arm64 }}
           path: publish/${{ steps.stem.outputs.external_arm64 }}.apk
@@ -277,7 +279,7 @@ jobs:
           archive: false
 
       - name: Upload arm64-v8a APK artifact (builtin geo)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ steps.stem.outputs.builtin_arm64 }}
           path: publish/${{ steps.stem.outputs.builtin_arm64 }}.apk

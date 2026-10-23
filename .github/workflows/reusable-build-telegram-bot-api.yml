@@ -7,23 +7,22 @@ permissions:
   contents: read
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   TELEGRAM_BOT_API_COMMIT: adfd7f6a8e990272851777eeb3ae0def4216f161
 
 jobs:
   build:
-    runs-on: ubuntu-26.04
+    runs-on: macos-26
     steps:
       - name: Cache Telegram Bot API
         id: cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: telegram-bot-api-install
           key: ${{ runner.os }}-telegram-bot-api-${{ env.TELEGRAM_BOT_API_COMMIT }}
 
       - name: Checkout Telegram Bot API
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7.0.1
         with:
           repository: tdlib/telegram-bot-api
           ref: ${{ env.TELEGRAM_BOT_API_COMMIT }}
@@ -33,9 +32,7 @@ jobs:
 
       - name: Install build dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gperf ninja-build libssl-dev zlib1g-dev
+        run: brew install gperf ninja openssl@3
 
       - name: Build Telegram Bot API
         if: steps.cache.outputs.cache-hit != 'true'
@@ -46,18 +43,19 @@ jobs:
             -B telegram-bot-api-build \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/telegram-bot-api-install"
-          cmake --build telegram-bot-api-build --target install --parallel "$(nproc)"
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/telegram-bot-api-install" \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix openssl@3)"
+          cmake --build telegram-bot-api-build --target install --parallel "$(sysctl -n hw.ncpu)"
 
       - name: Verify Telegram Bot API binary
         run: |
           set -eu
           test -x telegram-bot-api-install/bin/telegram-bot-api
           telegram-bot-api-install/bin/telegram-bot-api --help >/dev/null
-          ldd telegram-bot-api-install/bin/telegram-bot-api
+          otool -L telegram-bot-api-install/bin/telegram-bot-api
 
       - name: Upload Telegram Bot API binary
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: telegram-bot-api-server
           path: telegram-bot-api-install

@@ -18,12 +18,10 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-26.04
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    runs-on: macos-26
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7.0.1
         with:
           submodules: recursive
           fetch-depth: 0
@@ -32,10 +30,10 @@ jobs:
         run: test "${{ inputs.abi }}" = "arm64-v8a"
 
       - name: Setup Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        uses: actions/setup-go@v7.0.0
         with:
           go-download-base-url: 'https://github.com/MetaCubeX/go/releases/download/build'
-          go-version: '1.26'
+          go-version: '1.27'
           # No go.mod at the repo root (modules live in lib/native/go + the later-synced
           # mihomo tree), so setup-go's dependency cache can't resolve one — disable it to
           # drop the "Restore cache failed: ... go.mod" warning. Go module caching, if ever
@@ -45,20 +43,20 @@ jobs:
       - name: Apply Go patches
         run: |
           cd "$(go env GOROOT)"
-          for p in "$GITHUB_WORKSPACE"/.github/patch/*.patch; do patch --verbose -p 1 < "$p"; done
+          for p in "$GITHUB_WORKSPACE"/.github/patch/*.patch; do patch -p1 < "$p"; done
 
       - name: Setup Rust
         # nightly + rust-src: the rust build uses -Zbuild-std and
         # -Cpanic=immediate-abort to shrink liboverride.so (~18%), see
         # RustBuilder in scripts/native_build/rust_builder.py.
-        uses: dtolnay/rust-toolchain@efcb852328a9f50117170cc43094fb6f09eaf1ae # nightly
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # nightly
         with:
           toolchain: nightly
           targets: aarch64-linux-android
           components: rust-src
 
       - name: Cache Rust
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.cargo/bin/
@@ -78,35 +76,44 @@ jobs:
           fi
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        uses: android-actions/setup-android@v4.0.4 # v4.0.4
         with:
           packages: ""
 
+      - name: Read native toolchain version
+        id: native-config
+        run: |
+          version="$(awk -F= '$1 == "android.ndkVersion" { print $2 }' kernel.properties)"
+          test -n "$version"
+          echo "ndk_version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Cache NDK
         id: cache-ndk
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
-          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/30.0.14904198
-          key: ${{ runner.os }}-ndk-30.0.14904198-v2
+          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ steps.native-config.outputs.ndk_version }}
+          key: ${{ runner.os }}-ndk-${{ steps.native-config.outputs.ndk_version }}-v4
           restore-keys: |
-            ${{ runner.os }}-ndk-30.0.14904198-v2-
+            ${{ runner.os }}-ndk-${{ steps.native-config.outputs.ndk_version }}-v3-
 
       - name: Install NDK
         if: steps.cache-ndk.outputs.cache-hit != 'true'
-        run: sdkmanager "ndk;30.0.14904198"
+        run: sdkmanager "ndk;${{ steps.native-config.outputs.ndk_version }}"
 
       - name: Configure local.properties
         run: |
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
-          echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/30.0.14904198" >> local.properties
+          echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/${{ steps.native-config.outputs.ndk_version }}" >> local.properties
 
-      - name: Update CA certificates
+      - name: Install host build tools
+        run: brew install cmake ninja
+
+      - name: Configure CA bundle
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ca-certificates
-          sudo update-ca-certificates
+          set -eu
           mkdir -p core/src/foss/golang/mihomo/component/ca
-          cp -f /etc/ssl/certs/ca-certificates.crt core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
+          cp -f /etc/ssl/cert.pem core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
+          test -s core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
       - name: Sync kernel
         run: |
@@ -123,7 +130,7 @@ jobs:
           ABI_APP_LIST: ${{ inputs.abi }}
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/30.0.14904198
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ steps.native-config.outputs.ndk_version }}
         run: python3 scripts/native-build.py --go --rust --compat --loader
 
       - name: Verify native outputs
@@ -139,7 +146,7 @@ jobs:
           test -f "jniLibs/${{ inputs.abi }}/core-version.properties"
 
       - name: Upload ABI artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: native-${{ inputs.channel }}-${{ inputs.abi }}
           path: |

@@ -12,18 +12,16 @@ permissions:
 
 jobs:
   bundle:
-    runs-on: ubuntu-26.04
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    runs-on: macos-26
     steps:
       - name: Download geo artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: native-${{ inputs.channel }}-geo
           path: build/generated/assets/geo
 
       - name: Download arm64-v8a artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: native-${{ inputs.channel }}-arm64-v8a
           path: jniLibs/arm64-v8a
@@ -40,7 +38,7 @@ jobs:
           test -f "jniLibs/${abi}/libcompat.so"
           test -f "jniLibs/${abi}/libloader.so"
           test -f "jniLibs/${abi}/core-version.properties"
-          # Promote one ABI stamp to the path Gradle prefers when present.
+          # Promote one ABI stamp to the path the Toolchain backend prefers when present.
           mkdir -p build/generated
           cp -f jniLibs/arm64-v8a/core-version.properties build/generated/core-version.properties
           test -f "build/generated/assets/geo/geoip.metadb.xz"
@@ -49,7 +47,7 @@ jobs:
           test ! -e "build/generated/assets/geo/BundleMRS.7z"
 
       - name: Upload native bundle artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: native-${{ inputs.channel }}
           path: |

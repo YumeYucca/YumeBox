@@ -23,25 +23,23 @@ permissions:
 
 jobs:
   notify:
-    runs-on: ubuntu-26.04
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    runs-on: macos-26
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
       # archive:false artifacts use the publish file name directly. Download both APK variants;
       # the date/version segment was stamped once by prepare-publish and is passed in as output.
       - name: Download arm64-v8a APK artifact (external geo)
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: ${{ inputs.apk_artifact_name }}
           path: publish
 
       - name: Download arm64-v8a APK artifact (builtin geo)
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: ${{ inputs.builtin_apk_artifact_name }}
           path: publish
@@ -62,15 +60,20 @@ jobs:
 
       - name: Download Telegram Bot API binary
         if: steps.check_upload.outputs.UPLOAD == 'true'
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: telegram-bot-api-server
           path: telegram-bot-api-install
+
+      - name: Install Telegram Bot API runtime
+        if: steps.check_upload.outputs.UPLOAD == 'true'
+        run: brew install openssl@3
 
       - name: Verify Telegram Bot API server
         if: steps.check_upload.outputs.UPLOAD == 'true'
         run: |
           set -eu
+          export DYLD_LIBRARY_PATH="$(brew --prefix openssl@3)/lib:${DYLD_LIBRARY_PATH:-}"
           chmod +x telegram-bot-api-install/bin/telegram-bot-api
           test -x telegram-bot-api-install/bin/telegram-bot-api
           telegram-bot-api-install/bin/telegram-bot-api --help >/dev/null
@@ -82,6 +85,7 @@ jobs:
           TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
         run: |
           set -eu
+          export DYLD_LIBRARY_PATH="$(brew --prefix openssl@3)/lib:${DYLD_LIBRARY_PATH:-}"
           mkdir -p "$RUNNER_TEMP/telegram-bot-api-data" "$RUNNER_TEMP/telegram-bot-api-temp"
           telegram-bot-api-install/bin/telegram-bot-api \
             --local \
@@ -92,7 +96,8 @@ jobs:
           server_pid=$!
           echo "TELEGRAM_BOT_API_PID=${server_pid}" >> "$GITHUB_ENV"
 
-          for attempt in $(seq 1 30); do
+          attempt=1
+          while [ "${attempt}" -le 30 ]; do
             if ! kill -0 "${server_pid}" 2>/dev/null; then
               cat "$RUNNER_TEMP/telegram-bot-api.log"
               exit 1
@@ -100,6 +105,7 @@ jobs:
             if curl --silent --show-error --output /dev/null http://127.0.0.1:8081/; then
               exit 0
             fi
+            attempt=$((attempt + 1))
             sleep 1
           done
 

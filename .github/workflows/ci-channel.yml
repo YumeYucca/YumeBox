@@ -20,7 +20,7 @@ permissions:
 # Version counter N = commit count of the built commit (`git rev-list --count HEAD`),
 # computed inside reusable-build-apk-only.yml / reusable-prepare-publish.yml after their
 # fetch-depth:0 checkouts - no build_number input is passed from here anymore. versionCode
-# = project.version.code (gradle.properties) + N, one formula shared by channel, PR and
+# = project.version.code (product.properties) + N, one formula shared by channel, PR and
 # official release builds, so releases get unique versionCodes in the same sequence as
 # channel packages. Unlike the retired run_number scheme this survives workflow-file
 # renames, and it stays monotonic vs already-published packages because the commit count
@@ -29,18 +29,18 @@ permissions:
 jobs:
   validate-channel:
     name: "00 · Validate (arm64-v8a)"
-    runs-on: ubuntu-26.04
+    runs-on: macos-26
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.1
 
       - name: Verify channel build contract
         shell: bash
         run: |
           set -eu
-          test "$(awk -F= '$1 == "abi.app.list" { print $2 }' gradle.properties)" = "arm64-v8a"
-          test "$(awk -F= '$1 == "abi.extension.list" { print $2 }' gradle.properties)" = "arm64-v8a"
+          test "$(awk -F= '$1 == "abi.app.list" { print $2 }' kernel.properties)" = "arm64-v8a"
+
           test -f scripts/native-build.py
           test -f scripts/native/cli.py
           test -f scripts/native/go_core.py
@@ -49,7 +49,7 @@ jobs:
           test -f lib/native/shell/CMakeLists.txt
           test -f lib/native/shell/shell.c
           test -f kernel.properties
-          ! rg -q 'channel: smart|kernel_channel: smart|YumeBox-smart' .github/workflows/ci-channel.yml
+          ! grep -Eq 'channel: smart|kernel_channel: smart|YumeBox-smart' .github/workflows/ci-channel.yml
 
   # Prebuild Java/Kotlin & module resources in parallel with the native build jobs.
   prebuild-modules-pre:
@@ -128,12 +128,12 @@ jobs:
   verify-native-bundle:
     name: "04 · Verify bundle (arm64-v8a)"
     needs: bundle-native-pre
-    runs-on: ubuntu-26.04
+    runs-on: macos-26
     permissions:
       actions: read
     steps:
       - name: Download bundled native artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: native-pre
           path: native
@@ -185,12 +185,12 @@ jobs:
   verify-published-apk:
     name: "07 · Verify APK (arm64-v8a)"
     needs: prepare-publish-pre-app
-    runs-on: ubuntu-26.04
+    runs-on: macos-26
     permissions:
       actions: read
     steps:
       - name: Download published APK artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: ${{ needs.prepare-publish-pre-app.outputs.default_apk_name }}
           path: apk

@@ -14,34 +14,46 @@ on:
 
 jobs:
   qodana:
-    runs-on: ubuntu-26.04
+    runs-on: macos-26
     permissions:
       contents: write
       pull-requests: write
       checks: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Setup Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6.1.0
         with:
           distribution: temurin
-          java-version: "24"
-      - name: Setup Kotlin
-        uses: fwilhe2/setup-kotlin@88d53291848568823e529973af5d0cdb8ddf8d87 # main
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+          java-version: "25"
+      - name: Cache Kotlin Toolchain
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/Library/Caches/JetBrains/Kotlin
+            .kotlin/yumebox/maven
+            .kotlin/yumebox/gradle-*
+          key: ${{ runner.os }}-toolchain-${{ hashFiles('kotlin', '*module-template.yaml', '**/module.yaml', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-toolchain-
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4.0.4 # v4.0.4
+        with:
+          packages: "platform-tools platforms;android-37.0 build-tools;37.0.0"
+      - name: Configure local.properties
+        run: |
+          echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
       - name: Generate locale sources
         shell: bash
         run: |
           set -eu
-          chmod +x gradlew
-          ./gradlew --no-daemon :locale:kspDebugKotlin
-          test -s locale/build/generated/ksp/debug/kotlin/cafe/adriel/lyricist/Strings.kt
+          sh kotlin build --module=locale
+          find build -path '*ksp*' -name Strings.kt -size +0c -print -quit | grep -q .
       - name: 'Qodana Scan'
-        uses: JetBrains/qodana-action@4861e015da555e86a72b862892aba6c2b93e6891 # v2026.1
+        uses: JetBrains/qodana-action@v2026.2.2 # v2026.2.2
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
         with:

@@ -26,7 +26,7 @@ permissions:
 # release keeps the clean base versionName (e.g. 0.5.2, no hash/branch suffix). The
 # versionCode is NOT the bare epoch anymore: reusable-build-apk-only.yml /
 # reusable-prepare-publish.yml compute versionCode = project.version.code
-# (gradle.properties) + `git rev-list --count HEAD` themselves, so every release gets a
+# (product.properties) + `git rev-list --count HEAD` themselves, so every release gets a
 # unique versionCode in the same sequence as channel packages - upgrading from a channel
 # build of an older commit to a release of a newer commit is no longer a downgrade.
 # publish-release runs with prerelease=false -> generate_release_notes=false (empty body,

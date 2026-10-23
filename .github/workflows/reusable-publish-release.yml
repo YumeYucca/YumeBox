@@ -33,23 +33,20 @@ permissions:
 
 jobs:
   publish:
-    runs-on: ubuntu-26.04
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    runs-on: macos-26
     steps:
       - name: Download publish artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
-          pattern: publish-${{ inputs.channel }}-*
+          name: ${{ inputs.publish_artifacts }}
           path: publish
-          merge-multiple: true
 
       # Rolling pre-release: delete release + tag, then recreate below. Deleting the release
       # removes its assets with it, and the recreated release gets a fresh created_at so it
       # always sorts to the top of the releases list.
       - name: Delete existing release and tag for rolling tag
         if: inputs.recreate_release
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             const tag = '${{ inputs.release_tag }}';
@@ -88,7 +85,7 @@ jobs:
             }
 
       - name: Publish release assets
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        uses: softprops/action-gh-release@v3.0.3 # v3.0.3
         with:
           tag_name: ${{ inputs.release_tag }}
           name: ${{ inputs.release_name }}
@@ -102,6 +99,6 @@ jobs:
           files: publish/*.apk
 
       - name: Attest release APKs
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@v4.2.2 # v4.2.2
         with:
           subject-path: publish/*.apk

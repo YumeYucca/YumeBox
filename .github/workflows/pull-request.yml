@@ -52,7 +52,7 @@ jobs:
     secrets: inherit
 
   # PR builds use the same versionCode formula as channel and release builds: epoch
-  # (project.version.code in gradle.properties) + `git rev-list --count HEAD`, computed
+  # (project.version.code in product.properties) + `git rev-list --count HEAD`, computed
   # inside reusable-build-apk-only.yml / reusable-prepare-publish.yml (the count covers the
   # PR merge commit's whole parent chain). The commit hash in versionName (and the PR
   # number in the release tag) additionally identifies the build.

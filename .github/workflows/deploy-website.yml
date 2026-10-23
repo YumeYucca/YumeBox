@@ -20,13 +20,13 @@ concurrency:
 jobs:
   build:
     name: Build Website
-    runs-on: ubuntu-26.04
+    runs-on: macos-26
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install pnpm and Mint CLI
         run: |
@@ -47,20 +47,20 @@ jobs:
           rm -f _site/serve.js '_site/Start Docs.command' '_site/Start Docs.bat'
           touch _site/.nojekyll
 
-      - uses: actions/configure-pages@v6
+      - uses: actions/configure-pages@v6.0.0
 
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: _site
 
   deploy:
     name: Deploy to GitHub Pages
     needs: build
-    runs-on: ubuntu-26.04
+    runs-on: macos-26
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v5.0.1
