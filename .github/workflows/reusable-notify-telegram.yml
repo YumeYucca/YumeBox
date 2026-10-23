@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   notify:
-    runs-on: macos-26
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -70,15 +70,12 @@ jobs:
           name: telegram-bot-api-server
           path: telegram-bot-api-install
 
-      - name: Install Telegram Bot API runtime
-        if: steps.check_upload.outputs.UPLOAD == 'true'
-        run: brew install openssl@3
-
+      # The Bot API binary links against the system OpenSSL, which the runner image provides.
       - name: Verify Telegram Bot API server
         if: steps.check_upload.outputs.UPLOAD == 'true'
         run: |
           set -eu
-          export DYLD_LIBRARY_PATH="$(brew --prefix openssl@3)/lib:${DYLD_LIBRARY_PATH:-}"
+          export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
           chmod +x telegram-bot-api-install/bin/telegram-bot-api
           test -x telegram-bot-api-install/bin/telegram-bot-api
           telegram-bot-api-install/bin/telegram-bot-api --help >/dev/null
@@ -90,7 +87,7 @@ jobs:
           TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
         run: |
           set -eu
-          export DYLD_LIBRARY_PATH="$(brew --prefix openssl@3)/lib:${DYLD_LIBRARY_PATH:-}"
+          export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
           mkdir -p "$RUNNER_TEMP/telegram-bot-api-data" "$RUNNER_TEMP/telegram-bot-api-temp"
           telegram-bot-api-install/bin/telegram-bot-api \
             --local \
