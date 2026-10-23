@@ -56,7 +56,7 @@ internal object CoreArtifacts {
         // to app-private storage; remote kernels use the same directory but always take priority.
         return runCatching {
                 val bridge =
-                    Class.forName("dev.yume.loader.PayloadRuntime", false, context.classLoader)
+                    Class.forName("com.github.yumeyucca.yumebox.loader.PayloadRuntime", false, context.classLoader)
                 bridge
                     .getMethod("findNativeLibrary", String::class.java)
                     .invoke(null, LIBRARY_NAME) as? String

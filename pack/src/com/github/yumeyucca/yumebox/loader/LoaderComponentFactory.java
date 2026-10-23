@@ -1,4 +1,4 @@
-package dev.yume.loader;
+package com.github.yumeyucca.yumebox.loader;
 
 import android.app.Activity;
 import android.app.AppComponentFactory;

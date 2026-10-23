@@ -9,7 +9,7 @@
  * Copyright (c) YumeYucca 2025 - Present
  */
 
-package dev.yume.loader;
+package com.github.yumeyucca.yumebox.loader;
 
 /** Runtime bridge exposed by the bootstrap DEX to code loaded from the compressed payload. */
 public final class PayloadRuntime {

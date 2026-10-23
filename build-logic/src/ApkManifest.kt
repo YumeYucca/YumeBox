@@ -19,8 +19,8 @@ class ApkManifest(private val tools: AndroidTools, private val workspace: File) 
             }
             if (element.name == "application") {
                 if (mainApp) {
-                    element.stringAttribute("name", 0x01010003, if (loader) "dev.yume.loader.LoaderApplication" else "com.github.yumeyucca.yumebox.App")
-                    element.stringAttribute("appComponentFactory", 0x0101057a, if (loader) "dev.yume.loader.LoaderComponentFactory" else "androidx.core.app.CoreComponentFactory")
+                    element.stringAttribute("name", 0x01010003, if (loader) "com.github.yumeyucca.yumebox.loader.LoaderApplication" else "com.github.yumeyucca.yumebox.App")
+                    element.stringAttribute("appComponentFactory", 0x0101057a, if (loader) "com.github.yumeyucca.yumebox.loader.LoaderComponentFactory" else "androidx.core.app.CoreComponentFactory")
                     element.stringAttribute("label", 0x01010001, label)
                 }
                 element.androidAttribute("extractNativeLibs", 0x010104ea, "true", Resources.Item.newBuilder().setPrim(Resources.Primitive.newBuilder().setBooleanValue(true)).build())
@@ -46,8 +46,8 @@ class ApkManifest(private val tools: AndroidTools, private val workspace: File) 
         val application = manifest.childList.single { it.hasElement() && it.element.name == "application" }.element
         check(application.attributeList.single { it.name == "extractNativeLibs" }.compiledItem.prim.booleanValue) { "Native library extraction must remain enabled" }
         if (loader) {
-            check(application.attributeList.single { it.name == "name" }.value == "dev.yume.loader.LoaderApplication") { "Missing loader Application" }
-            check(application.attributeList.single { it.name == "appComponentFactory" }.value == "dev.yume.loader.LoaderComponentFactory") { "Missing loader ComponentFactory" }
+            check(application.attributeList.single { it.name == "name" }.value == "com.github.yumeyucca.yumebox.loader.LoaderApplication") { "Missing loader Application" }
+            check(application.attributeList.single { it.name == "appComponentFactory" }.value == "com.github.yumeyucca.yumebox.loader.LoaderComponentFactory") { "Missing loader ComponentFactory" }
         }
     }
 }
