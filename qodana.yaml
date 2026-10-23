@@ -5,7 +5,7 @@
 
 version: "1.0"
 
-linter: jetbrains/qodana-jvm-android:2026.2-eap
+linter: jetbrains/qodana-jvm-android:2026.2
 
 # Built-in inspection profile. Use qodana.starter for a lighter, lower-noise first run.
 profile:

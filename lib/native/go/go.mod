@@ -1,6 +1,6 @@
 module cfa
 
-go 1.26.5
+go 1.27.0
 
 require github.com/metacubex/mihomo v1.7.0
 
