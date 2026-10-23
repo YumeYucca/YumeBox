@@ -43,13 +43,15 @@ newer controller endpoints before a dedicated helper is added.
 ## Publishing
 
 ```bash
-./gradlew :api:publishToMavenLocal
-./gradlew :api:publishMavenPublicationToGitHubPackagesRepository \
-  -Papi.version=0.1.0
+sh kotlin run -m packaging -- --prepare-api -Papi.version=0.1.0
+sh kotlin run -m packaging -- --publish-api -Papi.version=0.1.0
 ```
 
-GitHub Packages uses `GITHUB_ACTOR` and `GITHUB_TOKEN` (or `gpr.user` and `gpr.key` Gradle
-properties). Override the target repository with `-Papi.githubRepository=owner/repository`.
+The prepare command writes a local Maven repository under `build/api-publication`.
+GitHub Packages publishing uses `GITHUB_ACTOR` and `GITHUB_TOKEN`; temporary credential
+files are removed after publishing. Override the repository with
+`-Papi.githubRepository=owner/repository`. On Windows use `.\kotlin.bat` and quote
+dotted `-P` arguments in PowerShell.
 
 For an external project, create a GitHub personal access token with `read:packages` and place the
 GitHub username and token in `~/.gradle/gradle.properties`:

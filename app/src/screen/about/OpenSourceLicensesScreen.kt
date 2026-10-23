@@ -34,13 +34,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
-import com.github.yumeyucca.yumebox.R
+import com.github.yumeyucca.yumebox.App
 import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.mikepenz.aboutlibraries.entity.Library
-import com.mikepenz.aboutlibraries.ui.compose.android.produceLibraries
+import com.mikepenz.aboutlibraries.ui.compose.produceLibraries
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -57,7 +59,14 @@ fun OpenSourceLicensesScreen(navigator: Navigator) {
 
     BackHandler { navigator.pop() }
 
-    val libraries by produceLibraries(R.raw.aboutlibraries)
+    val libraries by produceLibraries {
+        withContext(Dispatchers.IO) {
+            val stream = requireNotNull(App::class.java.classLoader?.getResourceAsStream("aboutlibraries.json")) {
+                "Missing dependency license metadata"
+            }
+            stream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+        }
+    }
     val libraryItems = remember(libraries) { libraries?.libraries.orEmpty() }
 
     Scaffold(

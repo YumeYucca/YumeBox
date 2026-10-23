@@ -46,7 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
-import com.github.yumeyucca.yumebox.BuildConfig
+import com.github.yumeyucca.yumebox.BuildInfo
 import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
@@ -98,8 +98,8 @@ fun AboutScreen(navigator: Navigator) {
                 }
             }
         }
-    // Core branch/hash are stamped into BuildConfig at configure time (see app/build.gradle.kts).
-    val coreVersion = BuildConfig.CORE_VERSION
+    // Core identity comes from the same request as the final APK manifest.
+    val coreVersion = BuildInfo.CORE_VERSION
 
     Scaffold(topBar = { TopBar(title = YumeTxt.About.Title, scrollBehavior = scrollBehavior) }) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()
@@ -163,7 +163,7 @@ fun AboutScreen(navigator: Navigator) {
                             Spacer(modifier = Modifier.height(UiDp.dp12))
 
                             Text(
-                                text = "${BuildConfig.VERSION_NAME} · $coreVersion",
+                                text = "${BuildInfo.VERSION_NAME} · $coreVersion",
                                 style = MiuixTheme.textStyles.footnote1,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 textAlign = TextAlign.Center,
@@ -289,7 +289,7 @@ private fun exportStartupLogs(context: Context, targetUri: Uri): Boolean {
     val coreLog = CoreProcess.coreDiagnosticLog(context)
     val export = buildString {
         appendLine("# YumeBox runtime diagnostics")
-        appendLine("# app=${BuildConfig.VERSION_NAME} core=${BuildConfig.CORE_VERSION}")
+        appendLine("# app=${BuildInfo.VERSION_NAME} core=${BuildInfo.CORE_VERSION}")
         appendLine()
         appendLine("# runtime.log")
         append(runtimeLog.ifBlank { "(no runtime entries recorded)\n" })

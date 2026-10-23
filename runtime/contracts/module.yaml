@@ -1,0 +1,12 @@
+product:
+  type: kmp/lib
+  platforms: [android]
+apply:
+  - //android.module-template.yaml
+settings:
+  android:
+    namespace: com.github.yumeyucca.yumebox.runtime.api
+dependencies:
+  - //core
+  - $libs.kotlinx.coroutines.android
+  - $libs.kotlinx.serialization.json

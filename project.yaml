@@ -1,0 +1,22 @@
+modules:
+  - api
+  - app
+  - build-logic
+  - common
+  - core
+  - data
+  - feature/editor
+  - feature/meta
+  - feature/override
+  - feature/proxy
+  - feature/substore
+  - locale
+  - pack
+  - packaging
+  - resource-symbols
+  - runtime/client
+  - runtime/contracts
+  - runtime/service
+  - ui
+plugins:
+  - ./build-logic

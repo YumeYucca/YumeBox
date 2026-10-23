@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import platform
+import shutil
 
 from .command import command_exists
 
@@ -15,7 +16,7 @@ class ProjectConfig:
     def __init__(self, project_root: Path):
         self.project_root = project_root
         self.properties: dict[str, str] = {}
-        for name in ("kernel.properties", "local.properties", "gradle.properties"):
+        for name in ("kernel.properties", "product.properties", "local.properties"):
             self._load_properties(project_root / name)
 
     def _load_properties(self, path: Path) -> None:
@@ -130,6 +131,16 @@ class NdkTools:
         ndk_dir = ndk_dir.expanduser().resolve()
         if not ndk_dir.is_dir():
             raise RuntimeError(f"NDK not found: {ndk_dir}")
+        source = ndk_dir / "source.properties"
+        actual = ""
+        if source.is_file():
+            for line in source.read_text(encoding="utf-8").splitlines():
+                key, _, value = line.partition("=")
+                if key.strip() == "Pkg.Revision":
+                    actual = value.strip()
+                    break
+        if version and actual != version:
+            raise RuntimeError(f"NDK version mismatch: requested {version}, found {actual or 'unknown'} at {ndk_dir}")
         return ndk_dir
 
     def _tool(self, relative_path: str) -> Path:
@@ -154,20 +165,24 @@ class NdkTools:
     def _cmake_tool(self, name: str) -> Path:
         extension = ".exe" if SystemDetector.os_name() == "windows" else ""
         cmake_root = self.sdk_dir / "cmake"
-        if not cmake_root.is_dir():
-            raise RuntimeError(f"CMake not found under Android SDK: {cmake_root}")
-        preferred = cmake_root / "3.22.1" / "bin" / f"{name}{extension}"
-        if preferred.is_file():
-            return preferred
-        candidates = sorted(
-            (path / "bin" / f"{name}{extension}" for path in cmake_root.iterdir() if path.is_dir()),
-            key=lambda path: path.parent.parent.name,
-            reverse=True,
-        )
-        for candidate in candidates:
-            if candidate.is_file():
-                return candidate
-        raise RuntimeError(f"{name} executable not found under {cmake_root}")
+        if cmake_root.is_dir():
+            preferred = cmake_root / "3.22.1" / "bin" / f"{name}{extension}"
+            if preferred.is_file():
+                return preferred
+            versions = [path for path in cmake_root.iterdir() if path.is_dir()]
+            compatible = [path for path in versions if path.name.startswith("3.")]
+            candidates = sorted(
+                (path / "bin" / f"{name}{extension}" for path in (compatible or versions)),
+                key=lambda path: path.parent.parent.name,
+                reverse=True,
+            )
+            for candidate in candidates:
+                if candidate.is_file():
+                    return candidate
+        host_tool = shutil.which(name)
+        if host_tool:
+            return Path(host_tool)
+        raise RuntimeError(f"{name} executable not found under {cmake_root} or PATH")
 
     def get_cmake_path(self) -> Path:
         return self._cmake_tool("cmake")

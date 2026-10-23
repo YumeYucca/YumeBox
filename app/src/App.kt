@@ -59,7 +59,7 @@ class App : Application() {
 
         instance = this
         AppVisibilityTracker.register(this)
-        if (BuildConfig.DEBUG && Timber.forest().isEmpty()) {
+        if (BuildInfo.DEBUG && Timber.forest().isEmpty()) {
             Timber.plant(Timber.DebugTree())
         }
 
@@ -82,7 +82,7 @@ class App : Application() {
         // Keep first-run geo extraction ahead of the UI so starting the proxy never inherits it.
         extractGeoFiles()
         val featureStore: FeatureStore = koinApp.koin.get()
-        featureStore.syncAppVersion(BuildConfig.VERSION_CODE)
+        featureStore.syncAppVersion(BuildInfo.VERSION_CODE)
         scheduleDeferredStartupTasks(koinApp.koin, featureStore, appSettingsStorage)
 
         PlatformIdentifier.getPlatformIdentifier()

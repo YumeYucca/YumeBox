@@ -39,7 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.github.yumeyucca.yumebox.BuildConfig
+import com.github.yumeyucca.yumebox.BuildInfo
 import com.github.yumeyucca.yumebox.WebViewActivity
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import timber.log.Timber
@@ -54,7 +54,7 @@ private object NoOpWebChromeClient : WebChromeClient()
 fun LocalWebView(
     initialUrl: String,
     modifier: Modifier = Modifier,
-    enableDebug: Boolean = BuildConfig.DEBUG,
+    enableDebug: Boolean = BuildInfo.DEBUG,
     onWebViewCreated: (WebView) -> Unit = {},
     onPageFinished: (String) -> Unit = {},
     onPageError: (String, String) -> Unit = { _, _ -> },

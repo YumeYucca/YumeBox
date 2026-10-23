@@ -1,0 +1,8 @@
+product: jvm/app
+apply:
+  - //common.module-template.yaml
+settings:
+  jvm:
+    release: 25
+dependencies:
+  - //build-logic

@@ -1,0 +1,29 @@
+product:
+  type: kmp/lib
+  platforms: [android]
+apply:
+  - //android.module-template.yaml
+settings:
+  android:
+    namespace: com.github.yumeyucca.yumebox.runtime.service
+dependencies:
+  - //resource-symbols: compile-only
+  - //core
+  - //common
+  - //locale
+  - //data
+  - //runtime/contracts
+  - $libs.androidx.core.ktx
+  - $libs.kotlinx.coroutines.android
+  - $libs.kotlinx.serialization.json
+  - $libs.xz
+  - $libs.ktor.client.core
+  - $libs.ktor.client.okhttp
+  - $libs.ktor.client.content.negotiation
+  - $libs.ktor.serialization.kotlinx.json
+  - $libs.mmkv
+  - $libs.timber
+  - $libs.libsu.core
+  - $libs.libsu.service
+  - $libs.shizuku.api
+  - $libs.shizuku.provider

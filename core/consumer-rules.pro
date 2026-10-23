@@ -1,8 +1,4 @@
-# Add project specific ProGuard rules here.
-# By default, the flags in this file are appended to flags specified
-# in core/consumer-rules.pro
-# You can edit the include path and order by changing the proguardFiles
-# directive in build.gradle.kts.
+# Included by app/proguard-rules.pro during Toolchain release builds.
 #
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html

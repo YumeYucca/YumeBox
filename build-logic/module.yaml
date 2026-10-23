@@ -1,0 +1,14 @@
+product: jvm/amper-plugin
+
+apply:
+  - //common.module-template.yaml
+
+settings:
+  jvm:
+    release: 25
+
+dependencies:
+  - org.tukaani:xz:1.12
+  - com.android.tools.build:aapt2-proto:9.4.1-15978811
+  - com.google.protobuf:protobuf-java:3.25.9
+  - org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0

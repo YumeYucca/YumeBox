@@ -1,0 +1,17 @@
+product:
+  type: kmp/lib
+  platforms: [android]
+apply:
+  - //android.module-template.yaml
+settings:
+  android:
+    namespace: com.github.yumeyucca.yumebox.core
+dependencies:
+  - $libs.androidx.lifecycle.viewmodel
+  - $libs.kotlinx.coroutines.core
+  - $libs.kotlinx.coroutines.android
+  - $libs.kotlinx.serialization.json
+  - $libs.snake.yaml
+  - $libs.androidx.annotation.jvm
+  - $libs.timber
+  - $libs.xz

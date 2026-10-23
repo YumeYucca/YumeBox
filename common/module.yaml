@@ -1,0 +1,12 @@
+product:
+  type: kmp/lib
+  platforms: [android]
+apply:
+  - //compose.module-template.yaml
+settings:
+  android:
+    namespace: com.github.yumeyucca.yumebox.common
+dependencies:
+  - //core
+  - $libs.androidx.core.ktx
+  - $libs.timber

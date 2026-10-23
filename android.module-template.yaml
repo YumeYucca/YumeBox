@@ -1,0 +1,17 @@
+apply:
+  - //common.module-template.yaml
+repositories:
+  - https://jitpack.io
+  - https://raw.githubusercontent.com/MetaCubeX/maven-backup/main/releases
+settings:
+  jvm:
+    release: 25
+  kotlin:
+    serialization: enabled
+    ksp:
+      version: 2.3.12
+  android:
+    compileSdk: 37
+    targetSdk: 37
+    minSdk: 26
+    buildToolsVersion: 37.0.0

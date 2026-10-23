@@ -1,0 +1,29 @@
+product:
+  type: kmp/lib
+  platforms: [android]
+apply:
+  - //compose.module-template.yaml
+plugins:
+  build-logic: enabled
+settings:
+  android:
+    namespace: com.github.yumeyucca.yumebox.feature.substore
+dependencies:
+  - //core
+  - //common
+  - //locale
+  - //ui
+  - //data
+  - $libs.kotlinx.coroutines.android
+  - $libs.koin.core
+  - $libs.koin.android
+  - $libs.koin.androidx.compose
+  - $libs.androidx.lifecycle.viewmodel.ktx
+  - $libs.ktor.client.core
+  - $libs.ktor.client.android
+  - $libs.commons.compress
+  - $libs.xz
+  - $libs.javet.node.android
+  - $libs.timber
+  - $libs.miuix.ui
+  - $libs.miuix.preference

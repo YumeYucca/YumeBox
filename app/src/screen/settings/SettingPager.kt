@@ -38,7 +38,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.github.yumeyucca.yumebox.BuildConfig
+import com.github.yumeyucca.yumebox.BuildInfo
 import com.github.yumeyucca.yumebox.WebViewActivity
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.presentation.component.*
@@ -126,7 +126,7 @@ fun SettingPager(
     val rootNavigator = LocalNavigator.current
     val detailNavigator = LocalDetailNavigator.current
     val context = LocalContext.current
-    val versionInfo = "v${BuildConfig.BASE_VERSION}"
+    val versionInfo = "v${BuildInfo.BASE_VERSION}"
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->

@@ -1,0 +1,31 @@
+product:
+  type: kmp/lib
+  platforms: [android]
+apply:
+  - //compose.module-template.yaml
+settings:
+  android:
+    namespace: com.github.yumeyucca.yumebox.core.ui
+dependencies:
+  - //core
+  - //common
+  - //locale
+  - //data
+  - //runtime/contracts
+  - $libs.androidx.core.ktx
+  - $libs.androidx.activity.compose
+  - $libs.androidx.lifecycle.runtime.compose
+  - $libs.decompose
+  - $libs.sketch.compose
+  - $libs.sketch.http
+  - $libs.sketch.svg
+  - $libs.sketch.animated.gif
+  - $libs.sketch.animated.webp
+  - $libs.sketch.compose.resources
+  - $libs.haze
+  - $libs.haze.blur
+  - $libs.haze.blur.materials
+  - $libs.shapes
+  - $libs.miuix.ui
+  - $libs.miuix.preference
+  - $libs.miuix.icons

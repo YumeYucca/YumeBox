@@ -1,0 +1,12 @@
+tasks:
+  buildInfo:
+    action: !dev.yume.build.generateBuildInfo
+      requestFile: ${project.rootDir}/.kotlin/yumebox/request.properties
+      catalogFile: ${project.rootDir}/gradle/libs.versions.toml
+      resourceSymbols: ${project.rootDir}/.kotlin/yumebox/resource-symbols.json
+      namespace: ${module.settings.android.namespace}
+      sourceDir: ${taskOutputDir}
+generated:
+  sources:
+    - language: kotlin
+      directory: ${tasks.buildInfo.action.sourceDir}

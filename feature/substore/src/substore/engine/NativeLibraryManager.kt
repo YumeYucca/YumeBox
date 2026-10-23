@@ -21,7 +21,7 @@ package com.github.yumeyucca.yumebox.substore.engine
 
 import android.annotation.SuppressLint
 import android.content.Context
-import com.github.yumeyucca.yumebox.feature.substore.BuildConfig
+import com.github.yumeyucca.yumebox.feature.substore.BuildInfo
 import org.tukaani.xz.XZInputStream
 import timber.log.Timber
 import java.io.File
@@ -37,7 +37,7 @@ object NativeLibraryManager {
      * Javet version the Java layer in this APK was compiled against. A native of another version
      * must never reach `System.load`: the mismatch aborts the process instead of throwing.
      */
-    val JAVET_VERSION: String = BuildConfig.JAVET_VERSION
+    val JAVET_VERSION: String = BuildInfo.JAVET_VERSION
 
     /** Release assets of the Javet native, versioned tag first, legacy fixed tag as fallback. */
     val JAVET_ARCHIVE_URLS: List<String> =

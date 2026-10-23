@@ -1,0 +1,11 @@
+# Compile-only Android resource headers. Real R classes are linked by the Android backend.
+product: jvm/lib
+apply:
+  - //common.module-template.yaml
+plugins:
+  build-logic: enabled
+settings:
+  java:
+    freeCompilerArgs: ["-Xlint:-options"]
+  jvm:
+    release: 8

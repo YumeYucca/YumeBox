@@ -1,0 +1,28 @@
+product:
+  type: kmp/lib
+  platforms: [android]
+apply:
+  - //compose.module-template.yaml
+settings:
+  android:
+    namespace: com.github.yumeyucca.yumebox.feature.editor
+dependencies:
+  - //resource-symbols: compile-only
+  - //core
+  - //common
+  - //locale
+  - //ui
+  - bom: $libs.editor.bom
+  - $libs.rosemoe.editor
+  - $libs.rosemoe.language.textmate
+  - $libs.rosemoe.oniguruma
+  - $libs.androidx.activity.compose
+  - $libs.androidx.lifecycle.viewmodel.ktx
+  - $libs.kotlinx.coroutines.android
+  - $libs.koin.core
+  - $libs.koin.android
+  - $libs.koin.androidx.compose
+  - $libs.timber
+  - $libs.miuix.ui
+  - $libs.miuix.preference
+  - $libs.miuix.icons

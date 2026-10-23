@@ -1,0 +1,84 @@
+product: android/app
+apply:
+  - //compose.module-template.yaml
+plugins:
+  build-logic: enabled
+settings:
+  android:
+    applicationId: com.github.yumeyucca.yumebox
+    namespace: com.github.yumeyucca.yumebox
+    versionCode: 1
+    versionName: "build-input"
+    abiFilters: [arm64-v8a]
+    resourcePackaging:
+      excludes:
+        - META-INF/**
+        - okhttp3/**
+        - schema/**
+        - assets/dexopt/**
+        - tables/**
+        - DebugProbesKt.bin
+        - kotlin-tooling-metadata.json
+        - '**/*.kotlin_builtins'
+        - '**/*.kotlin_module'
+        - '**/*.properties'
+        - '**/*.txt'
+dependencies:
+  - //api
+  - //core
+  - //common
+  - //locale
+  - //ui
+  - //data
+  - //runtime/contracts
+  - //runtime/client
+  - //runtime/service
+  - //feature/substore
+  - //feature/proxy
+  - //feature/override
+  - //feature/editor
+  - //feature/meta
+  - $libs.androidx.animation
+  - $libs.androidx.compose.animation
+  - $libs.androidx.compose.ui.tooling.preview
+  - $libs.androidx.activity.compose
+  - $libs.miuix.ui
+  - $libs.miuix.preference
+  - $libs.miuix.icons
+  - $libs.haze
+  - $libs.haze.blur
+  - $libs.haze.blur.materials
+  - $libs.decompose
+  - $libs.decompose.extensions.compose
+  - $libs.mmkv
+  - $libs.koin.core
+  - $libs.koin.android
+  - $libs.koin.androidx.compose
+  - $libs.kotlinx.coroutines.android
+  - $libs.kotlinx.serialization.json
+  - $libs.timber
+  - $libs.xz
+  - $libs.smali.dexlib2
+  - $libs.mlkit.barcode.scanning
+  - $libs.androidx.camera.camera2
+  - $libs.androidx.camera.lifecycle
+  - $libs.androidx.camera.view
+  - $libs.androidx.camera.core
+  - $libs.androidx.camera.video
+  - $libs.sketch.compose
+  - $libs.sketch.http
+  - $libs.sketch.animated.gif
+  - $libs.sketch.animated.heif
+  - $libs.sketch.animated.webp
+  - $libs.sketch.animated.gif.koral
+  - $libs.reorderable
+  - $libs.aboutlibraries.core
+  - $libs.aboutlibraries.compose
+  - $libs.androidx.lifecycle.viewmodel.compose
+  - $libs.androidx.lifecycle.runtime.compose
+  - $libs.hiddenapibypass
+  - $libs.androidx.biometric
+  - $libs.androidx.core.ktx
+  - $libs.androidx.core.splashscreen
+  # Preserve the previous application dependency security floor.
+  - org.apache.commons:commons-lang3:3.20.0

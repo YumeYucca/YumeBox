@@ -1,0 +1,9 @@
+apply:
+  - //android.module-template.yaml
+settings:
+  compose: enabled
+dependencies:
+  - bom: $libs.androidx.compose.bom
+  - $libs.androidx.compose.runtime
+  - $libs.androidx.compose.foundation
+  - $libs.androidx.compose.ui

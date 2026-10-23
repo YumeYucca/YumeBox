@@ -1,0 +1,44 @@
+product: jvm/lib
+description: Kotlin client for the YumeBox controller REST API.
+apply:
+  - //common.module-template.yaml
+repositories:
+  - id: GitHubPackages
+    url: https://maven.pkg.github.com/YumeYucca/YumeBox
+    resolve: false
+    publish: true
+    credentials:
+      file: ../.kotlin/yumebox/publishing.properties
+      usernameKey: username
+      passwordKey: password
+  - id: localStaging
+    url: mavenLocal
+    resolve: false
+    publish: true
+settings:
+  jvm:
+    release: 8
+  kotlin:
+    serialization: enabled
+  publishing:
+    enabled: true
+    group: io.github.yumeyucca.yumebox
+    artifactId: api
+    version: 0.1.0-SNAPSHOT
+    publishSources: true
+    pom:
+      name: YumeBox API
+      description: Kotlin client for the YumeBox controller REST API.
+      url: https://github.com/YumeYucca/YumeBox
+      licenses:
+        - name: GNU Affero General Public License v3.0
+          url: https://www.gnu.org/licenses/agpl-3.0.html
+      scm:
+        url: https://github.com/YumeYucca/YumeBox
+        connection: scm:git:https://github.com/YumeYucca/YumeBox.git
+        developerConnection: scm:git:ssh://git@github.com/YumeYucca/YumeBox.git
+dependencies:
+  - $libs.kotlinx.coroutines.core
+  - $libs.kotlinx.serialization.json
+  - $libs.ktor.client.core
+  - $libs.ktor.client.okhttp

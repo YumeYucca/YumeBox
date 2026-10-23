@@ -22,7 +22,7 @@ package com.github.yumeyucca.yumebox.screen.settings.backup
 
 import android.app.Application
 import android.content.Intent
-import com.github.yumeyucca.yumebox.BuildConfig
+import com.github.yumeyucca.yumebox.BuildInfo
 import com.github.yumeyucca.yumebox.core.util.moeWallpaperFile
 import com.github.yumeyucca.yumebox.runtime.api.Intents
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
@@ -93,7 +93,7 @@ class BackupRepository internal constructor(
             manifest =
                 BackupManifest(
                     appId = application.packageName,
-                    appVersion = BuildConfig.VERSION_NAME,
+                    appVersion = BuildInfo.VERSION_NAME,
                     createdAt = System.currentTimeMillis(),
                     plaintext = true,
                     includes =
