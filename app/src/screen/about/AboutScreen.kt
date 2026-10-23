@@ -225,7 +225,7 @@ fun AboutScreen(navigator: Navigator) {
                 AppCard {
                     ArrowPreference(
                         title = YumeTxt.About.Link.TelegramGroup,
-                        onClick = { openUrl(context, "https://t.me/OOM_Group") },
+                        onClick = { openUrl(context, "https://t.me/Eden_Moe") },
                     )
                     ArrowPreference(
                         title = YumeTxt.About.Link.TelegramChannel,
