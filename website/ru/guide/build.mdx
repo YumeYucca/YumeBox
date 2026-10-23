@@ -1,65 +1,62 @@
 ---
-title: строить
-sidebarTitle: строить
+title: Сборка
+sidebarTitle: Сборка
 icon: hammer
 keywords:
   - Android
-  - Gradle
   - mihomo
   - NDK
   - Rust
   - Go
 ---
-<Info> Только запуск Gradle не создаст отсутствующий `jniLibs`; пожалуйста, сначала завершите собственную сборку при первой сборке. </Info>
 
-<Frame><img src="/images/diagrams/yumebox-build-pipeline.svg" alt="Ссылка на локальную сборку YumeBox и сборку CI" noZoom={true} /></Frame>
+<Info>Итоговый APK нужно собирать через точку входа `packaging`; перед первой сборкой подготовьте нативные компоненты.</Info>
 
-## Экологические требования
+## Требования
 
-| Инструменты | Версия | Цель |
+| Инструмент | Версия | Назначение |
 | --- | --- | --- |
-| OpenJDK | 24 | Компиляция Gradle и Android |
-| Android SDK | API 37 | Компиляция и целевая платформа |
-| Android НДК | 30.0.14904198 | Go, Rust, собственные сборки C/C++ |
-| CMake | 3.22.1 | Создание компонентов C/C++ |
-| Питон | 3.10 или выше | Выполнить сценарий сборки |
-| Перейти | 1,26 | Создание ядра mihomo |
-| Ржавчина | ночной | Компилятор конфигурации сборки |
-| груз-ндк | Последняя версия | Компиляция Rust для Android |
-| Git, патч | Доступно | Синхронизация патчей Go ядра и приложений |
+| OpenJDK | 25 | Запуск инструментария сборки |
+| Android SDK | API 37, build-tools 37.0.0 | Компиляция, упаковка и подпись |
+| Android NDK | 30.0.16248370 | Сборка нативных компонентов |
+| CMake, Ninja | SDK CMake 3.22.1 или из PATH | Сборка C/C++ |
+| Python | 3.10+ | Сборочные скрипты |
+| Go | 1.27 (MetaCubeX/go) | Сборка ядра mihomo |
+| Rust | nightly, rust-src | Компилятор конфигураций |
+| cargo-ndk | последняя | Кросс-компиляция Rust для Android |
 
-Текущее приложение собирает только `arm64-v8a`, а соответствующая цель Rust — `aarch64-linux-android`.
+Точка входа в сборку — скрипт `kotlin` в корне репозитория (`kotlin.bat` в Windows). При первом запуске он сам скачивает нужный Kotlin Toolchain, поэтому Kotlin и Gradle устанавливать вручную не требуется. Минимальная поддерживаемая версия Android — 8.0 (API 26), поддерживается только `arm64-v8a`; версия NDK, минимальный SDK и ABI читаются из `kernel.properties`.
 
-## Подготовьте склад
+## Подготовка репозитория
 
 <Steps>
-  <Step title="Получить исходный код">
+  <Step title="Получение исходного кода">
     ```bash
-    git clone https://github.com/YumeYucca/YumeBox.git
+    git clone --recurse-submodules https://github.com/YumeYucca/YumeBox.git
     cd YumeBox
     ```
   </Step>
 
   <Step title="Настройка Android SDK">
-    Установите API 37, NDK 30.0.14904198 и CMake 3.22.1, затем создайте `local.properties` в корневом каталоге репозитория:
+    Установите API 37, build-tools 37.0.0, NDK 30.0.16248370, CMake 3.22.1 и Ninja, примите лицензии SDK. Укажите `ANDROID_HOME` на SDK или создайте `local.properties` в корне репозитория:
 
     ```properties
     sdk.dir=C:/Android/Sdk
     ```
 
-    NDK автоматически определит местоположение по `android.ndkVersion` в `gradle.properties`.
+    `ANDROID_HOME`, `ANDROID_SDK_ROOT` и `sdk.dir` должны указывать на один и тот же SDK.
   </Step>
 
-  <Step title="Подготовка к Go и Rust">
+  <Step title="Подготовка Go и Rust">
+    Установите Go 1.27 от MetaCubeX (эта версия используется в CI) и инструментарий Rust nightly. Рекомендуется отдельный Go SDK, так как следующий шаг изменяет его GOROOT:
+
     ```bash
     rustup toolchain install nightly --component rust-src
     rustup target add --toolchain nightly aarch64-linux-android
     cargo install cargo-ndk
     ```
 
-    Перед сборкой ядра Go вам также необходимо применить исправления от `.github/patch/` до `go env GOROOT`. CI автоматически выполняет этот шаг перед созданием собственного компонента.
-
-    Выполните в Git Bash или WSL:
+    Перед сборкой ядра Go примените патчи из `.github/patch/` к каталогу, который показывает `go env GOROOT`. CI делает это автоматически перед сборкой нативных компонентов; команды ниже работают в Linux, macOS и Git Bash:
 
     ```bash
     project_root="$PWD"
@@ -68,53 +65,48 @@ keywords:
       if (cd "$go_root" && patch --forward --dry-run -p 1 < "$patch_file") >/dev/null 2>&1; then
         (cd "$go_root" && patch --forward -p 1 < "$patch_file")
       elif (cd "$go_root" && patch --reverse --dry-run -p 1 < "$patch_file") >/dev/null 2>&1; then
-        echo "已应用：$patch_file"
+        echo "Уже применён: $patch_file"
       else
-        echo "无法应用：$patch_file" >&2
+        echo "Не удалось применить: $patch_file" >&2
         exit 1
       fi
     done
     ```
   </Step>
 
-  <Step title="Синхронизировать Михомо">
-    Выберите канал ядра. Альфа используется по умолчанию:
+  <Step title="Синхронизация ядра mihomo">
+    По умолчанию синхронизируется ветка Alpha; доступен и Meta:
 
     ```bash
     python scripts/sync_kernel.py alpha
-    ```
-
-    Вы также можете использовать мета:
-
-    ```bash
     python scripts/sync_kernel.py meta
     ```
   </Step>
 </Steps>
 
-## Создание собственных компонентов
+## Сборка нативных компонентов
 
 ### Полная сборка
-
-Полная сборка создаст все собственные библиотеки и загрузит географические данные:
 
 ```bash
 python scripts/native-build.py --all
 ```
 
-###Сборка по компонентам
+Команда собирает все нативные библиотеки и скачивает Geo-данные.
 
-| Параметры | Выход или функция |
+### Сборка по компонентам
+
+| Флаг | Действие |
 | --- | --- |
-| `--go` | общее ядро ​​mihomo, библиотека предварительного просмотра и оболочка запуска PIE |
-| `--rust` | Компилятор конфигурации Rust `liboverride.so` |
-| `--compat` | Мост связи основного процесса `libcompat.so` |
-| `--loader` | APK-загрузчик полезной нагрузки `libloader.so` |
-| `--shell` | Создавайте только стартовую оболочку mihomo PIE |
-| `--geo` | Загрузите и сожмите геоданные |
-| `--clean` | Очистить родные теги, теги Geo и версии |
+| `--go` | Общее ядро mihomo, библиотека предпросмотра и PIE-ланчер |
+| `--rust` | Компилятор конфигураций `liboverride.so` |
+| `--compat` | Мост обмена с ядром `libcompat.so` |
+| `--loader` | Загрузчик payload APK `libloader.so` |
+| `--shell` | Только PIE-ланчеры mihomo и предпросмотра |
+| `--geo` | Скачивает и сжимает Geo-данные |
+| `--clean` | Удаляет артефакты сборки |
 
-Встроенная отладка создает только текущий ABI:
+ABI по умолчанию берётся из `abi.app.list` в `kernel.properties`; его можно задать и явно через переменную окружения:
 
 <CodeGroup>
   ```bash Linux / macOS / Git Bash
@@ -127,19 +119,21 @@ python scripts/native-build.py --all
   ```
 </CodeGroup>
 
-После успешной сборки `jniLibs/arm64-v8a/` должен содержать:
+### Артефакты сборки
 
-| Документация | Цель |
+Нативные библиотеки в `jniLibs/arm64-v8a/`:
+
+| Файл | Назначение |
 | --- | --- |
-| `libmihomo.so` | Оболочка запуска mihomo PIE |
-| `libmihomocore.so` | общее ядро ​​mihomo Go |
-| `libpreview.so` | Предварительный просмотр конфигурации |
-| `liboverride.so` | Переопределить компиляцию |
-| `libcompat.so` | Основной коммуникационный мост |
-| `libloader.so` | Загрузка встроенной полезной нагрузки APK |
-| `core-version.properties` | Информация о ветках ядра, коммитах и ​​сборке |
+| `libmihomo.so` | PIE-ланчер mihomo |
+| `libmihomocore.so` | Общее ядро mihomo на Go |
+| `libpreview.so` | Предпросмотр конфигурации |
+| `liboverride.so` | Компиляция переопределений |
+| `libcompat.so` | Мост обмена с ядром |
+| `libloader.so` | Загрузчик нативного payload APK |
+| `core-version.properties` | Ветка, коммит и данные сборки ядра |
 
-Географические данные расположены по адресу `build/generated/assets/geo/`:
+Geo-данные находятся в `build/generated/assets/geo/`:
 
 ```text
 geoip.metadb.xz
@@ -149,103 +143,103 @@ ASN.mmdb.xz
 
 ## Сборка APK
 
-###Отладка
+Команда сборки — `kotlin run -m packaging`; все аргументы `-Pkey=value` ставятся после `--` и передаются точке входа packaging. В PowerShell аргументы с точками заключаются в одинарные кавычки.
 
-Debug подходит для локальной установки и отладки:
+### Debug
 
-<CodeGroup>
-  ```bash Linux / macOS
-  ./gradlew :app:assembleDebug
-  ./gradlew -Pgeo.bundle=true :app:assembleDebug
-  ```
-
-  ```powershell Windows
-  .\gradlew.bat :app:assembleDebug
-  .\gradlew.bat -Pgeo.bundle=true :app:assembleDebug
-  ```
-</CodeGroup>
-
-### Релиз
-
-Release обеспечивает сжатие и сокращение ресурсов:
+Debug предназначен для локальной установки и отладки и по умолчанию не включает Geo:
 
 <CodeGroup>
   ```bash Linux / macOS
-  ./gradlew -Pgeo.bundle=false :app:assembleRelease
-  ./gradlew -Pgeo.bundle=true :app:assembleRelease
+  sh kotlin run -m packaging -- --build-type=debug
+  sh kotlin run -m packaging -- --build-type=debug -Pgeo.bundle=true
   ```
 
-  ```powershell Windows
-  .\gradlew.bat -Pgeo.bundle=false :app:assembleRelease
-  .\gradlew.bat -Pgeo.bundle=true :app:assembleRelease
+  ```powershell Windows PowerShell
+  .\kotlin.bat run -m packaging -- --build-type=debug
+  .\kotlin.bat run -m packaging -- --build-type=debug '-Pgeo.bundle=true'
   ```
 </CodeGroup>
 
-### Варианты геоданных
+### Release
 
-| Вариация | Содержание | Применимые сценарии |
+Release собирает loader DEX и упаковывает payload; сначала выполните настройку подписи ниже:
+
+<CodeGroup>
+  ```bash Linux / macOS
+  sh kotlin run -m packaging -- --build-type=release -Pgeo.bundle=false
+  sh kotlin run -m packaging -- --build-type=release -Pgeo.bundle=true
+  ```
+
+  ```powershell Windows PowerShell
+  .\kotlin.bat run -m packaging -- --build-type=release '-Pgeo.bundle=false'
+  .\kotlin.bat run -m packaging -- --build-type=release '-Pgeo.bundle=true'
+  ```
+</CodeGroup>
+
+Проверенные APK записываются в `output_apk/debug/` и `output_apk/release/` под именами `YumeBox-external.apk` или `YumeBox-builtin.apk` вместе с одноимённым `.apk.json`, где хранятся версия, SHA-256 и прочие данные сборки.
+
+| Вариант | Флаг | Описание |
 | --- | --- | --- |
-| `external` | Нет встроенных геоданных | Меньший размер, необходимо загрузить при первом запуске |
-| `builtin` | Встроенные геоданные | Первая установка или использование в автономном режиме |
+| `external` | `-Pgeo.bundle=false` | Без встроенного Geo, меньше размер; Geo загружается при первом запуске |
+| `builtin` | `-Pgeo.bundle=true` | Встроенный Geo для офлайна; перед сборкой выполните `python scripts/native-build.py --geo` |
 
-Оба варианта используют один и тот же код приложения и ядро; единственная разница заключается в том, упакованы ли географические ресурсы в APK.
+## Подпись
 
-APK выводит на:
-
-```text
-app/build/outputs/apk/debug/
-app/build/outputs/apk/release/
-```
-
-Локальные сборки обычно генерируют `YumeBox-external.apk` или `YumeBox-builtin.apk`. Фактическое имя файла зависит от выходного каталога.
-
-## Подпись выпуска
-
-Локальную проверку не нужно настраивать с помощью формальной подписи; для публикации APK требуются `release.keystore` и `signing.properties` в корневом каталоге хранилища:
+Без настройки подписи Debug сам создаёт и использует стандартный debug keystore. Если в корне репозитория есть `signing.properties`, и Debug, и Release предпочитают его. Release требует подписи: положите `release.keystore` в корень репозитория и создайте `signing.properties`:
 
 ```properties
-keystore.password=你的仓库密码
+keystore.path=release.keystore
+keystore.password=<keystore-password>
 key.alias=yumebox
-key.password=你的密钥密码
+key.password=<key-password>
 ```
 
-| Поле | Описание |
+| Ключ | Описание |
 | --- | --- |
-| `keystore.password` | пароль хранилища ключей |
-| `key.alias` | Подписание псевдонима ключа |
-| `key.password` | Пароль ключа подписи |
+| `keystore.path` | Путь к keystore: относительно корня репозитория или абсолютный |
+| `keystore.password` | Пароль keystore |
+| `key.alias` | Псевдоним ключа подписи |
+| `key.password` | Пароль ключа |
 
-<Info> Не отправляйте `release.keystore` или `signing.properties`. </Info>
+<Info>Не коммитьте `release.keystore` и `signing.properties`.</Info>
 
-## CI-сборка
+Неподписанный APK создаётся только при явном `--allow-unsigned` и отсутствии `signing.properties`; такой APK нельзя установить через `adb install`, и CI этот вариант не использует.
 
-| Этап | Основная работа | Результаты |
+## Сборка в CI
+
+Все задания CI выполняются на `macos-26` и собирают только `arm64-v8a`:
+
+| Этап | Работа | Результат |
 | --- | --- | --- |
-| Родная сборка | Синхронизировать ядро, собрать Go, Rust, C/C++ и загрузчик | `native-*` артефакты сборки |
-| APK-сборка | Загрузите собственный продукт, упакованный `builtin` и `external` соответственно | Два APK-файла выпуска |
-| Подготовка релиза | Вычислить версию, сгенерировать SHA-256 и метаданные | Каталог выпусков и информация об обновлениях |
-| Релиз | Загрузить APK и метаданные | Релиз на GitHub |
+| Параллельная подготовка | Предкомпиляция Toolchain, нативные сборки и загрузка Geo параллельно | Кэш компиляции и нативные артефакты |
+| Параллельная упаковка APK | Упаковка, подпись и проверка `builtin` / `external` | Два проверенных Release APK |
+| Подготовка релиза | Вычисление версии, SHA-256 и метаданных обновления | Каталог релиза и сведения об обновлении |
+| Публикация Release | Загрузка APK и метаданных | GitHub Release |
 
-CI использует `arm64-v8a` и записывает информацию о версии сборки через `build.number`, `build.hash` и `build.branch`.
+CI использует счётчик коммитов как номер версии сборки и записывает хеш коммита и ветку.
 
-## Проверьте установку
+## Проверка установки
 
 ```bash
-adb install -r app/build/outputs/apk/debug/YumeBox-external.apk
+adb install -r output_apk/debug/YumeBox-external.apk
 ```
 
-Если имена файлов разные, сначала посмотрите реальный продукт в `app/build/outputs/apk/`.
+Если имя файла отличается, сначала посмотрите фактические артефакты в `output_apk/debug/`.
 
-## Часто задаваемые вопросы
+## Частые проблемы
 
-| Феномен | Лечение |
+| Симптом | Решение |
 | --- | --- |
-| `jniLibs/arm64-v8a` отсутствует `.so` | Сначала запустите `python scripts/native-build.py --all`. |
-| Android SDK не найден | Установите флажок `local.properties` или `ANDROID_SDK_ROOT`. |
-| НДК не найден | Установите `30.0.14904198`, не используйте вместо него другие версии. |
-| `cargo-ndk` или цель Rust отсутствует | Переустанавливайте каждую ночь `rust-src` и `aarch64-linux-android`. |
-| Патч Go не может быть применен | Проверьте, было ли применено исправление, или вместо этого используйте специальный Go SDK. |
-| `builtin` Отсутствует географический файл | Сначала запустите `python scripts/native-build.py --geo`. |
-| ABI не поддерживается | Текущий проект поддерживает только `arm64-v8a`. |
+| В `jniLibs/arm64-v8a` нет `.so` | Сначала выполните `python scripts/native-build.py --all`. |
+| SDK не найден или SDK упаковки не совпадает | Проверьте `ANDROID_HOME`, `ANDROID_SDK_ROOT` и `local.properties`; установите API 37 / build-tools 37.0.0 и примите лицензии. |
+| NDK отсутствует или версия не совпадает | Установите 30.0.16248370, как указано в `kernel.properties`. |
+| Нет CMake или Ninja | Установите SDK CMake 3.22.1 или предоставьте его в PATH. |
+| Нет `cargo-ndk` или Rust target | Установите nightly, `rust-src`, `aarch64-linux-android` и `cargo-ndk`. |
+| Патчи Go не применяются | Убедитесь, что используется MetaCubeX/go 1.27, проверьте, не применены ли патчи; при необходимости используйте отдельный Go SDK. |
+| В `builtin` нет файлов Geo | Сначала выполните `python scripts/native-build.py --geo` и проверьте наличие всех трёх XZ-файлов. |
+| Сбой подписи Release или APK не устанавливается | Проверьте четыре ключа в `signing.properties` и keystore; переустановка требует того же сертификата. |
+| Компиляция прошла, но итогового APK нет | Уберите `--compile-only`, используйте точку входа `packaging` и проверьте ошибки валидации. |
+| ABI не поддерживается | Поддерживается только `arm64-v8a`. |
 
-Дополнительные сведения об ошибках сборки см. в [FAQ](./faq).
+Другие ошибки сборки описаны в [FAQ](./faq).

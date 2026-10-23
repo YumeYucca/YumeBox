@@ -3,17 +3,8 @@ title: ワークフロー
 sidebarTitle: ワークフロー
 icon: route
 ---
-DreamBox は、構成の管理、セッションの上書き、実行を担当します. mihomo は、ノードの解析、接続の確立、実行データの提供を担当します.
 
-## 全体的なアーキテクチャ
-
-この図は、設定エントリから実行データに至る、YumeBox の完全なアーキテクチャを示しています.つまり、設定、オーバーライド、セッション、コア、システム アクセス、および観測データがどのように相互に接続されているかを示しています.
-
-<Frame><img src="/images/diagrams/yumebox-architecture.svg" alt="ゆめボックスの全機能のアーキテクチャ図" noZoom={true} /></Frame>
-
-## 構成の有効化とノードの解決
-
-構成の更新は、新しい構成の取得と送信のみを行います.実際に開始されると、実行中のセッションは現在の設定をコンパイルしてチェーンを再度上書きし、mihomo コントローラーがポリシー グループを提供するのを待ちます.
+YumeBox は、構成の管理、オーバーライド、セッションの実行を担当します。mihomo は、ノードの解析、接続の確立、実行データの提供を担当します。
 
 ```mermaid
 ---
@@ -21,302 +12,95 @@ config:
   theme: base
   themeVariables:
     fontFamily: "Ubuntu Sans, sans-serif"
-    fontSize: "14px"
+    fontSize: "16px"
     primaryColor: "#eef2ff"
     primaryTextColor: "#172554"
     primaryBorderColor: "#818cf8"
     lineColor: "#64748b"
-    actorBkg: "#eef2ff"
-    actorBorder: "#818cf8"
-    actorTextColor: "#172554"
-    signalColor: "#64748b"
-    signalTextColor: "#172554"
-    activationBkgColor: "#dbeafe"
-    activationBorderColor: "#3b82f6"
----
-sequenceDiagram
-    autonumber
-    participant U as 用户
-    participant P as 配置管理
-    participant C as 编译管线
-    participant O as 覆写引擎
-    participant R as 运行会话
-    participant M as mihomo
-
-    U->>P: 添加或更新订阅
-    P->>P: 写入原始配置与 Provider
-    U->>R: 启动当前配置
-    R->>C: 读取 profile 与绑定覆写
-    C->>O: 按顺序应用 YAML / JavaScript
-    O-->>C: 返回覆写后的配置
-    C->>C: 应用 DNS、Tun、监听器等运行补丁
-    C->>C: 校验并生成最终 YAML
-    C-->>R: 返回编译结果
-    R->>M: 传入配置并启动核心
-    M-->>R: 控制器就绪
-    R->>M: 查询策略组与节点状态
-    M-->>U: 显示节点与代理组
-```
-
-```yaml 运行模式对配置的影响 diff.yaml icon="file-code" lines
-tun:
-  enable: true # [!code --]
-  enable: false # [!code ++]
-  auto-route: true # [!code --]
-  auto-route: false # [!code ++]
-  auto-detect-interface: true # [!code --]
-  auto-detect-interface: false # [!code ++]
-```
-
-**VPN サービス** モードでは、ランタイム パッチによって上記の Tun エントリが閉じられます. **Tun** と **eBPF** モードでは profile 自身の構成が保持されます.
-
-## カスタム上書きとホットリロード
-
-カスタム オーバーライドが保存されると、YumeBox は現在構成で使用されているオーバーライド チェーンを再適用します.実行コンフィギュレーションでは、元のサブスクリプション テキストは変更されません.リロードが失敗すると、実行中のセッションは最後の有効な構成の復元を試みます.
-
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    fontFamily: "Ubuntu Sans, sans-serif"
-    fontSize: "14px"
-    primaryColor: "#eef2ff"
-    primaryTextColor: "#172554"
-    primaryBorderColor: "#818cf8"
-    lineColor: "#64748b"
-    actorBkg: "#eef2ff"
-    actorBorder: "#818cf8"
-    actorTextColor: "#172554"
-    signalColor: "#64748b"
-    signalTextColor: "#172554"
-    activationBkgColor: "#dbeafe"
-    activationBorderColor: "#3b82f6"
----
-sequenceDiagram
-    autonumber
-    participant U as 用户
-    participant S as 覆写配置
-    participant R as 运行会话
-    participant C as 编译管线
-    participant M as mihomo
-
-    U->>S: 保存 YAML / JavaScript
-    S->>R: 通知当前配置使用了该覆写
-    R->>C: 重新编译完整覆写链
-    C-->>R: 新配置或编译错误
-    alt 编译成功
-        R->>M: 停止旧传输并加载新配置
-        M-->>R: 策略组就绪
-        R-->>U: 热重载完成
-    else 编译或启动失败
-        R->>M: 停止失败的新会话
-        R->>M: 恢复上一份有效配置
-        M-->>R: 旧配置恢复
-        R-->>U: 显示错误并保留旧会话
-    end
-```
-
-```yaml 旧配置.yaml icon="file-code" lines
-mixed-port: 7890
-```
-
-```yaml 新覆写.yaml icon="file-code" lines
-mixed-port: 10801
-```
-
-```yaml 热重载结果 diff.yaml icon="file-code" lines
-mixed-port: 7890 # [!code --]
-mixed-port: 10801 # [!code ++]
-```
-
-アプリケーション パッケージ名のリストを含む Tun 構成は、オンザフライでリロードしても VPN デバイスを再確立しません.このような変更はログに記録され、次回 Tun が確立されたときに有効になります.
-
-## 起動モードとサービスプロセス
-
-3 つのモードは構成コンパイル プロセスを共有しますが、トラフィックを引き継ぐホストは異なります.**Vpn Service** は Android VPN サービスを使用し、**Tun** は Root mihomo プロセスを使用し、**eBPF** は同じ mihomo プロセス内のネイティブ eBPF listener を使用します.
-
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    fontFamily: "Ubuntu Sans, sans-serif"
-    fontSize: "14px"
-    primaryColor: "#eef2ff"
-    primaryTextColor: "#172554"
-    primaryBorderColor: "#818cf8"
-    lineColor: "#64748b"
-    secondaryColor: "#ecfeff"
-    tertiaryColor: "#f8fafc"
     clusterBkg: "#f8fafc"
     clusterBorder: "#cbd5e1"
     edgeLabelBackground: "#ffffff"
----
-flowchart LR
-    A[启动请求] --> B{运行模式}
-    B -->|Vpn Service| C[Android TunService]
-    B -->|Tun| D[Root mihomo]
-    B -->|eBPF| E[Root mihomo]
-    C --> F[VPN 虚拟网卡]
-    D --> G[Root Tun 接口]
-    E --> H[mihomo eBPF listener]
-    F --> J[mihomo 控制器与代理链]
-    G --> J
-    H --> J
-    J --> K[连接与流量数据]
-
-    classDef request fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:1.5px;
-    classDef mode fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:1.5px;
-    classDef host fill:#eef2ff,stroke:#818cf8,color:#172554,stroke-width:1.5px;
-    classDef data fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.5px;
-    class A request;
-    class B mode;
-    class C,D,E,F,G,H,I,J host;
-    class K data;
-```
-
-起動リクエストは、対応するホストに入る前に、まず送信機、実行ステータス、繰り返し起動、内蔵の地理データをチェックします.セッションを実行すると、ステータス、ポリシー グループ、ログ、トラフィック データが継続的に更新されます.
-
-## Wi-Fi オートメーション
-
-Wi-Fi オートメーションは **VPN サービス** モードでのみ実行されます.独立したフロントエンド サービスによって SSID を監視します.ルールは、瞬間的な変化によって引き起こされる繰り返しの起動と停止を避けるために、ネットワークのステータスが安定した後にのみ適用されます.
-
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    fontFamily: "Ubuntu Sans, sans-serif"
-    fontSize: "14px"
-    primaryColor: "#eef2ff"
-    primaryTextColor: "#172554"
-    primaryBorderColor: "#818cf8"
-    lineColor: "#64748b"
-    secondaryColor: "#ecfeff"
-    tertiaryColor: "#f8fafc"
-    clusterBkg: "#f8fafc"
-    clusterBorder: "#cbd5e1"
-    edgeLabelBackground: "#ffffff"
+  flowchart:
+    curve: stepAfter
+    nodeSpacing: 24
+    rankSpacing: 40
 ---
 flowchart TB
-    A[启动 Wi‑Fi 自动化服务] --> B{启用且模式为 Vpn Service？}
-    B -->|否| C[停止服务]
-    B -->|是| D[监听 SSID]
-    D --> E[等待 1.5 秒稳定窗口]
-    E --> F{SSID 状态}
-    F -->|匹配规则| G{动作}
-    F -->|其他 Wi‑Fi| H[执行其他 Wi‑Fi 动作]
-    F -->|无 Wi‑Fi| I[执行无 Wi‑Fi 动作]
-    F -->|不可用| J[忽略本次变化]
-    G -->|启动| K[检查 VPN 权限并启动]
-    G -->|停止| L[停止 VpnService]
-    H --> M{Keep / Start / Stop}
-    I --> M
-    M -->|Keep| N[保持当前状态]
-    M -->|Start| K
-    M -->|Stop| L
-    K --> O[运行状态更新]
-    L --> O
-
-    classDef input fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:1.5px;
-    classDef decision fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:1.5px;
-    classDef action fill:#eef2ff,stroke:#818cf8,color:#172554,stroke-width:1.5px;
-    classDef result fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.5px;
-    class A input;
-    class B,F,G,M decision;
-    class C,D,E,H,I,J,K,L,N action;
-    class O result;
-```
-
-## 接続、ログ、トラフィック統計
-
-セッションを実行してコントローラーを確立した後、ログ サブスクリプションと接続追跡を同時に有効にします.インターフェイスによってクエリされる接続、ポリシー グループ、リアルタイム速度、および履歴統計はすべて、上書きされたファイルではなく、実行中のデータから取得されます.
-
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    fontFamily: "Ubuntu Sans, sans-serif"
-    fontSize: "14px"
-    primaryColor: "#eef2ff"
-    primaryTextColor: "#172554"
-    primaryBorderColor: "#818cf8"
-    lineColor: "#64748b"
-    actorBkg: "#eef2ff"
-    actorBorder: "#818cf8"
-    actorTextColor: "#172554"
-    signalColor: "#64748b"
-    signalTextColor: "#172554"
-    activationBkgColor: "#dbeafe"
-    activationBorderColor: "#3b82f6"
----
-sequenceDiagram
-    autonumber
-    participant M as mihomo
-    participant S as SessionRuntime
-    participant L as 日志订阅
-    participant H as 连接跟踪
-    participant T as 流量统计
-    participant U as 用户界面
-
-    S->>M: 控制器就绪
-    S->>L: subscribeLogs
-    S->>H: 周期查询 connections
-    L-->>U: 推送日志
-    H->>M: queryConnections
-    M-->>H: 连接快照
-    H->>U: 更新连接历史
-    loop 周期采样
-        T->>M: queryTrafficTotal
-        T->>M: queryConnections
-        M-->>T: 总流量与连接计数
-        T->>T: 与上次基线计算增量
-        T->>T: 按应用和路由归档
-        T-->>U: 更新统计图表
+    subgraph INPUT["設定の入力"]
+        SOURCE["サブスクリプション / ローカル YAML / QR コード"] --> PROFILE["元の設定と Provider"]
+        OVERRIDE["オーバーライド管理"] --> CHAIN["組み込み / YAML / JavaScript の適用チェーン"]
     end
-    S->>M: 停止运行
-    S->>L: 关闭日志订阅
-    S->>H: 停止连接跟踪
-    T->>T: flushNow
+
+    subgraph ACTION["ユーザー操作と自動化"]
+        MANUAL["手動で開始 / 停止"]
+        WIFI["Wi-Fi 自動化（Vpn Service のみ）"] --> SSID["SSID を監視し、1.5 秒の安定期間を待つ"]
+        SSID --> RULE["一致するルール / その他の Wi-Fi / Wi-Fi なし"] --> AUTO{"Start / Stop / Keep"}
+        AUTO -->|維持| KEEP["現在の状態を維持"]
+    end
+
+    MANUAL -->|開始| SESSION["実行セッション"]
+    AUTO -->|開始| PERMISSION["Android VPN 権限を確認"] --> SESSION
+    SESSION --> CHECK["起動確認：リモートコントローラー / 状態 / 重複起動 / Geo"]
+
+    subgraph COMPILE["設定のコンパイル"]
+        READ["現在の profile と関連するオーバーライドを読む"] --> APPLY["YAML / JavaScript を順番に適用"]
+        APPLY --> PATCH["DNS、Tun、リスナーなどの実行時パッチを適用"] --> YAML["検証して最終 YAML を生成"]
+    end
+    PROFILE --> READ
+    CHAIN --> APPLY
+    CHECK --> READ
+
+    subgraph MODE["実行モード"]
+        SELECT{"実行モード"}
+        SELECT -->|Vpn Service| VPN["Android TunService"] --> TUNFD["VPN 仮想インターフェース"]
+        SELECT -->|Tun| ROOT["Root mihomo / Root Tun"]
+        SELECT -->|eBPF| EBPF["Root mihomo / eBPF listener"]
+    end
+    YAML --> SELECT
+
+    subgraph CORE["mihomo と実行データ"]
+        START["コアを起動し、設定と Provider を解析"] --> READY["コントローラーとプロキシグループの準備を待つ"] --> RUNNING["実行中のセッション"]
+        RUNNING --> PROXY["DNS / ルール / プロキシグループ / 接続"]
+        RUNNING --> LOG["ログ購読"] --> UI["実行状態とユーザーインターフェース"]
+        RUNNING --> CONNECTIONS["接続の追跡と履歴"] --> UI
+        RUNNING --> TRAFFIC["リアルタイム速度 / アプリと経路別の通信量"] --> UI
+    end
+    TUNFD --> START
+    ROOT --> START
+    EBPF --> START
+
+    subgraph RELOAD["オーバーライドの変更とホットリロード"]
+        SAVE["現在の設定が使用するオーバーライドを保存"] --> RECOMPILE["チェーン全体を再コンパイル"]
+        RECOMPILE --> LOADED{"新設定のコンパイルと読み込みに成功？"}
+        LOADED -->|いいえ| RESTORE["失敗したセッションを停止し、直前の有効な設定を復元"] --> RESTORED{"旧設定の復元に成功？"}
+        RESTORED -->|はい| OLD["エラーを記録し、旧セッションを維持"]
+        RESTORED -->|いいえ| FAILED["セッション失敗、エラーを表示"]
+    end
+    RUNNING -->|実行中にオーバーライドを保存| SAVE
+    LOADED -->|はい| RUNNING
+    OLD -->|実行を継続| RUNNING
+
+    subgraph CLEANUP["停止と後処理"]
+        STOP["停止要求 / 起動の中断"] --> CLOSE["コアと転送を停止し、購読と接続追跡を終了"] --> IDLE["統計を保存してリソースを解放し、Idle に戻る"]
+    end
+    MANUAL -->|停止| STOP
+    AUTO -->|停止| STOP
+    RUNNING --> STOP
+    START -.->|起動を中断| STOP
+    COMPILE -.->|コンパイル / 起動失敗| FAILED
+    START -.->|コンパイル / 起動失敗| FAILED
+    READY -.->|コンパイル / 起動失敗| FAILED
+    FAILED -.->|再試行| SESSION
+    FAILED -->|終了| IDLE
+
+    classDef input fill:#fff7ed,stroke:#f97316,color:#9a3412;
+    classDef process fill:#eef2ff,stroke:#818cf8,color:#172554;
+    classDef decision fill:#ecfeff,stroke:#0891b2,color:#164e63;
+    classDef result fill:#f0fdf4,stroke:#22c55e,color:#166534;
+    classDef error fill:#fef2f2,stroke:#ef4444,color:#991b1b;
+    class SOURCE,OVERRIDE,MANUAL,WIFI,SAVE input;
+    class PROFILE,CHAIN,SSID,RULE,PERMISSION,SESSION,CHECK,READ,APPLY,PATCH,YAML,VPN,TUNFD,ROOT,EBPF,START,READY,RECOMPILE,RESTORE,CLOSE process;
+    class AUTO,SELECT,LOADED,RESTORED decision;
+    class KEEP,RUNNING,PROXY,LOG,CONNECTIONS,TRAFFIC,UI,OLD,IDLE result;
+    class FAILED error;
 ```
-
-トラフィック統計は、接続増分、アプリケーション ID、ラストホップ ルートごとにアーカイブされます.帰属されていない部分は、帰属されていないバケットに記録されます.現在の設定が切り替えられるか、合計トラフィックがロールバックされるか、接続数がリセットされると、カウンタはベースラインを再確立して、古いセッションが新しいセッションに誤って計算されるのを防ぎます.
-
-## ステータスループの実行中
-
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    fontFamily: "Ubuntu Sans, sans-serif"
-    fontSize: "14px"
-    primaryColor: "#eef2ff"
-    primaryTextColor: "#172554"
-    primaryBorderColor: "#818cf8"
-    lineColor: "#64748b"
-    secondaryColor: "#ecfeff"
-    tertiaryColor: "#f8fafc"
-    clusterBkg: "#f8fafc"
-    clusterBorder: "#cbd5e1"
-    edgeLabelBackground: "#ffffff"
----
-stateDiagram-v2
-    [*] --> Idle
-    Idle --> Starting: 启动请求
-    Starting --> Running: 核心与策略组就绪
-    Starting --> Failed: 编译、传输或核心失败
-    Running --> Reloading: 配置或覆写变化
-    Reloading --> Running: 新配置加载成功
-    Reloading --> Running: 失败后恢复旧配置
-    Reloading --> Failed: 恢复旧配置也失败
-    Running --> Stopping: 停止请求
-    Starting --> Stopping: 中断启动
-    Failed --> Starting: 再次启动
-    Stopping --> Idle: 资源清理完成
-    Failed --> Idle: 会话退出
-```
-
-このステータス ループは、ホット リロードの失敗が必ずしもエージェントの停止と一致しない理由を説明しています.古い設定の復元が成功した場合でも、セッションは引き続き実行中に戻り、復元の理由がログに記録されます.

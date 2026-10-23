@@ -1,65 +1,62 @@
 ---
-title: 建てる
-sidebarTitle: 建てる
+title: ビルド
+sidebarTitle: ビルド
 icon: hammer
 keywords:
   - Android
-  - Gradle
   - mihomo
   - NDK
   - Rust
   - Go
 ---
-<Info> Gradle を実行している場合のみ、欠落している `jniLibs` は生成されません.初めてビルドする場合は、最初にネイティブ ビルドを完了してください. </Info>
 
-<Frame><img src="/images/diagrams/yumebox-build-pipeline.svg" alt="DreamBox ローカルおよび CI ビルド リンク" noZoom={true} /></Frame>
+<Info>リリース APK は必ず `packaging` エントリーポイントでビルドしてください。初回ビルドの前に、ネイティブ コンポーネントの準備を完了してください。</Info>
 
-## 環境要件
+## 必要環境
 
-|ツール |バージョン |目的 |
+| ツール | バージョン | 用途 |
 | --- | --- | --- |
-| OpenJDK | 24 | Gradle と Android のコンパイル |
-| Android SDK | API 37 |コンパイルとターゲット プラットフォーム |
-| Android NDK | 30.0.14904198 | Go、Rust、C/C++ ネイティブ ビルド |
-| CMake | 3.22.1 | C/C++ コンポーネントの構築 |
-|パイソン | 3.10以降 |ビルドスクリプトを実行する |
-|行く | 1.26 |ミホモコアの構築 |
-|さび |毎晩 |ビルド構成コンパイラ |
-|カーゴNDK |最新バージョン | Android 用の Rust のコンパイル |
-| Git、パッチ |利用可能 |カーネルとアプリケーションの Go パッチを同期する |
+| OpenJDK | 25 | ビルド ツールチェーンの実行 |
+| Android SDK | API 37、build-tools 37.0.0 | コンパイル、パッケージング、署名 |
+| Android NDK | 30.0.16248370 | ネイティブ コンポーネントのビルド |
+| CMake、Ninja | SDK の CMake 3.22.1 または PATH 上のもの | C/C++ のビルド |
+| Python | 3.10 以上 | ビルド スクリプトの実行 |
+| Go | 1.27（MetaCubeX/go） | mihomo コアのビルド |
+| Rust | nightly、rust-src | 設定コンパイラのビルド |
+| cargo-ndk | 最新 | Android 向け Rust のクロス コンパイル |
 
-現在のアプリケーションは `arm64-v8a` のみをビルドし、対応する Rust ターゲットは `aarch64-linux-android` です.
+ビルドの入り口はリポジトリ ルートの `kotlin` スクリプト（Windows は `kotlin.bat`）です。初回実行時に必要な Kotlin Toolchain を自動的にダウンロードするため、Kotlin や Gradle を手動でインストールする必要はありません。サポートする最低 Android バージョンは 8.0（API 26）、対応 ABI は `arm64-v8a` のみです。NDK バージョン、最小 SDK、ABI は `kernel.properties` から読み込まれます。
 
-## 倉庫を準備する
+## リポジトリの準備
 
 <Steps>
-  <Step title="ソースコードを取得する">
+  <Step title="ソースの取得">
     ```bash
-    git clone https://github.com/YumeYucca/YumeBox.git
+    git clone --recurse-submodules https://github.com/YumeYucca/YumeBox.git
     cd YumeBox
     ```
   </Step>
 
-  <Step title="Android SDKを構成する">
-    API 37、NDK 30.0.14904198、および CMake 3.22.1 をインストールし、リポジトリのルート ディレクトリに `local.properties` を作成します.
+  <Step title="Android SDK の設定">
+    API 37、build-tools 37.0.0、NDK 30.0.16248370、CMake 3.22.1、Ninja をインストールし、SDK ライセンスに同意してください。`ANDROID_HOME` を SDK に向けるか、リポジトリ ルートに `local.properties` を作成します：
 
     ```properties
     sdk.dir=C:/Android/Sdk
     ```
 
-    NDK は、`gradle.properties` の `android.ndkVersion` に従って自動的に検索します.
+    `ANDROID_HOME`、`ANDROID_SDK_ROOT`、`sdk.dir` はすべて同じ SDK を指す必要があります。
   </Step>
 
   <Step title="Go と Rust の準備">
+    MetaCubeX が管理する Go 1.27（CI と同じバージョン）と Rust nightly ツールチェーンをインストールします。次のステップで GOROOT を変更するため、専用の Go SDK を推奨します：
+
     ```bash
     rustup toolchain install nightly --component rust-src
     rustup target add --toolchain nightly aarch64-linux-android
     cargo install cargo-ndk
     ```
 
-    Go コアをビルドする前に、`.github/patch/` から `go env GOROOT` のパッチを適用する必要もあります. CI は、ネイティブ コンポーネントをビルドする前にこのステップを自動的に実行します.
-
-    Git Bash または WSL で実行します.
+    Go コアをビルドする前に、`.github/patch/` のパッチを `go env GOROOT` の示すディレクトリへ適用します。CI はネイティブ ビルドの前に自動で実行します。以下のコマンドは Linux、macOS、Git Bash で利用できます：
 
     ```bash
     project_root="$PWD"
@@ -68,53 +65,48 @@ keywords:
       if (cd "$go_root" && patch --forward --dry-run -p 1 < "$patch_file") >/dev/null 2>&1; then
         (cd "$go_root" && patch --forward -p 1 < "$patch_file")
       elif (cd "$go_root" && patch --reverse --dry-run -p 1 < "$patch_file") >/dev/null 2>&1; then
-        echo "已应用：$patch_file"
+        echo "適用済み: $patch_file"
       else
-        echo "无法应用：$patch_file" >&2
+        echo "適用できません: $patch_file" >&2
         exit 1
       fi
     done
     ```
   </Step>
 
-  <Step title="同期ミホモ">
-    カーネルチャネルを選択します.デフォルトではアルファが使用されます.
+  <Step title="mihomo カーネルの同期">
+    既定では Alpha ブランチを同期します。Meta も利用できます：
 
     ```bash
     python scripts/sync_kernel.py alpha
-    ```
-
-    メタを使用することもできます.
-
-    ```bash
     python scripts/sync_kernel.py meta
     ```
   </Step>
 </Steps>
 
-## ネイティブコンポーネントを構築する
+## ネイティブ コンポーネントのビルド
 
-### 完全なビルド
-
-完全なビルドでは、すべてのネイティブ ライブラリが生成され、地理データがダウンロードされます.
+### 完全ビルド
 
 ```bash
 python scripts/native-build.py --all
 ```
 
-###コンポーネントによるビルド
+すべてのネイティブ ライブラリを生成し、Geo データをダウンロードします。
 
-|パラメータ |出力または関数 |
+### コンポーネント単位のビルド
+
+| 引数 | 効果 |
 | --- | --- |
-| `--go` | mihomo 共有コア、プレビュー ライブラリ、PIE 起動シェル |
-| `--rust` | Rust 構成コンパイラ `liboverride.so` |
-| `--compat` |コアプロセス通信ブリッジ `libcompat.so` |
+| `--go` | mihomo 共有コア、プレビュー ライブラリ、PIE ランチャー |
+| `--rust` | 設定コンパイラ `liboverride.so` |
+| `--compat` | コア間通信ブリッジ `libcompat.so` |
 | `--loader` | APK ペイロード ローダー `libloader.so` |
-| `--shell` | mihomo PIE 起動シェルのみをビルドする |
-| `--geo` | 地理データをダウンロードして圧縮する |
-| `--clean` |ネイティブ、地域、バージョンのタグをクリーンアップ |
+| `--shell` | mihomo とプレビューの PIE ランチャーのみ |
+| `--geo` | Geo データのダウンロードと圧縮 |
+| `--clean` | ビルド成果物の削除 |
 
-ネイティブ デバッグでは、現在の ABI のみがビルドされます.
+既定の ABI は `kernel.properties` の `abi.app.list` から取得されます。環境変数で明示的に指定することもできます：
 
 <CodeGroup>
   ```bash Linux / macOS / Git Bash
@@ -127,19 +119,21 @@ python scripts/native-build.py --all
   ```
 </CodeGroup>
 
-ビルドが成功すると、`jniLibs/arm64-v8a/` には次の内容が含まれるはずです.
+### ビルド成果物
 
-|ドキュメント |目的 |
+`jniLibs/arm64-v8a/` のネイティブ ライブラリ：
+
+| ファイル | 用途 |
 | --- | --- |
-| `libmihomo.so` | mihomo PIE 起動シェル |
+| `libmihomo.so` | mihomo PIE ランチャー |
 | `libmihomocore.so` | mihomo Go 共有コア |
-| `libpreview.so` |構成プレビュー |
-| `liboverride.so` |コンパイルをオーバーライドする |
-| `libcompat.so` |コアコミュニケーションブリッジ |
-| `libloader.so` | APK ネイティブ ペイロードの読み込み |
-| `core-version.properties` |カーネル ブランチ、コミット、ビルド情報 |
+| `libpreview.so` | 設定プレビュー |
+| `liboverride.so` | オーバーライド コンパイル |
+| `libcompat.so` | コア間通信ブリッジ |
+| `libloader.so` | APK ネイティブ ペイロード ローダー |
+| `core-version.properties` | カーネルのブランチ、コミット、ビルド情報 |
 
-地理データは `build/generated/assets/geo/` にあります.
+Geo データは `build/generated/assets/geo/` に配置されます：
 
 ```text
 geoip.metadb.xz
@@ -147,105 +141,105 @@ geosite.dat.xz
 ASN.mmdb.xz
 ```
 
-## APK をビルドする
+## APK のビルド
 
-###デバッグ
+ビルド コマンドは `kotlin run -m packaging` です。すべての `-Pkey=value` 引数は `--` の後に置き、packaging エントリへ渡します。PowerShell ではドットを含む引数を単一引用符で囲みます。
 
-デバッグは、ローカルのインストールとデバッグに適しています.
+### Debug
 
-<CodeGroup>
-  ```bash Linux / macOS
-  ./gradlew :app:assembleDebug
-  ./gradlew -Pgeo.bundle=true :app:assembleDebug
-  ```
-
-  ```powershell Windows
-  .\gradlew.bat :app:assembleDebug
-  .\gradlew.bat -Pgeo.bundle=true :app:assembleDebug
-  ```
-</CodeGroup>
-
-### リリース
-
-解放すると、圧縮とリソースの縮小が可能になります.
+Debug はローカルでのインストールと検証向けで、既定では Geo を同梱しません：
 
 <CodeGroup>
   ```bash Linux / macOS
-  ./gradlew -Pgeo.bundle=false :app:assembleRelease
-  ./gradlew -Pgeo.bundle=true :app:assembleRelease
+  sh kotlin run -m packaging -- --build-type=debug
+  sh kotlin run -m packaging -- --build-type=debug -Pgeo.bundle=true
   ```
 
-  ```powershell Windows
-  .\gradlew.bat -Pgeo.bundle=false :app:assembleRelease
-  .\gradlew.bat -Pgeo.bundle=true :app:assembleRelease
+  ```powershell Windows PowerShell
+  .\kotlin.bat run -m packaging -- --build-type=debug
+  .\kotlin.bat run -m packaging -- --build-type=debug '-Pgeo.bundle=true'
   ```
 </CodeGroup>
 
-### 地理データのバリアント
+### Release
 
-|バリエーション |コンテンツ |該当するシナリオ |
+Release は loader DEX をビルドしてペイロードを梱包します。先に後述の署名設定を済ませてください：
+
+<CodeGroup>
+  ```bash Linux / macOS
+  sh kotlin run -m packaging -- --build-type=release -Pgeo.bundle=false
+  sh kotlin run -m packaging -- --build-type=release -Pgeo.bundle=true
+  ```
+
+  ```powershell Windows PowerShell
+  .\kotlin.bat run -m packaging -- --build-type=release '-Pgeo.bundle=false'
+  .\kotlin.bat run -m packaging -- --build-type=release '-Pgeo.bundle=true'
+  ```
+</CodeGroup>
+
+検証に合格した APK は `output_apk/debug/` と `output_apk/release/` に `YumeBox-external.apk` または `YumeBox-builtin.apk` として出力され、バージョンや SHA-256 などのビルド情報を記録した同名の `.apk.json` が生成されます。
+
+| バリアント | 引数 | 説明 |
 | --- | --- | --- |
-| `external` |組み込みの地理データはありません |サイズが小さいため、最初の起動時にダウンロードする必要があります |
-| `builtin` |内蔵地理データ |初めてのインストールまたはオフラインでの使用 |
+| `external` | `-Pgeo.bundle=false` | Geo を同梱しないため小型。初回起動時にダウンロード |
+| `builtin` | `-Pgeo.bundle=true` | Geo を同梱しオフライン向け。ビルド前に `python scripts/native-build.py --geo` を実行 |
 
-どちらの亜種も同じアプリケーション コードとカーネルを使用します.唯一の違いは、Geo リソースが APK にパッケージ化されているかどうかです.
+## 署名
 
-APK は次の場所に出力します.
-
-```text
-app/build/outputs/apk/debug/
-app/build/outputs/apk/release/
-```
-
-ローカル ビルドでは通常、`YumeBox-external.apk` または `YumeBox-builtin.apk` が生成されます.実際のファイル名は出力ディレクトリに基づいています.
-
-## リリース署名
-
-ローカル検証を正式な署名で構成する必要はありません. APK を公開するには、ウェアハウスのルート ディレクトリに `release.keystore` と `signing.properties` が必要です.
+署名を設定しない場合、Debug は標準の debug keystore を自動生成して使用します。リポジトリ ルートに `signing.properties` が存在する場合は、Debug と Release の両方でそれが優先されます。Release は署名が必須です。リポジトリ ルートに `release.keystore` を置き、`signing.properties` を作成してください：
 
 ```properties
-keystore.password=你的仓库密码
+keystore.path=release.keystore
+keystore.password=<keystore-password>
 key.alias=yumebox
-key.password=你的密钥密码
+key.password=<key-password>
 ```
 
-|フィールド |説明 |
+| キー | 説明 |
 | --- | --- |
-| `keystore.password` |キーストアのパスワード |
-| `key.alias` |署名キーのエイリアス |
-| `key.password` |署名キーのパスワード |
+| `keystore.path` | keystore のパス。リポジトリ ルート相対または絶対パス |
+| `keystore.password` | keystore のパスワード |
+| `key.alias` | 署名鍵のエイリアス |
+| `key.password` | 鍵のパスワード |
 
-<Info> `release.keystore` または `signing.properties` は送信しないでください. </Info>
+<Info>`release.keystore` と `signing.properties` はコミットしないでください。</Info>
+
+未署名 APK は `--allow-unsigned` を明示的に指定し、かつ `signing.properties` がない場合にのみ生成されます。未署名 APK は `adb install` でインストールできず、CI もこのオプションを使用しません。
 
 ## CI ビルド
 
-|ステージ |主な仕事 |結果 |
+すべての CI ジョブは `macos-26` で実行され、`arm64-v8a` のみをビルドします：
+
+| 段階 | 作業 | 結果 |
 | --- | --- | --- |
-|ネイティブビルド |カーネルの同期、Go、Rust、C/C++、ローダーのビルド | `native-*` ビルド アーティファクト |
-| APKビルド |それぞれ `builtin` および `external` パッケージ化されたネイティブ製品をダウンロードします. 2 つのリリース APK |
-|リリースの準備 |バージョンを計算し、SHA-256 とメタデータを生成します.リリースディレクトリとアップデート情報 |
-|リリース | APK とメタデータをアップロードする | GitHub リリース |
+| 並列準備 | Toolchain の事前コンパイル、ネイティブ ビルド、Geo ダウンロードを並列実行 | コンパイル キャッシュとネイティブ成果物 |
+| 並列 APK パッケージング | `builtin` / `external` のパッケージング、署名、検証 | 検証済み Release APK 2 本 |
+| リリース準備 | バージョン計算、SHA-256 と更新メタデータの生成 | リリース ディレクトリと更新情報 |
+| Release 公開 | APK とメタデータのアップロード | GitHub Release |
 
-CI は `arm64-v8a` を使用し、`build.number`、`build.hash`、および `build.branch` を介してビルド バージョン情報を書き込みます.
+CI はコミット数をビルド バージョン番号として使用し、コミット ハッシュとブランチ情報を埋め込みます。
 
-## インストールを確認する
+## インストールの確認
 
 ```bash
-adb install -r app/build/outputs/apk/debug/YumeBox-external.apk
+adb install -r output_apk/debug/YumeBox-external.apk
 ```
 
-ファイル名が異なる場合は、`app/build/outputs/apk/` で実際の製品を確認してください.
+ファイル名が異なる場合は、先に `output_apk/debug/` の実際の成果物を確認してください。
 
-## よくある質問
+## よくある問題
 
-|現象 |治療 |
+| 症状 | 対処 |
 | --- | --- |
-| `jniLibs/arm64-v8a` が欠落しています `.so` |最初に `python scripts/native-build.py --all` を実行します. |
-| Android SDK が見つかりません | `local.properties` または `ANDROID_SDK_ROOT` をチェックします. |
-| NDK が見つかりません | `30.0.14904198` をインストールします.代わりに他のバージョンを使用しないでください. |
-| `cargo-ndk` または Rust ターゲットがありません | `rust-src` および `aarch64-linux-android` を毎晩再インストールします. |
-| Go パッチが適用できない |パッチが適用されているかどうかを確認するか、代わりに専用の Go SDK を使用してください. |
-| `builtin` 地域ファイルがありません |最初に `python scripts/native-build.py --geo` を実行します. |
-| ABI はサポートされていません |現在のプロジェクトは `arm64-v8a` のみをサポートしています. |
+| `jniLibs/arm64-v8a` に `.so` がない | 先に `python scripts/native-build.py --all` を実行する。 |
+| SDK が見つからない、または SDK の不一致 | `ANDROID_HOME`、`ANDROID_SDK_ROOT`、`local.properties` を確認し、API 37 / build-tools 37.0.0 をインストールしてライセンスに同意する。 |
+| NDK がない、またはバージョン不一致 | `kernel.properties` が指定する 30.0.16248370 をインストールする。 |
+| CMake または Ninja がない | SDK の CMake 3.22.1 をインストールするか、PATH に用意する。 |
+| `cargo-ndk` や Rust target がない | nightly、`rust-src`、`aarch64-linux-android`、`cargo-ndk` をインストールする。 |
+| Go パッチを適用できない | MetaCubeX/go 1.27 を確認し、パッチ適用済みかどうか確認する。必要なら専用 Go SDK を使う。 |
+| `builtin` に Geo ファイルがない | 先に `python scripts/native-build.py --geo` を実行し、3 つの XZ ファイルが揃っているか確認する。 |
+| Release の署名失敗、インストール不可 | `signing.properties` の 4 キーと keystore を確認する。上書きインストールは同じ証明書を使う。 |
+| コンパイル成功なのに APK が出力されない | `--compile-only` を外し、`packaging` エントリで検証エラーを確認する。 |
+| ABI が非対応 | 現在は `arm64-v8a` のみ対応。 |
 
-その他のビルド エラーについては、[FAQ](./faq) を参照してください.
+その他のビルドエラーは [FAQ](./faq) を参照してください。
