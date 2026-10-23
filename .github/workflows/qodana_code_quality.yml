@@ -14,7 +14,7 @@ on:
 
 jobs:
   qodana:
-    runs-on: macos-26
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       pull-requests: write
@@ -33,7 +33,7 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: |
-            ~/Library/Caches/JetBrains/Kotlin
+            ~/.cache/JetBrains/Kotlin
             .kotlin/yumebox/maven
             .kotlin/yumebox/gradle-*
           key: ${{ runner.os }}-toolchain-${{ hashFiles('kotlin', '*module-template.yaml', '**/module.yaml', 'gradle/libs.versions.toml') }}

@@ -11,7 +11,7 @@ env:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: ubuntu-26.04
     steps:
       - name: Cache Telegram Bot API
         id: cache
@@ -32,7 +32,9 @@ jobs:
 
       - name: Install build dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        run: brew install gperf ninja openssl@3
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gperf ninja-build libssl-dev zlib1g-dev
 
       - name: Build Telegram Bot API
         if: steps.cache.outputs.cache-hit != 'true'
@@ -43,16 +45,15 @@ jobs:
             -B telegram-bot-api-build \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/telegram-bot-api-install" \
-            -DCMAKE_PREFIX_PATH="$(brew --prefix openssl@3)"
-          cmake --build telegram-bot-api-build --target install --parallel "$(sysctl -n hw.ncpu)"
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/telegram-bot-api-install"
+          cmake --build telegram-bot-api-build --target install --parallel "$(nproc)"
 
       - name: Verify Telegram Bot API binary
         run: |
           set -eu
           test -x telegram-bot-api-install/bin/telegram-bot-api
           telegram-bot-api-install/bin/telegram-bot-api --help >/dev/null
-          otool -L telegram-bot-api-install/bin/telegram-bot-api
+          ldd telegram-bot-api-install/bin/telegram-bot-api
 
       - name: Upload Telegram Bot API binary
         uses: actions/upload-artifact@v7.0.2

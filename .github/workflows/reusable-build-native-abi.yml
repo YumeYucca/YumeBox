@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -106,13 +106,15 @@ jobs:
           echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/${{ steps.native-config.outputs.ndk_version }}" >> local.properties
 
       - name: Install host build tools
-        run: brew install cmake ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build patch
 
       - name: Configure CA bundle
         run: |
           set -eu
           mkdir -p core/src/foss/golang/mihomo/component/ca
-          cp -f /etc/ssl/cert.pem core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
+          cp -f /etc/ssl/certs/ca-certificates.crt core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
           test -s core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
       - name: Sync kernel

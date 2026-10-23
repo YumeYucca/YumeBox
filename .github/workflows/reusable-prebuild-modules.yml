@@ -18,7 +18,7 @@ permissions:
 jobs:
   prebuild:
     name: Prebuild Resources & Java (${{ inputs.build_type }})
-    runs-on: macos-26
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: |
-            ~/Library/Caches/JetBrains/Kotlin
+            ~/.cache/JetBrains/Kotlin
             .kotlin/yumebox/maven
             .kotlin/yumebox/gradle-*
           key: ${{ runner.os }}-toolchain-${{ hashFiles('kotlin', '*module-template.yaml', '**/module.yaml', 'gradle/libs.versions.toml') }}

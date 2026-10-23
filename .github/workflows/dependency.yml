@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   dependency-review:
-    runs-on: macos-26
+    runs-on: ubuntu-26.04
     steps:
       - name: 'Checkout Repository'
         uses: actions/checkout@v7.0.1

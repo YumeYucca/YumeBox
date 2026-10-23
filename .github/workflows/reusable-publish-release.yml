@@ -33,7 +33,7 @@ permissions:
 
 jobs:
   publish:
-    runs-on: macos-26
+    runs-on: ubuntu-26.04
     steps:
       - name: Download publish artifacts
         uses: actions/download-artifact@v8.0.2
