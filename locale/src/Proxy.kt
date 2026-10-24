@@ -5,11 +5,16 @@ internal val ZhHansYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
     Mode = YumeStrings_Proxy_Mode(
         Direct = "直连",
     ),
+    Tab = YumeStrings_Proxy_Tab(
+        Policy = "策略",
+        NodeGroups = "节点组",
+    ),
     Action = YumeStrings_Proxy_Action(
         Panel = "面板",
         Test = "测试",
         Sort = "排序",
         LocateCurrent = "定位当前节点",
+        SearchNodes = "搜索节点",
         More = "更多",
     ),
     Node = YumeStrings_Proxy_Node(
@@ -52,11 +57,16 @@ internal val ZhYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
     Mode = YumeStrings_Proxy_Mode(
         Direct = "直連",
     ),
+    Tab = YumeStrings_Proxy_Tab(
+        Policy = "策略",
+        NodeGroups = "節點組",
+    ),
     Action = YumeStrings_Proxy_Action(
         Panel = "面板",
         Test = "測試",
         Sort = "排序",
         LocateCurrent = "定位目前節點",
+        SearchNodes = "搜尋節點",
         More = "更多",
     ),
     Node = YumeStrings_Proxy_Node(
@@ -99,11 +109,16 @@ internal val EnYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
     Mode = YumeStrings_Proxy_Mode(
         Direct = "Direct",
     ),
+    Tab = YumeStrings_Proxy_Tab(
+        Policy = "Policy",
+        NodeGroups = "Nodes",
+    ),
     Action = YumeStrings_Proxy_Action(
         Panel = "Panel",
         Test = "Test",
         Sort = "Sort",
         LocateCurrent = "Locate current proxy",
+        SearchNodes = "Search nodes",
         More = "More",
     ),
     Node = YumeStrings_Proxy_Node(
@@ -146,11 +161,16 @@ internal val JaYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
     Mode = YumeStrings_Proxy_Mode(
         Direct = "ダイレクト",
     ),
+    Tab = YumeStrings_Proxy_Tab(
+        Policy = "ポリシー",
+        NodeGroups = "ノードグループ",
+    ),
     Action = YumeStrings_Proxy_Action(
         Panel = "パネル",
         Test = "テスト",
         Sort = "並び替え",
         LocateCurrent = "現在のノードを表示",
+        SearchNodes = "ノードを検索",
         More = "その他",
     ),
     Node = YumeStrings_Proxy_Node(
@@ -193,11 +213,16 @@ internal val RuYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
     Mode = YumeStrings_Proxy_Mode(
         Direct = "Напрямую",
     ),
+    Tab = YumeStrings_Proxy_Tab(
+        Policy = "Политики",
+        NodeGroups = "Узлы",
+    ),
     Action = YumeStrings_Proxy_Action(
         Panel = "Панель",
         Test = "Тест",
         Sort = "Сортировка",
         LocateCurrent = "Найти текущий узел",
+        SearchNodes = "Поиск узлов",
         More = "Ещё",
     ),
     Node = YumeStrings_Proxy_Node(

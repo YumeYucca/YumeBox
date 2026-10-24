@@ -23,6 +23,7 @@
 package com.github.yumeyucca.yumebox.screen.traffic
 
 import android.content.Context
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -68,6 +69,7 @@ import java.text.Collator
  * Screen-time-style traffic statistics with day/week charts and one app-usage list. Large TopBar
  * title is left as-is.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TrafficStatisticsScreen() {
     val viewModel = koinViewModel<TrafficStatisticsViewModel>()
@@ -135,15 +137,24 @@ fun TrafficStatisticsScreen() {
             scrollBehavior = scrollBehavior,
             innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
         ) {
-            item {
-                TabRowWithContour(
-                    tabs = timeRanges.map { it.label },
-                    selectedTabIndex = selectedTabIndex,
-                    onTabSelected = { index ->
-                        timeRanges.getOrNull(index)?.let(viewModel::setTimeRange)
-                    },
-                    modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
-                )
+            // 吸附 tab:滚动时钉在内容区顶部,底色与页面一致避免内容透出。
+            stickyHeader(key = "__time_range_tabs__") {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(MiuixTheme.colorScheme.surface)
+                            .padding(vertical = spacing.space4),
+                ) {
+                    TabRowWithContour(
+                        tabs = timeRanges.map { it.label },
+                        selectedTabIndex = selectedTabIndex,
+                        onTabSelected = { index ->
+                            timeRanges.getOrNull(index)?.let(viewModel::setTimeRange)
+                        },
+                        modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
+                    )
+                }
             }
 
             item {

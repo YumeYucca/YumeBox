@@ -41,10 +41,26 @@ internal fun NodeSortPopup(
     sortMode: ProxySortMode,
     alignment: PopupPositionProvider.Align = PopupPositionProvider.Align.Start,
     onLocateCurrentProxy: (() -> Unit)? = null,
+    onOpenProviders: (() -> Unit)? = null,
+    searchVisible: Boolean = false,
+    onToggleSearch: (() -> Unit)? = null,
     onSortSelected: (ProxySortMode) -> Unit,
 ) {
     val entries =
         buildList {
+            onOpenProviders?.let { openProviders ->
+                add(
+                    DropdownEntry(
+                        items =
+                            listOf(
+                                DropdownItem(
+                                    text = YumeTxt.Providers.Title,
+                                    onClick = openProviders,
+                                )
+                            ),
+                    )
+                )
+            }
             onLocateCurrentProxy?.let { locateCurrentProxy ->
                 add(
                     DropdownEntry(
@@ -53,6 +69,20 @@ internal fun NodeSortPopup(
                                 DropdownItem(
                                     text = YumeTxt.Proxy.Action.LocateCurrent,
                                     onClick = locateCurrentProxy,
+                                )
+                            ),
+                    )
+                )
+            }
+            onToggleSearch?.let { toggleSearch ->
+                add(
+                    DropdownEntry(
+                        items =
+                            listOf(
+                                DropdownItem(
+                                    text = YumeTxt.Proxy.Action.SearchNodes,
+                                    selected = searchVisible,
+                                    onClick = toggleSearch,
                                 )
                             ),
                     )

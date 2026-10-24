@@ -24,15 +24,18 @@ package com.github.yumeyucca.yumebox.presentation.component
 
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,9 +44,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Stroke
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,18 +59,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.common.util.ByteFormatter
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
+import kotlin.math.PI
+import kotlin.math.sin
 import com.github.yumeyucca.yumebox.presentation.icon.yume.CircleFadingArrowUp
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Delete
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Edit
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Share
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.theme.horizontalPadding
 import com.github.yumeyucca.yumebox.presentation.util.*
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import java.io.File
 
 @Composable
@@ -101,7 +112,6 @@ fun ProfileCard(
     val updateTint = remember(colorScheme) { colorScheme.primary }
 
     val isActive = profile.active
-    val providerText = profile.getDisplayProvider()
     val updatedText = profile.getRelativeUpdatedTime()
     val updatedIsFresh = updatedText != null && updatedText == YumeTxt.Component.ProfileCard.JustNow
     val traffic = profile.trafficPreview
@@ -118,50 +128,29 @@ fun ProfileCard(
             else -> YumeTxt.Component.ProfileCard.LocalConfig
         }
 
-    AppCard(
+    // Selection ring hugs the card edge exactly: page side margins sit outside the ring Box, and
+    // the ring is a later-sibling overlay at the card's own bounds (squircleBorder paints behind
+    // its node, so an overlay paints it on top of the card) — toggling selection never shifts layout.
+    Box(
         modifier =
             modifier
                 .fillMaxWidth()
                 .padding(bottom = spacing.space12)
-                .then(
-                    if (isActive) {
-                        Modifier.border(
-                            width = 1.5.dp,
-                            color = colorScheme.primary,
-                            shape = RoundedCornerShape(UiDp.dp22),
-                        )
-                    } else {
-                        Modifier
-                    }
-                ),
-        insideMargin = PaddingValues(spacing.space12),
-        onClick = { if (!isDownloading) onToggleEnabled(profile) },
-        pressFeedbackType = PressFeedbackType.Sink,
+                .horizontalPadding(),
     ) {
-        // Header: selection dot, name, "type · updated" pill.
+        AppCard(
+            modifier = Modifier.fillMaxWidth(),
+            applyHorizontalPadding = false,
+            insideMargin = PaddingValues(spacing.space12),
+            onClick = { if (!isDownloading) onToggleEnabled(profile) },
+        ) {
+        // Header: name and "type · updated" pill.
         Row(
             modifier =
                 Modifier.fillMaxWidth().padding(horizontal = spacing.space2),
             horizontalArrangement = Arrangement.spacedBy(spacing.space6),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(UiDp.dp8)
-                        .clip(CircleShape)
-                        .then(
-                            if (isActive) {
-                                Modifier.background(colorScheme.primary)
-                            } else {
-                                Modifier.border(
-                                    width = 1.5.dp,
-                                    color = colorScheme.outline.copy(alpha = opacity.brightOutline),
-                                    shape = CircleShape,
-                                )
-                            }
-                        )
-            )
             Text(
                 text = profile.name,
                 fontSize = 18.sp,
@@ -171,8 +160,7 @@ fun ProfileCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            ProfileTypePill(
-                providerText = providerText,
+            ProfileUpdatedTime(
                 updatedText = updatedText,
                 updatedIsFresh = updatedIsFresh,
             )
@@ -351,44 +339,41 @@ fun ProfileCard(
             }
         }
     }
-}
-
-@Composable
-private fun ProfileTypePill(
-    providerText: String,
-    updatedText: String?,
-    updatedIsFresh: Boolean,
-) {
-    val colorScheme = MiuixTheme.colorScheme
-
-    Row(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(UiDp.dp999))
-                .background(colorScheme.onSurface.copy(alpha = AppTheme.opacity.verySubtle))
-                .padding(horizontal = AppTheme.spacing.space8, vertical = AppTheme.spacing.space2),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.space4),
-    ) {
-        Text(
-            text = providerText,
-            fontSize = 11.sp,
-            fontWeight = FontWeight(600),
-            color = colorScheme.onSurfaceVariantSummary,
-            maxLines = 1,
-        )
-        if (updatedText != null) {
-            Text(
-                text = "· $updatedText",
-                fontSize = 11.sp,
-                fontWeight = FontWeight(500),
-                color =
-                    if (updatedIsFresh) colorScheme.primary
-                    else colorScheme.onSurfaceVariantSummary.copy(alpha = AppTheme.opacity.subtleText),
-                maxLines = 1,
+        if (isActive) {
+            Box(
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        .squircleBorder(
+                            width = 1.5.dp,
+                            color = colorScheme.primary,
+                            cornerRadius = 24.dp,
+                        ),
             )
         }
     }
+}
+
+@Composable
+private fun ProfileUpdatedTime(
+    updatedText: String?,
+    updatedIsFresh: Boolean,
+) {
+    if (updatedText == null) return
+    val colorScheme = MiuixTheme.colorScheme
+
+    // 素文字形态:不套胶囊壳,紧跟标题行右侧的次要色相对时间;仅"刚刚更新"用主题色点一下。
+    // 右侧留 8dp,与下方到期徽章内部的日期文字右缘对齐(徽章自身有 8dp 内边距)。
+    Text(
+        text = updatedText,
+        fontSize = 12.sp,
+        fontWeight = FontWeight(500),
+        color =
+            if (updatedIsFresh) colorScheme.primary
+            else colorScheme.onSurfaceVariantSummary.copy(alpha = AppTheme.opacity.subtleText),
+        maxLines = 1,
+        modifier = Modifier.padding(start = AppTheme.spacing.space8, end = AppTheme.spacing.space8),
+    )
 }
 
 @Composable
@@ -401,13 +386,7 @@ private fun ProfileExpiryBadge(
     val colorScheme = MiuixTheme.colorScheme
     val warnColor = AppTheme.colors.moe.pingWarning
 
-    val headline =
-        when {
-            expiry.daysLeft > 0 ->
-                YumeTxt.Component.ProfileCard.ExpireInDays.format(expiry.daysLeft.toInt())
-            expiry.daysLeft == 0L -> YumeTxt.Component.ProfileCard.ExpireTodayShort
-            else -> YumeTxt.Component.ProfileCard.ExpiredShort
-        }
+    val headline = formatExpiryHeadline(expiry.daysLeft)
 
     Box(
         modifier =
@@ -449,7 +428,22 @@ private fun ProfileExpiryBadge(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+// 约 10 年及以上视为永久。
+private const val EXPIRY_PERMANENT_DAYS = 3650L
+
+// 到期倒计时按量级换算单位:天 → 个月 → 年 → 永久,避免"3649 天后到期"这种长数值。
+private fun formatExpiryHeadline(daysLeft: Long): String {
+    val strings = YumeTxt.Component.ProfileCard
+    return when {
+        daysLeft < 0L -> strings.ExpiredShort
+        daysLeft == 0L -> strings.ExpireTodayShort
+        daysLeft >= EXPIRY_PERMANENT_DAYS -> strings.ExpireInPermanent
+        daysLeft < 60L -> strings.ExpireInDays.format(daysLeft.toInt())
+        daysLeft < 365L -> strings.ExpireInMonths.format((daysLeft / 30L).toInt())
+        else -> strings.ExpireInYears.format((daysLeft / 365L).toInt())
+    }
+}
+
 @Composable
 private fun TrafficWaveProgress(
     ratio: Float,
@@ -458,30 +452,86 @@ private fun TrafficWaveProgress(
 ) {
     val colorScheme = MiuixTheme.colorScheme
     val opacity = AppTheme.opacity
-    val density = LocalDensity.current
 
     val waveColor = if (warn) AppTheme.colors.moe.pingWarning else colorScheme.primary
     val trackColor = colorScheme.onSurface.copy(alpha = opacity.subtleStrong)
-    val stroke =
-        remember(density) {
-            Stroke(with(density) { UiDp.dp4.toPx() }, cap = StrokeCap.Round)
-        }
     val animatedRatio by animateFloatAsState(
         targetValue = ratio.coerceIn(0f, 1f),
         animationSpec = WavyProgressIndicatorDefaults.ProgressAnimationSpec,
         label = "profileTrafficRatio",
     )
-
-    LinearWavyProgressIndicator(
-        progress = { animatedRatio },
-        modifier = modifier.height(UiDp.dp12),
-        color = waveColor,
-        trackColor = trackColor,
-        stroke = stroke,
-        trackStroke = stroke,
-        gapSize = UiDp.dp8,
-        stopSize = UiDp.dp0,
-        amplitude = { 0.75f },
-        wavelength = UiDp.dp20,
+    // Phase crawls forward one wavelength per cycle so the wave is visibly alive; both ends
+    // taper back to the centerline so the start and the head stay clean at any phase.
+    val phase by rememberInfiniteTransition(label = "waveCrawl").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 2000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "waveCrawlPhase",
     )
+
+    Canvas(
+        modifier =
+            modifier
+                .height(UiDp.dp12)
+                .semantics {
+                    progressBarRangeInfo =
+                        ProgressBarRangeInfo(current = animatedRatio, range = 0f..1f)
+                },
+    ) {
+        val strokePx = UiDp.dp4.toPx()
+        val gapPx = UiDp.dp8.toPx()
+        val wavelengthPx = UiDp.dp20.toPx()
+        val centerY = size.height / 2f
+        val amplitude = (size.height - strokePx) / 2f * 0.9f
+        val headX = ((size.width - gapPx) * animatedRatio).coerceAtLeast(0f)
+
+        if (headX > strokePx) {
+            val taperLength = (wavelengthPx * 0.6f).coerceAtMost(headX / 2f)
+            // Pixel-step sampling: a dp-sized step collapses a 20dp wavelength into a handful of
+            // segments and the polyline reads as jagged crests. 2px keeps the sine smooth.
+            val stepPx = 2f
+            val steps = maxOf(8, (headX / stepPx).toInt())
+            val halfPi = (PI / 2).toFloat()
+            val twoPi = (PI * 2).toFloat()
+            val path = Path()
+            for (i in 0..steps) {
+                val x = headX * i / steps
+                val startTaper = sin((x / taperLength).coerceIn(0f, 1f) * halfPi)
+                val headTaper =
+                    sin(((headX - x) / taperLength).coerceIn(0f, 1f) * halfPi)
+                val y =
+                    centerY -
+                            amplitude *
+                                    startTaper *
+                                    headTaper *
+                                    sin(twoPi * (x / wavelengthPx - phase))
+                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            drawPath(
+                path = path,
+                color = waveColor,
+                style =
+                    Stroke(
+                        width = strokePx,
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round,
+                    ),
+            )
+        }
+
+        val trackStart = headX + gapPx
+        if (trackStart < size.width - strokePx / 2f) {
+            drawLine(
+                color = trackColor,
+                start = Offset(trackStart, centerY),
+                end = Offset(size.width, centerY),
+                strokeWidth = strokePx,
+                cap = StrokeCap.Round,
+            )
+        }
+    }
 }

@@ -23,6 +23,8 @@
 package com.github.yumeyucca.yumebox.screen.connection
 
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -65,6 +67,7 @@ private fun ConnectionSort.getDisplayName(): String =
         ConnectionSort.Host -> YumeTxt.Connection.Sort.Host
     }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ConnectionScreen(navigator: Navigator) {
     val density = LocalDensity.current
@@ -276,12 +279,21 @@ fun ConnectionScreen(navigator: Navigator) {
                                 combinedInnerPadding.calculateBottomPadding() + spacing.space12,
                         ),
                 ) {
-                    item {
-                        TabRowWithContour(
-                            tabs = tabs,
-                            selectedTabIndex = selectedTabIndex,
-                            onTabSelected = { selectedTabIndex = it },
-                        )
+                    // 吸附 tab:列表滚动时钉在内容区顶部,底色与页面一致避免内容透出。
+                    stickyHeader(key = "__connection_tabs__") {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(MiuixTheme.colorScheme.surface)
+                                    .padding(vertical = spacing.space4),
+                        ) {
+                            TabRowWithContour(
+                                tabs = tabs,
+                                selectedTabIndex = selectedTabIndex,
+                                onTabSelected = { selectedTabIndex = it },
+                            )
+                        }
                     }
 
                     if (filteredConnections.isEmpty()) {

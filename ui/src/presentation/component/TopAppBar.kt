@@ -29,8 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
-import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.hyperOsTopBar
+import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.hyperOsTopScrim
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.TopAppBar
@@ -49,12 +48,11 @@ fun TopBar(
     actions: @Composable RowScope.() -> Unit = {},
     bottomContent: @Composable () -> Unit = {},
 ) {
-    // Progressive blur of the body content scrolling under the bar (GlassScaffold provides the
-    // route backdrop); scrim-only fallback when no backdrop is available or no RuntimeShader.
+    // Scrim-only top bar: deepened surface gradient (no progressive blur — user decision
+    // 2026-10). Glass chrome buttons still sample LocalTopBarBackdrop on their own.
     TopAppBar(
         title = title,
-        modifier =
-            modifier.hyperOsTopBar(LocalTopBarBackdrop.current, MiuixTheme.colorScheme.surface),
+        modifier = modifier.hyperOsTopScrim(MiuixTheme.colorScheme.surface),
         color = Color.Transparent,
         titlePadding = titlePadding,
         navigationIconPadding = navigationIconPadding,
@@ -80,8 +78,7 @@ fun SmallTopBar(
 ) {
     SmallTopAppBar(
         title = title,
-        modifier =
-            modifier.hyperOsTopBar(LocalTopBarBackdrop.current, MiuixTheme.colorScheme.surface),
+        modifier = modifier.hyperOsTopScrim(MiuixTheme.colorScheme.surface),
         color = Color.Transparent,
         titlePadding = titlePadding,
         navigationIconPadding = navigationIconPadding,

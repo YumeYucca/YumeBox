@@ -28,15 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurColors
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
-import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.textureBlur
 
 /**
@@ -67,9 +64,6 @@ object YumeBlur {
     /** Default glass blur radius (dp-as-float, miuix-blur convention, clamped to 150). */
     const val GlassBlurRadius = 26f
 
-    /** Progressive top-bar blur radius — Telegram/HyperOS-strength smudge of scrolled content. */
-    const val TopBarBlurRadius = 38f
-
     /** NexioSchedule-aligned height of a sheet's top gradient fade band. */
     val SheetTopFadeHeight = 76.dp
 
@@ -78,7 +72,8 @@ object YumeBlur {
      * screenshot (title crisp, scrolled content under the bar washed to near-illegible): near-solid
      * at the status-bar edge, held strong across the bar body, with the fade concentrated in the
      * last ~10% so it still reads progressive. The fade runs **strictly inside the bar bounds** —
-     * transparent exactly at the bar's bottom edge, nothing drawn below it.
+     * transparent exactly at the bar's bottom edge, nothing drawn below it. User-approved depth
+     * (2026-10): near-opaque hold, deeper than the original tuning.
      */
     fun Modifier.hyperOsTopScrim(color: Color): Modifier = drawBehind {
         if (size.height <= 0f) return@drawBehind
@@ -86,10 +81,10 @@ object YumeBlur {
             brush =
                 Brush.verticalGradient(
                     colorStops = arrayOf(
-                        0.0f to color.copy(alpha = 0.97f),
-                        0.45f to color.copy(alpha = 0.92f),
-                        0.78f to color.copy(alpha = 0.85f),
-                        0.9f to color.copy(alpha = 0.5f),
+                        0.0f to color.copy(alpha = 0.99f),
+                        0.45f to color.copy(alpha = 0.97f),
+                        0.78f to color.copy(alpha = 0.92f),
+                        0.9f to color.copy(alpha = 0.55f),
                         1.0f to color.copy(alpha = 0f),
                     ),
                     startY = 0f,
@@ -98,44 +93,6 @@ object YumeBlur {
         )
     }
 
-    /**
-     * Full top-bar treatment: progressive BLUR of the route content scrolling under the bar
-     * (strong smudge at the status-bar edge fading to crisp exactly at the bar's bottom edge)
-     * plus a light surface tint and gradient for title legibility — the blur does the hiding, so
-     * the tint stays much lighter than the scrim fallback. Falls back to [hyperOsTopScrim] when
-     * no backdrop is available or the device lacks RuntimeShader (API < 33).
-     */
-    fun Modifier.hyperOsTopBar(backdrop: LayerBackdrop?, color: Color): Modifier =
-        if (backdrop != null && isRuntimeShaderSupported()) {
-            progressiveTextureBlur(
-                backdrop = backdrop,
-                shape = RectangleShape,
-                blurRadius = TopBarBlurRadius,
-                // Full strength over the top ~45% of the bar, decaying to crisp across the
-                // lower half (user-approved depth; the 0.88-hold + fully-opaque top variant
-                // hid the frosted look entirely and was rejected).
-                gradient = ProgressiveBlur.Top.copy(startFraction = 0.45f),
-                colors =
-                    BlurColors(blendColors = listOf(BlendColorEntry(color = color.copy(alpha = 0.42f)))),
-            ).drawBehind {
-                if (size.height <= 0f) return@drawBehind
-                drawRect(
-                    brush =
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0.0f to color.copy(alpha = 0.72f),
-                                0.45f to color.copy(alpha = 0.62f),
-                                0.78f to color.copy(alpha = 0.45f),
-                                1.0f to color.copy(alpha = 0f),
-                            ),
-                            startY = 0f,
-                            endY = size.height,
-                        ),
-                )
-            }
-        } else {
-            hyperOsTopScrim(color)
-        }
 
     /**
      * Frosted-glass surface blurring the page behind [backdrop]; solid [fallbackColor] when the

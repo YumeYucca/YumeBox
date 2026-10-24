@@ -44,6 +44,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.presentation.component.CountryFlagCircle
@@ -58,6 +59,7 @@ import com.github.yumeyucca.yumebox.presentation.util.extractNodeTags
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.SinkFeedback
 import top.yukonga.miuix.kmp.utils.pressable
@@ -175,41 +177,59 @@ internal fun NodeSelectableCard(
     val shape = RoundedCornerShape(radii.radius24)
     val backgroundColor = MiuixTheme.colorScheme.background
 
-    Box(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .let {
-                    if (onClick != null) {
-                        it.pressable(
-                            interactionSource = interactionSource,
-                            indication = SinkFeedback(),
-                        )
-                    } else {
-                        it
+    // Selection ring mirrors ProfileCard: the ring is a later sibling at the card's own bounds,
+    // OUTSIDE the card body's clip — inside it, the RoundedCornerShape clip shaves the squircle
+    // stroke at the corners. squircleBorder paints behind its node, hence the overlay on top.
+    Box(modifier = modifier.fillMaxWidth()) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .let {
+                        if (onClick != null) {
+                            it.pressable(
+                                interactionSource = interactionSource,
+                                indication = SinkFeedback(),
+                            )
+                        } else {
+                            it
+                        }
                     }
-                }
-                .clip(shape)
-                .background(backgroundColor)
-                .let {
-                    if (onClick != null) {
-                        it.clickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = {
-                                if (!isSelected) {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                                }
-                                onClick()
-                            },
-                        )
-                    } else {
-                        it
+                    .clip(shape)
+                    .background(backgroundColor)
+                    .let {
+                        if (onClick != null) {
+                            it.clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = {
+                                    if (!isSelected) {
+                                        hapticFeedback.performHapticFeedback(
+                                            HapticFeedbackType.VirtualKey
+                                        )
+                                    }
+                                    onClick()
+                                },
+                            )
+                        } else {
+                            it
+                        }
                     }
-                }
-                .padding(horizontal = sizes.nodeCardPaddingHorizontal, vertical = paddingVertical),
-        content = { content(isSelected) },
-    )
+                    .padding(horizontal = sizes.nodeCardPaddingHorizontal, vertical = paddingVertical),
+        ) {
+            content(isSelected)
+        }
+        if (isSelected) {
+            Box(
+                modifier =
+                    Modifier.matchParentSize().squircleBorder(
+                        width = 1.5.dp,
+                        color = MiuixTheme.colorScheme.primary,
+                        cornerRadius = radii.radius24,
+                    ),
+            )
+        }
+    }
 }
 
 @Composable

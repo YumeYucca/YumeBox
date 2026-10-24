@@ -250,6 +250,9 @@ public data class YumeStrings_Component_ProfileCard(
     public val Expired: String,
     public val RemainingOfTotal: String,
     public val ExpireInDays: String,
+    public val ExpireInMonths: String,
+    public val ExpireInYears: String,
+    public val ExpireInPermanent: String,
     public val ExpireTodayShort: String,
     public val ExpiredShort: String,
     public val JustNow: String,
@@ -1130,6 +1133,7 @@ public data class YumeStrings_Override(
 public data class YumeStrings_ProfilesPage_Action(
     public val UpdateAll: String,
     public val AddProfile: String,
+    public val Sort: String,
 )
 
 public data class YumeStrings_ProfilesPage_Empty(
@@ -1343,11 +1347,17 @@ public data class YumeStrings_Proxy_Mode(
     public val Direct: String,
 )
 
+public data class YumeStrings_Proxy_Tab(
+    public val Policy: String,
+    public val NodeGroups: String,
+)
+
 public data class YumeStrings_Proxy_Action(
     public val Panel: String,
     public val Test: String,
     public val Sort: String,
     public val LocateCurrent: String,
+    public val SearchNodes: String,
     public val More: String,
 )
 
@@ -1393,6 +1403,7 @@ public data class YumeStrings_Proxy_DisplayMode(
 public data class YumeStrings_Proxy(
     public val Title: String,
     public val Mode: YumeStrings_Proxy_Mode,
+    public val Tab: YumeStrings_Proxy_Tab,
     public val Action: YumeStrings_Proxy_Action,
     public val Node: YumeStrings_Proxy_Node,
     public val Empty: YumeStrings_Proxy_Empty,

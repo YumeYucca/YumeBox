@@ -5,6 +5,7 @@ internal val ZhHansYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStri
     Action = YumeStrings_ProfilesPage_Action(
         UpdateAll = "一键更新所有",
         AddProfile = "添加配置",
+        Sort = "排序",
     ),
     Empty = YumeStrings_ProfilesPage_Empty(
         NoProfiles = "暂无配置文件",
@@ -107,6 +108,7 @@ internal val ZhYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
     Action = YumeStrings_ProfilesPage_Action(
         UpdateAll = "一鍵更新全部",
         AddProfile = "新增設定檔",
+        Sort = "排序",
     ),
     Empty = YumeStrings_ProfilesPage_Empty(
         NoProfiles = "暫無設定檔",
@@ -209,6 +211,7 @@ internal val EnYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
     Action = YumeStrings_ProfilesPage_Action(
         UpdateAll = "Update All",
         AddProfile = "Add Profile",
+        Sort = "Sort",
     ),
     Empty = YumeStrings_ProfilesPage_Empty(
         NoProfiles = "No profiles",
@@ -311,6 +314,7 @@ internal val JaYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
     Action = YumeStrings_ProfilesPage_Action(
         UpdateAll = "すべて更新",
         AddProfile = "プロファイルを追加",
+        Sort = "並び替え",
     ),
     Empty = YumeStrings_ProfilesPage_Empty(
         NoProfiles = "プロファイルがありません",
@@ -413,6 +417,7 @@ internal val RuYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
     Action = YumeStrings_ProfilesPage_Action(
         UpdateAll = "Обновить все",
         AddProfile = "Добавить профиль",
+        Sort = "Сортировка",
     ),
     Empty = YumeStrings_ProfilesPage_Empty(
         NoProfiles = "Нет профилей",
