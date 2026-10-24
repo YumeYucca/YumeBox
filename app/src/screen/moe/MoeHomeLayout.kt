@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.domain.model.TrafficData
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -83,8 +83,9 @@ internal class MoeHomeActions(
 context(actions: MoeHomeActions)
 internal fun MoeHomeLayout(state: MoeHomeLayoutState) {
     val density = LocalDensity.current
-    // Dedicated haze state so the sidebar blurs only the wallpaper layer, not the content panel.
-    val sidebarHazeState = rememberHazeState()
+    // Dedicated layer backdrop so the sidebar glass blurs only the wallpaper layer, not the
+    // content panel.
+    val sidebarBackdrop = rememberLayerBackdrop { drawContent() }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         if (state.usesTabletLayout) {
             MoeTabletHomeLayout(state = state, maxWidth = maxWidth, maxHeight = maxHeight)
@@ -102,7 +103,8 @@ internal fun MoeHomeLayout(state: MoeHomeLayoutState) {
         val sidebarWidthVisible = lerpDp(MoeUi.Sidebar.collapsedVisibleWidth, contentStart, sidebar)
         val heroHeight =
             (maxHeight - state.statusBarTop).coerceAtLeast(UiDp.dp0) * MoeUi.Hero.heightFraction
-        // Haze blur works from API 31; skip the effect while the rail is fully collapsed.
+        // Glass blur needs a RuntimeShader (API 33+); miuix falls back to a solid surface without
+        // one. Skip the effect entirely while the rail is fully collapsed.
         val blurReady by
         remember(sidebar) {
             derivedStateOf { sidebar > 0.03f }
@@ -115,10 +117,10 @@ internal fun MoeHomeLayout(state: MoeHomeLayoutState) {
             qualityMode = MoeWallpaperQualityMode.BackgroundBlur,
             modifier = Modifier
                 .matchParentSize()
-                .hazeSource(state = sidebarHazeState),
+                .layerBackdrop(sidebarBackdrop),
         )
         MoeSidebarDecoration(
-            hazeState = sidebarHazeState,
+            backdrop = sidebarBackdrop,
             blurEnabled = blurReady,
             blurProgress = sidebar,
             modifier =

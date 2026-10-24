@@ -62,7 +62,6 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
-import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Filter
@@ -182,7 +181,7 @@ fun LogScreen(navigator: Navigator) {
     LaunchedEffect(Unit) { viewModel.connect() }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
+        GlassScaffold(
             topBar = {
                 currentSearchStatus.TopAppBarAnim {
                     TopBar(

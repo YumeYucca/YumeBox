@@ -41,6 +41,10 @@ sealed interface Route {
     @Serializable
     data object AppSettings : Route
 
+    /** Settings master list (SettingPager) hosted as a standalone pushed page. */
+    @Serializable
+    data object Settings : Route
+
     @Serializable
     data object NetworkSettings : Route
 

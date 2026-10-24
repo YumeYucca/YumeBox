@@ -56,7 +56,7 @@ fun AppSettingsScreen() {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<AppSettingsViewModel>()
 
-    Scaffold(
+    GlassScaffold(
         topBar = { TopBar(title = YumeTxt.AppSettings.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()
@@ -103,7 +103,6 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
     val themeSeedColorArgb = section.themeSeedColorArgb
     val invertOnPrimaryColors = section.invertOnPrimaryColors
     val bottomBarAutoHide = section.bottomBarAutoHide
-    val topBarBlurEnabled = section.topBarBlurEnabled
     val pageScale = section.pageScale
     val predictiveBackEnabled by viewModel.predictiveBackEnabled.state.collectAsState()
     val predictiveBackMaxProgress by viewModel.predictiveBackMaxProgress.state.collectAsState()
@@ -154,11 +153,6 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
             title = YumeTxt.AppSettings.Interface.AutoHideNavbarTitle,
             checked = bottomBarAutoHide,
             onCheckedChange = viewModel::onBottomBarAutoHideChange,
-        )
-        PreferenceSwitchItem(
-            title = YumeTxt.AppSettings.Interface.TopBarBlurTitle,
-            checked = topBarBlurEnabled,
-            onCheckedChange = viewModel::onTopBarBlurEnabledChange,
         )
         PageScalePreferenceItem(pageScale = pageScale, onApply = viewModel::onPageScaleChange)
     }

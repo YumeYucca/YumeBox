@@ -35,9 +35,7 @@ package com.github.yumeyucca.yumebox
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.TargetedFlingBehavior
 import androidx.compose.foundation.layout.*
@@ -47,9 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.presentation.component.*
@@ -59,8 +55,8 @@ import com.github.yumeyucca.yumebox.presentation.navigation.rememberSecondaryDet
 import com.github.yumeyucca.yumebox.presentation.navigation.splitShellRightPaneTransform
 import com.github.yumeyucca.yumebox.presentation.screen.ProxyShellNodeDetail
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
+import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
+import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.basic.Scaffold
 
 /**
@@ -78,9 +74,6 @@ internal fun MainContentHost(
     previousDestinations: List<BottomBarDestination>,
     settledDestination: BottomBarDestination,
     bottomBarVisible: Boolean,
-    topBarBlurEnabled: Boolean,
-    hazeState: HazeState,
-    bottomBarScrimColor: Color,
     moeWallpaperUri: String,
     moeWallpaperZoom: Float,
     moeWallpaperBiasX: Float,
@@ -132,10 +125,6 @@ internal fun MainContentHost(
                         previousDestinations = previousDestinations,
                         settledDestination = settledDestination,
                         bottomBarVisible = bottomBarVisible,
-                        topBarBlurEnabled = topBarBlurEnabled,
-                        hazeState = hazeState,
-                        bottomBarScrimColor = bottomBarScrimColor,
-                        visibleBottomBarReservedHeight = visibleBottomBarReservedHeight,
                         moeWallpaperUri = moeWallpaperUri,
                         moeWallpaperZoom = moeWallpaperZoom,
                         moeWallpaperBiasX = moeWallpaperBiasX,
@@ -194,10 +183,6 @@ internal fun MainContentHost(
                 previousDestinations = previousDestinations,
                 settledDestination = settledDestination,
                 bottomBarVisible = bottomBarVisible,
-                topBarBlurEnabled = topBarBlurEnabled,
-                hazeState = hazeState,
-                bottomBarScrimColor = bottomBarScrimColor,
-                visibleBottomBarReservedHeight = visibleBottomBarReservedHeight,
                 moeWallpaperUri = moeWallpaperUri,
                 moeWallpaperZoom = moeWallpaperZoom,
                 moeWallpaperBiasX = moeWallpaperBiasX,
@@ -220,10 +205,6 @@ private fun MainPagerHost(
     previousDestinations: List<BottomBarDestination>,
     settledDestination: BottomBarDestination,
     bottomBarVisible: Boolean,
-    topBarBlurEnabled: Boolean,
-    hazeState: HazeState,
-    bottomBarScrimColor: Color,
-    visibleBottomBarReservedHeight: Dp,
     moeWallpaperUri: String,
     moeWallpaperZoom: Float,
     moeWallpaperBiasX: Float,
@@ -232,17 +213,15 @@ private fun MainPagerHost(
     navigator: Navigator,
     onOpenPanel: () -> Unit,
 ) {
-    val bottomBarScrollBehavior = LocalBottomBarScrollBehavior.current
     Box(Modifier.fillMaxSize()) {
         HorizontalPager(
             modifier =
-                Modifier.fillMaxSize().let { modifier ->
-                    if (topBarBlurEnabled) {
-                        modifier.hazeSource(state = hazeState)
-                    } else {
-                        modifier
-                    }
-                },
+                Modifier
+                    .fillMaxSize()
+                    .let { modifier ->
+                        val glassBackdrop = LocalGlassBackdrop.current
+                        if (glassBackdrop != null) modifier.layerBackdrop(glassBackdrop) else modifier
+                    },
             state = mainPagerState.pagerState,
             beyondViewportPageCount = (visibleDestinations.size - 1).coerceAtLeast(0),
             flingBehavior = pagerFlingBehavior,
@@ -280,12 +259,6 @@ private fun MainPagerHost(
             )
         }
 
-        BottomEdgeScrim(
-            color = bottomBarScrimColor,
-            visible = bottomBarVisible && (bottomBarScrollBehavior?.isBottomBarVisible ?: true),
-            height = visibleBottomBarReservedHeight + UiDp.dp28,
-        )
-
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -297,31 +270,4 @@ private fun MainPagerHost(
             )
         }
     }
-}
-
-@Composable
-private fun BoxScope.BottomEdgeScrim(color: Color, visible: Boolean, height: Dp) {
-    val alpha by
-    animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing),
-        label = "main_bottom_edge_scrim",
-    )
-    if (alpha <= 0f) return
-    Box(
-        modifier =
-            Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(height)
-                .graphicsLayer { this.alpha = alpha }
-                .background(
-                    Brush.verticalGradient(
-                        0f to color.copy(alpha = 0f),
-                        0.25f to color.copy(alpha = 0.55f),
-                        0.55f to color.copy(alpha = 0.88f),
-                        1f to color,
-                    )
-                )
-    )
 }

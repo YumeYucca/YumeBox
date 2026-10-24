@@ -40,6 +40,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   prepare-build:
@@ -128,8 +129,11 @@ jobs:
           packages: "platform-tools platforms;android-37.0 build-tools;37.0.0"
 
       - name: Configure local.properties
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+          printf 'gpr.user=%s\ngpr.key=%s\n' "${GITHUB_ACTOR}" "${GITHUB_TOKEN}" >> local.properties
 
       - name: Download native artifact
         uses: actions/download-artifact@v8.0.2

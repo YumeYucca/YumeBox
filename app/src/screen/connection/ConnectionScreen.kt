@@ -167,7 +167,7 @@ fun ConnectionScreen(navigator: Navigator) {
      * Detail is a real navigation page so it never competes with search expand.
      */
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
+        GlassScaffold(
             topBar = {
                 currentSearchStatus.TopAppBarAnim {
                     TopBar(

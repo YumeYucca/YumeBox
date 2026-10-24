@@ -4022,6 +4022,16 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun More(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.Section.More else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.Section.More, *args)
+            public val Settings: String
+                get() = YumeLocaleManager.activeStrings.Settings.Section.Settings
+            @androidx.compose.runtime.Composable
+            public fun Settings(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.Section.Settings else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.Section.Settings, *args)
+            public val About: String
+                get() = YumeLocaleManager.activeStrings.Settings.Section.About
+            @androidx.compose.runtime.Composable
+            public fun About(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.Section.About else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.Section.About, *args)
         }
         public object UiSettings {
             public val App: String

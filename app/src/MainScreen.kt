@@ -29,8 +29,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -41,7 +39,7 @@ import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.screen.ProxyPager
-import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze
+import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
 import com.github.yumeyucca.yumebox.presentation.webview.WebViewUtils
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import com.github.yumeyucca.yumebox.screen.moe.LocalUseSystemWallpaper
@@ -49,10 +47,9 @@ import com.github.yumeyucca.yumebox.screen.moe.MoeHomePage
 import com.github.yumeyucca.yumebox.screen.moe.calculateHomeVisibility
 import com.github.yumeyucca.yumebox.screen.profiles.ProfilesPager
 import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
-import com.github.yumeyucca.yumebox.screen.settings.SettingPager
-import dev.chrisbanes.haze.HazeState
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -75,7 +72,9 @@ fun MainScreen(
         }
     val nodeSession by homeViewModel.nodeSession.collectAsState()
     val initialDestination =
-        BottomBarDestination.entries.getOrElse(initialPage.coerceIn(0, 3)) {
+        BottomBarDestination.entries.getOrElse(
+            initialPage.coerceIn(0, BottomBarDestination.entries.lastIndex),
+        ) {
             BottomBarDestination.Home
         }
     // Providers is opened above a freshly-created Main(Proxy) route on compact layouts.
@@ -96,7 +95,6 @@ fun MainScreen(
             pageCount = { visibleDestinations.size },
         )
     val mainPagerState = rememberMainPagerState(pagerState)
-    val hazeState = remember { HazeState() }
     var previousDestinations by remember { mutableStateOf(visibleDestinations) }
     var settledDestination by remember { mutableStateOf(visibleDestinations[initialMainPage]) }
 
@@ -110,7 +108,21 @@ fun MainScreen(
     }
 
     val bottomBarAutoHideEnabled by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
-    val topBarBlurEnabled by appSettingsViewModel.topBarBlurEnabled.state.collectAsState()
+    // Glass backdrop feeding the floating bottom bar's frosted capsule — force-enabled:
+    // glass is the design now (solid fallback only on devices without RuntimeShader), the
+    // legacy blur toggle no longer gates it. The capture draws an opaque surface first so
+    // translucent pages don't bleed through (miuix-blur pattern); keyed on the surface color
+    // so a theme switch re-records with the right base.
+    val glassBackdrop =
+        run {
+            val surfaceColor = MiuixTheme.colorScheme.surface
+            key(surfaceColor) {
+                rememberLayerBackdrop {
+                    drawRect(surfaceColor)
+                    drawContent()
+                }
+            }
+        }
     val splitLeftFraction by appSettingsViewModel.splitLeftRatio.state.collectAsState()
     val moeWallpaperUri by appSettingsViewModel.moeWallpaperUri.state.collectAsState()
     val moeWallpaperZoom by appSettingsViewModel.moeWallpaperZoom.state.collectAsState()
@@ -176,16 +188,6 @@ fun MainScreen(
                     settledDestination != BottomBarDestination.Home
             }
         }
-    val bottomBarBackground =
-        MiuixTheme.colorScheme.run {
-            surface.takeIf { background.luminance() < 0.5f } ?: background
-        }
-    // Key off the actual theme background, not isSystemInDarkTheme(): the in-app theme can
-    // disagree with the system setting, and a white scrim on a dark UI is glaring.
-    val bottomBarScrimColor =
-        bottomBarBackground.takeIf { MiuixTheme.colorScheme.background.luminance() < 0.5f }
-            ?: Color.White
-    val bottomBarHazeStyle = YumeHaze.bottomBarStyle(bottomBarBackground)
 
     LaunchedEffect(visibleDestinations) {
         val pending = pendingDestination
@@ -269,7 +271,13 @@ fun MainScreen(
                     "home" -> handlePageChange(BottomBarDestination.Home)
                     "proxy" -> handlePageChange(BottomBarDestination.Proxy)
                     "profiles" -> handlePageChange(BottomBarDestination.Config)
-                    "settings" -> handlePageChange(BottomBarDestination.Setting)
+                    "settings" -> {
+                        if (usesSplitShell) {
+                            detailNavigator.replaceAll(listOf(Route.Settings))
+                        } else {
+                            navigator.push(Route.Settings)
+                        }
+                    }
                 }
             }
 
@@ -311,8 +319,7 @@ fun MainScreen(
         LocalMainPagerState provides mainPagerState,
         LocalHandlePageChange provides handlePageChange,
         LocalBottomBarScrollBehavior provides bottomBarScrollBehavior,
-        LocalBottomBarHazeState provides if (topBarBlurEnabled) hazeState else null,
-        LocalBottomBarHazeStyle provides if (topBarBlurEnabled) bottomBarHazeStyle else null,
+        LocalGlassBackdrop provides glassBackdrop,
         LocalUseSystemWallpaper provides useSystemWallpaper,
     ) {
         MainContentHost(
@@ -323,9 +330,6 @@ fun MainScreen(
             previousDestinations = previousDestinations,
             settledDestination = settledDestination,
             bottomBarVisible = bottomBarVisible,
-            topBarBlurEnabled = topBarBlurEnabled,
-            hazeState = hazeState,
-            bottomBarScrimColor = bottomBarScrimColor,
             moeWallpaperUri = moeWallpaperUri,
             moeWallpaperZoom = moeWallpaperZoom,
             moeWallpaperBiasX = moeWallpaperBiasX,
@@ -400,10 +404,6 @@ internal fun MainRootPageContent(state: MainRootPageState) {
 
         BottomBarDestination.Config -> {
             ProfilesPager(state.mainInnerPadding, state.windowLayoutMode)
-        }
-
-        BottomBarDestination.Setting -> {
-            SettingPager(state.mainInnerPadding, state.windowLayoutMode)
         }
     }
 }

@@ -5,6 +5,8 @@ internal val ZhHansYumeStrings_Settings: YumeStrings_Settings = YumeStrings_Sett
     Section = YumeStrings_Settings_Section(
         UiSettings = "界面设置",
         More = "更多",
+        Settings = "设置",
+        About = "关于",
     ),
     UiSettings = YumeStrings_Settings_UiSettings(
         App = "应用",
@@ -36,6 +38,8 @@ internal val ZhYumeStrings_Settings: YumeStrings_Settings = YumeStrings_Settings
     Section = YumeStrings_Settings_Section(
         UiSettings = "介面設定",
         More = "更多",
+        Settings = "設定",
+        About = "關於",
     ),
     UiSettings = YumeStrings_Settings_UiSettings(
         App = "應用",
@@ -67,6 +71,8 @@ internal val EnYumeStrings_Settings: YumeStrings_Settings = YumeStrings_Settings
     Section = YumeStrings_Settings_Section(
         UiSettings = "UI Settings",
         More = "More",
+        Settings = "Settings",
+        About = "About",
     ),
     UiSettings = YumeStrings_Settings_UiSettings(
         App = "App",
@@ -98,6 +104,8 @@ internal val JaYumeStrings_Settings: YumeStrings_Settings = YumeStrings_Settings
     Section = YumeStrings_Settings_Section(
         UiSettings = "UI 設定",
         More = "その他",
+        Settings = "設定",
+        About = "情報",
     ),
     UiSettings = YumeStrings_Settings_UiSettings(
         App = "アプリ",
@@ -129,6 +137,8 @@ internal val RuYumeStrings_Settings: YumeStrings_Settings = YumeStrings_Settings
     Section = YumeStrings_Settings_Section(
         UiSettings = "Интерфейс",
         More = "Ещё",
+        Settings = "Настройки",
+        About = "О приложении",
     ),
     UiSettings = YumeStrings_Settings_UiSettings(
         App = "Приложение",

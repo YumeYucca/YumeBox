@@ -125,7 +125,7 @@ internal fun ProfilesPageContent(
 ) {
     val scrollBehavior = MiuixScrollBehavior()
 
-    Scaffold(
+    GlassScaffold(
         topBar = {
             TopBar(
                 title = YumeTxt.ProfilesPage.Title,

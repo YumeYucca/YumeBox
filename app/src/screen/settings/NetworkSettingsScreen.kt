@@ -76,7 +76,7 @@ fun NetworkSettingsScreen(navigator: Navigator) {
     var showKernelDialog by remember { mutableStateOf(false) }
     var showCustomKernelDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
+    GlassScaffold(
         topBar = { TopBar(title = YumeTxt.NetworkSettings.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()
@@ -193,10 +193,6 @@ fun NetworkSettingsScreen(navigator: Navigator) {
                             ),
                         values = AccessControlMode.entries,
                         onValueChange = viewModel::onAccessControlModeChange,
-                    )
-                    PreferenceArrowItem(
-                        title = YumeTxt.NetworkSettings.ProxyOptions.ManageAccessControlTitle,
-                        onClick = { navigator.push(Route.AccessControl) },
                     )
                 }
             }

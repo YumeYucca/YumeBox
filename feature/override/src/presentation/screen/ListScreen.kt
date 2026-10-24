@@ -42,7 +42,6 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 
 private data class OverrideListVmState(
     val builtInConfigs: List<OverrideConfig>,
@@ -195,7 +194,7 @@ fun OverrideListScreen(
         viewModel.consumePendingRevealConfig(targetId)
     }
 
-    Scaffold(
+    GlassScaffold(
         floatingActionButton = {
             OverrideAnimatedFab(
                 controller = createFabController,

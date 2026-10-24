@@ -45,7 +45,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -83,7 +88,11 @@ internal fun NodeSearchToolbar(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val density = LocalDensity.current
-    val cardColor = MiuixTheme.colorScheme.background
+    val colorScheme = MiuixTheme.colorScheme
+    // 胶囊与按钮共用同一层"悬浮白"材质,叠在 Scaffold 的 surface 灰底上;
+    // 遮罩颜色必须与页面底色(surface)一致,否则会变成一条突兀的色带。
+    val toolbarSurface = colorScheme.background
+    val pageSurface = colorScheme.surface
     var inputFocused by remember { mutableStateOf(false) }
     val imeVisible = WindowInsets.ime.getBottom(density) > 0
     val showActionIcons = !inputFocused || !imeVisible
@@ -106,112 +115,142 @@ internal fun NodeSearchToolbar(
         }
     }
 
-    Row(
+    Box(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(top = UiDp.dp4, bottom = UiDp.dp8),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        InputField(
-            query = query,
-            onQueryChange = onQueryChange,
-            onSearch = { collapseSearch() },
-            expanded = false,
-            onExpandedChange = { requesting ->
-                if (requesting) {
-                    onShowMorePopupChange(false)
-                } else {
-                    collapseSearch()
-                }
-            },
-            label = YumeTxt.Component.Editor.Action.Search,
-            leadingIcon = {
-                Icon(
-                    imageVector = MiuixIcons.Basic.Search,
-                    contentDescription = YumeTxt.Component.Editor.Action.Search,
-                    modifier =
-                        Modifier
-                            .size(UiDp.dp44)
-                            .padding(start = UiDp.dp16, end = UiDp.dp8),
-                )
-            },
-            trailingIcon = {
-                AnimatedVisibility(visible = query.isNotEmpty()) {
-                    Icon(
-                        imageVector = MiuixIcons.Basic.SearchCleanup,
-                        contentDescription = YumeTxt.Component.Button.Clear,
-                        modifier =
-                            Modifier
-                                .size(UiDp.dp44)
-                                .padding(start = UiDp.dp8, end = UiDp.dp16)
-                                .clickable { onQueryChange("") },
+                .drawWithContent {
+                    drawContent()
+                    // 底部雾化遮罩:与页面底色同色的渐隐,内容滚过时像从页面里浮现。
+                    val fadePx = UiDp.dp24.toPx()
+                    drawRect(
+                        brush =
+                            Brush.verticalGradient(
+                                colors = listOf(pageSurface, pageSurface.copy(alpha = 0f)),
+                                startY = size.height,
+                                endY = size.height + fadePx,
+                            ),
+                        topLeft = Offset(0f, size.height),
+                        size = Size(size.width, fadePx),
                     )
-                }
-            },
+                },
+    ) {
+        Row(
             modifier =
                 Modifier
-                    .weight(1f)
-                    .onSizeChanged { size ->
-                        if (size.height > 0 && size.height != searchHeight) {
-                            searchHeight = size.height
-                        }
-                    }
-                    .onFocusChanged { focusState ->
-                        inputFocused = focusState.isFocused
-                        if (focusState.isFocused) {
-                            onShowMorePopupChange(false)
-                        }
-                    },
-        )
-        AnimatedVisibility(
-            visible = showActionIcons,
-            enter =
-                fadeIn(animationSpec = tween(durationMillis = 160)) +
-                    expandHorizontally(animationSpec = iconPushSpec, expandFrom = Alignment.End),
-            exit =
-                fadeOut(animationSpec = tween(durationMillis = 120)) +
-                    shrinkHorizontally(animationSpec = iconPushSpec, shrinkTowards = Alignment.End),
+                    .fillMaxWidth()
+                    .padding(top = UiDp.dp4, bottom = UiDp.dp8),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.padding(start = UiDp.dp8),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
-            ) {
-                NodeToolbarIconButton(
-                    size = actionSize,
-                    color = cardColor,
-                    onClick = {
-                        onShowMorePopupChange(false)
-                        onTestDelay()
+            MiuixTheme(colors = colorScheme.copy(surfaceContainerHigh = toolbarSurface)) {
+                InputField(
+                    query = query,
+                    onQueryChange = onQueryChange,
+                    onSearch = { collapseSearch() },
+                    expanded = false,
+                    onExpandedChange = { requesting ->
+                        if (requesting) {
+                            onShowMorePopupChange(false)
+                        } else {
+                            collapseSearch()
+                        }
                     },
+                    label = YumeTxt.Component.Editor.Action.Search,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = MiuixIcons.Basic.Search,
+                            contentDescription = YumeTxt.Component.Editor.Action.Search,
+                            modifier =
+                                Modifier
+                                    .size(UiDp.dp44)
+                                    .padding(start = UiDp.dp16, end = UiDp.dp8),
+                        )
+                    },
+                    trailingIcon = {
+                        AnimatedVisibility(visible = query.isNotEmpty()) {
+                            Icon(
+                                imageVector = MiuixIcons.Basic.SearchCleanup,
+                                contentDescription = YumeTxt.Component.Button.Clear,
+                                modifier =
+                                    Modifier
+                                        .size(UiDp.dp44)
+                                        .padding(start = UiDp.dp8, end = UiDp.dp16)
+                                        .clickable { onQueryChange("") },
+                            )
+                        }
+                    },
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .shadow(
+                                elevation = UiDp.dp6,
+                                shape = CircleShape,
+                                clip = false,
+                                ambientColor = Color.Black.copy(alpha = 0.06f),
+                                spotColor = Color.Black.copy(alpha = 0.12f),
+                            )
+                            .onSizeChanged { size ->
+                                if (size.height > 0 && size.height != searchHeight) {
+                                    searchHeight = size.height
+                                }
+                            }
+                            .onFocusChanged { focusState ->
+                                inputFocused = focusState.isFocused
+                                if (focusState.isFocused) {
+                                    onShowMorePopupChange(false)
+                                }
+                            },
+                )
+            }
+            AnimatedVisibility(
+                visible = showActionIcons,
+                enter =
+                    fadeIn(animationSpec = tween(durationMillis = 160)) +
+                        expandHorizontally(animationSpec = iconPushSpec, expandFrom = Alignment.End),
+                exit =
+                    fadeOut(animationSpec = tween(durationMillis = 120)) +
+                        shrinkHorizontally(animationSpec = iconPushSpec, shrinkTowards = Alignment.End),
+            ) {
+                Row(
+                    modifier = Modifier.padding(start = UiDp.dp8),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
                 ) {
-                    Icon(
-                        imageVector = Yume.Speed,
-                        contentDescription = YumeTxt.Proxy.Action.Test,
-                        modifier = Modifier.size(UiDp.dp22),
-                    )
-                }
-                Box {
                     NodeToolbarIconButton(
                         size = actionSize,
-                        color = cardColor,
-                        onClick = { onShowMorePopupChange(!showMorePopup) },
+                        color = toolbarSurface,
+                        onClick = {
+                            onShowMorePopupChange(false)
+                            onTestDelay()
+                        },
                     ) {
                         Icon(
-                            imageVector = Yume.ListChevronsUpDown,
-                            contentDescription = YumeTxt.Proxy.Action.Sort,
+                            imageVector = Yume.Speed,
+                            contentDescription = YumeTxt.Proxy.Action.Test,
                             modifier = Modifier.size(UiDp.dp22),
                         )
                     }
-                    NodeSortPopup(
-                        show = showMorePopup,
-                        onDismiss = { onShowMorePopupChange(false) },
-                        sortMode = sortMode,
-                        alignment = PopupPositionProvider.Align.BottomEnd,
-                        onLocateCurrentProxy = onLocateCurrentProxy,
-                        onSortSelected = onSortSelected,
-                    )
+                    Box {
+                        NodeToolbarIconButton(
+                            size = actionSize,
+                            color = toolbarSurface,
+                            onClick = { onShowMorePopupChange(!showMorePopup) },
+                        ) {
+                            Icon(
+                                imageVector = Yume.ListChevronsUpDown,
+                                contentDescription = YumeTxt.Proxy.Action.Sort,
+                                modifier = Modifier.size(UiDp.dp22),
+                            )
+                        }
+                        NodeSortPopup(
+                            show = showMorePopup,
+                            onDismiss = { onShowMorePopupChange(false) },
+                            sortMode = sortMode,
+                            alignment = PopupPositionProvider.Align.BottomEnd,
+                            onLocateCurrentProxy = onLocateCurrentProxy,
+                            onSortSelected = onSortSelected,
+                        )
+                    }
                 }
             }
         }
@@ -230,6 +269,13 @@ private fun NodeToolbarIconButton(
         modifier =
             Modifier
                 .size(size)
+                .shadow(
+                    elevation = UiDp.dp6,
+                    shape = CircleShape,
+                    clip = false,
+                    ambientColor = Color.Black.copy(alpha = 0.06f),
+                    spotColor = Color.Black.copy(alpha = 0.12f),
+                )
                 .clip(CircleShape)
                 .background(color),
         contentAlignment = Alignment.Center,

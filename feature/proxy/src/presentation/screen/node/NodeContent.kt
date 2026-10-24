@@ -44,17 +44,10 @@ import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.data.model.normalizeProxySheetHeightFraction
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
-import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeState
-import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze.chromeEffect
 import com.github.yumeyucca.yumebox.presentation.theme.rememberRowReveal
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
-import dev.chrisbanes.haze.HazePerformanceMode
-import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.flow.StateFlow
-import dev.chrisbanes.haze.blur.HazeBlurStyle
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -66,79 +59,6 @@ val NodeSheetContentPadding =
 
 private fun LazyListState.isScrolledFromTop(): Boolean =
     firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 0
-
-private fun Modifier.nodeTabHaze(state: HazeState?, style: HazeBlurStyle?): Modifier =
-    chromeEffect(
-        state = state,
-        style = style,
-        blurRadius = UiDp.dp30,
-        progressive =
-            HazeProgressive.verticalGradient(
-                startIntensity = 1f,
-                endIntensity = 0f,
-            ),
-        performanceMode = HazePerformanceMode.Performance,
-    )
-
-@Composable
-internal fun NodeTabs(groups: List<ProxyGroupInfo>, selectedIndex: Int, onSelect: (Int) -> Unit) {
-    val hazeState = LocalTopBarHazeState.current
-    val hazeStyle = LocalTopBarHazeStyle.current
-    val listState = rememberLazyListState()
-
-    LaunchedEffect(selectedIndex, groups.size) {
-        if (groups.isEmpty()) return@LaunchedEffect
-        val target = (selectedIndex - 1).coerceAtLeast(0).coerceAtMost(groups.lastIndex)
-        if (target != listState.firstVisibleItemIndex) {
-            listState.animateScrollToItem(target)
-        }
-    }
-
-    LazyRow(
-        state = listState,
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .nodeTabHaze(hazeState, hazeStyle)
-                .background(MiuixTheme.colorScheme.surface)
-                .overScrollHorizontal(),
-        contentPadding =
-            PaddingValues(start = UiDp.dp14, end = UiDp.dp14, top = UiDp.dp10, bottom = UiDp.dp10),
-        horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
-        overscrollEffect = null,
-    ) {
-        itemsIndexed(groups, key = { _, group -> group.name }) { index, group ->
-            val selected = index == selectedIndex
-            val background =
-                if (selected) {
-                    MiuixTheme.colorScheme.primary
-                } else {
-                    MiuixTheme.colorScheme.surface
-                }
-            val textColor =
-                if (selected) {
-                    MiuixTheme.colorScheme.onPrimary
-                } else {
-                    MiuixTheme.colorScheme.onSurface
-                }
-
-            Box(
-                modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(UiDp.dp999))
-                        .background(background)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { onSelect(index) },
-                        )
-                        .padding(horizontal = UiDp.dp11, vertical = UiDp.dp6)
-            ) {
-                Text(text = group.name, color = textColor, style = MiuixTheme.textStyles.footnote1)
-            }
-        }
-    }
-}
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable

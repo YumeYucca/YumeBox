@@ -30,6 +30,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.zIndex
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
@@ -167,16 +168,19 @@ internal fun NodeListPage(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
-                    NodeSearchToolbar(
-                        query = searchQuery,
-                        onQueryChange = onSearchQueryChange,
-                        sortMode = sortMode,
-                        showMorePopup = showSortPopup,
-                        onShowMorePopupChange = onShowMorePopupChange,
-                        onSortSelected = onSortSelected,
-                        onTestDelay = onTestDelay,
-                        onLocateCurrentProxy = onLocateCurrentProxy,
-                    )
+                    // zIndex 让工具栏底部的雾化遮罩绘制在后续网格内容之上
+                    Box(modifier = Modifier.zIndex(1f)) {
+                        NodeSearchToolbar(
+                            query = searchQuery,
+                            onQueryChange = onSearchQueryChange,
+                            sortMode = sortMode,
+                            showMorePopup = showSortPopup,
+                            onShowMorePopupChange = onShowMorePopupChange,
+                            onSortSelected = onSortSelected,
+                            onTestDelay = onTestDelay,
+                            onLocateCurrentProxy = onLocateCurrentProxy,
+                        )
+                    }
                 }
                 item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
                     GroupDelayRefreshIndicator(
@@ -216,16 +220,19 @@ internal fun NodeListPage(
         contentPadding = contentPadding,
     ) {
         item(key = "__node_search__") {
-            NodeSearchToolbar(
-                query = searchQuery,
-                onQueryChange = onSearchQueryChange,
-                sortMode = sortMode,
-                showMorePopup = showSortPopup,
-                onShowMorePopupChange = onShowMorePopupChange,
-                onSortSelected = onSortSelected,
-                onTestDelay = onTestDelay,
-                onLocateCurrentProxy = onLocateCurrentProxy,
-            )
+            // zIndex 让工具栏底部的雾化遮罩绘制在后续列表内容之上
+            Box(modifier = Modifier.zIndex(1f)) {
+                NodeSearchToolbar(
+                    query = searchQuery,
+                    onQueryChange = onSearchQueryChange,
+                    sortMode = sortMode,
+                    showMorePopup = showSortPopup,
+                    onShowMorePopupChange = onShowMorePopupChange,
+                    onSortSelected = onSortSelected,
+                    onTestDelay = onTestDelay,
+                    onLocateCurrentProxy = onLocateCurrentProxy,
+                )
+            }
         }
         item(key = "__refresh_indicator__") {
             GroupDelayRefreshIndicator(

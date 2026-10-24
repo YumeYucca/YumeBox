@@ -35,7 +35,6 @@ import com.github.yumeyucca.yumebox.presentation.component.*
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 
 /**
  * Root Tun "service config" sub-page. Root provisions the virtual network interface and routing.
@@ -55,7 +54,7 @@ fun TunServiceOptionsScreen() {
     val dnsMode = screen.dnsMode
     val enableIPv6 = screen.enableIPv6
 
-    Scaffold(
+    GlassScaffold(
         topBar = {
             TopBar(
                 title = YumeTxt.NetworkSettings.TunOptions.Title,

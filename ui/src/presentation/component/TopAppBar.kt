@@ -25,31 +25,17 @@ package com.github.yumeyucca.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze
-import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze.chromeEffect
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
+import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
+import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.hyperOsTopBar
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.TopAppBarDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-val LocalTopBarHazeState = compositionLocalOf<HazeState?> { null }
-val LocalTopBarHazeStyle = compositionLocalOf<HazeBlurStyle?> { null }
-
-private fun Modifier.topBarHazeEffect(state: HazeState?, style: HazeBlurStyle?): Modifier =
-    chromeEffect(
-        state = state,
-        style = style,
-        blurRadius = UiDp.dp20,
-        noiseFactor = YumeHaze.ChromeNoiseFactor,
-    )
 
 @Composable
 fun TopBar(
@@ -63,14 +49,13 @@ fun TopBar(
     actions: @Composable RowScope.() -> Unit = {},
     bottomContent: @Composable () -> Unit = {},
 ) {
-    val hazeState = LocalTopBarHazeState.current
-    val hazeStyle = LocalTopBarHazeStyle.current
-    val hazeEnabled = hazeState != null && hazeStyle != null
-
+    // Progressive blur of the body content scrolling under the bar (GlassScaffold provides the
+    // route backdrop); scrim-only fallback when no backdrop is available or no RuntimeShader.
     TopAppBar(
         title = title,
-        modifier = modifier.topBarHazeEffect(hazeState, hazeStyle),
-        color = if (hazeEnabled) Color.Transparent else MiuixTheme.colorScheme.surface,
+        modifier =
+            modifier.hyperOsTopBar(LocalTopBarBackdrop.current, MiuixTheme.colorScheme.surface),
+        color = Color.Transparent,
         titlePadding = titlePadding,
         navigationIconPadding = navigationIconPadding,
         actionIconPadding = actionIconPadding,
@@ -93,14 +78,11 @@ fun SmallTopBar(
     actions: @Composable RowScope.() -> Unit = {},
     bottomContent: @Composable () -> Unit = {},
 ) {
-    val hazeState = LocalTopBarHazeState.current
-    val hazeStyle = LocalTopBarHazeStyle.current
-    val hazeEnabled = hazeState != null && hazeStyle != null
-
     SmallTopAppBar(
         title = title,
-        modifier = modifier.topBarHazeEffect(hazeState, hazeStyle),
-        color = if (hazeEnabled) Color.Transparent else MiuixTheme.colorScheme.surface,
+        modifier =
+            modifier.hyperOsTopBar(LocalTopBarBackdrop.current, MiuixTheme.colorScheme.surface),
+        color = Color.Transparent,
         titlePadding = titlePadding,
         navigationIconPadding = navigationIconPadding,
         actionIconPadding = actionIconPadding,

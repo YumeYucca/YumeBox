@@ -46,20 +46,16 @@ import com.github.yumeyucca.yumebox.core.util.StartupTaskCoordinator
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
 import com.github.yumeyucca.yumebox.data.store.FeatureStore
 import com.github.yumeyucca.yumebox.di.APPLICATION_SCOPE_NAME
-import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeState
-import com.github.yumeyucca.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumeyucca.yumebox.presentation.component.ToastDialogHost
 import com.github.yumeyucca.yumebox.presentation.navigation.AppNavContainer
 import com.github.yumeyucca.yumebox.presentation.navigation.AppNavigationComponent
 import com.github.yumeyucca.yumebox.presentation.theme.ProvideAndroidPlatformTheme
-import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze
 import com.github.yumeyucca.yumebox.presentation.theme.YumeTheme
 import com.github.yumeyucca.yumebox.runtime.service.WifiAutomationService
 import com.github.yumeyucca.yumebox.screen.moe.HomePreviewGuideDialog
 import com.github.yumeyucca.yumebox.screen.moe.SystemWallpaperAccess
 import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
 import com.tencent.mmkv.MMKV
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -164,10 +160,6 @@ class MainActivity : FragmentActivity() {
                 appSettingsViewModel.excludeFromRecents.state
                     .collectAsState()
                     .value
-            val topBarBlurEnabled =
-                appSettingsViewModel.topBarBlurEnabled.state
-                    .collectAsState()
-                    .value
             val pageScale =
                 appSettingsViewModel.pageScale.state
                     .collectAsState()
@@ -193,16 +185,7 @@ class MainActivity : FragmentActivity() {
                         themeSeedColorArgb = themeSeedColorArgb,
                         invertOnPrimaryColors = invertOnPrimaryColors,
                     ) {
-                        val topBarHazeState = remember { HazeState() }
-                        val topBarBackground = MiuixTheme.colorScheme.surface
-                        val topBarHazeStyle = YumeHaze.topBarStyle(topBarBackground)
-                        CompositionLocalProvider(
-                            LocalTopBarHazeState provides
-                                if (topBarBlurEnabled) topBarHazeState else null,
-                            LocalTopBarHazeStyle provides
-                                if (topBarBlurEnabled) topBarHazeStyle else null,
-                        ) {
-                            Surface(
+                        Surface(
                                 modifier = Modifier.fillMaxSize(),
                                 color = MiuixTheme.colorScheme.surface,
                             ) {
@@ -224,7 +207,6 @@ class MainActivity : FragmentActivity() {
                                 )
                             }
                         }
-                    }
                 }
             }
         }

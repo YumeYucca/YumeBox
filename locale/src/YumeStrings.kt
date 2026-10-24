@@ -248,6 +248,10 @@ public data class YumeStrings_Component_ProfileCard(
     public val ExpireAt: String,
     public val ExpireToday: String,
     public val Expired: String,
+    public val RemainingOfTotal: String,
+    public val ExpireInDays: String,
+    public val ExpireTodayShort: String,
+    public val ExpiredShort: String,
     public val JustNow: String,
     public val MinutesAgo: String,
     public val HoursAgo: String,
@@ -1463,6 +1467,8 @@ public data class YumeStrings_Service(
 public data class YumeStrings_Settings_Section(
     public val UiSettings: String,
     public val More: String,
+    public val Settings: String,
+    public val About: String,
 )
 
 public data class YumeStrings_Settings_UiSettings(

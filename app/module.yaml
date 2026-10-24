@@ -45,9 +45,8 @@ dependencies:
   - $libs.miuix.ui
   - $libs.miuix.preference
   - $libs.miuix.icons
-  - $libs.haze
-  - $libs.haze.blur
-  - $libs.haze.blur.materials
+  - $libs.miuix.blur
+  - $libs.lucide.compose
   - $libs.decompose
   - $libs.decompose.extensions.compose
   - $libs.mmkv
@@ -80,5 +79,4 @@ dependencies:
   - $libs.androidx.biometric
   - $libs.androidx.core.ktx
   - $libs.androidx.core.splashscreen
-  # Preserve the previous application dependency security floor.
   - org.apache.commons:commons-lang3:3.20.0
