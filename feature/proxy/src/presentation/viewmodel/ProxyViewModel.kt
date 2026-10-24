@@ -79,6 +79,13 @@ class ProxyViewModel(
             ProxySortMode.DEFAULT,
         )
 
+    val nodeSearchVisible: StateFlow<Boolean> =
+        proxyDisplaySettingsStore.nodeSearchVisible.state.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            false,
+        )
+
     val proxyGroups: StateFlow<List<ProxyGroupInfo>> =
         proxyFacade.proxyGroups
             .map { groups -> groups.filterNot(ProxyGroupInfo::hidden) }
@@ -183,6 +190,10 @@ class ProxyViewModel(
 
     fun setSortMode(mode: ProxySortMode) {
         proxyDisplaySettingsStore.sortMode.set(mode)
+    }
+
+    fun setNodeSearchVisible(visible: Boolean) {
+        proxyDisplaySettingsStore.nodeSearchVisible.set(visible)
     }
 
     fun selectProxy(groupName: String, proxyName: String) {

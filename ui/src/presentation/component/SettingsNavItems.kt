@@ -24,7 +24,6 @@ package com.github.yumeyucca.yumebox.presentation.component
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,17 +36,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import io.github.yumeyucca.lucide.Lucide
-import io.github.yumeyucca.lucide.lucide.ChevronRight
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * Flat icon-list row for the settings hub cards: leading lucide icon, title, and a small
- * trailing chevron. Deliberately summary-free — group context comes from the section title
- * above each card instead of per-item descriptions.
+ * Flat list row for the settings hub cards: plain leading lucide icon, title with an optional
+ * muted summary beneath it, and a full-width hairline divider between rows. Trailing content is
+ * opt-in (e.g. the version badge) — rows otherwise end with open space, no chevron.
  */
 @Composable
 fun SettingsNavItem(
@@ -55,8 +52,9 @@ fun SettingsNavItem(
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    summary: String? = null,
     showDivider: Boolean = false,
-    endContent: @Composable () -> Unit = { SettingsNavChevron() },
+    endContent: (@Composable () -> Unit)? = null,
 ) {
     val spacing = AppTheme.spacing
     val componentSizes = AppTheme.sizes
@@ -66,11 +64,6 @@ fun SettingsNavItem(
     Column(modifier = modifier) {
         if (showDivider) {
             HorizontalDivider(
-                modifier =
-                    Modifier.padding(
-                        start = spacing.space20 + componentSizes.settingsIconGlyphSize + spacing.space16,
-                        end = spacing.space20,
-                    ),
                 thickness = componentSizes.thinDividerThickness,
                 color = colorScheme.outline.copy(alpha = opacity.medium),
             )
@@ -79,8 +72,9 @@ fun SettingsNavItem(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .heightIn(min = UiDp.dp56)
-                    .clickable(onClick = onClick),
+                    .heightIn(min = UiDp.dp60)
+                    .clickable(onClick = onClick)
+                    .padding(horizontal = spacing.space20, vertical = spacing.space14),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(spacing.space16),
         ) {
@@ -88,30 +82,26 @@ fun SettingsNavItem(
                 imageVector = icon,
                 contentDescription = null,
                 tint = colorScheme.onSurface,
-                modifier =
-                    Modifier
-                        .padding(start = spacing.space20)
-                        .size(componentSizes.settingsIconGlyphSize),
+                modifier = Modifier.size(UiDp.dp24),
             )
-            Text(
-                text = title,
-                style = MiuixTheme.textStyles.body1,
-                color = colorScheme.onSurface,
+            Column(
                 modifier = Modifier.weight(1f),
-            )
-            Box(modifier = Modifier.padding(end = spacing.space20)) { endContent() }
+                verticalArrangement = Arrangement.spacedBy(spacing.space2),
+            ) {
+                Text(
+                    text = title,
+                    style = MiuixTheme.textStyles.body1,
+                    color = colorScheme.onSurface,
+                )
+                if (!summary.isNullOrEmpty()) {
+                    Text(
+                        text = summary,
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = colorScheme.onSurfaceVariantActions,
+                    )
+                }
+            }
+            if (endContent != null) endContent()
         }
     }
-}
-
-/** Small muted trailing chevron of [SettingsNavItem]; replaces the miuix big arrow. */
-@Composable
-fun SettingsNavChevron(modifier: Modifier = Modifier) {
-    val colorScheme = MiuixTheme.colorScheme
-    Icon(
-        imageVector = Lucide.ChevronRight,
-        contentDescription = null,
-        tint = colorScheme.onSurfaceVariantActions,
-        modifier = modifier.size(UiDp.dp18),
-    )
 }

@@ -29,6 +29,7 @@ internal class ProfilesDialogState {
     val showAdd = mutableStateOf(false)
     val showSettings = mutableStateOf(false)
     val showShare = mutableStateOf(false)
+    val showSortSheet = mutableStateOf(false)
     var showDelete by mutableStateOf(false)
     var showEditOptions by mutableStateOf(false)
     var deleteTarget by mutableStateOf<Profile?>(null)

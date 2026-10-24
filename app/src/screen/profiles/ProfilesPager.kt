@@ -91,6 +91,7 @@ fun ProfilesPager(
         sheetHost = {
             ProfilesDialogHost(
                 state = dialogs,
+                profiles = screen.profiles,
                 profilesViewModel = profilesViewModel,
                 homeViewModel = homeViewModel,
                 builtInConfigs = screen.builtInConfigs,

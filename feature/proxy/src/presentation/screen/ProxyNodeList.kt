@@ -20,6 +20,8 @@
 
 package com.github.yumeyucca.yumebox.presentation.screen
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.*
@@ -30,13 +32,13 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Velocity
-import androidx.compose.ui.zIndex
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
 import com.github.yumeyucca.yumebox.presentation.component.PaneWidths
 import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
+import com.github.yumeyucca.yumebox.presentation.component.SegmentedTabRow
 import com.github.yumeyucca.yumebox.presentation.screen.node.GroupDelayRefreshIndicator
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeCard
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSearchToolbar
@@ -50,6 +52,7 @@ import com.github.yumeyucca.yumebox.presentation.util.KeepLazyListTopAnchorOnReo
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import kotlinx.coroutines.flow.StateFlow
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
     val normalizedQuery = query.trim()
@@ -61,6 +64,7 @@ private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun NodeListPage(
     group: ProxyGroupInfo?,
@@ -80,10 +84,10 @@ internal fun NodeListPage(
     gridState: LazyGridState? = null,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
-    showSortPopup: Boolean = false,
-    onShowMorePopupChange: (Boolean) -> Unit = {},
-    onSortSelected: (ProxySortMode) -> Unit = {},
-    onLocateCurrentProxy: (() -> Unit)? = null,
+    searchVisible: Boolean = false,
+    tabs: List<String> = emptyList(),
+    selectedTabIndex: Int = 0,
+    onTabSelected: (Int) -> Unit = {},
 ) {
     if (group == null) return
     val spacing = LocalSpacing.current
@@ -167,18 +171,11 @@ internal fun NodeListPage(
                 verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
-                    // zIndex 让工具栏底部的雾化遮罩绘制在后续网格内容之上
-                    Box(modifier = Modifier.zIndex(1f)) {
+                if (searchVisible) {
+                    item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
                         NodeSearchToolbar(
                             query = searchQuery,
                             onQueryChange = onSearchQueryChange,
-                            sortMode = sortMode,
-                            showMorePopup = showSortPopup,
-                            onShowMorePopupChange = onShowMorePopupChange,
-                            onSortSelected = onSortSelected,
-                            onTestDelay = onTestDelay,
-                            onLocateCurrentProxy = onLocateCurrentProxy,
                         )
                     }
                 }
@@ -219,18 +216,29 @@ internal fun NodeListPage(
         onScrollDirectionChanged = onScrollDirectionChanged,
         contentPadding = contentPadding,
     ) {
-        item(key = "__node_search__") {
-            // zIndex 让工具栏底部的雾化遮罩绘制在后续列表内容之上
-            Box(modifier = Modifier.zIndex(1f)) {
+        if (tabs.isNotEmpty()) {
+            // 策略/节点组切换在节点列表页同样吸附,点 tab 即回到分组列表。
+            stickyHeader(key = "__proxy_list_tabs__") {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(MiuixTheme.colorScheme.surface)
+                            .padding(vertical = UiDp.dp4),
+                ) {
+                    SegmentedTabRow(
+                        tabs = tabs,
+                        selectedTabIndex = selectedTabIndex,
+                        onTabSelected = onTabSelected,
+                    )
+                }
+            }
+        }
+        if (searchVisible) {
+            item(key = "__node_search__") {
                 NodeSearchToolbar(
                     query = searchQuery,
                     onQueryChange = onSearchQueryChange,
-                    sortMode = sortMode,
-                    showMorePopup = showSortPopup,
-                    onShowMorePopupChange = onShowMorePopupChange,
-                    onSortSelected = onSortSelected,
-                    onTestDelay = onTestDelay,
-                    onLocateCurrentProxy = onLocateCurrentProxy,
                 )
             }
         }

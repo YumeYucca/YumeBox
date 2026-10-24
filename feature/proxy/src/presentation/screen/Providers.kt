@@ -26,10 +26,13 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -71,6 +74,7 @@ private data class ProviderSection(
     val providers: List<Provider>,
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Suppress("KotlinConstantConditions")
 @Composable
 fun ProvidersContent(navigator: Navigator) {
@@ -149,13 +153,35 @@ fun ProvidersContent(navigator: Navigator) {
             )
         } else {
             val mainLikePadding = rememberStandalonePageMainPadding()
+            var selectedSectionIndex by rememberSaveable { mutableStateOf(0) }
+            val showProviderTabs = sections.size >= 2
+            val activeSectionIndex =
+                if (showProviderTabs) selectedSectionIndex.coerceIn(0, sections.lastIndex) else 0
             ScreenLazyColumn(
                 scrollBehavior = scrollBehavior,
                 innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
             ) {
-                sections.forEach { section ->
+                if (showProviderTabs) {
+                    // 代理/规则资源收进分段 tab,吸附在内容区顶部。
+                    stickyHeader(key = "__provider_tabs__") {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(MiuixTheme.colorScheme.surface)
+                                    .padding(vertical = UiDp.dp4),
+                        ) {
+                            SegmentedTabRow(
+                                tabs = sections.map { it.title },
+                                selectedTabIndex = activeSectionIndex,
+                                onTabSelected = { selectedSectionIndex = it },
+                                modifier = Modifier.padding(horizontal = UiDp.dp12),
+                            )
+                        }
+                    }
                     providerSection(
-                        section = section,
+                        section = sections[activeSectionIndex],
+                        showTitle = false,
                         isUpdating = { providerKey ->
                             uiState.updatingProviders.contains(providerKey)
                         },
@@ -164,6 +190,19 @@ fun ProvidersContent(navigator: Navigator) {
                             viewModel.uploadProviderFile(context, provider, uri)
                         },
                     )
+                } else {
+                    sections.forEach { section ->
+                        providerSection(
+                            section = section,
+                            isUpdating = { providerKey ->
+                                uiState.updatingProviders.contains(providerKey)
+                            },
+                            onUpdate = { provider -> viewModel.updateProvider(provider) },
+                            onUpload = { provider, uri ->
+                                viewModel.uploadProviderFile(context, provider, uri)
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -321,8 +360,11 @@ private fun LazyListScope.providerSection(
     isUpdating: (String) -> Boolean,
     onUpdate: (Provider) -> Unit,
     onUpload: (Provider, Uri) -> Unit,
+    showTitle: Boolean = true,
 ) {
-    item(key = "title_${section.title}") { Title(section.title) }
+    if (showTitle) {
+        item(key = "title_${section.title}") { Title(section.title) }
+    }
     items(
         items = section.providers,
         key = { provider -> "${provider.type}_${provider.name}" },

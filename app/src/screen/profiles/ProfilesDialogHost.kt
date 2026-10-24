@@ -44,6 +44,7 @@ import timber.log.Timber
 @Composable
 internal fun ProfilesDialogHost(
     state: ProfilesDialogState,
+    profiles: List<Profile>,
     profilesViewModel: ProfilesViewModel,
     homeViewModel: HomeViewModel,
     builtInConfigs: List<OverrideConfig>,
@@ -55,6 +56,13 @@ internal fun ProfilesDialogHost(
     val bindingProvider: ProfileBindingProvider = koinInject()
     val overrideService: OverrideService = koinInject()
     val routingBootstrapper: CustomRoutingBootstrapper = koinInject()
+
+    ProfilesSortSheet(
+        show = state.showSortSheet.value,
+        profiles = profiles,
+        onReorder = { from, to -> profilesViewModel.reorderProfiles(from, to) },
+        onDismiss = { state.showSortSheet.value = false },
+    )
 
     AddProfileSheet(
         show = state.showAdd,

@@ -727,6 +727,41 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun Expired(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.Expired else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.Expired, *args)
+            public val RemainingOfTotal: String
+                get() = YumeLocaleManager.activeStrings.Component.ProfileCard.RemainingOfTotal
+            @androidx.compose.runtime.Composable
+            public fun RemainingOfTotal(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.RemainingOfTotal else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.RemainingOfTotal, *args)
+            public val ExpireInDays: String
+                get() = YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInDays
+            @androidx.compose.runtime.Composable
+            public fun ExpireInDays(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInDays else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInDays, *args)
+            public val ExpireInMonths: String
+                get() = YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInMonths
+            @androidx.compose.runtime.Composable
+            public fun ExpireInMonths(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInMonths else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInMonths, *args)
+            public val ExpireInYears: String
+                get() = YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInYears
+            @androidx.compose.runtime.Composable
+            public fun ExpireInYears(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInYears else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInYears, *args)
+            public val ExpireInPermanent: String
+                get() = YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInPermanent
+            @androidx.compose.runtime.Composable
+            public fun ExpireInPermanent(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInPermanent else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireInPermanent, *args)
+            public val ExpireTodayShort: String
+                get() = YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireTodayShort
+            @androidx.compose.runtime.Composable
+            public fun ExpireTodayShort(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireTodayShort else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.ExpireTodayShort, *args)
+            public val ExpiredShort: String
+                get() = YumeLocaleManager.activeStrings.Component.ProfileCard.ExpiredShort
+            @androidx.compose.runtime.Composable
+            public fun ExpiredShort(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.ExpiredShort else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.ExpiredShort, *args)
             public val JustNow: String
                 get() = YumeLocaleManager.activeStrings.Component.ProfileCard.JustNow
             @androidx.compose.runtime.Composable
@@ -3141,6 +3176,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun AddProfile(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.ProfilesPage.Action.AddProfile else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.ProfilesPage.Action.AddProfile, *args)
+            public val Sort: String
+                get() = YumeLocaleManager.activeStrings.ProfilesPage.Action.Sort
+            @androidx.compose.runtime.Composable
+            public fun Sort(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.ProfilesPage.Action.Sort else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.ProfilesPage.Action.Sort, *args)
         }
         public object Empty {
             public val NoProfiles: String
@@ -3696,6 +3736,18 @@ public object YumeTxt {
             public fun Direct(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Mode.Direct else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Mode.Direct, *args)
         }
+        public object Tab {
+            public val Policy: String
+                get() = YumeLocaleManager.activeStrings.Proxy.Tab.Policy
+            @androidx.compose.runtime.Composable
+            public fun Policy(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Tab.Policy else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Tab.Policy, *args)
+            public val NodeGroups: String
+                get() = YumeLocaleManager.activeStrings.Proxy.Tab.NodeGroups
+            @androidx.compose.runtime.Composable
+            public fun NodeGroups(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Tab.NodeGroups else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Tab.NodeGroups, *args)
+        }
         public object Action {
             public val Panel: String
                 get() = YumeLocaleManager.activeStrings.Proxy.Action.Panel
@@ -3717,6 +3769,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun LocateCurrent(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Action.LocateCurrent else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Action.LocateCurrent, *args)
+            public val SearchNodes: String
+                get() = YumeLocaleManager.activeStrings.Proxy.Action.SearchNodes
+            @androidx.compose.runtime.Composable
+            public fun SearchNodes(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Action.SearchNodes else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Action.SearchNodes, *args)
             public val More: String
                 get() = YumeLocaleManager.activeStrings.Proxy.Action.More
             @androidx.compose.runtime.Composable
