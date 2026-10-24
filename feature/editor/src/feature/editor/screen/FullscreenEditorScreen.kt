@@ -43,10 +43,10 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.Atom
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Save
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 
 @Composable
 fun FullscreenEditorScreen(
@@ -77,7 +77,7 @@ fun FullscreenEditorScreen(
 
     BackHandler { handleBack() }
 
-    Scaffold(
+    GlassScaffold(
         topBar = {
             TopBar(
                 title = title,

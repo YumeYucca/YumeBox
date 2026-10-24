@@ -14,6 +14,7 @@ dependencies:
   - //runtime/contracts
   - $libs.androidx.core.ktx
   - $libs.androidx.activity.compose
+  - $libs.androidx.compose.material3
   - $libs.androidx.lifecycle.runtime.compose
   - $libs.decompose
   - $libs.sketch.compose
@@ -22,10 +23,9 @@ dependencies:
   - $libs.sketch.animated.gif
   - $libs.sketch.animated.webp
   - $libs.sketch.compose.resources
-  - $libs.haze
-  - $libs.haze.blur
-  - $libs.haze.blur.materials
+  - $libs.miuix.blur
   - $libs.shapes
   - $libs.miuix.ui
   - $libs.miuix.preference
   - $libs.miuix.icons
+  - $libs.lucide.compose

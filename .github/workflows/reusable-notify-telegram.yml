@@ -114,6 +114,10 @@ jobs:
           cat "$RUNNER_TEMP/telegram-bot-api.log"
           exit 1
 
+      - name: Install Python dependencies
+        if: steps.check_upload.outputs.UPLOAD == 'true'
+        run: python3 -m pip install --quiet --disable-pip-version-check requests
+
       - name: Upload to Telegram
         if: steps.check_upload.outputs.UPLOAD == 'true'
         env:

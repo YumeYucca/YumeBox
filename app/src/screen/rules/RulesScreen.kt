@@ -46,7 +46,6 @@ import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -111,7 +110,7 @@ fun RulesScreen(navigator: Navigator) {
     // Same shell as ConnectionScreen / LogScreen: outer Box so SearchPager can cover the
     // scaffold (zIndex) while the collapsed bar still lives in TopBar.bottomContent.
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
+        GlassScaffold(
             topBar = {
                 currentSearchStatus.TopAppBarAnim {
                     TopBar(

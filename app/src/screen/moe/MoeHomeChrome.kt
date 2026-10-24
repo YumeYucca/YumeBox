@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
  * Copyright (c)  YumeYucca 2025 - Present
- *
  */
 
 @file:Suppress("FunctionName", "ConvertLongToDuration", "KotlinConstantConditions")
@@ -52,12 +51,9 @@ import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Repeat
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze
 import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
-import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.hazeBlur
+import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.glassSurface
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -68,7 +64,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun MoeSidebarDecoration(
-    hazeState: HazeState,
+    backdrop: LayerBackdrop?,
     blurEnabled: Boolean,
     blurProgress: Float,
     modifier: Modifier = Modifier,
@@ -93,16 +89,16 @@ internal fun MoeSidebarDecoration(
     val blurRadius = lerpDp(30.dp, 52.dp, clampedBlurProgress)
     val blurModifier =
         if (blurEnabled) {
-            val effectRadius = blurRadius
-            Modifier.hazeBlur(
-                input = HazeInput.Sources(hazeState),
-                style =
-                    HazeBlurStyle {
-                        blurRadius(effectRadius)
-                        noiseFactor(YumeHaze.ChromeNoiseFactor)
-                        backgroundColor(YumeHaze.glassBackgroundColor(surface, isDarkSurface))
-                        colorEffects(YumeHaze.glassColorEffects(surface, isDarkSurface))
-                        fallbackColorEffect(YumeHaze.sidebarFallbackTint(surface, isDarkSurface))
+            Modifier.glassSurface(
+                backdrop = backdrop,
+                shape = RectangleShape,
+                fallbackColor = surface.copy(alpha = if (isDarkSurface) 0.78f else 0.88f),
+                blurRadius = blurRadius.value,
+                tint =
+                    if (isDarkSurface) {
+                        Color.Black.copy(alpha = 0.24f)
+                    } else {
+                        surface.copy(alpha = 0.13f)
                     },
             )
         } else {

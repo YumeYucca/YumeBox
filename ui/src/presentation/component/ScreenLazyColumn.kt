@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import com.github.yumeyucca.yumebox.presentation.theme.LocalSpacing
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import dev.chrisbanes.haze.hazeSource
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -68,7 +67,6 @@ fun ScreenLazyColumn(
         } else {
             null
         }
-    val topBarHazeState = LocalTopBarHazeState.current
     val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
     var lastHiddenState by remember(lazyListState) { mutableStateOf(false) }
     val resolvedContentPadding =
@@ -126,9 +124,6 @@ fun ScreenLazyColumn(
                 .fillMaxSize()
                 .scrollEndHaptic()
                 .overScrollVertical()
-                .let { mod ->
-                    if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState) else mod
-                }
                 .nestedScroll(fabScrollObserver)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .let { mod ->

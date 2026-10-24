@@ -51,6 +51,7 @@ import com.github.yumeyucca.yumebox.core.util.PollingTimers
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.github.yumeyucca.yumebox.domain.model.TrafficData
 import com.github.yumeyucca.yumebox.presentation.component.BottomBarDestination
+import com.github.yumeyucca.yumebox.presentation.component.LocalDetailNavigator
 import com.github.yumeyucca.yumebox.presentation.component.LocalHandlePageChange
 import com.github.yumeyucca.yumebox.presentation.component.LocalNavigator
 import com.github.yumeyucca.yumebox.presentation.icon.ShellIcons
@@ -183,15 +184,21 @@ fun MoeHomePage(
         }
     val contentSurface = if (isDarkHomeSurface) MiuixTheme.colorScheme.surface else Color.White
     val handlePageChange = LocalHandlePageChange.current
-    val sidebarIcons = remember(onOpenPanel, handlePageChange) {
+    val rootNavigator = LocalNavigator.current
+    val detailNavigator = LocalDetailNavigator.current
+    // Settings is no longer a pager tab: the sidebar entry pushes it as a standalone page
+    // (replacing the detail pane inside the tablet shell).
+    val openSettingsPage: () -> Unit = {
+        detailNavigator?.replaceAll(listOf(Route.Settings))
+            ?: rootNavigator.push(Route.Settings)
+    }
+    val sidebarIcons = remember(onOpenPanel, handlePageChange, openSettingsPage) {
         listOf(
             MoeSidebarIconItem(Yume.Zashboard) { onOpenPanel?.invoke() },
             MoeSidebarIconItem(ShellIcons.OpenProfiles) {
                 handlePageChange(BottomBarDestination.Config)
             },
-            MoeSidebarIconItem(ShellIcons.OpenSettings) {
-                handlePageChange(BottomBarDestination.Setting)
-            },
+            MoeSidebarIconItem(ShellIcons.OpenSettings) { openSettingsPage() },
         )
     }
     val quoteText = moeHomeQuote.ifBlank { YumeTxt.AppSettings.Interface.HomeQuoteDefault }

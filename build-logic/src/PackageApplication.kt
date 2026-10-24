@@ -113,7 +113,7 @@ private fun packageLocked(root: File, state: File, options: Map<String, String>,
     output.resolveSibling(output.name + ".json").writeText(buildJsonObject {
         put("module", module); put("variant", variant); put("geo", plan.geoSegment)
         put("applicationId", applicationId); put("versionCode", plan.versionCode); put("versionName", plan.versionName)
-        put("signed", signing != null); put("sha256", sha256(output)); put("toolchain", "0.13.0")
+        put("signed", signing != null); put("sha256", sha256(output)); put("toolchain", launcherToolchainVersion(root))
     }.toString())
     println("Verified APK: ${output.path}")
 }

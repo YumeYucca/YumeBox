@@ -38,7 +38,6 @@ import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 
 @Composable
 fun CustomRoutingScreen(
@@ -114,7 +113,7 @@ fun CustomRoutingScreen(
 
     BackHandler { saveAndExit() }
 
-    Scaffold(
+    GlassScaffold(
         topBar = {
             TopBar(
                 title = YumeTxt.MetaFeature.CustomRouting.Title,

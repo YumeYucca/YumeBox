@@ -3,6 +3,18 @@ package dev.yume.build
 import java.io.File
 import java.security.MessageDigest
 
+/** Toolchain version the Android output adapter is verified against; bump together with kotlin.bat/kotlin. */
+private const val PinnedToolchainVersion = "0.14.0-dev-4533"
+
+/** Version declared by the checked-out launcher, e.g. `set kotlin_cli_version=0.14.0-dev-4533`. */
+fun launcherToolchainVersion(root: File): String =
+    root.resolve(if (System.getProperty("os.name").startsWith("Windows")) "kotlin.bat" else "kotlin").readText()
+        .lineSequence()
+        .map { it.trim() }
+        .firstOrNull { it.startsWith("set kotlin_cli_version=") || it.startsWith("kotlin_cli_version=") }
+        ?.substringAfter('=')?.trim()
+        ?: error("Launcher is missing kotlin_cli_version")
+
 class ToolchainBackend(private val root: File, graph: RuntimeGraph, private val resourceAars: List<ResourceAar>) {
     private val excludedNames = graph.excluded.flatMap { coordinate ->
         val classifier = coordinate.classifier.takeIf(String::isNotEmpty)?.let { "-$it" }.orEmpty()
@@ -70,12 +82,15 @@ class ToolchainBackend(private val root: File, graph: RuntimeGraph, private val 
             }
         }
     """.trimIndent()
-    private val fingerprint = MessageDigest.getInstance("SHA-256").digest(("0.13.0/resource-symbols-v1/nontransitive-true/nonfinal-true\n" + initScript).toByteArray()).take(8).joinToString("") { "%02x".format(it) }
+    private val launcherVersion = launcherToolchainVersion(root)
+    private val fingerprint = MessageDigest.getInstance("SHA-256").digest(("$launcherVersion/resource-symbols-v1/nontransitive-true/nonfinal-true\n" + initScript).toByteArray()).take(8).joinToString("") { "%02x".format(it) }
     val buildRoot: File = root.resolve("build/toolchain-$fingerprint")
     private val gradleHome = root.resolve(".kotlin/yumebox/gradle-home")
 
     fun build(module: String, variant: String, loader: Boolean) {
-        require(root.resolve("kotlin.bat").readText().contains("set kotlin_cli_version=0.13.0")) { "Update the Android output adapter before changing Toolchain version" }
+        require(launcherVersion == PinnedToolchainVersion) {
+            "Update the Android output adapter before changing Toolchain version (launcher=$launcherVersion, adapter=$PinnedToolchainVersion)"
+        }
         gradleHome.resolve("init.d/yumebox.gradle").apply { parentFile.mkdirs(); writeText(initScript) }
         gradleHome.resolve("gradle.properties").writeText(listOf("org.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=1g", "org.gradle.caching=true", "android.nonTransitiveRClass=true", "android.nonFinalResIds=true", "").joinToString(System.lineSeparator()))
         println("Toolchain backend: $fingerprint; excluded runtime artifacts: ${excludedNames.joinToString()}")

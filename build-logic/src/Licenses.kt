@@ -44,6 +44,7 @@ fun collectLicenses(root: File, coordinates: List<Coordinate>, maven: MavenFiles
             normalized.contains("android software development kit") || normalized.contains("android.com/studio/terms") -> "ASDKL"
             normalized.contains("0bsd") || normalized.contains("zero clause") -> "0BSD"
             normalized.contains("bsd") && (normalized.contains("3") || normalized.contains("new") || normalized.contains("revised")) -> "BSD-3-Clause"
+            Regex("\\bisc\\b").containsMatchIn(normalized) -> "ISC"
             normalized.contains("eclipse public") && normalized.contains("2.0") || Regex("\\bepl-?2\\.0\\b").containsMatchIn(normalized) -> "EPL-2.0"
             Regex("\\bmit\\b").containsMatchIn(normalized) -> "MIT"
             else -> licenseCatalog.entries.firstOrNull { (_, entry) -> entry.jsonObject["url"]?.jsonPrimitive?.content == url }?.key

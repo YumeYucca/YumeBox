@@ -26,10 +26,8 @@ package com.github.yumeyucca.yumebox.presentation.component
 import androidx.compose.animation.animateBounds
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.TargetedFlingBehavior
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerState
@@ -40,8 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Black
-import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.layout.onSizeChanged
@@ -56,17 +54,15 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ArrowDownUp
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Bolt
 import com.github.yumeyucca.yumebox.presentation.icon.yume.House
 import com.github.yumeyucca.yumebox.presentation.icon.yume.PackageCheck
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze
-import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze.chromeEffect
+import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
+import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.glassSurface
 import com.kyant.shapes.Capsule
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
@@ -186,15 +182,22 @@ val LocalDetailNavigator = compositionLocalOf<Navigator?> { null }
 inline val Navigator?.isSplitShell: Boolean
     get() = this != null
 
-val LocalBottomBarHazeState = compositionLocalOf<HazeState?> { null }
-val LocalBottomBarHazeStyle = compositionLocalOf<HazeBlurStyle?> { null }
-
 object MainBottomBarDefaults {
-    val HorizontalPadding = UiDp.dp36
-    val TopPadding = UiDp.dp6
-    val FloatingBottomPadding = UiDp.dp12
+    // NexioSchedule-aligned capsule sizing: each tab owns 21% of the screen width, so the pill
+    // centers itself at 0.63 for three tabs and grows to 0.84 when the proxy tab is revealed.
+    const val WidthFractionPerTab = 0.21f
+
+    // Two-tab floor: 0.21 x 2 reads too narrow (user feedback) — 0.46 keeps a touch more
+    // per-tab room than the three-tab layout (0.21/tab) without swallowing the screen.
+    // Tuning trail: 0.42 too narrow, 0.5 too wide, 0.46 approved direction.
+    const val MinBarWidthFraction = 0.46f
+
+    // NexioSchedule-aligned floating offset: hug the gesture-nav inset with 2dp of breathing
+    // room, but never sit closer than 22dp to the screen bottom.
+    val MinFloatingBottomGap = UiDp.dp22
+    val InsetBreathingRoom = UiDp.dp2
     val ExitOffset = UiDp.dp84
-    val FloatingReservedHeight = UiDp.dp68
+    val BarHeight = UiDp.dp56
     private const val PagerNavigationDurationMillis = 360
     val PagerAnimationSpec: AnimationSpec<Float> =
         spring(
@@ -233,17 +236,13 @@ fun rememberBottomBarReservedHeight(): Dp {
                 .toDp()
         }
     return remember(systemBottomInset) {
-        MainBottomBarDefaults.FloatingReservedHeight + systemBottomInset
+        MainBottomBarDefaults.BarHeight +
+            maxOf(
+                systemBottomInset + MainBottomBarDefaults.InsetBreathingRoom,
+                MainBottomBarDefaults.MinFloatingBottomGap,
+            )
     }
 }
-
-private fun Modifier.bottomBarHazeEffect(state: HazeState?, style: HazeBlurStyle?): Modifier =
-    chromeEffect(
-        state = state,
-        style = style,
-        blurRadius = UiDp.dp26,
-        noiseFactor = YumeHaze.ChromeNoiseFactor,
-    )
 
 @Composable
 fun BottomBarContent(
@@ -265,19 +264,23 @@ private fun FloatingBottomBarContent(
     // optimistically before navigation starts, which previously recolored an icon while the
     // indicator was still parked on the old page.
     val page by remember(pagerState) { derivedStateOf { pagerState.currentPage } }
+    // Tabs exclude Home: the home page owns its chrome and the bar is hidden there anyway, so the
+    // pager's page 0 has no tab. Tab index = pager page index - 1 throughout the math below.
+    val tabs = remember(destinations) { destinations.filter { it != BottomBarDestination.Home } }
     val indicatorProgress by
-    remember(pagerState, destinations.size) {
+    remember(pagerState, tabs.size) {
         derivedStateOf {
-            (pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction).coerceIn(
-                0f,
-                (destinations.size - 1).toFloat(),
-            )
+            (
+                pagerState.currentPage.toFloat() +
+                    pagerState.currentPageOffsetFraction - 1f
+                ).coerceIn(0f, (tabs.size - 1).toFloat())
         }
     }
     val bottomBarVisible = isVisible && (bottomBarScrollBehavior?.isBottomBarVisible ?: true)
-    val showProxyDestination = BottomBarDestination.Proxy in destinations
     var revealProxyDestination by remember { mutableStateOf(false) }
-    LaunchedEffect(showProxyDestination) { revealProxyDestination = showProxyDestination }
+    LaunchedEffect(BottomBarDestination.Proxy in tabs) {
+        revealProxyDestination = BottomBarDestination.Proxy in tabs
+    }
     val density = LocalDensity.current
     val opacity = AppTheme.opacity
     val exitOffsetPx =
@@ -329,31 +332,51 @@ private fun FloatingBottomBarContent(
             val gestureBottom = WindowInsets.systemGestures.getBottom(this)
             max(navigationBottom, gestureBottom).toDp()
         }
+    val isLightTheme = MiuixTheme.colorScheme.background.luminance() >= 0.5f
     val selectedColor = MiuixTheme.colorScheme.primary
     val unselectedColor = MiuixTheme.colorScheme.onSurface.copy(alpha = opacity.secondaryText)
-    val containerColor = MiuixTheme.colorScheme.background
+    // NexioSchedule-style frosted glass: with a live glass backdrop the capsule frosts the page
+    // behind it under a translucent surfaceContainer tint; without one (setting off or no
+    // RuntimeShader) it falls back to a solid capsule, never raw see-through.
+    val glassBackdrop = LocalGlassBackdrop.current
+    val fallbackColor = MiuixTheme.colorScheme.surfaceContainer
     val indicatorContainerColor = selectedColor.copy(alpha = opacity.subtle)
+    val widthFraction by
+        animateFloatAsState(
+            targetValue =
+                (MainBottomBarDefaults.WidthFractionPerTab * tabs.size)
+                    .coerceIn(MainBottomBarDefaults.MinBarWidthFraction, 1f),
+            animationSpec =
+                tween(
+                    durationMillis = BottomBarLayoutAnimationDurationMillis,
+                    easing = AnimationSpecs.EmphasizedDecelerate,
+                ),
+            label = "bottom_bar_width_fraction",
+        )
 
     LegacyBottomNavigationBar(
         indicatorProgress = indicatorProgress,
-        tabsCount = destinations.size,
-        containerColor = containerColor,
+        tabsCount = tabs.size,
+        isLightTheme = isLightTheme,
+        glassBackdrop = glassBackdrop,
+        fallbackColor = fallbackColor,
         indicatorContainerColor = indicatorContainerColor,
         modifier =
             Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(widthFraction)
                 .padding(
-                    start = MainBottomBarDefaults.HorizontalPadding,
-                    end = MainBottomBarDefaults.HorizontalPadding,
-                    top = MainBottomBarDefaults.TopPadding,
-                    bottom = bottomSafeInset + MainBottomBarDefaults.FloatingBottomPadding,
+                    bottom =
+                        maxOf(
+                            bottomSafeInset + MainBottomBarDefaults.InsetBreathingRoom,
+                            MainBottomBarDefaults.MinFloatingBottomGap,
+                        )
                 )
                 .graphicsLayer {
                     alpha = animatedAlpha
                     translationY = animatedTranslationY.value
                 },
     ) { lookaheadScope ->
-        destinations.forEach { destination ->
+        tabs.forEach { destination ->
             val proxyItemAlpha by
             animateFloatAsState(
                 targetValue =
@@ -368,7 +391,7 @@ private fun FloatingBottomBarContent(
             )
             BottomBarTab(
                 destination = destination,
-                selected = destinations.getOrNull(page) == destination,
+                selected = tabs.getOrNull(page - 1) == destination,
                 enabled = bottomBarVisible,
                 selectedColor = selectedColor,
                 unselectedColor = unselectedColor,
@@ -417,7 +440,7 @@ private fun BottomBarTab(
         enabled = enabled,
         onClick = onClick,
     ) {
-        Box(modifier = Modifier.size(UiDp.dp20), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.size(UiDp.dp24), contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = destination.icon,
                 contentDescription = destination.label,
@@ -440,14 +463,15 @@ private fun BottomBarTab(
 private fun LegacyBottomNavigationBar(
     indicatorProgress: Float,
     tabsCount: Int,
-    containerColor: Color,
+    isLightTheme: Boolean,
+    glassBackdrop: LayerBackdrop?,
+    fallbackColor: Color,
     indicatorContainerColor: Color,
     modifier: Modifier = Modifier,
     content: @Composable RowScope.(LookaheadScope) -> Unit,
 ) {
     val opacity = AppTheme.opacity
     val density = LocalDensity.current
-    val isLightTheme = !isSystemInDarkTheme()
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
     val surfaceWidthPx = remember { mutableIntStateOf(0) }
     val safeIndicatorProgress = indicatorProgress.coerceIn(0f, (tabsCount - 1).toFloat())
@@ -462,25 +486,11 @@ private fun LegacyBottomNavigationBar(
         }
     val borderShadowColor =
         if (isLightTheme) {
-            // White capsule on the near-white page (surface #F7F7F7) has almost no tonal
-            // contrast, so the drop shadow has to carry the lift — 0.10 was too faint.
+            // The translucent capsule on a near-white page needs the drop shadow to carry the
+            // lift; the additive edge-light rim alone cannot separate it there.
             Black.copy(alpha = opacity.softOverlay)
         } else {
             Black.copy(alpha = opacity.surfaceSoft)
-        }
-    val outerBorderColor =
-        if (isLightTheme) {
-            // A white rim on a white capsule is invisible; use a dark hairline so the capsule
-            // edge reads clearly against the light page (miuix separates with hairlines, not glow).
-            Black.copy(alpha = opacity.subtle)
-        } else {
-            Black.copy(alpha = opacity.mediumOverlay)
-        }
-    val innerBorderColor =
-        if (isLightTheme) {
-            Black.copy(alpha = opacity.ultraSubtle)
-        } else {
-            White.copy(alpha = opacity.verySubtle)
         }
 
     Box(
@@ -494,9 +504,30 @@ private fun LegacyBottomNavigationBar(
                     ambientShadowColor = borderShadowColor
                     spotShadowColor = borderShadowColor
                 }
-                .height(UiDp.dp56)
+                .height(MainBottomBarDefaults.BarHeight)
                 .clip(Capsule())
-                .background(containerColor, Capsule()),
+                .then(
+                    Modifier.glassSurface(
+                        backdrop = glassBackdrop,
+                        shape = Capsule(),
+                        fallbackColor = fallbackColor,
+                        tint =
+                            MiuixTheme.colorScheme.surfaceContainer.copy(
+                                alpha = if (isLightTheme) 0.5f else 0.6f,
+                            ),
+                    )
+                )
+                .edgeLight(
+                    shape = Capsule(),
+                    color =
+                        EdgeLightDefaults.tint(
+                            MiuixTheme.colorScheme.surfaceContainer,
+                            isLightTheme,
+                        ),
+                    width = EdgeLightDefaults.width(isLightTheme),
+                    blurRadius = EdgeLightDefaults.BlurRadius,
+                    blendMode = EdgeLightDefaults.blendMode(isLightTheme),
+                ),
         contentAlignment = Alignment.CenterStart,
     ) {
         if (tabWidthPx > 0f) {
@@ -523,11 +554,6 @@ private fun LegacyBottomNavigationBar(
                 content(this@LookaheadScope)
             }
         }
-
-        LegacyBottomNavigationBorders(
-            outerBorderColor = outerBorderColor,
-            innerBorderColor = innerBorderColor,
-        )
     }
 }
 
@@ -546,27 +572,6 @@ private fun LegacyBottomNavigationIndicator(
                 .width(with(density) { indicatorWidthPx.toDp() })
                 .height(UiDp.dp48)
                 .background(indicatorContainerColor, Capsule())
-    )
-}
-
-@Composable
-private fun BoxScope.LegacyBottomNavigationBorders(
-    outerBorderColor: Color,
-    innerBorderColor: Color,
-) {
-    Box(
-        modifier =
-            Modifier
-                .matchParentSize()
-                .border(width = UiDp.dp0_3, color = outerBorderColor, shape = Capsule())
-    )
-
-    Box(
-        modifier =
-            Modifier
-                .matchParentSize()
-                .padding(UiDp.dp1)
-                .border(width = UiDp.dp0_2, color = innerBorderColor, shape = Capsule())
     )
 }
 
@@ -599,8 +604,7 @@ private fun LegacyBottomNavigationTabItem(
 enum class BottomBarDestination(val icon: ImageVector) {
     Home(Yume.House),
     Proxy(Yume.ArrowDownUp),
-    Config(Yume.PackageCheck),
-    Setting(Yume.Bolt);
+    Config(Yume.PackageCheck);
 
     val label: String
         get() =
@@ -608,6 +612,5 @@ enum class BottomBarDestination(val icon: ImageVector) {
                 Home -> YumeTxt.Component.BottomBar.Home
                 Proxy -> YumeTxt.Component.BottomBar.Proxy
                 Config -> YumeTxt.Component.BottomBar.Config
-                Setting -> YumeTxt.Component.BottomBar.Setting
             }
 }

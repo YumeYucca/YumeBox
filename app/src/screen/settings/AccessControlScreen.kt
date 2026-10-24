@@ -135,7 +135,7 @@ fun AccessControlScreen(navigator: Navigator) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
+        GlassScaffold(
             topBar = {
                 currentSearchStatus.TopAppBarAnim {
                     TopBar(

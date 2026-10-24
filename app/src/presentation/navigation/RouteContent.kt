@@ -31,6 +31,7 @@ package com.github.yumeyucca.yumebox.presentation.navigation
 
 import androidx.compose.runtime.Composable
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
+import com.github.yumeyucca.yumebox.presentation.component.rememberStandalonePageMainPadding
 import com.github.yumeyucca.yumebox.screen.about.AboutScreen
 import com.github.yumeyucca.yumebox.screen.about.OpenSourceLicensesScreen
 import com.github.yumeyucca.yumebox.screen.connection.ConnectionDetailScreen
@@ -44,6 +45,7 @@ import com.github.yumeyucca.yumebox.screen.traffic.TrafficStatisticsScreen
 @Composable
 fun RouteContent(route: Route, navigator: Navigator) {
     when (route) {
+        Route.Settings -> SettingPager(mainInnerPadding = rememberStandalonePageMainPadding())
         Route.AppSettings -> AppSettingsScreen()
         Route.NetworkSettings -> NetworkSettingsScreen(navigator)
         Route.VpnServiceOptions -> VpnServiceOptionsScreen()

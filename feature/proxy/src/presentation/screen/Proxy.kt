@@ -36,11 +36,11 @@ import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Folders
+import com.github.yumeyucca.yumebox.presentation.icon.yume.Settings2
 import com.github.yumeyucca.yumebox.presentation.screen.node.ProvideProxyDelayFlows
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGroupItems
 import com.github.yumeyucca.yumebox.presentation.theme.*
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -82,6 +82,7 @@ fun ProxyPager(
     mainInnerPadding: PaddingValues,
     onNavigateToProviders: (() -> Unit)?,
     isActive: Boolean,
+    onOpenSettings: (() -> Unit)? = null,
     @Suppress("UNUSED_PARAMETER") windowLayoutMode: WindowLayoutMode = WindowLayoutMode.Compact,
 ) {
     val proxyViewModel = koinViewModel<ProxyViewModel>()
@@ -91,7 +92,6 @@ fun ProxyPager(
     val sortMode = screen.sortMode
     val uiSelectedGroupName = screen.uiSelectedGroupName
     val groupScrollBehavior = MiuixScrollBehavior(snapAnimationSpec = null)
-    val topBarHazeState = LocalTopBarHazeState.current
 
     var showSortPopup by rememberSaveable { mutableStateOf(false) }
     val inSplitShell = LocalDetailNavigator.current.isSplitShell
@@ -163,7 +163,7 @@ fun ProxyPager(
     }
 
     ProvideProxyDelayFlows(proxyViewModel) {
-        Scaffold(
+        GlassScaffold(
             topBar = {
                 ProxyTopBar(
                     title = YumeTxt.Proxy.Title,
@@ -171,6 +171,7 @@ fun ProxyPager(
                     showBack = false,
                     onBack = {},
                     onNavigateToProviders = onNavigateToProviders,
+                    onOpenSettings = onOpenSettings,
                     showSortAction = selectedGroupName == null,
                     showSortPopup = showSortPopup,
                     onShowSortPopupChange = { showSortPopup = it },
@@ -181,9 +182,7 @@ fun ProxyPager(
         ) { scaffoldPadding ->
             Box(
                 modifier =
-                    Modifier.fillMaxSize().let { mod ->
-                        if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState) else mod
-                    }
+                    Modifier.fillMaxSize()
             ) {
                 if (inSplitShell) {
                     if (proxyGroups.isNotEmpty()) {
@@ -344,6 +343,7 @@ private fun ProxyContent(
 internal fun ProxyShellNodeDetailContent(
     mainInnerPadding: PaddingValues,
     onNavigateToProviders: (() -> Unit)? = null,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     val proxyViewModel = koinViewModel<ProxyViewModel>()
     val screen = rememberProxyScreenVmState(proxyViewModel)
@@ -430,7 +430,7 @@ internal fun ProxyShellNodeDetailContent(
                 }
             }
         ProvideProxyDelayFlows(proxyViewModel) {
-            Scaffold(
+            GlassScaffold(
                 topBar = {
                     ProxyTopBar(
                         title = pageGroup?.name ?: YumeTxt.Proxy.Title,
@@ -438,6 +438,7 @@ internal fun ProxyShellNodeDetailContent(
                         showBack = false,
                         onBack = {},
                         onNavigateToProviders = onNavigateToProviders,
+                        onOpenSettings = onOpenSettings,
                         showSortAction = false,
                         showSortPopup = showSortPopup,
                         onShowSortPopupChange = { showSortPopup = it },
@@ -485,6 +486,7 @@ private fun ProxyTopBar(
     showBack: Boolean,
     onBack: () -> Unit,
     onNavigateToProviders: (() -> Unit)?,
+    onOpenSettings: (() -> Unit)? = null,
     showSortAction: Boolean,
     showSortPopup: Boolean,
     onShowSortPopupChange: (Boolean) -> Unit,
@@ -515,6 +517,14 @@ private fun ProxyTopBar(
                             contentDescription = YumeTxt.Providers.Title,
                         )
                     }
+                }
+            }
+            onOpenSettings?.let { openSettings ->
+                IconButton(onClick = openSettings) {
+                    Icon(
+                        Yume.Settings2,
+                        contentDescription = YumeTxt.Settings.Title,
+                    )
                 }
             }
         },

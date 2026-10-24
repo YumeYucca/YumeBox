@@ -45,7 +45,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleSurface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -69,7 +68,7 @@ fun OpenSourceLicensesScreen(navigator: Navigator) {
     }
     val libraryItems = remember(libraries) { libraries?.libraries.orEmpty() }
 
-    Scaffold(
+    GlassScaffold(
         topBar = {
             TopBar(title = YumeTxt.OpenSourceLicenses.Title, scrollBehavior = scrollBehavior)
         }

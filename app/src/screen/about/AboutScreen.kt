@@ -61,7 +61,6 @@ import kotlinx.coroutines.withContext
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -101,7 +100,7 @@ fun AboutScreen(navigator: Navigator) {
     // Core identity comes from the same request as the final APK manifest.
     val coreVersion = BuildInfo.CORE_VERSION
 
-    Scaffold(topBar = { TopBar(title = YumeTxt.About.Title, scrollBehavior = scrollBehavior) }) { innerPadding ->
+    GlassScaffold(topBar = { TopBar(title = YumeTxt.About.Title, scrollBehavior = scrollBehavior) }) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,

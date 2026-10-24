@@ -38,8 +38,8 @@ import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 
 @Composable
 fun ConfigEditorScreen(
@@ -82,7 +82,7 @@ fun ConfigEditorScreen(
         }
     }
 
-    Scaffold(
+    GlassScaffold(
         topBar = {
             TopBar(
                 title =

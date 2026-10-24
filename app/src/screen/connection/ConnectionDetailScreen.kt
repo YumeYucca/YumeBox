@@ -42,7 +42,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -98,7 +97,7 @@ fun ConnectionDetailScreen(navigator: Navigator, connectionId: String) {
         }
     }
 
-    Scaffold(
+    GlassScaffold(
         topBar = {
             TopBar(
                 title = YumeTxt.Connection.Detail.Title,

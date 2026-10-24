@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.BadgePlus
-import dev.chrisbanes.haze.hazeSource
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -131,7 +130,6 @@ private sealed interface KeyValueDialogState {
 @Composable
 fun StringListEditorScreen(navigator: Navigator) {
     val scrollBehavior = MiuixScrollBehavior()
-    val topBarHazeState = LocalTopBarHazeState.current
     val items = remember { mutableStateListOf<TextDraftItem>() }
     val title = EditorDataHolder.listEditorTitle
     val placeholder = EditorDataHolder.listEditorPlaceholder
@@ -192,9 +190,6 @@ fun StringListEditorScreen(navigator: Navigator) {
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .let { mod ->
-                            if (topBarHazeState != null) mod.hazeSource(topBarHazeState) else mod
-                        }
                         .padding(combinedInnerPadding),
             )
         } else {
@@ -290,7 +285,6 @@ fun StringListEditorScreen(navigator: Navigator) {
 @Composable
 fun KeyValueEditorScreen(navigator: Navigator) {
     val scrollBehavior = MiuixScrollBehavior()
-    val topBarHazeState = LocalTopBarHazeState.current
     val items = remember { mutableStateListOf<KeyValueDraftItem>() }
     val title = EditorDataHolder.mapEditorTitle
     val keyPlaceholder = EditorDataHolder.mapEditorKeyPlaceholder
@@ -342,9 +336,6 @@ fun KeyValueEditorScreen(navigator: Navigator) {
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .let { mod ->
-                            if (topBarHazeState != null) mod.hazeSource(topBarHazeState) else mod
-                        }
                         .padding(combinedInnerPadding),
             )
         } else {

@@ -29,14 +29,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpSize
-import com.github.yumeyucca.yumebox.presentation.icon.Yume
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Check
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Close
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Close
+import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.layout.BottomSheetDefaults
 import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -96,7 +96,7 @@ fun AppBottomSheetCloseAction(
     AppBottomSheetIconAction(
         action =
             AppBottomSheetAction(
-                icon = Yume.Close,
+                icon = MiuixIcons.Close,
                 contentDescription = contentDescription,
                 enabled = enabled,
                 onClick = onClick,
@@ -113,7 +113,7 @@ fun AppBottomSheetConfirmAction(
     AppBottomSheetIconAction(
         action =
             AppBottomSheetAction(
-                icon = Yume.Check,
+                icon = MiuixIcons.Ok,
                 contentDescription = contentDescription,
                 enabled = enabled,
                 onClick = onClick,

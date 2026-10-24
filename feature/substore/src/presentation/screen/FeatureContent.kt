@@ -34,7 +34,6 @@ import com.github.yumeyucca.yumebox.substore.model.AutoCloseMode
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
@@ -72,7 +71,7 @@ fun FeatureContent(
 
     LaunchedEffect(Unit) { viewModel.initializeSubStoreStatus() }
 
-    Scaffold(topBar = { TopBar(title = YumeTxt.Feature.Title, scrollBehavior = scrollBehavior) }) { innerPadding ->
+    GlassScaffold(topBar = { TopBar(title = YumeTxt.Feature.Title, scrollBehavior = scrollBehavior) }) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,

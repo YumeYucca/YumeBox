@@ -50,7 +50,6 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import java.io.File
@@ -66,7 +65,7 @@ fun MetaFeatureScreen(navigator: Navigator) {
     val ageKeyHybrid = remember { mutableStateOf(false) }
     val ageKeyDialogVisible = remember { mutableStateOf(false) }
 
-    Scaffold(
+    GlassScaffold(
         topBar = { TopBar(title = YumeTxt.MetaFeature.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()
