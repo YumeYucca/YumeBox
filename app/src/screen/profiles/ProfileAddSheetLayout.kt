@@ -110,6 +110,7 @@ internal fun ProfileAddSheetContent(
             }
         },
         onDismissRequest = actions.dismiss,
+        scrollableContent = true,
     ) {
         Column(
             modifier =

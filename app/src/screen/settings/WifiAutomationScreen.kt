@@ -381,6 +381,7 @@ private fun WifiScanSheet(
         onDismissFinished = onDismissFinished,
         insideMargin = DpSize(UiDp.dp12, UiDp.dp8),
         enableNestedScroll = true,
+        scrollableContent = true,
     ) {
         Column(
             modifier =
@@ -519,6 +520,7 @@ private fun WifiRuleEditSheet(
         onDismissRequest = onDismiss,
         insideMargin = DpSize(UiDp.dp12, UiDp.dp8),
         enableNestedScroll = true,
+        scrollableContent = true,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(bottom = UiDp.dp16),

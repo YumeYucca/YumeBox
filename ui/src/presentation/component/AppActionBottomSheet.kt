@@ -23,6 +23,13 @@
 package com.github.yumeyucca.yumebox.presentation.component
 
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -141,6 +148,7 @@ fun AppActionBottomSheet(
     allowDismiss: Boolean = true,
     enableNestedScroll: Boolean = true,
     renderInRootScaffold: Boolean? = null,
+    scrollableContent: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val resolvedBackgroundColor =
@@ -167,12 +175,17 @@ fun AppActionBottomSheet(
             sheetMaxWidth
         }
 
+    // Title and actions render in our own floating 76dp header (NexioSchedule BlurBottomSheet
+    // layout) instead of the library's wrap-height title row: constant header height whether
+    // an action renders or not, and content scrolls under the persistent top fade. The library
+    // sheet is passed a null title — its empty title row strip is absorbed by the header's
+    // offset (see FloatingSheetHeaderDefaults).
     OverlayBottomSheet(
         show = show,
         modifier = modifier,
-        title = title,
-        startAction = startAction,
-        endAction = endAction,
+        title = null,
+        startAction = null,
+        endAction = null,
         backgroundColor = resolvedBackgroundColor,
         enableWindowDim = enableWindowDim,
         cornerRadius = cornerRadius,
@@ -186,6 +199,37 @@ fun AppActionBottomSheet(
         allowDismiss = allowDismiss,
         enableNestedScroll = enableNestedScroll,
         renderInRootScaffold = resolvedRenderInRoot,
-        content = content,
+        content = {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                if (scrollableContent) {
+                    // NexioSchedule sheet semantics: the content column scrolls itself, wraps up
+                    // to the sheet's max height, and slides under the floating header. The sheet
+                    // column is not scrollable, so a tall non-lazy form (add profile, settings)
+                    // would otherwise be clipped with no way to reach the cut-off fields —
+                    // especially with the IME consuming half the window.
+                    Column(
+                        modifier =
+                            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                    ) {
+                        Spacer(
+                            modifier =
+                                Modifier.height(FloatingSheetHeaderDefaults.ContentTopInset)
+                        )
+                        content()
+                    }
+                } else {
+                    // Self-scrolling content (LazyColumn): caller pads its top with
+                    // FloatingSheetHeaderDefaults.ContentTopInset so the first row starts below
+                    // the header band but still scrolls under the fade.
+                    content()
+                }
+                FloatingSheetHeader(
+                    title = title,
+                    sheetColor = resolvedBackgroundColor,
+                    startAction = startAction,
+                    endAction = endAction,
+                )
+            }
+        },
     )
 }

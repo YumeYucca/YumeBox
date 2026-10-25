@@ -97,6 +97,12 @@ sealed interface Route {
     data object Feature : Route
 
     @Serializable
+    data object Extensions : Route
+
+    @Serializable
+    data object BackupRestore : Route
+
+    @Serializable
     data object CustomRouting : Route
 
     @Serializable

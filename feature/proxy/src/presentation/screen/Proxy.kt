@@ -25,7 +25,6 @@ package com.github.yumeyucca.yumebox.presentation.screen
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
@@ -34,6 +33,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.core.model.isProxyGroup
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
@@ -43,7 +46,7 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.House
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ListChevronsUpDown
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Settings2
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Speed
-import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSortPopup
+import com.github.yumeyucca.yumebox.presentation.screen.node.NodeActionsMenu
 import com.github.yumeyucca.yumebox.presentation.screen.node.ProvideProxyDelayFlows
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGroupItems
 import com.github.yumeyucca.yumebox.presentation.theme.*
@@ -94,6 +97,7 @@ fun ProxyPager(
     mainInnerPadding: PaddingValues,
     onNavigateToProviders: (() -> Unit)?,
     isActive: Boolean,
+    onNavigateToRules: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
     @Suppress("UNUSED_PARAMETER") windowLayoutMode: WindowLayoutMode = WindowLayoutMode.Compact,
 ) {
@@ -106,7 +110,6 @@ fun ProxyPager(
     val nodeSearchVisible = screen.nodeSearchVisible
     val groupScrollBehavior = MiuixScrollBehavior(snapAnimationSpec = null)
 
-    var showSortPopup by rememberSaveable { mutableStateOf(false) }
     val inSplitShell = LocalDetailNavigator.current.isSplitShell
     // zashboard 式拆分:策略组 = 成员里含其他分组;节点组 = 成员全是节点(典型如地域组)。
     // 两类同时存在时才出现 tab 切换,默认停留在策略;否则维持原有的单一分组列表。
@@ -128,6 +131,8 @@ fun ProxyPager(
             }
         }
     var proxyListTabIndex by rememberSaveable { mutableStateOf(0) }
+    // 常驻 tab 覆盖带占位:顶部 20dp 呼吸 + tab 42dp + 底部 4dp 留白 = 66dp;无 tab 时为 0。
+    val proxyListTabBandInset = if (proxyListTabs.isNotEmpty()) 66.dp else 0.dp
     val displayedProxyGroups =
         when {
             proxyListTabs.isEmpty() -> proxyGroups
@@ -188,8 +193,10 @@ fun ProxyPager(
         }
     // 顶栏测速按钮:统一测全部节点(分组页/节点页不再区分)。
     val testAllNodes = remember(proxyViewModel) { { proxyViewModel.testDelay() } }
+    // 节点条目前置了搜索框槽位 + 刷新指示器共 2 个列表项(常驻 tab 不在列表内)。
+    val nodeListItemOffset = 2
     val locateCurrentProxy =
-        remember(coroutineScope, displayGroup, nodeListState, selectedGroupName) {
+        remember(coroutineScope, displayGroup, nodeListState, selectedGroupName, nodeListItemOffset) {
             if (selectedGroupName == null) {
                 null
             } else {
@@ -201,7 +208,7 @@ fun ProxyPager(
                                 group.proxies.indexOfFirst { proxy -> proxy.name == group.now }
                             if (proxyIndex < 0) return
                             coroutineScope.launch {
-                                nodeListState.animateLocateToItem(proxyIndex + 1)
+                                nodeListState.animateLocateToItem(proxyIndex + nodeListItemOffset)
                             }
                         }
                     }
@@ -227,11 +234,10 @@ fun ProxyPager(
                     showBack = false,
                     onBack = {},
                     onNavigateToProviders = onNavigateToProviders,
+                    onNavigateToRules = onNavigateToRules,
                     onOpenSettings = onOpenSettings,
                     onTestAllNodes = testAllNodes,
                     onLocateCurrentProxy = locateCurrentProxy,
-                    showSortPopup = showSortPopup,
-                    onShowSortPopupChange = { showSortPopup = it },
                     sortMode = sortMode,
                     onSortSelected = proxyViewModel::setSortMode,
                     searchVisible = nodeSearchVisible,
@@ -254,9 +260,7 @@ fun ProxyPager(
                         onGroupClick = groupSelection.selectGroup,
                         onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
                         listState = groupListState,
-                        tabs = proxyListTabs,
-                        selectedTabIndex = proxyListTabIndex,
-                        onTabSelected = { proxyListTabIndex = it },
+                        topOverlayInset = proxyListTabBandInset,
                     )
                     }
                 } else {
@@ -264,58 +268,73 @@ fun ProxyPager(
                     targetState = selectedGroupName,
                     transitionSpec = {
                         if (targetState != null) {
-                            (slideInHorizontally(
+                            // 钻入分组 = 镜头向前推(shared-axis Z,纯 scale+alpha):
+                            // 分组列表放大掠过镜头淡出,节点页从远处(0.90)迎面长到原位淡入。
+                            (fadeIn(
                                 animationSpec =
-                                    tween(durationMillis = 380, easing = AnimationSpecs.Legacy),
-                                initialOffsetX = { it },
+                                    tween(
+                                        durationMillis = 220,
+                                        easing = AnimationSpecs.Legacy,
+                                    )
                             ) +
-                                fadeIn(
+                                scaleIn(
                                     animationSpec =
                                         tween(
-                                            durationMillis = 180,
+                                            durationMillis = 360,
+                                            easing = AnimationSpecs.EmphasizedDecelerate,
+                                        ),
+                                    initialScale = 0.90f,
+                                )) togetherWith
+                                (fadeOut(
+                                    animationSpec =
+                                        tween(
+                                            durationMillis = 160,
                                             easing = AnimationSpecs.Legacy,
                                         )
-                                )) togetherWith
-                                (slideOutHorizontally(
-                                    animationSpec =
-                                        tween(durationMillis = 340, easing = AnimationSpecs.Legacy),
-                                    targetOffsetX = { -it / 3 },
                                 ) +
-                                    fadeOut(
+                                    scaleOut(
                                         animationSpec =
                                             tween(
-                                                durationMillis = 160,
-                                                easing = AnimationSpecs.Legacy,
-                                            )
+                                                durationMillis = 360,
+                                                easing = AnimationSpecs.EmphasizedAccelerate,
+                                            ),
+                                        targetScale = 1.10f,
                                     ))
                         } else {
-                            (slideInHorizontally(
+                            // 返回 = 镜头拉回:分组列表从 1.10 缩回复位,节点页退回远处(0.90)淡出。
+                            (fadeIn(
                                 animationSpec =
-                                    tween(durationMillis = 340, easing = AnimationSpecs.Legacy),
-                                initialOffsetX = { -it / 3 },
+                                    tween(
+                                        durationMillis = 220,
+                                        easing = AnimationSpecs.Legacy,
+                                    )
                             ) +
-                                fadeIn(
+                                scaleIn(
                                     animationSpec =
                                         tween(
-                                            durationMillis = 180,
+                                            durationMillis = 360,
+                                            easing = AnimationSpecs.EmphasizedDecelerate,
+                                        ),
+                                    initialScale = 1.10f,
+                                )) togetherWith
+                                (fadeOut(
+                                    animationSpec =
+                                        tween(
+                                            durationMillis = 160,
                                             easing = AnimationSpecs.Legacy,
                                         )
-                                )) togetherWith
-                                (slideOutHorizontally(
-                                    animationSpec =
-                                        tween(durationMillis = 380, easing = AnimationSpecs.Legacy),
-                                    targetOffsetX = { it },
                                 ) +
-                                    fadeOut(
+                                    scaleOut(
                                         animationSpec =
                                             tween(
-                                                durationMillis = 160,
-                                                easing = AnimationSpecs.Legacy,
-                                            )
+                                                durationMillis = 360,
+                                                easing = AnimationSpecs.EmphasizedAccelerate,
+                                            ),
+                                        targetScale = 0.90f,
                                     ))
                         }
                     },
-                    label = "proxy_content_slide",
+                    label = "proxy_content_drill",
                 ) { targetGroupName ->
                     if (targetGroupName == null) {
                         if (proxyGroups.isNotEmpty()) {
@@ -328,35 +347,78 @@ fun ProxyPager(
                                 onGroupClick = groupSelection.selectGroup,
                                 onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
                                 listState = groupListState,
-                                tabs = proxyListTabs,
-                                selectedTabIndex = proxyListTabIndex,
-                                onTabSelected = { proxyListTabIndex = it },
+                                topOverlayInset = proxyListTabBandInset,
                             )
                         }
                     } else {
-                        NodeListPage(
-                            group = selectedNodeGroup,
-                            sortMode = sortMode,
-                            testingGroupNames = proxyViewModel.testingGroupNames,
-                            testingProxyNames = testingProxyNames,
-                            delayTestProgress = proxyViewModel.delayTestProgress,
-                            mainInnerPadding = mainInnerPadding,
-                            outerInnerPadding = scaffoldPadding,
-                            scrollBehavior = groupScrollBehavior,
-                            listState = nodeListState,
-                            onSelectProxy = { groupName, proxyName ->
-                                proxyViewModel.selectProxy(groupName, proxyName)
-                            },
-                            onTestDelay = requestSelectedGroupDelayTest,
-                            onTestProxyDelay = proxyViewModel::testProxyDelay,
-                            onScrollDirectionChanged = {},
-                            useAdaptiveGrid = false,
-                            searchQuery = nodeSearchQuery,
-                            onSearchQueryChange = { nodeSearchQuery = it },
-                            searchVisible = nodeSearchVisible,
+                        // 钻入转场需要不透明底色,才能盖住底下的分组列表。
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .background(MiuixTheme.colorScheme.surface),
+                        ) {
+                            NodeListPage(
+                                group = selectedNodeGroup,
+                                sortMode = sortMode,
+                                testingGroupNames = proxyViewModel.testingGroupNames,
+                                testingProxyNames = testingProxyNames,
+                                delayTestProgress = proxyViewModel.delayTestProgress,
+                                mainInnerPadding = mainInnerPadding,
+                                outerInnerPadding = scaffoldPadding,
+                                scrollBehavior = groupScrollBehavior,
+                                listState = nodeListState,
+                                onSelectProxy = { groupName, proxyName ->
+                                    proxyViewModel.selectProxy(groupName, proxyName)
+                                },
+                                onTestDelay = requestSelectedGroupDelayTest,
+                                onTestProxyDelay = proxyViewModel::testProxyDelay,
+                                onScrollDirectionChanged = {},
+                                useAdaptiveGrid = false,
+                                searchQuery = nodeSearchQuery,
+                                onSearchQueryChange = { nodeSearchQuery = it },
+                                searchVisible = nodeSearchVisible,
+                                topOverlayInset = proxyListTabBandInset,
+                            )
+                        }
+                    }
+                }
+                // 顶部 tab:位于内容区最上方、随列表一起滚走(不吸附、不钉住),但渲染在
+                // 钻入/返回的 AnimatedContent 之外 —— 转场缩放不带动它:钻入瞬间活动列表
+                // 切到新页(列表在顶),tab 位移立即落在静止位,页面在它底下缩放。
+                // 位移在 graphicsLayer 绘制期读取列表状态,滚动全程零重组。
+                if (proxyListTabs.isNotEmpty()) {
+                    val density = LocalDensity.current
+                    val tabRestTopPx =
+                        with(density) { (scaffoldPadding.calculateTopPadding() + UiDp.dp20).toPx() }
+                    val tabZonePx = with(density) { UiDp.dp46.toPx() } // tab 42 + 底部 4
+                    val activeListState = if (selectedGroupName != null) nodeListState else groupListState
+                    val tabScrollPx by remember(activeListState, tabRestTopPx) {
+                        derivedStateOf {
+                            // 首项滚出视口后偏移按项重置:超过首项即视为已完全滚出 tab 区。
+                            if (activeListState.firstVisibleItemIndex == 0) {
+                                activeListState.firstVisibleItemScrollOffset.toFloat()
+                            } else {
+                                tabRestTopPx + tabZonePx
+                            }
+                        }
+                    }
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer {
+                                    translationY = tabRestTopPx - tabScrollPx
+                                }
+                                .background(MiuixTheme.colorScheme.surface)
+                                .padding(bottom = UiDp.dp4)
+                                .padding(horizontal = UiDp.dp12),
+                    ) {
+                        SegmentedTabRow(
                             tabs = proxyListTabs,
                             selectedTabIndex = proxyListTabIndex,
                             onTabSelected = selectProxyListTab,
+                            tabHeight = UiDp.dp42,
                         )
                     }
                 }
@@ -366,7 +428,6 @@ fun ProxyPager(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ProxyContent(
     proxyGroups: List<ProxyGroupInfo>,
@@ -377,9 +438,8 @@ private fun ProxyContent(
     onGroupTest: (ProxyGroupInfo) -> Unit,
     testingGroupNames: StateFlow<Set<String>>,
     listState: LazyListState,
-    tabs: List<String> = emptyList(),
-    selectedTabIndex: Int = 0,
-    onTabSelected: (Int) -> Unit = {},
+    // 常驻 tab 覆盖层占住的顶部高度,列表初始留白让位。
+    topOverlayInset: Dp = UiDp.dp0,
 ) {
     val testingNames by testingGroupNames.collectAsState()
     val spacing = LocalSpacing.current
@@ -393,28 +453,13 @@ private fun ProxyContent(
             PaddingValues(
                 start = UiDp.dp12,
                 end = UiDp.dp12,
-                top = innerPadding.calculateTopPadding() + UiDp.dp14,
+                // 有常驻 tab 带时内容紧贴带沿(带自身已含 4dp 上下留白);无带时保留原呼吸留白。
+                top =
+                    innerPadding.calculateTopPadding() +
+                        if (topOverlayInset > UiDp.dp0) topOverlayInset else UiDp.dp14,
                 bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
             ),
     ) {
-        if (tabs.isNotEmpty()) {
-            // 策略/节点组切换(zashboard 逻辑):吸附在内容区顶部,底色与页面一致避免内容透出。
-            stickyHeader(key = "__proxy_list_tabs__") {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .background(MiuixTheme.colorScheme.surface)
-                            .padding(vertical = UiDp.dp4),
-                ) {
-                    SegmentedTabRow(
-                        tabs = tabs,
-                        selectedTabIndex = selectedTabIndex,
-                        onTabSelected = onTabSelected,
-                    )
-                }
-            }
-        }
         nodeGroupItems(
             groups = proxyGroups,
             onGroupClick = onGroupClick,
@@ -431,6 +476,7 @@ internal fun ProxyShellNodeDetailContent(
     mainInnerPadding: PaddingValues,
     onNavigateToProviders: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
+    onNavigateToRules: (() -> Unit)? = null,
 ) {
     val proxyViewModel = koinViewModel<ProxyViewModel>()
     val screen = rememberProxyScreenVmState(proxyViewModel)
@@ -453,7 +499,6 @@ internal fun ProxyShellNodeDetailContent(
     val selectedGroupName = groupSelection.selectedGroupName
     val displayGroup = groupSelection.displayGroup
     val currentGroup = groupSelection.selectedGroup ?: displayGroup ?: proxyGroups.firstOrNull()
-    var showSortPopup by rememberSaveable { mutableStateOf(false) }
     var nodeSearchQuery by rememberSaveable(selectedGroupName) { mutableStateOf("") }
     val nodeSearchVisible = screen.nodeSearchVisible
     // "更多"弹窗里的搜索开关;关闭时清空查询,避免隐藏的过滤条件继续生效。
@@ -521,7 +566,8 @@ internal fun ProxyShellNodeDetailContent(
                                     group.proxies.indexOfFirst { proxy -> proxy.name == group.now }
                                 if (proxyIndex < 0) return
                                 coroutineScope.launch {
-                                    nodeGridState.animateLocateToItem(proxyIndex + 1)
+                                    // 搜索框槽位 + 刷新指示器 = 2 个前置项。
+                                    nodeGridState.animateLocateToItem(proxyIndex + 2)
                                 }
                             }
                         }
@@ -536,11 +582,10 @@ internal fun ProxyShellNodeDetailContent(
                         showBack = false,
                         onBack = {},
                         onNavigateToProviders = onNavigateToProviders,
+                        onNavigateToRules = onNavigateToRules,
                         onOpenSettings = onOpenSettings,
                         onTestAllNodes = testAllNodes,
                         onLocateCurrentProxy = locateCurrentProxy,
-                        showSortPopup = showSortPopup,
-                        onShowSortPopupChange = { showSortPopup = it },
                         sortMode = sortMode,
                         onSortSelected = proxyViewModel::setSortMode,
                         searchVisible = nodeSearchVisible,
@@ -584,6 +629,7 @@ private fun ProxyTopBar(
     showBack: Boolean,
     onBack: () -> Unit,
     onNavigateToProviders: (() -> Unit)?,
+    onNavigateToRules: (() -> Unit)?,
     onOpenSettings: (() -> Unit)? = null,
     // 测试全部节点;顶栏 chrome 在分组页/节点页不再区分,统一为这一个胶囊。
     onTestAllNodes: () -> Unit,
@@ -592,12 +638,11 @@ private fun ProxyTopBar(
     // 节点页搜索栏开关;非空 → "更多"弹窗里出现"搜索节点"勾选项。
     searchVisible: Boolean = false,
     onToggleSearch: (() -> Unit)? = null,
-    showSortPopup: Boolean,
-    onShowSortPopupChange: (Boolean) -> Unit,
     sortMode: ProxySortMode,
     onSortSelected: (ProxySortMode) -> Unit,
 ) {
     val backdrop = LocalTopBarBackdrop.current
+    var showActionsMenu by remember { mutableStateOf(false) }
     TopBar(
         title = title,
         scrollBehavior = scrollBehavior,
@@ -631,37 +676,38 @@ private fun ProxyTopBar(
                 horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // 合并后的胶囊:测速全部 + 更多。外部资源/定位/排序都收进"更多"弹窗,
-                // 弹窗锚定到包裹胶囊的 Box(BottomEnd ≈ 胶囊右缘,即 more 图标下方)。
-                Box {
-                    GlassTopActionPill(
-                        actions =
-                            listOf(
-                                GlassTopAction(
-                                    icon = Yume.Speed,
-                                    contentDescription = YumeTxt.Proxy.Action.Test,
-                                    onClick = onTestAllNodes,
-                                ),
-                                GlassTopAction(
-                                    icon = Yume.ListChevronsUpDown,
-                                    contentDescription = YumeTxt.Proxy.Action.Sort,
-                                    onClick = { onShowSortPopupChange(!showSortPopup) },
-                                ),
+                // 测速与更多保持在同一个玻璃胶囊里，弹窗只由右侧更多按钮触发。
+                GlassTopActionPill(
+                    actions =
+                        listOf(
+                            GlassTopAction(
+                                icon = Yume.Speed,
+                                contentDescription = YumeTxt.Proxy.Action.Test,
+                                onClick = onTestAllNodes,
                             ),
-                        backdrop = backdrop,
-                    )
-                    NodeSortPopup(
-                        show = showSortPopup,
-                        onDismiss = { onShowSortPopupChange(false) },
-                        sortMode = sortMode,
-                        alignment = PopupPositionProvider.Align.BottomEnd,
-                        onOpenProviders = onNavigateToProviders,
-                        onLocateCurrentProxy = onLocateCurrentProxy,
-                        searchVisible = searchVisible,
-                        onToggleSearch = onToggleSearch,
-                        onSortSelected = onSortSelected,
-                    )
-                }
+                            GlassTopAction(
+                                icon = Yume.ListChevronsUpDown,
+                                contentDescription = YumeTxt.Proxy.Action.Sort,
+                                onClick = { showActionsMenu = !showActionsMenu },
+                            ),
+                        ),
+                    backdrop = backdrop,
+                    actionOverlay = { index ->
+                        if (index == 1) {
+                            NodeActionsMenu(
+                                show = showActionsMenu,
+                                onDismiss = { showActionsMenu = false },
+                                sortMode = sortMode,
+                                onOpenProviders = onNavigateToProviders,
+                                onOpenRules = onNavigateToRules,
+                                onLocateCurrentProxy = onLocateCurrentProxy,
+                                searchVisible = searchVisible,
+                                onToggleSearch = onToggleSearch,
+                                onSortSelected = onSortSelected,
+                            )
+                        }
+                    },
+                )
                 onOpenSettings?.let { openSettings ->
                     GlassTopIconButton(
                         action =

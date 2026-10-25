@@ -52,6 +52,7 @@ internal fun LinkSettingsDialog(
         title = YumeTxt.ProfilesPage.LinkSettings.Title,
         onDismissRequest = { show.value = false },
         enableNestedScroll = true,
+        scrollableContent = true,
         content = {
             LinkSettingsContent(
                 links = links,

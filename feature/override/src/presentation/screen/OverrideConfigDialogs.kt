@@ -124,6 +124,7 @@ internal fun CreateConfigDialog(
         show = show.value,
         title = YumeTxt.Override.Dialog.Create.Title,
         startAction = { AppBottomSheetCloseAction(onClick = onDismiss) },
+        scrollableContent = true,
         endAction = {
             AppBottomSheetConfirmAction(
                 enabled = canConfirm && !isImporting,

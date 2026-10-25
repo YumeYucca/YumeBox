@@ -37,8 +37,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import com.github.yumeyucca.yumebox.presentation.component.*
-import com.github.yumeyucca.yumebox.presentation.icon.Yume
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Settings2
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme.spacing
 import org.koin.androidx.compose.koinViewModel
@@ -46,7 +44,6 @@ import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.Search
-import top.yukonga.miuix.kmp.icon.extended.Sort
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -61,8 +58,6 @@ fun AccessControlScreen(navigator: Navigator) {
 
     LaunchedEffect(viewModel) { viewModel.refreshSelection() }
 
-    var showSortMenu by remember { mutableStateOf(false) }
-    var showOpsMenu by remember { mutableStateOf(false) }
     val mainListState = rememberLazyListState()
     var searchStatus by remember {
         mutableStateOf(
@@ -135,64 +130,35 @@ fun AccessControlScreen(navigator: Navigator) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        GlassScaffold(
+        Scaffold(
             topBar = {
                 currentSearchStatus.TopAppBarAnim {
                     TopBar(
                         title = YumeTxt.AccessControl.Title,
                         scrollBehavior = scrollBehavior,
                         actions = {
-                            Box {
-                                IconButton(
-                                    modifier = Modifier.padding(end = spacing.space12),
-                                    onClick = { showSortMenu = true },
-                                ) {
-                                    Icon(
-                                        imageVector = MiuixIcons.Sort,
-                                        contentDescription =
-                                            YumeTxt.AccessControl.Settings.SortMode,
-                                        tint = MiuixTheme.colorScheme.onSurface,
-                                    )
-                                }
-                                AccessControlSortMenu(
-                                    show = showSortMenu,
-                                    sortMode = uiState.sortMode,
-                                    onDismiss = { showSortMenu = false },
-                                    onSortModeChange = viewModel::onSortModeChange,
-                                )
-                            }
-                            Box {
-                                IconButton(onClick = { showOpsMenu = true }) {
-                                    Icon(
-                                        imageVector = Yume.Settings2,
-                                        contentDescription = YumeTxt.AccessControl.Settings.Title,
-                                        tint = MiuixTheme.colorScheme.onSurface,
-                                    )
-                                }
-                                AccessControlOperationsMenu(
-                                    show = showOpsMenu,
-                                    uiState = uiState,
-                                    onDismiss = { showOpsMenu = false },
-                                    actions =
-                                        remember(viewModel) {
-                                            AccessControlMenuActions(
-                                                onShowSystemAppsChange =
-                                                    viewModel::onShowSystemAppsChange,
-                                                onSelectedFirstChange =
-                                                    viewModel::onSelectedFirstChange,
-                                                onSelectAll = viewModel::selectAll,
-                                                onDeselectAll = viewModel::deselectAll,
-                                                onInvertSelection = viewModel::invertSelection,
-                                                onSelectChinaApps =
-                                                    viewModel::selectChinaAppsInCurrentList,
-                                                onSelectNonChinaApps =
-                                                    viewModel::selectNonChinaAppsInCurrentList,
-                                                onImportPackages = viewModel::importPackages,
-                                                onExportPackages = viewModel::exportPackages,
-                                            )
-                                        },
-                                )
-                            }
+                            AccessControlOperationsMenu(
+                                uiState = uiState,
+                                actions =
+                                    remember(viewModel) {
+                                        AccessControlMenuActions(
+                                            onSortModeChange = viewModel::onSortModeChange,
+                                            onShowSystemAppsChange =
+                                                viewModel::onShowSystemAppsChange,
+                                            onSelectedFirstChange =
+                                                viewModel::onSelectedFirstChange,
+                                            onSelectAll = viewModel::selectAll,
+                                            onDeselectAll = viewModel::deselectAll,
+                                            onInvertSelection = viewModel::invertSelection,
+                                            onSelectChinaApps =
+                                                viewModel::selectChinaAppsInCurrentList,
+                                            onSelectNonChinaApps =
+                                                viewModel::selectNonChinaAppsInCurrentList,
+                                            onImportPackages = viewModel::importPackages,
+                                            onExportPackages = viewModel::exportPackages,
+                                        )
+                                    },
+                            )
                         },
                         bottomContent = {
                             Box(

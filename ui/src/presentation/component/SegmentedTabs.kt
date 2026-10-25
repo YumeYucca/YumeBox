@@ -65,6 +65,8 @@ fun SegmentedTabRow(
     selectedTabIndex: Int,
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    // 40dp 为默认;与并排元素(如顶栏 42dp 玻璃容器)对齐时可传入一致高度。
+    tabHeight: Dp = 40.dp,
 ) {
     if (tabs.isEmpty()) return
 
@@ -74,7 +76,8 @@ fun SegmentedTabRow(
     val trackColor = colorScheme.surfaceVariant
     val selectedPillColor = colorScheme.primary.copy(alpha = opacity.subtle)
     val selectedTextColor = colorScheme.primary
-    val unselectedTextColor = colorScheme.onSurface.copy(alpha = opacity.secondaryText)
+    // 未选中文字取一级档(prominentText),不用 secondaryText 次级档。
+    val unselectedTextColor = colorScheme.onSurface.copy(alpha = opacity.prominentText)
     val indicatorInset = 4.dp
     val indicatorGap = 4.dp
     val indicatorAnimationSpec = remember {
@@ -88,7 +91,7 @@ fun SegmentedTabRow(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(40.dp)
+                .height(tabHeight)
                 .clip(shape)
                 .background(trackColor)
                 .padding(indicatorInset)
@@ -151,7 +154,7 @@ fun SegmentedTabRow(
                     Text(
                         text = tab,
                         fontSize = 13.sp,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        fontWeight = FontWeight.Medium,
                         color = textColor,
                         maxLines = 1,
                     )

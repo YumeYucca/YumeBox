@@ -14,4 +14,10 @@ fun ProxyShellNodeDetail(
     mainInnerPadding: PaddingValues,
     onNavigateToProviders: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
-) = ProxyShellNodeDetailContent(mainInnerPadding, onNavigateToProviders, onOpenSettings)
+    onNavigateToRules: (() -> Unit)? = null,
+) = ProxyShellNodeDetailContent(
+    mainInnerPadding = mainInnerPadding,
+    onNavigateToProviders = onNavigateToProviders,
+    onOpenSettings = onOpenSettings,
+    onNavigateToRules = onNavigateToRules,
+)

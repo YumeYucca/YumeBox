@@ -85,10 +85,18 @@ fun GlassTopActionPill(
     actions: List<GlassTopAction>,
     backdrop: LayerBackdrop?,
     modifier: Modifier = Modifier,
+    actionOverlay: (@Composable (Int) -> Unit)? = null,
 ) {
     if (actions.size < 2) {
         Row(modifier) {
-            actions.forEach { action -> GlassTopIconButton(action, backdrop) }
+            actions.forEachIndexed { index, action ->
+                Box {
+                    GlassTopIconButton(action, backdrop)
+                    actionOverlay?.let { overlay ->
+                        Box(Modifier.matchParentSize()) { overlay(index) }
+                    }
+                }
+            }
         }
         return
     }
@@ -127,7 +135,14 @@ fun GlassTopActionPill(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(GlassTopActionDefaults.PillIconGap),
         ) {
-            actions.forEach { action -> PillActionIcon(action) }
+            actions.forEachIndexed { index, action ->
+                Box {
+                    PillActionIcon(action)
+                    actionOverlay?.let { overlay ->
+                        Box(Modifier.matchParentSize()) { overlay(index) }
+                    }
+                }
+            }
         }
     }
 }

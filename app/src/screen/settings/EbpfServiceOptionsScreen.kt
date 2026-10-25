@@ -36,6 +36,7 @@ import com.github.yumeyucca.yumebox.presentation.component.*
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
 
 /** Settings for the active kernel's native eBPF listener. */
 @Composable
@@ -44,7 +45,7 @@ fun EbpfServiceOptionsScreen() {
     val viewModel = koinViewModel<NetworkSettingsViewModel>()
     val options by viewModel.ebpfServiceOptionsUiState.collectAsState()
 
-    GlassScaffold(
+    Scaffold(
         topBar = {
             TopBar(
                 title = YumeTxt.NetworkSettings.RunMode.EbpfTitle,

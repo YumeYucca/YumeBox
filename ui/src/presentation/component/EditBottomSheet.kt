@@ -62,6 +62,7 @@ fun TextEditBottomSheet(
             hideInput()
             onDismiss()
         },
+        scrollableContent = true,
     ) {
         Column {
             OemTextField(
@@ -105,7 +106,12 @@ fun WarningBottomSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit = { show.value = false },
 ) {
-    AppActionBottomSheet(show = show.value, title = title, onDismissRequest = onDismiss) {
+    AppActionBottomSheet(
+        show = show.value,
+        title = title,
+        onDismissRequest = onDismiss,
+        scrollableContent = true,
+    ) {
         Column {
             messages.forEachIndexed { index, message ->
                 Text(message)

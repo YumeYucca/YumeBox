@@ -69,6 +69,7 @@ data class AppSettingsBackup(
     val showTrafficNotification: Boolean = true,
     val bottomBarAutoHide: Boolean = true,
     val topBarBlurEnabled: Boolean = false,
+    val classicHomeEnabled: Boolean = false,
     val useSystemWallpaper: Boolean = true,
     val moeWallpaperUri: String = "",
     val moeWallpaperSourceUri: String = "",

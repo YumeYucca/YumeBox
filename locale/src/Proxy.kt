@@ -6,7 +6,7 @@ internal val ZhHansYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         Direct = "直连",
     ),
     Tab = YumeStrings_Proxy_Tab(
-        Policy = "策略",
+        Policy = "策略组",
         NodeGroups = "节点组",
     ),
     Action = YumeStrings_Proxy_Action(
@@ -58,7 +58,7 @@ internal val ZhYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         Direct = "直連",
     ),
     Tab = YumeStrings_Proxy_Tab(
-        Policy = "策略",
+        Policy = "策略組",
         NodeGroups = "節點組",
     ),
     Action = YumeStrings_Proxy_Action(
@@ -110,7 +110,7 @@ internal val EnYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         Direct = "Direct",
     ),
     Tab = YumeStrings_Proxy_Tab(
-        Policy = "Policy",
+        Policy = "Policies",
         NodeGroups = "Nodes",
     ),
     Action = YumeStrings_Proxy_Action(
@@ -162,7 +162,7 @@ internal val JaYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         Direct = "ダイレクト",
     ),
     Tab = YumeStrings_Proxy_Tab(
-        Policy = "ポリシー",
+        Policy = "ポリシーグループ",
         NodeGroups = "ノードグループ",
     ),
     Action = YumeStrings_Proxy_Action(
@@ -214,7 +214,7 @@ internal val RuYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         Direct = "Напрямую",
     ),
     Tab = YumeStrings_Proxy_Tab(
-        Policy = "Политики",
+        Policy = "Группы политик",
         NodeGroups = "Узлы",
     ),
     Action = YumeStrings_Proxy_Action(
