@@ -157,6 +157,9 @@ internal fun MainContentHost(
                                 onNavigateToProviders = {
                                     detailNavigator.replaceAll(listOf(Route.Providers))
                                 },
+                                onNavigateToRules = {
+                                    detailNavigator.replaceAll(listOf(Route.Rules))
+                                },
                             )
                         } else {
                             SecondaryDetailHost(detailStack)

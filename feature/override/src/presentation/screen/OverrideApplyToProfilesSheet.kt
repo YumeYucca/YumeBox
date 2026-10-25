@@ -132,6 +132,7 @@ internal fun OverrideApplyToProfilesSheet(
         },
         onDismissRequest = onDismiss,
         enableNestedScroll = true,
+        scrollableContent = true,
     ) {
         Column(
             modifier =

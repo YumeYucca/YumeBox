@@ -313,6 +313,29 @@ class ProfilesViewModel(
         }
     }
 
+    // Sort sheet commits its whole draft order once on drag release (no per-move writes).
+    // Fault barrier mirrors reorderProfiles: failures log and re-sync from storage (CE rethrown).
+    @Suppress("TooGenericExceptionCaught")
+    fun commitProfileOrder(uuids: List<UUID>) {
+        viewModelScope.launch {
+            try {
+                val current = _profiles.value
+                if (uuids.size != current.size) return@launch
+                val byId = current.associateBy { it.uuid }
+                val reordered = uuids.mapNotNull { byId[it] }
+                if (reordered.size != current.size) return@launch
+
+                _profiles.value = reordered
+                profilesRepository.reorderProfiles(uuids)
+                Timber.d("Profiles order committed: ${uuids.size} items")
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to commit profiles order")
+                refreshProfiles()
+            }
+        }
+    }
+
     // Fault barrier: any toggle failure is surfaced as UI error state (CE rethrown).
     @Suppress("TooGenericExceptionCaught")
     fun toggleProfileEnabled(uuid: UUID) {

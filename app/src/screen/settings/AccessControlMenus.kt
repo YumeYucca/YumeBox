@@ -27,9 +27,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.data.model.AccessControlSortMode
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.presentation.icon.Yume
+import com.github.yumeyucca.yumebox.presentation.icon.yume.Settings2
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
-import top.yukonga.miuix.kmp.overlay.OverlayCascadingListPopup
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.menu.OverlayIconCascadingDropdownMenu
 
 // :data cannot depend on YumeTxt, so persisted sort modes are localized at the app boundary.
 private val AccessControlSortMode.displayName: String
@@ -41,35 +44,8 @@ private val AccessControlSortMode.displayName: String
             AccessControlSortMode.UPDATE_TIME -> YumeTxt.AccessControl.SortMode.UpdateTime
         }
 
-@Composable
-internal fun AccessControlSortMenu(
-    show: Boolean,
-    sortMode: AccessControlSortMode,
-    onDismiss: () -> Unit,
-    onSortModeChange: (AccessControlSortMode) -> Unit,
-) {
-    val entries =
-        listOf(
-            DropdownEntry(
-                items =
-                    AccessControlSortMode.entries.map { mode ->
-                        DropdownItem(
-                            text = mode.displayName,
-                            selected = mode == sortMode,
-                            onClick = { onSortModeChange(mode) },
-                        )
-                    }
-            )
-        )
-
-    OverlayCascadingListPopup(
-        show = show,
-        entries = entries,
-        onDismissRequest = onDismiss,
-    )
-}
-
 internal data class AccessControlMenuActions(
+    val onSortModeChange: (AccessControlSortMode) -> Unit,
     val onShowSystemAppsChange: (Boolean) -> Unit,
     val onSelectedFirstChange: (Boolean) -> Unit,
     val onSelectAll: () -> Unit,
@@ -83,9 +59,7 @@ internal data class AccessControlMenuActions(
 
 @Composable
 internal fun AccessControlOperationsMenu(
-    show: Boolean,
     uiState: AccessControlViewModel.UiState,
-    onDismiss: () -> Unit,
     actions: AccessControlMenuActions,
 ) {
     val context = LocalContext.current
@@ -95,97 +69,74 @@ internal fun AccessControlOperationsMenu(
         }
     val settings = YumeTxt.AccessControl.Settings
 
-    val entries =
+    val items =
         listOf(
-            DropdownEntry(
-                items =
-                    listOf(
-                        DropdownItem(
-                            text = settings.ShowSystemApps,
-                            selected = uiState.showSystemApps,
-                            onClick = { actions.onShowSystemAppsChange(!uiState.showSystemApps) },
-                        ),
-                        DropdownItem(
-                            text = settings.SelectedFirst,
-                            selected = uiState.selectedFirst,
-                            onClick = { actions.onSelectedFirstChange(!uiState.selectedFirst) },
-                        ),
-                    )
+            DropdownItem(
+                text = settings.ShowSystemApps,
+                selected = uiState.showSystemApps,
+                onClick = { actions.onShowSystemAppsChange(!uiState.showSystemApps) },
             ),
-            DropdownEntry(
-                items =
-                    listOf(
-                        DropdownItem(
-                            text = settings.BatchOperation,
-                            children =
-                                listOf(
-                                    DropdownItem(
-                                        text = settings.SelectAll,
-                                        onClick = actions.onSelectAll,
-                                    ),
-                                    DropdownItem(
-                                        text = settings.DeselectAll,
-                                        onClick = actions.onDeselectAll,
-                                    ),
-                                    DropdownItem(
-                                        text = settings.Invert,
-                                        onClick = actions.onInvertSelection,
-                                    ),
-                                ),
-                        ),
-                        DropdownItem(
-                            text = settings.RegionQuickSelect,
-                            children =
-                                listOf(
-                                    DropdownItem(
-                                        text = settings.ChinaApps,
-                                        onClick = actions.onSelectChinaApps,
-                                    ),
-                                    DropdownItem(
-                                        text = settings.OverseasApps,
-                                        onClick = actions.onSelectNonChinaApps,
-                                    ),
-                                ),
-                        ),
-                        DropdownItem(
-                            text = settings.ImportExport,
-                            children =
-                                listOf(
-                                    DropdownItem(
-                                        text = settings.Import,
-                                        onClick = {
-                                            val text =
-                                                clipboardManager.primaryClip
-                                                    ?.takeIf { it.itemCount > 0 }
-                                                    ?.getItemAt(0)
-                                                    ?.text
-                                                    ?.toString()
-                                                    .orEmpty()
-                                            if (text.isNotEmpty()) {
-                                                actions.onImportPackages(text)
-                                            }
-                                        },
-                                    ),
-                                    DropdownItem(
-                                        text = settings.Export,
-                                        onClick = {
-                                            clipboardManager.setPrimaryClip(
-                                                ClipData.newPlainText(
-                                                    "packages",
-                                                    actions.onExportPackages(),
-                                                ),
-                                            )
-                                        },
-                                    ),
-                                ),
-                        ),
+            DropdownItem(
+                text = settings.SelectedFirst,
+                selected = uiState.selectedFirst,
+                onClick = { actions.onSelectedFirstChange(!uiState.selectedFirst) },
+            ),
+            DropdownItem(
+                text = settings.BatchOperation,
+                children = listOf(
+                    DropdownItem(text = settings.SelectAll, onClick = actions.onSelectAll),
+                    DropdownItem(text = settings.DeselectAll, onClick = actions.onDeselectAll),
+                    DropdownItem(text = settings.Invert, onClick = actions.onInvertSelection),
+                ),
+            ),
+            DropdownItem(
+                text = settings.RegionQuickSelect,
+                children = listOf(
+                    DropdownItem(text = settings.ChinaApps, onClick = actions.onSelectChinaApps),
+                    DropdownItem(text = settings.OverseasApps, onClick = actions.onSelectNonChinaApps),
+                ),
+            ),
+            DropdownItem(
+                text = settings.ImportExport,
+                children = listOf(
+                    DropdownItem(
+                        text = settings.Import,
+                        onClick = {
+                            val text = clipboardManager.primaryClip
+                                ?.takeIf { it.itemCount > 0 }
+                                ?.getItemAt(0)
+                                ?.text
+                                ?.toString()
+                                .orEmpty()
+                            if (text.isNotEmpty()) actions.onImportPackages(text)
+                        },
+                    ),
+                    DropdownItem(
+                        text = settings.Export,
+                        onClick = {
+                            clipboardManager.setPrimaryClip(
+                                ClipData.newPlainText("packages", actions.onExportPackages()),
+                            )
+                        },
+                    ),
+                ),
+            ),
+            DropdownItem(
+                text = settings.SortMode,
+                children = AccessControlSortMode.entries.map { mode ->
+                    DropdownItem(
+                        text = mode.displayName,
+                        selected = uiState.sortMode == mode,
+                        onClick = { actions.onSortModeChange(mode) },
                     )
+                },
             ),
         )
 
-    OverlayCascadingListPopup(
-        show = show,
-        entries = entries,
-        onDismissRequest = onDismiss,
-    )
+    OverlayIconCascadingDropdownMenu(entry = DropdownEntry(items = items)) {
+        Icon(
+            imageVector = Yume.Settings2,
+            contentDescription = settings.Title,
+        )
+    }
 }

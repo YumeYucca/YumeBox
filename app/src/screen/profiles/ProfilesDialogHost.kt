@@ -60,7 +60,9 @@ internal fun ProfilesDialogHost(
     ProfilesSortSheet(
         show = state.showSortSheet.value,
         profiles = profiles,
-        onReorder = { from, to -> profilesViewModel.reorderProfiles(from, to) },
+        onOrderCommitted = { ordered ->
+            profilesViewModel.commitProfileOrder(ordered.map { it.uuid })
+        },
         onDismiss = { state.showSortSheet.value = false },
     )
 

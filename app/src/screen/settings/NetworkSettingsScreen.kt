@@ -76,7 +76,7 @@ fun NetworkSettingsScreen(navigator: Navigator) {
     var showKernelDialog by remember { mutableStateOf(false) }
     var showCustomKernelDialog by remember { mutableStateOf(false) }
 
-    GlassScaffold(
+    Scaffold(
         topBar = { TopBar(title = YumeTxt.NetworkSettings.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()
@@ -350,6 +350,7 @@ private fun CustomKernelSheet(
         show = show,
         title = YumeTxt.NetworkSettings.Kernel.CustomTitle,
         onDismissRequest = onDismiss,
+        scrollableContent = true,
         startAction = { AppBottomSheetCloseAction(onClick = onDismiss) },
         endAction = {
             AppBottomSheetConfirmAction(

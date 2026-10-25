@@ -14,6 +14,7 @@
 package com.github.yumeyucca.yumebox.screen.moe
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -54,7 +55,9 @@ internal fun MoeHomeSettingsSheet(
     ) {
         LazyColumn(modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = spacing.space16)) {
+            .padding(bottom = spacing.space16),
+            // 顶部让位悬浮头 76dp 带(内容从带下滚过)。
+            contentPadding = PaddingValues(top = FloatingSheetHeaderDefaults.ContentTopInset)) {
             item {
                 OemTextField(
                     value = draftQuote,

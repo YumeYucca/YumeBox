@@ -20,8 +20,12 @@
 
 package com.github.yumeyucca.yumebox.presentation.screen
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.*
@@ -31,6 +35,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
@@ -38,12 +43,12 @@ import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
 import com.github.yumeyucca.yumebox.presentation.component.PaneWidths
 import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
-import com.github.yumeyucca.yumebox.presentation.component.SegmentedTabRow
 import com.github.yumeyucca.yumebox.presentation.screen.node.GroupDelayRefreshIndicator
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeCard
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSearchToolbar
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGridItems
 import com.github.yumeyucca.yumebox.presentation.theme.LocalSpacing
+import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.rememberRowReveal
 import com.github.yumeyucca.yumebox.presentation.theme.rememberRowShown
@@ -52,7 +57,6 @@ import com.github.yumeyucca.yumebox.presentation.util.KeepLazyListTopAnchorOnReo
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import kotlinx.coroutines.flow.StateFlow
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
     val normalizedQuery = query.trim()
@@ -64,7 +68,6 @@ private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun NodeListPage(
     group: ProxyGroupInfo?,
@@ -85,9 +88,8 @@ internal fun NodeListPage(
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
     searchVisible: Boolean = false,
-    tabs: List<String> = emptyList(),
-    selectedTabIndex: Int = 0,
-    onTabSelected: (Int) -> Unit = {},
+    // 常驻 tab 覆盖层占住的顶部高度,列表初始留白让位。
+    topOverlayInset: Dp = UiDp.dp0,
 ) {
     if (group == null) return
     val spacing = LocalSpacing.current
@@ -114,7 +116,10 @@ internal fun NodeListPage(
         PaddingValues(
             start = UiDp.dp12,
             end = UiDp.dp12,
-            top = outerInnerPadding.calculateTopPadding() + UiDp.dp20,
+            // 有常驻 tab 带时内容紧贴带沿(带自身已含 4dp 上下留白);无带时保留原呼吸留白。
+            top =
+                outerInnerPadding.calculateTopPadding() +
+                    if (topOverlayInset > UiDp.dp0) topOverlayInset else UiDp.dp20,
             bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
         )
 
@@ -171,8 +176,19 @@ internal fun NodeListPage(
                 verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                if (searchVisible) {
-                    item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
+                // 搜索框常驻槽位:展开/收起走 AnimatedVisibility 高度过渡,而不是硬切。
+                item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
+                    AnimatedVisibility(
+                        visible = searchVisible,
+                        enter =
+                            expandVertically(
+                                tween(durationMillis = 280, easing = AnimationSpecs.Legacy)
+                            ) + fadeIn(tween(durationMillis = 160, easing = AnimationSpecs.Legacy)),
+                        exit =
+                            shrinkVertically(
+                                tween(durationMillis = 240, easing = AnimationSpecs.Legacy)
+                            ) + fadeOut(tween(durationMillis = 120, easing = AnimationSpecs.Legacy)),
+                    ) {
                         NodeSearchToolbar(
                             query = searchQuery,
                             onQueryChange = onSearchQueryChange,
@@ -216,26 +232,19 @@ internal fun NodeListPage(
         onScrollDirectionChanged = onScrollDirectionChanged,
         contentPadding = contentPadding,
     ) {
-        if (tabs.isNotEmpty()) {
-            // 策略/节点组切换在节点列表页同样吸附,点 tab 即回到分组列表。
-            stickyHeader(key = "__proxy_list_tabs__") {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .background(MiuixTheme.colorScheme.surface)
-                            .padding(vertical = UiDp.dp4),
-                ) {
-                    SegmentedTabRow(
-                        tabs = tabs,
-                        selectedTabIndex = selectedTabIndex,
-                        onTabSelected = onTabSelected,
-                    )
-                }
-            }
-        }
-        if (searchVisible) {
-            item(key = "__node_search__") {
+        // 搜索框常驻槽位:展开/收起走 AnimatedVisibility 高度过渡,而不是硬切。
+        item(key = "__node_search__") {
+            AnimatedVisibility(
+                visible = searchVisible,
+                enter =
+                    expandVertically(
+                        tween(durationMillis = 280, easing = AnimationSpecs.Legacy)
+                    ) + fadeIn(tween(durationMillis = 160, easing = AnimationSpecs.Legacy)),
+                exit =
+                    shrinkVertically(
+                        tween(durationMillis = 240, easing = AnimationSpecs.Legacy)
+                    ) + fadeOut(tween(durationMillis = 120, easing = AnimationSpecs.Legacy)),
+            ) {
                 NodeSearchToolbar(
                     query = searchQuery,
                     onQueryChange = onSearchQueryChange,

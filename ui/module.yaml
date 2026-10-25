@@ -15,6 +15,7 @@ dependencies:
   - $libs.androidx.core.ktx
   - $libs.androidx.activity.compose
   - $libs.androidx.compose.material3
+  - $libs.androidx.compose.material.icons.core
   - $libs.androidx.lifecycle.runtime.compose
   - $libs.decompose
   - $libs.sketch.compose

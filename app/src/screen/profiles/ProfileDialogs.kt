@@ -234,6 +234,7 @@ internal fun ProfileSettingsDialog(
         onDismissRequest = onDismiss,
         onDismissFinished = onDismissFinished,
         enableNestedScroll = true,
+        scrollableContent = true,
     ) {
         // Match Add Profile sheet: content-sized + animate height on section switch.
         // Do NOT force a min/max fraction of the screen — that freezes height and kills animation.

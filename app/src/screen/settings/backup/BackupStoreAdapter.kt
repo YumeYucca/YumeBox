@@ -52,6 +52,7 @@ internal class BackupStoreAdapter(
                     showTrafficNotification = appSettings.showTrafficNotification.value,
                     bottomBarAutoHide = appSettings.bottomBarAutoHide.value,
                     topBarBlurEnabled = appSettings.topBarBlurEnabled.value,
+                    classicHomeEnabled = appSettings.classicHomeEnabled.value,
                     useSystemWallpaper = appSettings.useSystemWallpaper.value,
                     moeWallpaperUri = appSettings.moeWallpaperUri.value,
                     moeWallpaperSourceUri = appSettings.moeWallpaperSourceUri.value,
@@ -168,6 +169,7 @@ internal class BackupStoreAdapter(
             appSettings.showTrafficNotification,
             appSettings.bottomBarAutoHide,
             appSettings.topBarBlurEnabled,
+            appSettings.classicHomeEnabled,
             appSettings.useSystemWallpaper,
             appSettings.moeWallpaperUri,
             appSettings.moeWallpaperSourceUri,
@@ -244,6 +246,7 @@ internal class BackupStoreAdapter(
         appSettings.showTrafficNotification.set(value.showTrafficNotification)
         appSettings.bottomBarAutoHide.set(value.bottomBarAutoHide)
         appSettings.topBarBlurEnabled.set(value.topBarBlurEnabled)
+        appSettings.classicHomeEnabled.set(value.classicHomeEnabled)
         appSettings.useSystemWallpaper.set(value.useSystemWallpaper)
         appSettings.moeWallpaperUri.set(value.moeWallpaperUri)
         appSettings.moeWallpaperSourceUri.set(value.moeWallpaperSourceUri)

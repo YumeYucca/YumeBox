@@ -38,7 +38,12 @@ fun ConfirmDialog(
     cancelText: String = YumeTxt.Component.Button.Cancel,
     confirmText: String = YumeTxt.Component.Button.Confirm,
 ) {
-    AppActionBottomSheet(show = show.isShown, title = title, onDismissRequest = onDismiss) {
+    AppActionBottomSheet(
+        show = show.isShown,
+        title = title,
+        onDismissRequest = onDismiss,
+        scrollableContent = true,
+    ) {
         ConfirmDialogContent(
             message = message,
             onCancel = onDismiss,
@@ -69,6 +74,7 @@ fun ConfirmDialogSimple(
             show.dismiss()
             onDismiss()
         },
+        scrollableContent = true,
     ) {
         ConfirmDialogContent(
             message = message,

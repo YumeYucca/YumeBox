@@ -36,10 +36,12 @@ import com.github.yumeyucca.yumebox.screen.about.AboutScreen
 import com.github.yumeyucca.yumebox.screen.about.OpenSourceLicensesScreen
 import com.github.yumeyucca.yumebox.screen.connection.ConnectionDetailScreen
 import com.github.yumeyucca.yumebox.screen.connection.ConnectionScreen
+import com.github.yumeyucca.yumebox.screen.extensions.ExtensionsScreen
 import com.github.yumeyucca.yumebox.screen.log.LogScreen
 import com.github.yumeyucca.yumebox.screen.navigation.*
 import com.github.yumeyucca.yumebox.screen.rules.RulesScreen
 import com.github.yumeyucca.yumebox.screen.settings.*
+import com.github.yumeyucca.yumebox.screen.settings.backup.BackupRestoreScreen
 import com.github.yumeyucca.yumebox.screen.traffic.TrafficStatisticsScreen
 
 @Composable
@@ -64,6 +66,8 @@ fun RouteContent(route: Route, navigator: Navigator) {
         Route.OverrideConfigPreview -> OverrideConfigPreviewRoute(navigator)
         Route.Providers -> ProvidersScreen(navigator)
         Route.Feature -> FeatureScreen(navigator)
+        Route.Extensions -> ExtensionsScreen()
+        Route.BackupRestore -> BackupRestoreScreen()
         Route.CustomRouting -> CustomRoutingRoute(navigator)
         Route.StringListEditor -> StringListEditorScreen(navigator)
         Route.KeyValueEditor -> KeyValueEditorScreen(navigator)
@@ -72,4 +76,4 @@ fun RouteContent(route: Route, navigator: Navigator) {
 }
 
 val SettingsDetailRootRoutes: Set<Route> =
-    setOf(Route.AppSettings, Route.NetworkSettings, Route.Override, Route.MetaFeature, Route.Feature, Route.About)
+    setOf(Route.AppSettings, Route.NetworkSettings, Route.Override, Route.MetaFeature, Route.Feature, Route.Extensions, Route.BackupRestore, Route.About)

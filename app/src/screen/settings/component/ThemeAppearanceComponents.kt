@@ -165,6 +165,7 @@ internal fun ThemeColorPickerSheet(
         title = YumeTxt.AppSettings.Interface.ColorThemePickerTitle,
         onDismissRequest = onDismissRequest,
         enableNestedScroll = true,
+        scrollableContent = true,
         renderInRootScaffold = renderInRootScaffold,
         defaultWindowInsetsPadding = false,
         startAction = { AppBottomSheetCloseAction(onClick = onDismissRequest) },

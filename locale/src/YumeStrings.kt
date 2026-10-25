@@ -175,6 +175,7 @@ public data class YumeStrings_AppSettings_Interface(
     public val PredictiveBackTitle: String,
     public val PredictiveBackRestartSummary: String,
     public val PredictiveBackProgressTitle: String,
+    public val ClassicHomeTitle: String,
     public val SystemWallpaperTitle: String,
     public val CustomIconTitle: String,
     public val HomeQuoteTitle: String,
@@ -1477,8 +1478,9 @@ public data class YumeStrings_Service(
 
 public data class YumeStrings_Settings_Section(
     public val UiSettings: String,
+    public val Extensions: String,
+    public val BackupRestore: String,
     public val More: String,
-    public val Settings: String,
     public val About: String,
 )
 
@@ -1491,6 +1493,10 @@ public data class YumeStrings_Settings_UiSettings(
     public val OverrideSummary: String,
     public val MetaFeatures: String,
     public val MetaFeaturesSummary: String,
+    public val AppAppearance: String,
+    public val OverrideScript: String,
+    public val RemoteControl: String,
+    public val RemoteControlSummary: String,
 )
 
 public data class YumeStrings_Settings_More(
@@ -1500,6 +1506,8 @@ public data class YumeStrings_Settings_More(
     public val LogsSummary: String,
     public val Onboarding: String,
     public val OnboardingSummary: String,
+    public val BackupRestore: String,
+    public val BackupRestoreSummary: String,
     public val About: String,
     public val AboutSummary: String,
 )
@@ -1588,4 +1596,3 @@ public data class YumeStrings_Util_Error(
 public data class YumeStrings_Util(
     public val Error: YumeStrings_Util_Error,
 )
-

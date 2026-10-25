@@ -1,7 +1,7 @@
 package com.github.yumeyucca.yumebox.core.locale
 
 internal val ZhHansYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_MetaFeature(
-    Title = "Meta 功能",
+    Title = "分流与规则",
     Section = YumeStrings_MetaFeature_Section(
         ConnectionAndTraffic = "连接、日志与规则",
         Routing = "分流相关",
@@ -56,7 +56,7 @@ internal val ZhHansYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeString
 )
 
 internal val ZhYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_MetaFeature(
-    Title = "Meta 功能",
+    Title = "分流與規則",
     Section = YumeStrings_MetaFeature_Section(
         ConnectionAndTraffic = "連線、日誌與規則",
         Routing = "分流相關",
@@ -111,7 +111,7 @@ internal val ZhYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_Me
 )
 
 internal val EnYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_MetaFeature(
-    Title = "Meta Features",
+    Title = "Routing & Rules",
     Section = YumeStrings_MetaFeature_Section(
         ConnectionAndTraffic = "Connections, logs, and rules",
         Routing = "Routing",
@@ -166,7 +166,7 @@ internal val EnYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_Me
 )
 
 internal val JaYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_MetaFeature(
-    Title = "Meta 機能",
+    Title = "ルーティングとルール",
     Section = YumeStrings_MetaFeature_Section(
         ConnectionAndTraffic = "接続、ログ、ルール",
         Routing = "ルーティング",
@@ -221,7 +221,7 @@ internal val JaYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_Me
 )
 
 internal val RuYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_MetaFeature(
-    Title = "Функции Meta",
+    Title = "Маршрутизация и правила",
     Section = YumeStrings_MetaFeature_Section(
         ConnectionAndTraffic = "Соединения, журналы и правила",
         Routing = "Маршрутизация",

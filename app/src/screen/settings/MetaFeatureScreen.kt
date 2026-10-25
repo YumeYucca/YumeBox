@@ -50,6 +50,7 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import java.io.File
@@ -65,7 +66,7 @@ fun MetaFeatureScreen(navigator: Navigator) {
     val ageKeyHybrid = remember { mutableStateOf(false) }
     val ageKeyDialogVisible = remember { mutableStateOf(false) }
 
-    GlassScaffold(
+    Scaffold(
         topBar = { TopBar(title = YumeTxt.MetaFeature.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()
@@ -74,28 +75,11 @@ fun MetaFeatureScreen(navigator: Navigator) {
             innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
         ) {
             item {
-                Title(YumeTxt.MetaFeature.Section.ConnectionAndTraffic)
-                AppCard {
-                    ArrowPreference(
-                        title = YumeTxt.Connection.Title,
-                        onClick = { navigator.push(Route.Connection) },
-                    )
-                    ArrowPreference(
-                        title = YumeTxt.Log.Title,
-                        onClick = { navigator.push(Route.Log) },
-                    )
-                    ArrowPreference(
-                        title = YumeTxt.MetaFeature.RuntimeRules.Title,
-                        onClick = { navigator.push(Route.Rules) },
-                    )
-                }
-            }
-            item {
                 Title(YumeTxt.MetaFeature.Section.Routing)
                 AppCard {
                     ArrowPreference(
-                        title = YumeTxt.TrafficStatistics.Title,
-                        onClick = { navigator.push(Route.TrafficStatistics) },
+                        title = YumeTxt.MetaFeature.RuntimeRules.Title,
+                        onClick = { navigator.push(Route.Rules) },
                     )
                     ArrowPreference(
                         title = YumeTxt.MetaFeature.CustomRouting.Title,

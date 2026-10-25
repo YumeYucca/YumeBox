@@ -397,6 +397,10 @@ internal fun MainRootPageContent(state: MainRootPageState) {
             ProxyPager(
                 mainInnerPadding = state.mainInnerPadding,
                 onNavigateToProviders = openProvidersFromProxy,
+                onNavigateToRules = {
+                    detailNavigator?.replaceAll(listOf(Route.Rules))
+                        ?: state.navigator.push(Route.Rules)
+                },
                 isActive = state.selectedDestination == BottomBarDestination.Proxy,
                 windowLayoutMode = state.windowLayoutMode,
             )

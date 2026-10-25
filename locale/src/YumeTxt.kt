@@ -526,6 +526,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun PredictiveBackProgressTitle(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.PredictiveBackProgressTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.PredictiveBackProgressTitle, *args)
+            public val ClassicHomeTitle: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Interface.ClassicHomeTitle
+            @androidx.compose.runtime.Composable
+            public fun ClassicHomeTitle(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.ClassicHomeTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.ClassicHomeTitle, *args)
             public val SystemWallpaperTitle: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Interface.SystemWallpaperTitle
             @androidx.compose.runtime.Composable
@@ -4074,16 +4079,21 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun UiSettings(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.Section.UiSettings else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.Section.UiSettings, *args)
+            public val Extensions: String
+                get() = YumeLocaleManager.activeStrings.Settings.Section.Extensions
+            @androidx.compose.runtime.Composable
+            public fun Extensions(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.Section.Extensions else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.Section.Extensions, *args)
+            public val BackupRestore: String
+                get() = YumeLocaleManager.activeStrings.Settings.Section.BackupRestore
+            @androidx.compose.runtime.Composable
+            public fun BackupRestore(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.Section.BackupRestore else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.Section.BackupRestore, *args)
             public val More: String
                 get() = YumeLocaleManager.activeStrings.Settings.Section.More
             @androidx.compose.runtime.Composable
             public fun More(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.Section.More else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.Section.More, *args)
-            public val Settings: String
-                get() = YumeLocaleManager.activeStrings.Settings.Section.Settings
-            @androidx.compose.runtime.Composable
-            public fun Settings(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.Section.Settings else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.Section.Settings, *args)
             public val About: String
                 get() = YumeLocaleManager.activeStrings.Settings.Section.About
             @androidx.compose.runtime.Composable
@@ -4131,6 +4141,26 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun MetaFeaturesSummary(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.UiSettings.MetaFeaturesSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.UiSettings.MetaFeaturesSummary, *args)
+            public val AppAppearance: String
+                get() = YumeLocaleManager.activeStrings.Settings.UiSettings.AppAppearance
+            @androidx.compose.runtime.Composable
+            public fun AppAppearance(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.UiSettings.AppAppearance else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.UiSettings.AppAppearance, *args)
+            public val OverrideScript: String
+                get() = YumeLocaleManager.activeStrings.Settings.UiSettings.OverrideScript
+            @androidx.compose.runtime.Composable
+            public fun OverrideScript(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.UiSettings.OverrideScript else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.UiSettings.OverrideScript, *args)
+            public val RemoteControl: String
+                get() = YumeLocaleManager.activeStrings.Settings.UiSettings.RemoteControl
+            @androidx.compose.runtime.Composable
+            public fun RemoteControl(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.UiSettings.RemoteControl else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.UiSettings.RemoteControl, *args)
+            public val RemoteControlSummary: String
+                get() = YumeLocaleManager.activeStrings.Settings.UiSettings.RemoteControlSummary
+            @androidx.compose.runtime.Composable
+            public fun RemoteControlSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.UiSettings.RemoteControlSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.UiSettings.RemoteControlSummary, *args)
         }
         public object More {
             public val Lab: String
@@ -4163,6 +4193,16 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun OnboardingSummary(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.More.OnboardingSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.More.OnboardingSummary, *args)
+            public val BackupRestore: String
+                get() = YumeLocaleManager.activeStrings.Settings.More.BackupRestore
+            @androidx.compose.runtime.Composable
+            public fun BackupRestore(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.More.BackupRestore else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.More.BackupRestore, *args)
+            public val BackupRestoreSummary: String
+                get() = YumeLocaleManager.activeStrings.Settings.More.BackupRestoreSummary
+            @androidx.compose.runtime.Composable
+            public fun BackupRestoreSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Settings.More.BackupRestoreSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Settings.More.BackupRestoreSummary, *args)
             public val About: String
                 get() = YumeLocaleManager.activeStrings.Settings.More.About
             @androidx.compose.runtime.Composable

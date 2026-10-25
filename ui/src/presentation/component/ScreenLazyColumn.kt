@@ -122,8 +122,8 @@ fun ScreenLazyColumn(
         modifier =
             modifier
                 .fillMaxSize()
-                .scrollEndHaptic()
                 .overScrollVertical()
+                .scrollEndHaptic()
                 .nestedScroll(fabScrollObserver)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .let { mod ->

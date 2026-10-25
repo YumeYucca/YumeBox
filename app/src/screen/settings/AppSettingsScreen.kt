@@ -56,7 +56,7 @@ fun AppSettingsScreen() {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<AppSettingsViewModel>()
 
-    GlassScaffold(
+    Scaffold(
         topBar = { TopBar(title = YumeTxt.AppSettings.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()
@@ -103,9 +103,11 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
     val themeSeedColorArgb = section.themeSeedColorArgb
     val invertOnPrimaryColors = section.invertOnPrimaryColors
     val bottomBarAutoHide = section.bottomBarAutoHide
+    val topBarBlurEnabled = section.topBarBlurEnabled
     val pageScale = section.pageScale
     val predictiveBackEnabled by viewModel.predictiveBackEnabled.state.collectAsState()
     val predictiveBackMaxProgress by viewModel.predictiveBackMaxProgress.state.collectAsState()
+    val classicHomeEnabled = section.classicHomeEnabled
     val useSystemWallpaper = section.useSystemWallpaper
 
     Title(YumeTxt.AppSettings.Interface.ColorThemeTitle)
@@ -154,6 +156,11 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
             checked = bottomBarAutoHide,
             onCheckedChange = viewModel::onBottomBarAutoHideChange,
         )
+        PreferenceSwitchItem(
+            title = YumeTxt.AppSettings.Interface.TopBarBlurTitle,
+            checked = topBarBlurEnabled,
+            onCheckedChange = viewModel::onTopBarBlurEnabledChange,
+        )
         PageScalePreferenceItem(pageScale = pageScale, onApply = viewModel::onPageScaleChange)
     }
     Title(YumeTxt.AppSettings.Section.Navigation)
@@ -173,6 +180,11 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
     }
     Title(YumeTxt.AppSettings.Section.Home)
     AppCard {
+        PreferenceSwitchItem(
+            title = YumeTxt.AppSettings.Interface.ClassicHomeTitle,
+            checked = classicHomeEnabled,
+            onCheckedChange = viewModel::onClassicHomeEnabledChange,
+        )
         SystemWallpaperPreferenceItem(
             checked = useSystemWallpaper,
             onCheckedChange = viewModel::onUseSystemWallpaperChange,

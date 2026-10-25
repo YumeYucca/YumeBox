@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.data.model.normalizeProxySheetHeightFraction
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
+import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeaderDefaults
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.rememberRowReveal
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
@@ -54,8 +55,15 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollHorizontal
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
+// 顶部让位悬浮头的 76dp 带(58dp 内容让位 + 原有 8dp 呼吸留白):列表首行从头带之下开始,
+// 向上滚动时行"沉入"常驻渐变遮罩。仅用于 sheet 内的分组/节点列表。
 val NodeSheetContentPadding =
-    PaddingValues(start = UiDp.dp0, end = UiDp.dp0, top = UiDp.dp8, bottom = UiDp.dp16)
+    PaddingValues(
+        start = UiDp.dp0,
+        end = UiDp.dp0,
+        top = FloatingSheetHeaderDefaults.ContentTopInset + UiDp.dp8,
+        bottom = UiDp.dp16,
+    )
 
 private fun LazyListState.isScrolledFromTop(): Boolean =
     firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 0
@@ -89,7 +97,9 @@ internal fun NodeGroupSheetContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .height(sheetHeight)
+            // Wrap up to the fraction cap instead of always forcing it: short group/node lists
+            // get a content-sized sheet (NexioSchedule semantics), long ones cap and scroll.
+            .heightIn(max = sheetHeight)
             .overScrollVertical(),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
@@ -130,7 +140,7 @@ fun NodeSheetContent(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(sheetHeight)
+                .heightIn(max = sheetHeight)
                 .overScrollVertical(),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(UiDp.dp12),

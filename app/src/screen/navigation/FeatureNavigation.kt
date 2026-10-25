@@ -3,8 +3,8 @@
  *
  * YumeBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License.
+ * published by the Free Software Foundation, either version 3 of
+ * the License.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -37,8 +37,6 @@ import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.presentation.screen.FeatureContent
 import com.github.yumeyucca.yumebox.screen.feature.PanelShortcutDialog
-import com.github.yumeyucca.yumebox.screen.feature.RemoteControllerSection
-import com.github.yumeyucca.yumebox.screen.settings.backup.BackupRestoreSection
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -90,26 +88,21 @@ fun FeatureScreen(navigator: Navigator) {
             shortcutTarget = targetUrl to label
             shortcutDialogVisible = true
         },
-        topSection = {
-            RemoteControllerSection(onRequestLocalNetworkPermission = requestLocalNetworkPermission)
-            shortcutTarget?.let { (url, label) ->
-                PanelShortcutDialog(
-                    show = shortcutDialogVisible,
-                    url = url,
-                    defaultLabel = label,
-                    onDismiss = { shortcutDialogVisible = false },
-                    onConfirm = { name, iconUri ->
-                        scope.launch {
-                            DashboardShortcutHelper.createPanelShortcut(context, url, name, iconUri)
-                        }
-                        shortcutDialogVisible = false
-                    },
-                    onDismissFinished = { shortcutTarget = null },
-                )
-            }
-        },
-        bottomSection = {
-            BackupRestoreSection()
-        },
     )
+
+    shortcutTarget?.let { (url, label) ->
+        PanelShortcutDialog(
+            show = shortcutDialogVisible,
+            url = url,
+            defaultLabel = label,
+            onDismiss = { shortcutDialogVisible = false },
+            onConfirm = { name, iconUri ->
+                scope.launch {
+                    DashboardShortcutHelper.createPanelShortcut(context, url, name, iconUri)
+                }
+                shortcutDialogVisible = false
+            },
+            onDismissFinished = { shortcutTarget = null },
+        )
+    }
 }

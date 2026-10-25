@@ -31,6 +31,7 @@ import com.github.yumeyucca.yumebox.presentation.component.*
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
 
 /**
  * The VpnService "service config" sub-page (reached from the network-settings Advanced section).
@@ -44,7 +45,7 @@ fun VpnServiceOptionsScreen() {
     val tunOptions by viewModel.tunServiceOptionsUiState.collectAsState()
     val stack by viewModel.tunStack.state.collectAsState()
 
-    GlassScaffold(
+    Scaffold(
         topBar = {
             TopBar(
                 title = YumeTxt.NetworkSettings.Section.VpnOptions,
