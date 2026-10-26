@@ -99,9 +99,8 @@ private fun rememberProxyScreenVmState(proxyViewModel: ProxyViewModel): ProxyScr
 @Composable
 fun ProxyPager(
     mainInnerPadding: PaddingValues,
-    onNavigateToProviders: (() -> Unit)?,
     isActive: Boolean,
-    onNavigateToRules: (() -> Unit)? = null,
+    onOpenRouting: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
     @Suppress("UNUSED_PARAMETER") windowLayoutMode: WindowLayoutMode = WindowLayoutMode.Compact,
 ) {
@@ -237,8 +236,7 @@ fun ProxyPager(
                     scrollBehavior = groupScrollBehavior,
                     showBack = false,
                     onBack = {},
-                    onNavigateToProviders = onNavigateToProviders,
-                    onNavigateToRules = onNavigateToRules,
+                    onOpenRouting = onOpenRouting,
                     onOpenSettings = onOpenSettings,
                     onTestAllNodes = testAllNodes,
                     onLocateCurrentProxy = locateCurrentProxy,
@@ -474,9 +472,8 @@ private fun ProxyContent(
 @Composable
 internal fun ProxyShellNodeDetailContent(
     mainInnerPadding: PaddingValues,
-    onNavigateToProviders: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
-    onNavigateToRules: (() -> Unit)? = null,
+    onOpenRouting: (() -> Unit)? = null,
 ) {
     val proxyViewModel = koinViewModel<ProxyViewModel>()
     val screen = rememberProxyScreenVmState(proxyViewModel)
@@ -581,8 +578,7 @@ internal fun ProxyShellNodeDetailContent(
                         scrollBehavior = scrollBehavior,
                         showBack = false,
                         onBack = {},
-                        onNavigateToProviders = onNavigateToProviders,
-                        onNavigateToRules = onNavigateToRules,
+                        onOpenRouting = onOpenRouting,
                         onOpenSettings = onOpenSettings,
                         onTestAllNodes = testAllNodes,
                         onLocateCurrentProxy = locateCurrentProxy,
@@ -628,8 +624,7 @@ private fun ProxyTopBar(
     scrollBehavior: ScrollBehavior,
     showBack: Boolean,
     onBack: () -> Unit,
-    onNavigateToProviders: (() -> Unit)?,
-    onNavigateToRules: (() -> Unit)?,
+    onOpenRouting: (() -> Unit)?,
     onOpenSettings: (() -> Unit)? = null,
     // 测试全部节点;顶栏 chrome 在分组页/节点页不再区分,统一为这一个胶囊。
     onTestAllNodes: () -> Unit,
@@ -691,13 +686,15 @@ private fun ProxyTopBar(
                                 icon = Yume.ListChevronsUpDown,
                                 contentDescription = YumeTxt.Proxy.Action.Sort,
                                 onClick = { showActionsMenu = !showActionsMenu },
-                                iconModifier = Modifier.glassPopupAnchor(
+                                modifier = Modifier.glassPopupAnchor(
                                     anchor = actionsMenuAnchor,
                                     cornerRadius = GlassTopActionDefaults.IconSize / 2,
                                     floating = true,
-                                ).glassPopupAnchorContent(actionsMenuAnchor),
+                                ),
+                                iconModifier = Modifier.glassPopupAnchorContent(actionsMenuAnchor),
                             ),
                         ),
+                    popupAnchor = actionsMenuAnchor,
                     backdrop = backdrop,
                     actionOverlay = { index ->
                         if (index == 1) {
@@ -705,8 +702,7 @@ private fun ProxyTopBar(
                                 show = showActionsMenu,
                                 onDismiss = { showActionsMenu = false },
                                 sortMode = sortMode,
-                                onOpenProviders = onNavigateToProviders,
-                                onOpenRules = onNavigateToRules,
+                                onOpenRouting = onOpenRouting,
                                 onLocateCurrentProxy = onLocateCurrentProxy,
                                 searchVisible = searchVisible,
                                 onToggleSearch = onToggleSearch,

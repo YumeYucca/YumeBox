@@ -46,6 +46,7 @@ import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -59,13 +60,18 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * (`applyHorizontalPadding`), same as Log — not LazyColumn contentPadding.
  */
 @Composable
-fun RulesScreen(navigator: Navigator) {
+fun RulesScreen(
+    navigator: Navigator,
+    embedded: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(),
+    scrollBehaviorOverride: ScrollBehavior? = null,
+) {
     val density = LocalDensity.current
     val viewModel = koinViewModel<RulesViewModel>()
     val uiState by viewModel.uiState.collectAsState()
     val filteredRules by viewModel.filteredRules.collectAsState()
     val context = LocalContext.current
-    val scrollBehavior = MiuixScrollBehavior()
+    val scrollBehavior = scrollBehaviorOverride ?: MiuixScrollBehavior()
     val spacing = AppTheme.spacing
     val mainLikePadding = rememberStandalonePageMainPadding()
     val mainListState = rememberLazyListState()
@@ -107,6 +113,58 @@ fun RulesScreen(navigator: Navigator) {
         }
     }
 
+    val rulesContent: @Composable (PaddingValues, ScrollBehavior) -> Unit = { padding, behavior ->
+        when {
+            uiState.isLoading && uiState.rules.isEmpty() -> {
+                CenteredText(
+                    firstLine = YumeTxt.Rules.Empty.Loading,
+                    secondLine = YumeTxt.Rules.Empty.LoadingHint,
+                )
+            }
+
+            !uiState.isRunning && uiState.rules.isEmpty() -> {
+                CenteredText(
+                    firstLine = YumeTxt.Rules.Empty.NotRunning,
+                    secondLine = YumeTxt.Rules.Empty.NotRunningHint,
+                )
+            }
+
+            uiState.rules.isEmpty() -> {
+                CenteredText(
+                    firstLine = YumeTxt.Rules.Empty.NoRules,
+                    secondLine = YumeTxt.Rules.Empty.NoRulesHint,
+                )
+            }
+
+            else -> {
+                ScreenLazyColumn(
+                    scrollBehavior = behavior,
+                    innerPadding = padding,
+                    lazyListState = mainListState,
+                ) {
+                    items(
+                        items = filteredRules,
+                        key = { it.index },
+                        contentType = { "rule" },
+                    ) { rule ->
+                        RuleCard(
+                            rule = rule,
+                            enabled = !rule.disabled,
+                            toggling = rule.index in uiState.togglingIndexes,
+                            onEnabledChange = { enabled ->
+                                viewModel.setRuleEnabled(rule.index, enabled)
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (embedded) {
+        rulesContent(contentPadding, scrollBehavior)
+        return
+    }
     // Same shell as ConnectionScreen / LogScreen: outer Box so SearchPager can cover the
     // scaffold (zIndex) while the collapsed bar still lives in TopBar.bottomContent.
     Box(modifier = Modifier.fillMaxSize()) {
@@ -161,51 +219,7 @@ fun RulesScreen(navigator: Navigator) {
             }
         ) { innerPadding ->
             if (currentSearchStatus.shouldCollapse()) {
-                when {
-                    uiState.isLoading && uiState.rules.isEmpty() -> {
-                        CenteredText(
-                            firstLine = YumeTxt.Rules.Empty.Loading,
-                            secondLine = YumeTxt.Rules.Empty.LoadingHint,
-                        )
-                    }
-
-                    !uiState.isRunning && uiState.rules.isEmpty() -> {
-                        CenteredText(
-                            firstLine = YumeTxt.Rules.Empty.NotRunning,
-                            secondLine = YumeTxt.Rules.Empty.NotRunningHint,
-                        )
-                    }
-
-                    uiState.rules.isEmpty() -> {
-                        CenteredText(
-                            firstLine = YumeTxt.Rules.Empty.NoRules,
-                            secondLine = YumeTxt.Rules.Empty.NoRulesHint,
-                        )
-                    }
-
-                    else -> {
-                        ScreenLazyColumn(
-                            scrollBehavior = scrollBehavior,
-                            innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
-                            lazyListState = mainListState,
-                        ) {
-                            items(
-                                items = filteredRules,
-                                key = { it.index },
-                                contentType = { "rule" },
-                            ) { rule ->
-                                RuleCard(
-                                    rule = rule,
-                                    enabled = !rule.disabled,
-                                    toggling = rule.index in uiState.togglingIndexes,
-                                    onEnabledChange = { enabled ->
-                                        viewModel.setRuleEnabled(rule.index, enabled)
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
+                rulesContent(combinePaddingValues(innerPadding, mainLikePadding), scrollBehavior)
             }
         }
 

@@ -100,6 +100,7 @@ fun GlassTopActionPill(
     actions: List<GlassTopAction>,
     backdrop: LayerBackdrop?,
     modifier: Modifier = Modifier,
+    popupAnchor: GlassPopupAnchor? = null,
     actionOverlay: (@Composable (Int) -> Unit)? = null,
 ) {
     if (actions.size < 2) {
@@ -116,9 +117,11 @@ fun GlassTopActionPill(
         return
     }
     val glass = rememberGlassTopActionStyle()
-    val popupAnchor = modifier.foldIn<GlassPopupAnchor?>(null) { found, element ->
-        if (element is GlassPopupAnchorElement) element.anchor else found
-    }
+    val resolvedPopupAnchor =
+        popupAnchor ?:
+            modifier.foldIn<GlassPopupAnchor?>(null) { found, element ->
+                if (element is GlassPopupAnchorElement) element.anchor else found
+            }
     val popupMaterial = GlassTopAppBarDefaults.buttonMaterial()
     val popupStroke = GlassTopAppBarDefaults.buttonStroke()
     val popupSurface = remember(backdrop, popupMaterial, popupStroke, glass.fallbackColor) {
@@ -133,16 +136,16 @@ fun GlassTopActionPill(
     }
     val collapsedSurfaceProgress = remember { mutableFloatStateOf(0f) }
     SideEffect {
-        popupAnchor?.surface = popupSurface
-        popupAnchor?.surfaceProgress = collapsedSurfaceProgress
-        popupAnchor?.surfaceOpacity = 1f
-        popupAnchor?.surfaceFloating = false
+        resolvedPopupAnchor?.surface = popupSurface
+        resolvedPopupAnchor?.surfaceProgress = collapsedSurfaceProgress
+        resolvedPopupAnchor?.surfaceOpacity = 1f
+        resolvedPopupAnchor?.surfaceFloating = false
     }
-    DisposableEffect(popupAnchor, popupSurface) {
+    DisposableEffect(resolvedPopupAnchor, popupSurface) {
         onDispose {
-            if (popupAnchor?.surface === popupSurface) {
-                popupAnchor.surface = null
-                popupAnchor.surfaceProgress = null
+            if (resolvedPopupAnchor?.surface === popupSurface) {
+                resolvedPopupAnchor.surface = null
+                resolvedPopupAnchor.surfaceProgress = null
             }
         }
     }

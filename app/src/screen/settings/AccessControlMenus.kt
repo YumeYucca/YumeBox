@@ -35,15 +35,18 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.data.model.AccessControlSortMode
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Settings2
+import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.glass.GlassPopup
 import top.yukonga.miuix.kmp.glass.GlassPopupItem
+import top.yukonga.miuix.kmp.glass.GlassPopupSizing
 import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
 
 // :data cannot depend on YumeTxt, so persisted sort modes are localized at the app boundary.
@@ -116,7 +119,8 @@ internal fun AccessControlOperationsMenu(
                 show = showPopup,
                 onDismissRequest = { showPopup = false },
                 anchorBounds = anchorBounds,
-                backdrop = LocalTopBarBackdrop.current,
+                backdrop = LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current,
+                sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
             ) {
                 when (page) {
                     AccessControlMenuPage.Root -> {

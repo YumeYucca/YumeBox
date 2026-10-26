@@ -140,7 +140,8 @@ internal fun MainContentHost(
                     val rightInnerPadding = paneInnerPadding(rightPadding, reserveBottomBar = false)
                     val showProxyNodes =
                         settledDestination == BottomBarDestination.Proxy &&
-                            detailBackStack.lastOrNull() !is Route.Providers
+                            (detailBackStack.lastOrNull() !is Route.Providers &&
+                                detailBackStack.lastOrNull() !is Route.Rules)
                     // Subscribe before the pane switch so Providers is already on the stack when
                     // the bounce transition starts. Composing the host only after navigation
                     // drops the route and leaves the About root on screen.
@@ -154,10 +155,7 @@ internal fun MainContentHost(
                         if (nodesVisible) {
                             ProxyShellNodeDetail(
                                 mainInnerPadding = rightInnerPadding,
-                                onNavigateToProviders = {
-                                    detailNavigator.replaceAll(listOf(Route.Providers))
-                                },
-                                onNavigateToRules = {
+                                onOpenRouting = {
                                     detailNavigator.replaceAll(listOf(Route.Rules))
                                 },
                             )

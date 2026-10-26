@@ -65,7 +65,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
@@ -151,7 +150,7 @@ fun AboutScreen(navigator: Navigator) {
     var nameProgress by remember { mutableFloatStateOf(0f) }
     var versionProgress by remember { mutableFloatStateOf(0f) }
     var spacerHeightPx by remember { mutableIntStateOf(0) }
-    val spacerHeight = heroHeight + 218.dp
+    val spacerHeight = heroHeight + 230.dp
     val scrollProgress by remember(listState) {
         derivedStateOf {
             if (spacerHeightPx <= 0) 0f
@@ -415,7 +414,7 @@ private fun AboutGlassCard(
     blendColors: List<BlendColorEntry>,
     content: @Composable () -> Unit,
 ) {
-    Card(
+    AppCard(
         modifier =
             Modifier
                 .padding(horizontal = 12.dp)
@@ -423,7 +422,7 @@ private fun AboutGlassCard(
                     if (blur) {
                         Modifier.textureBlur(
                             backdrop = backdrop,
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(24.dp),
                             blurRadius = 60f,
                             colors = BlurColors(blendColors = blendColors),
                         )
@@ -431,7 +430,8 @@ private fun AboutGlassCard(
                         Modifier
                     },
                 ),
-        cornerRadius = 16.dp,
+        cornerRadius = 24,
+        applyHorizontalPadding = false,
         colors =
             CardDefaults.defaultColors(
                 color = if (blur) Color.Transparent else MiuixTheme.colorScheme.surfaceContainer,

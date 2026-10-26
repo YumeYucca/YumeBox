@@ -23,11 +23,23 @@
 package com.github.yumeyucca.yumebox.screen.navigation
 
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.presentation.screen.ProvidersContent
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
 
 @Composable
-fun ProvidersScreen(navigator: Navigator) {
-    ProvidersContent(navigator = navigator)
+fun ProvidersScreen(
+    navigator: Navigator,
+    embedded: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(),
+    scrollBehaviorOverride: ScrollBehavior? = null,
+) {
+    ProvidersContent(
+        navigator = navigator,
+        embedded = embedded,
+        contentPadding = contentPadding,
+        scrollBehaviorOverride = scrollBehaviorOverride,
+    )
 }

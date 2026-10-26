@@ -39,7 +39,7 @@ import com.github.yumeyucca.yumebox.screen.connection.ConnectionScreen
 import com.github.yumeyucca.yumebox.screen.extensions.ExtensionsScreen
 import com.github.yumeyucca.yumebox.screen.log.LogScreen
 import com.github.yumeyucca.yumebox.screen.navigation.*
-import com.github.yumeyucca.yumebox.screen.rules.RulesScreen
+import com.github.yumeyucca.yumebox.screen.rules.RulesAndProvidersScreen
 import com.github.yumeyucca.yumebox.screen.settings.*
 import com.github.yumeyucca.yumebox.screen.settings.backup.BackupRestoreScreen
 import com.github.yumeyucca.yumebox.screen.traffic.TrafficStatisticsScreen
@@ -59,12 +59,12 @@ fun RouteContent(route: Route, navigator: Navigator) {
         is Route.ConnectionDetail -> ConnectionDetailScreen(navigator, route.connectionId)
         Route.TrafficStatistics -> TrafficStatisticsScreen()
         Route.Log -> LogScreen(navigator)
-        Route.Rules -> RulesScreen(navigator)
+        Route.Rules -> RulesAndProvidersScreen(navigator, initialTab = 0)
         Route.About -> AboutScreen(navigator)
         Route.OpenSourceLicenses -> OpenSourceLicensesScreen(navigator)
         Route.Override -> OverrideScreen(navigator)
         Route.OverrideConfigPreview -> OverrideConfigPreviewRoute(navigator)
-        Route.Providers -> ProvidersScreen(navigator)
+        Route.Providers -> RulesAndProvidersScreen(navigator, initialTab = 1)
         Route.Feature -> FeatureScreen(navigator)
         Route.Extensions -> ExtensionsScreen()
         Route.BackupRestore -> BackupRestoreScreen()
