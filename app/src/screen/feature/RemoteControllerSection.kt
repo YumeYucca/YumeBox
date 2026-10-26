@@ -74,8 +74,12 @@ fun RemoteControllerSection(
             },
             enabled = backends.isNotEmpty(),
         )
+    }
+    SectionSummary(YumeTxt.Feature.RemoteController.ModeSummary)
 
-        if (backends.isNotEmpty()) {
+    if (backends.isNotEmpty()) {
+        Title(YumeTxt.Feature.RemoteController.BackendSection)
+        AppCard {
             WindowDropdownPreference(
                 title = YumeTxt.Feature.RemoteController.ControlBackend,
                 summary = null,
@@ -109,7 +113,11 @@ fun RemoteControllerSection(
                 },
             )
         }
+        SectionSummary(YumeTxt.Feature.RemoteController.BackendSummary)
+    }
 
+    Title(YumeTxt.Feature.RemoteController.ManageSection)
+    AppCard {
         PreferenceArrowItem(
             title = YumeTxt.Feature.RemoteController.AddBackend,
             onClick = {
@@ -173,6 +181,7 @@ fun RemoteControllerSection(
         )
     }
 }
+
 
 @Composable
 private fun BackendEditSheet(

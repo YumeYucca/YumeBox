@@ -28,7 +28,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -37,13 +36,13 @@ import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.presentation.component.AppDialog
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference
+import com.github.yumeyucca.yumebox.presentation.component.SectionSummary
 import com.github.yumeyucca.yumebox.presentation.component.Title
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.SmallTitleDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -108,12 +107,7 @@ fun BackupRestoreSection() {
         )
     }
 
-    Text(
-        text = YumeTxt.Settings.More.BackupRestoreSummary,
-        modifier = Modifier.padding(SmallTitleDefaults.InsideMargin),
-        style = MiuixTheme.textStyles.footnote1,
-        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-    )
+    SectionSummary(YumeTxt.Settings.More.BackupRestoreSummary)
 
     Title(YumeTxt.Feature.BackupRestore.RestoreStrategySection)
     AppCard {
@@ -132,16 +126,12 @@ fun BackupRestoreSection() {
             },
         )
     }
-    Text(
-        text =
-            when (restoreStrategy) {
-                BackupRestoreStrategy.Overwrite ->
-                    YumeTxt.Feature.BackupRestore.RestoreOverwriteSummary
-                BackupRestoreStrategy.Merge -> YumeTxt.Feature.BackupRestore.RestoreMergeSummary
-            },
-        modifier = Modifier.padding(SmallTitleDefaults.InsideMargin),
-        style = MiuixTheme.textStyles.footnote1,
-        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+    SectionSummary(
+        when (restoreStrategy) {
+            BackupRestoreStrategy.Overwrite ->
+                YumeTxt.Feature.BackupRestore.RestoreOverwriteSummary
+            BackupRestoreStrategy.Merge -> YumeTxt.Feature.BackupRestore.RestoreMergeSummary
+        }
     )
 
     BackupConfirmDialog(

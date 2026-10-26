@@ -42,6 +42,7 @@ import com.github.yumeyucca.yumebox.presentation.viewmodel.SettingEvent
 import com.github.yumeyucca.yumebox.presentation.viewmodel.SettingViewModel
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.Archive
+import io.github.yumeyucca.lucide.lucide.Feather
 import io.github.yumeyucca.lucide.lucide.FileBracesCorner
 import io.github.yumeyucca.lucide.lucide.ShieldCheck
 import io.github.yumeyucca.lucide.lucide.WifiPen
@@ -163,6 +164,13 @@ private fun SettingsMasterList(
                                     title = YumeTxt.Settings.UiSettings.OverrideScript,
                                     onClick = { onOpen(Route.Override) },
                                     icon = Lucide.FileBracesCorner,
+                                )
+                            },
+                            {
+                                SettingsListItem(
+                                    title = YumeTxt.Settings.UiSettings.MetaFeatures,
+                                    onClick = { onOpen(Route.MetaFeature) },
+                                    icon = Lucide.Feather,
                                 )
                             },
                             {

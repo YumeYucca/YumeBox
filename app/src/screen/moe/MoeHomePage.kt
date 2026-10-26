@@ -22,6 +22,7 @@
 
 package com.github.yumeyucca.yumebox.screen.moe
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -42,9 +43,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.core.view.WindowCompat
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
@@ -102,10 +105,15 @@ fun MoeHomePage(
     val isRemoteController = screen.isRemoteController
     val themeMode = moe.themeMode
     val moeHomeQuote = moe.moeHomeQuote
+    val moeHomeQuoteAuthor by appSettingsViewModel.moeHomeQuoteAuthor.state.collectAsState()
     val sidebarExpanded = moe.sidebarExpanded
     val useSystemWallpaper = moe.useSystemWallpaper
+    val statusBarSpacing by appSettingsViewModel.moeStatusBarSpacing.state.collectAsState()
 
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarTop =
+        if (statusBarSpacing) statusBarInset else MoeUi.Hero.containerHorizontalInset
+
     val batteryPercent = rememberMoeBatteryPercent(context)
     var showHomeSettingsSheet by remember { mutableStateOf(false) }
     var wallpaperRefreshKey by remember { mutableIntStateOf(0) }
@@ -183,6 +191,22 @@ fun MoeHomePage(
             ThemeMode.Auto -> systemDark
         }
     val contentSurface = if (isDarkHomeSurface) MiuixTheme.colorScheme.surface else Color.White
+    // Off matches the hero card's border inset; on applies the full dynamic status-bar inset.
+    // Other routes keep the app-wide system-night-mode appearance.
+    val view = LocalView.current
+    val statusBarController =
+        remember(view) { WindowCompat.getInsetsController((view.context as Activity).window, view) }
+    SideEffect {
+        statusBarController.isAppearanceLightStatusBars =
+            when {
+                !isActive -> !systemDark
+                statusBarSpacing -> !isDarkHomeSurface
+                else -> false
+            }
+    }
+    DisposableEffect(Unit) {
+        onDispose { statusBarController.isAppearanceLightStatusBars = !systemDark }
+    }
     val handlePageChange = LocalHandlePageChange.current
     val rootNavigator = LocalNavigator.current
     val detailNavigator = LocalDetailNavigator.current
@@ -284,6 +308,7 @@ fun MoeHomePage(
             selectedServerPing = selectedServerPing,
             now = now,
             quote = quoteText,
+            quoteAuthor = moeHomeQuoteAuthor,
             controlState = visualControlState,
             canLaunch = profilesLoaded && profiles.isNotEmpty() && !isRemoteController,
             isRemoteController = isRemoteController,
@@ -310,9 +335,11 @@ fun MoeHomePage(
     MoeHomeSettingsSheet(
         show = showHomeSettingsSheet,
         quote = moe.moeHomeQuote,
+        author = moeHomeQuoteAuthor,
         sidebarExpanded = sidebarExpanded,
         useSystemWallpaper = useSystemWallpaper,
         onQuoteChange = appSettingsViewModel::onMoeHomeQuoteChange,
+        onAuthorChange = appSettingsViewModel::onMoeHomeQuoteAuthorChange,
         onSidebarExpandedChange = appSettingsViewModel::onMoeSidebarExpandedChange,
         onUseSystemWallpaperChange = appSettingsViewModel::onUseSystemWallpaperChange,
         onChangeWallpaper = {

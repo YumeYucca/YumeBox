@@ -142,7 +142,7 @@ internal fun MainContentHost(
                         settledDestination == BottomBarDestination.Proxy &&
                             (detailBackStack.lastOrNull() !is Route.Providers &&
                                 detailBackStack.lastOrNull() !is Route.Rules)
-                    // Subscribe before the pane switch so Providers is already on the stack when
+                    // Subscribe before the pane switch so routing details are already on the stack when
                     // the bounce transition starts. Composing the host only after navigation
                     // drops the route and leaves the About root on screen.
                     val detailStack = rememberSecondaryDetailStack(detailNavigator)

@@ -25,14 +25,21 @@ package com.github.yumeyucca.yumebox.screen.rules
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
@@ -58,23 +65,42 @@ fun RulesAndProvidersScreen(
     val scrollBehavior = MiuixScrollBehavior()
     var selectedTab by rememberSaveable(initialTab) { mutableIntStateOf(initialTab.coerceIn(0, 1)) }
     val tabs = listOf(YumeTxt.Rules.Title, YumeTxt.Providers.Title)
+    val rulesListState = rememberLazyListState()
+    val providersListState = rememberLazyListState()
+    val activeListState = if (selectedTab == 0) rulesListState else providersListState
 
     GlassScaffold(
         topBar = {
             TopBar(
-                title = YumeTxt.MetaFeature.Title,
+                title = YumeTxt.Providers.TabTitle,
                 scrollBehavior = scrollBehavior,
             )
         },
         contentOverlay = { scaffoldPadding ->
+            val density = LocalDensity.current
+            val tabRestTopPx =
+                with(density) { (scaffoldPadding.calculateTopPadding() + UiDp.dp20).toPx() }
+            val tabZonePx = with(density) { UiDp.dp46.toPx() }
+            val tabScrollPx by remember(activeListState, tabRestTopPx) {
+                derivedStateOf {
+                    if (activeListState.firstVisibleItemIndex == 0) {
+                        activeListState.firstVisibleItemScrollOffset.toFloat()
+                    } else {
+                        tabRestTopPx + tabZonePx
+                    }
+                }
+            }
             Box(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(top = scaffoldPadding.calculateTopPadding() + UiDp.dp20)
+                        .graphicsLayer { translationY = tabRestTopPx - tabScrollPx }
                         .background(MiuixTheme.colorScheme.surface)
-                        .padding(horizontal = UiDp.dp12)
-                        .padding(bottom = UiDp.dp4),
+                        .padding(
+                            start = UiDp.dp12,
+                            end = UiDp.dp12,
+                            bottom = UiDp.dp4,
+                        ),
             ) {
                 SegmentedTabRow(
                     tabs = tabs,
@@ -101,6 +127,7 @@ fun RulesAndProvidersScreen(
                 embedded = true,
                 contentPadding = contentPadding,
                 scrollBehaviorOverride = scrollBehavior,
+                listState = rulesListState,
             )
 
             else -> ProvidersScreen(
@@ -108,6 +135,7 @@ fun RulesAndProvidersScreen(
                 embedded = true,
                 contentPadding = contentPadding,
                 scrollBehaviorOverride = scrollBehavior,
+                listState = providersListState,
             )
         }
     }

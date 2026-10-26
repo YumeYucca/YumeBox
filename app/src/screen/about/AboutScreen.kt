@@ -38,7 +38,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -48,6 +47,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.BuildInfo
 import com.github.yumeyucca.yumebox.common.util.openUrl
@@ -336,19 +336,16 @@ fun AboutScreen(navigator: Navigator) {
                                 summary = YumeTxt.About.License.AgplDescription,
                             )
                         }
-                    }
-                }
 
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = UiDp.dp32),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(text = YumeTxt.About.Copyright, style = MiuixTheme.textStyles.footnote1)
+                        Spacer(Modifier.height(UiDp.dp24))
+                        Text(
+                            text = YumeTxt.About.Copyright,
+                            style = MiuixTheme.textStyles.footnote1,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(Modifier.height(UiDp.dp32))
                     }
-                    Spacer(modifier = Modifier.height(UiDp.dp32))
                 }
             }
             AboutHero(

@@ -127,13 +127,23 @@ class ToolchainBackend(private val root: File, graph: RuntimeGraph, private val 
     }
 }
 
+private val progressLine = Regex("""^\s*(→.*)?\[\s*[#\u2501\u2500•]+[\s\u2501\u2500•]*\] \d+ / \d+ tasks.*$""")
+
+/**
+ * Runs the Kotlin CLI without handing it the console. Toolchain renders live progress bars and
+ * multi-line warnings when stdout is a terminal; capturing it and reporting only milestones keeps
+ * packaging output stable in PowerShell, CI logs and other wrappers.
+ */
 fun toolchain(root: File, arguments: List<String>, environment: Map<String, String> = emptyMap(), capture: Boolean = false): String {
     val command = if (System.getProperty("os.name").startsWith("Windows")) listOf("cmd.exe", "/d", "/c", root.resolve("kotlin.bat").path) else listOf("sh", root.resolve("kotlin").path)
-    val builder = ProcessBuilder(command + arguments).directory(root).redirectError(ProcessBuilder.Redirect.INHERIT)
+    val builder = ProcessBuilder(command + arguments).directory(root).redirectErrorStream(true)
     builder.environment().putAll(environment)
-    if (!capture) builder.redirectOutput(ProcessBuilder.Redirect.INHERIT)
     val process = builder.start()
-    val output = if (capture) process.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() } else ""
+    val output = StringBuilder()
+    process.inputStream.bufferedReader(Charsets.UTF_8).forEachLine { line ->
+        output.appendLine(line)
+        if (!capture && !progressLine.matches(line)) println(line)
+    }
     check(process.waitFor() == 0) { "Kotlin Toolchain command failed: ${arguments.first()}" }
-    return output
+    return output.toString()
 }

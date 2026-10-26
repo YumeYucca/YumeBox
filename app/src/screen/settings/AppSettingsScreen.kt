@@ -109,6 +109,7 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
     val predictiveBackMaxProgress by viewModel.predictiveBackMaxProgress.state.collectAsState()
     val classicHomeEnabled = section.classicHomeEnabled
     val useSystemWallpaper = section.useSystemWallpaper
+    val moeStatusBarSpacing by viewModel.moeStatusBarSpacing.state.collectAsState()
 
     Title(YumeTxt.AppSettings.Interface.ColorThemeTitle)
     AppCard {
@@ -184,6 +185,11 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
             title = YumeTxt.AppSettings.Interface.ClassicHomeTitle,
             checked = classicHomeEnabled,
             onCheckedChange = viewModel::onClassicHomeEnabledChange,
+        )
+        PreferenceSwitchItem(
+            title = YumeTxt.AppSettings.Interface.StatusBarSpacingTitle,
+            checked = moeStatusBarSpacing,
+            onCheckedChange = viewModel::onMoeStatusBarSpacingChange,
         )
         SystemWallpaperPreferenceItem(
             checked = useSystemWallpaper,

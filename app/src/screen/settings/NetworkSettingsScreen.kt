@@ -38,7 +38,6 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.github.yumeyucca.yumebox.data.model.AccessControlMode
 import com.github.yumeyucca.yumebox.data.model.RunMode
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
@@ -176,23 +175,6 @@ fun NetworkSettingsScreen(navigator: Navigator) {
                         title = YumeTxt.NetworkSettings.Kernel.CustomTitle,
                         summary = null,
                         onClick = { showCustomKernelDialog = true },
-                    )
-                }
-            }
-            item {
-                Title(YumeTxt.NetworkSettings.Section.ProxyOptions)
-                AppCard {
-                    PreferenceEnumItem(
-                        title = YumeTxt.NetworkSettings.ProxyOptions.AccessControlModeTitle,
-                        currentValue = accessControlMode,
-                        items =
-                            listOf(
-                                YumeTxt.NetworkSettings.ProxyOptions.AllowAll,
-                                YumeTxt.NetworkSettings.ProxyOptions.AllowSelected,
-                                YumeTxt.NetworkSettings.ProxyOptions.RejectSelected,
-                            ),
-                        values = AccessControlMode.entries,
-                        onValueChange = viewModel::onAccessControlModeChange,
                     )
                 }
             }

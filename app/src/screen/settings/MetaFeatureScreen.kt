@@ -23,37 +23,33 @@
 package com.github.yumeyucca.yumebox.screen.settings
 
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.state.ToggleableState
 import com.github.yumeyucca.yumebox.common.util.toast
-import com.github.yumeyucca.yumebox.core.model.GeoFileType
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.GeoXItem
 import com.github.yumeyucca.yumebox.core.model.geoXItems
 import com.github.yumeyucca.yumebox.core.util.runtimeHomeDir
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
-import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.substore.util.SubStoreDownloadClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+private data class GeoFileStatus(
+    val item: GeoXItem,
+    val lastModified: Long?,
+)
 
 @Composable
 fun MetaFeatureScreen(navigator: Navigator) {
@@ -62,12 +58,33 @@ fun MetaFeatureScreen(navigator: Navigator) {
     val scope = rememberCoroutineScope()
     val downloadClient: SubStoreDownloadClient = koinInject()
 
-    val showGeoXDownloadSheet = remember { mutableStateOf(false) }
+    var geoRefreshKey by remember { mutableStateOf(0) }
+    val runtimeHome = context.runtimeHomeDir
+    val geoStatuses by produceState(
+        geoXItems.map { GeoFileStatus(it, null) },
+        runtimeHome,
+        geoRefreshKey,
+    ) {
+        value =
+            withContext(Dispatchers.IO) {
+                geoXItems.map { item ->
+                    val file = File(runtimeHome, item.fileName)
+                    GeoFileStatus(item, if (file.exists()) file.lastModified() else null)
+                }
+            }
+    }
+    val lastUpdated = geoStatuses.mapNotNull { it.lastModified }.maxOrNull()
+    val lastUpdatedText = remember(lastUpdated) { formatGeoLastUpdated(lastUpdated) }
     val ageKeyHybrid = remember { mutableStateOf(false) }
     val ageKeyDialogVisible = remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { TopBar(title = YumeTxt.MetaFeature.Title, scrollBehavior = scrollBehavior) }
+        topBar = {
+            TopBar(
+                title = YumeTxt.Settings.UiSettings.MetaFeatures,
+                scrollBehavior = scrollBehavior,
+            )
+        }
     ) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()
         ScreenLazyColumn(
@@ -75,21 +92,50 @@ fun MetaFeatureScreen(navigator: Navigator) {
             innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
         ) {
             item {
-                Title(YumeTxt.MetaFeature.Section.Routing)
+                Title(YumeTxt.MetaFeature.Section.StatisticsAndLogs)
                 AppCard {
                     ArrowPreference(
-                        title = YumeTxt.MetaFeature.RuntimeRules.Title,
-                        onClick = { navigator.push(Route.Rules) },
+                        title = YumeTxt.TrafficStatistics.Title,
+                        onClick = { navigator.push(Route.TrafficStatistics) },
                     )
+                    ArrowPreference(
+                        title = YumeTxt.Settings.More.Logs,
+                        onClick = { navigator.push(Route.Log) },
+                    )
+                }
+                SectionSummary(YumeTxt.MetaFeature.Section.StatisticsAndLogsSummary)
+            }
+            item {
+                Title(YumeTxt.MetaFeature.Section.Routing)
+                AppCard {
                     ArrowPreference(
                         title = YumeTxt.MetaFeature.CustomRouting.Title,
                         onClick = { navigator.push(Route.CustomRouting) },
                     )
+                }
+                SectionSummary(YumeTxt.MetaFeature.CustomRouting.Summary)
+            }
+            item {
+                Title(YumeTxt.MetaFeature.GeoX.OnlineUpdateTitle)
+                AppCard {
                     ArrowPreference(
                         title = YumeTxt.MetaFeature.GeoX.OnlineUpdateTitle,
-                        onClick = { showGeoXDownloadSheet.value = true },
+                        onClick = {
+                            downloadGeoXFiles(
+                                context = context,
+                                scope = scope,
+                                downloadClient = downloadClient,
+                                items = geoXItems,
+                                onComplete = { geoRefreshKey++ },
+                            )
+                        },
                     )
                 }
+                SectionSummary(
+                    YumeTxt.MetaFeature.GeoX.OnlineUpdateSummary.format(
+                        lastUpdatedText
+                    )
+                )
             }
             item {
                 Title(YumeTxt.MetaFeature.AgeKey.Section)
@@ -112,13 +158,6 @@ fun MetaFeatureScreen(navigator: Navigator) {
             }
         }
 
-        GeoXDownloadDialog(
-            show = showGeoXDownloadSheet,
-            context = context,
-            scope = scope,
-            downloadClient = downloadClient,
-        )
-
         AgeKeyGeneratorDialog(
             show = ageKeyDialogVisible.value,
             hybrid = ageKeyHybrid.value,
@@ -128,71 +167,10 @@ fun MetaFeatureScreen(navigator: Navigator) {
     }
 }
 
-@Composable
-private fun GeoXDownloadDialog(
-    show: MutableState<Boolean>,
-    context: android.content.Context,
-    scope: kotlinx.coroutines.CoroutineScope,
-    downloadClient: SubStoreDownloadClient,
-) {
-    val spacing = AppTheme.spacing
-    val selectedItems = remember { mutableStateMapOf<GeoFileType, Boolean>() }
-    val canConfirm = selectedItems.values.any { it }
 
-    AppDialog(
-        show = show.value,
-        title = YumeTxt.MetaFeature.Download.DialogTitle,
-        onDismissRequest = { show.value = false },
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(spacing.space16),
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                geoXItems.forEach { item ->
-                    BasicComponent(
-                        title = item.title,
-                        endActions = {
-                            Checkbox(
-                                state = ToggleableState(selectedItems[item.type] ?: false),
-                                onClick = {
-                                    selectedItems[item.type] = !(selectedItems[item.type] ?: false)
-                                },
-                            )
-                        },
-                        onClick = {
-                            selectedItems[item.type] = !(selectedItems[item.type] ?: false)
-                        },
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.space16),
-            ) {
-                TextButton(
-                    text = YumeTxt.Component.Button.Cancel,
-                    onClick = { show.value = false },
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(
-                    text = YumeTxt.Component.Button.Confirm,
-                    onClick = {
-                        val itemsToDownload = geoXItems.filter { selectedItems[it.type] == true }
-                        if (itemsToDownload.isEmpty()) {
-                            return@TextButton
-                        }
-                        show.value = false
-                        downloadGeoXFiles(context, scope, downloadClient, itemsToDownload)
-                    },
-                    enabled = canConfirm,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.textButtonColorsPrimary(),
-                )
-            }
-        }
-    }
+private fun formatGeoLastUpdated(timestamp: Long?): String {
+    if (timestamp == null || timestamp <= 0L) return "—"
+    return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(timestamp))
 }
 
 private fun downloadGeoXFiles(
@@ -200,6 +178,7 @@ private fun downloadGeoXFiles(
     scope: kotlinx.coroutines.CoroutineScope,
     downloadClient: SubStoreDownloadClient,
     items: List<GeoXItem>,
+    onComplete: () -> Unit = {},
 ) {
     scope.launch {
         var successCount = 0
@@ -213,6 +192,7 @@ private fun downloadGeoXFiles(
                 }
             }
         }
+        onComplete()
         context.toast(
             YumeTxt.MetaFeature.Download.DownloadComplete.format(successCount, items.size)
         )

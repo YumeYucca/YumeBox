@@ -60,7 +60,7 @@ private fun MoeTrafficItem(label: String, speed: Long) {
             text = label,
             color = onSurface.copy(alpha = 0.62f),
             style = MiuixTheme.textStyles.footnote1,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.8.sp,
             modifier = Modifier.padding(bottom = MoeUi.Traffic.labelBottomPadding),
@@ -70,13 +70,13 @@ private fun MoeTrafficItem(label: String, speed: Long) {
             color = onSurface,
             style = MiuixTheme.textStyles.title1,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 24.sp,
+            fontSize = 28.sp,
         )
         Text(
             text = unit,
             color = onSurface.copy(alpha = 0.55f),
             style = MiuixTheme.textStyles.footnote1,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             modifier = Modifier.padding(bottom = MoeUi.Traffic.labelBottomPadding),
         )
     }

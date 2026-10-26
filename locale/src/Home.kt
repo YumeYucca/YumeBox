@@ -33,6 +33,7 @@ internal val ZhHansYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
     Settings = YumeStrings_Home_Settings(
         Title = "首页设置",
         Quote = "一言",
+        Author = "作者",
         ExpandSidebar = "展开侧边栏",
         ChangeWallpaper = "更换壁纸",
     ),
@@ -83,6 +84,7 @@ internal val ZhYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
     Settings = YumeStrings_Home_Settings(
         Title = "首頁設定",
         Quote = "一言",
+        Author = "作者",
         ExpandSidebar = "展開側邊欄",
         ChangeWallpaper = "更換桌布",
     ),
@@ -133,6 +135,7 @@ internal val EnYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
     Settings = YumeStrings_Home_Settings(
         Title = "Home settings",
         Quote = "Quote",
+        Author = "Author",
         ExpandSidebar = "Expand sidebar",
         ChangeWallpaper = "Change wallpaper",
     ),
@@ -183,6 +186,7 @@ internal val JaYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
     Settings = YumeStrings_Home_Settings(
         Title = "ホーム設定",
         Quote = "一言",
+        Author = "作者",
         ExpandSidebar = "サイドバーを展開",
         ChangeWallpaper = "壁紙を変更",
     ),
@@ -233,6 +237,7 @@ internal val RuYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
     Settings = YumeStrings_Home_Settings(
         Title = "Настройки главной",
         Quote = "Цитата",
+        Author = "Автор",
         ExpandSidebar = "Развернуть боковую панель",
         ChangeWallpaper = "Сменить обои",
     ),

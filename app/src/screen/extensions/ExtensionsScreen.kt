@@ -35,13 +35,13 @@ import androidx.core.content.ContextCompat
 import com.github.yumeyucca.yumebox.common.util.requiresLocalNetworkPermission
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.RemoteBackend
-import com.github.yumeyucca.yumebox.presentation.component.combinePaddingValues
-import com.github.yumeyucca.yumebox.presentation.component.rememberStandalonePageMainPadding
+import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
+import com.github.yumeyucca.yumebox.presentation.component.combinePaddingValues
+import com.github.yumeyucca.yumebox.presentation.component.rememberStandalonePageMainPadding
 import com.github.yumeyucca.yumebox.screen.feature.RemoteControllerSection
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 
 /** Standalone extensions page: the remote controller section moved out of the Lab screen. */
 @Composable
@@ -70,7 +70,7 @@ fun ExtensionsScreen() {
         }
     }
 
-    Scaffold(
+    GlassScaffold(
         topBar = { TopBar(title = YumeTxt.Settings.Section.Extensions, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()

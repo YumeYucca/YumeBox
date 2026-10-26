@@ -82,9 +82,9 @@ object YumeBlur {
                 Brush.verticalGradient(
                     colorStops = arrayOf(
                         0.0f to color.copy(alpha = 0.99f),
-                        0.45f to color.copy(alpha = 0.97f),
-                        0.78f to color.copy(alpha = 0.92f),
-                        0.9f to color.copy(alpha = 0.55f),
+                        0.78f to color.copy(alpha = 0.99f),
+                        0.89f to color.copy(alpha = 0.96f),
+                        0.95f to color.copy(alpha = 0.55f),
                         1.0f to color.copy(alpha = 0f),
                     ),
                     startY = 0f,

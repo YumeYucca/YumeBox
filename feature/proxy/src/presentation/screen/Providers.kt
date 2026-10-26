@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.screen
 
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,7 +29,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -83,10 +84,25 @@ fun ProvidersContent(
     embedded: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(),
     scrollBehaviorOverride: ScrollBehavior? = null,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     val viewModel = koinViewModel<ProvidersViewModel>()
     val scrollBehavior = scrollBehaviorOverride ?: MiuixScrollBehavior()
     val context = LocalContext.current
+    // One launcher for the whole list; a launcher per card registers N activity results on entry.
+    var pendingUploadProvider by remember { mutableStateOf<Provider?>(null) }
+    val filePicker =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            val provider = pendingUploadProvider
+            pendingUploadProvider = null
+            if (uri != null && provider != null) {
+                viewModel.uploadProviderFile(context, provider, uri)
+            }
+        }
+    val requestUpload: (Provider) -> Unit = { provider ->
+        pendingUploadProvider = provider
+        filePicker.launch("*/*")
+    }
 
     val providers by viewModel.providers.collectAsState()
     val isRunning by viewModel.isRunning.collectAsState()
@@ -158,6 +174,7 @@ fun ProvidersContent(
             ScreenLazyColumn(
                 scrollBehavior = behavior,
                 innerPadding = padding,
+                lazyListState = listState,
             ) {
                 if (showProviderTabs) {
                     // 代理/规则资源收进分段 tab,吸附在内容区顶部。
@@ -184,9 +201,7 @@ fun ProvidersContent(
                             uiState.updatingProviders.contains(providerKey)
                         },
                         onUpdate = { provider -> viewModel.updateProvider(provider) },
-                        onUpload = { provider, uri ->
-                            viewModel.uploadProviderFile(context, provider, uri)
-                        },
+                        onUpload = requestUpload,
                     )
                 } else {
                     sections.forEach { section ->
@@ -196,9 +211,7 @@ fun ProvidersContent(
                                 uiState.updatingProviders.contains(providerKey)
                             },
                             onUpdate = { provider -> viewModel.updateProvider(provider) },
-                            onUpload = { provider, uri ->
-                                viewModel.uploadProviderFile(context, provider, uri)
-                            },
+                            onUpload = requestUpload,
                         )
                     }
                 }
@@ -230,17 +243,13 @@ private fun ProviderCard(
     provider: Provider,
     isUpdating: Boolean,
     onUpdate: () -> Unit,
-    onUpload: (Uri) -> Unit,
+    onUpload: () -> Unit,
 ) {
     val showPopup = remember { mutableStateOf(false) }
     val colorScheme = MiuixTheme.colorScheme
     val updateBg = remember(colorScheme) { colorScheme.primary.copy(alpha = 0.1f) }
     val updateTint = remember(colorScheme) { colorScheme.primary }
-
-    val filePicker =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
-            uri?.let { onUpload(it) }
-        }
+    val formattedUpdatedAt = remember(provider.updatedAt) { formatTimestamp(provider.updatedAt) }
 
     AppCard(modifier = Modifier.padding(vertical = UiDp.dp4)) {
         Row(
@@ -274,7 +283,7 @@ private fun ProviderCard(
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                         Text(
-                            text = formatTimestamp(provider.updatedAt),
+                            text = formattedUpdatedAt,
                             style = MiuixTheme.textStyles.body2,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
@@ -304,7 +313,7 @@ private fun ProviderCard(
                             // Single action: fire it; mixed actions: open the menu.
                             when {
                                 canUpdate && !canUpload -> onUpdate()
-                                !canUpdate && canUpload -> filePicker.launch("*/*")
+                                !canUpdate && canUpload -> onUpload()
                                 else -> showPopup.value = true
                             }
                         },
@@ -355,7 +364,7 @@ private fun ProviderCard(
                                             showPopup.value = false
                                             when (index) {
                                                 0 -> onUpdate()
-                                                1 -> filePicker.launch("*/*")
+                                                1 -> onUpload()
                                             }
                                         },
                                         index = index,
@@ -374,7 +383,7 @@ private fun LazyListScope.providerSection(
     section: ProviderSection,
     isUpdating: (String) -> Boolean,
     onUpdate: (Provider) -> Unit,
-    onUpload: (Provider, Uri) -> Unit,
+    onUpload: (Provider) -> Unit,
     showTitle: Boolean = true,
 ) {
     if (showTitle) {
@@ -390,7 +399,7 @@ private fun LazyListScope.providerSection(
             provider = provider,
             isUpdating = isUpdating(providerKey),
             onUpdate = { onUpdate(provider) },
-            onUpload = { uri -> onUpload(provider, uri) },
+            onUpload = { onUpload(provider) },
         )
     }
 }

@@ -26,6 +26,7 @@ package com.github.yumeyucca.yumebox.screen.rules
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
@@ -65,6 +66,7 @@ fun RulesScreen(
     embedded: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(),
     scrollBehaviorOverride: ScrollBehavior? = null,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     val density = LocalDensity.current
     val viewModel = koinViewModel<RulesViewModel>()
@@ -74,7 +76,7 @@ fun RulesScreen(
     val scrollBehavior = scrollBehaviorOverride ?: MiuixScrollBehavior()
     val spacing = AppTheme.spacing
     val mainLikePadding = rememberStandalonePageMainPadding()
-    val mainListState = rememberLazyListState()
+    val mainListState = listState
 
     var searchStatus by remember {
         mutableStateOf(SearchStatus(label = YumeTxt.Rules.SearchHint))

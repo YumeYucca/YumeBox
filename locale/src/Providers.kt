@@ -2,6 +2,7 @@ package com.github.yumeyucca.yumebox.core.locale
 
 internal val ZhHansYumeStrings_Providers: YumeStrings_Providers = YumeStrings_Providers(
     Title = "外部资源",
+    TabTitle = "资源",
     Action = YumeStrings_Providers_Action(
         UpdateAll = "更新全部",
         Update = "更新",
@@ -36,6 +37,7 @@ internal val ZhHansYumeStrings_Providers: YumeStrings_Providers = YumeStrings_Pr
 
 internal val ZhYumeStrings_Providers: YumeStrings_Providers = YumeStrings_Providers(
     Title = "外部資源",
+    TabTitle = "資源",
     Action = YumeStrings_Providers_Action(
         UpdateAll = "更新全部",
         Update = "更新",
@@ -70,6 +72,7 @@ internal val ZhYumeStrings_Providers: YumeStrings_Providers = YumeStrings_Provid
 
 internal val EnYumeStrings_Providers: YumeStrings_Providers = YumeStrings_Providers(
     Title = "External Resources",
+    TabTitle = "Resources",
     Action = YumeStrings_Providers_Action(
         UpdateAll = "Update All",
         Update = "Update",
@@ -104,6 +107,7 @@ internal val EnYumeStrings_Providers: YumeStrings_Providers = YumeStrings_Provid
 
 internal val JaYumeStrings_Providers: YumeStrings_Providers = YumeStrings_Providers(
     Title = "外部リソース",
+    TabTitle = "リソース",
     Action = YumeStrings_Providers_Action(
         UpdateAll = "すべて更新",
         Update = "更新",
@@ -138,6 +142,7 @@ internal val JaYumeStrings_Providers: YumeStrings_Providers = YumeStrings_Provid
 
 internal val RuYumeStrings_Providers: YumeStrings_Providers = YumeStrings_Providers(
     Title = "Внешние ресурсы",
+    TabTitle = "Ресурсы",
     Action = YumeStrings_Providers_Action(
         UpdateAll = "Обновить все",
         Update = "Обновить",
