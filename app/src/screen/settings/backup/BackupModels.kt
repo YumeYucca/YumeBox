@@ -33,6 +33,11 @@ import java.util.*
 
 const val BACKUP_FORMAT_VERSION = 1
 
+internal enum class BackupRestoreStrategy {
+    Overwrite,
+    Merge,
+}
+
 @Serializable
 data class BackupManifest(
     val formatVersion: Int = BACKUP_FORMAT_VERSION,

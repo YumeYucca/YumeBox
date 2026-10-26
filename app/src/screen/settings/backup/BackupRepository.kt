@@ -48,7 +48,7 @@ class BackupRepository internal constructor(
             writeCurrentBackup(output)
         }
 
-    suspend fun restoreBackup(input: InputStream) =
+    internal suspend fun restoreBackup(input: InputStream, strategy: BackupRestoreStrategy) =
         withContext(Dispatchers.IO) {
             val extractDir = freshCacheDir("backup-restore")
             val rollbackFile = application.cacheDir.resolve("backup-restore-rollback.zip")
@@ -60,17 +60,22 @@ class BackupRepository internal constructor(
                     "Backup belongs to ${extracted.manifest.appId}"
                 }
 
+                val currentPayload =
+                    if (strategy == BackupRestoreStrategy.Merge) storeAdapter.collectPayload()
+                    else null
                 rollbackFile.outputStream().use(::writeCurrentBackup)
                 try {
                     stopRuntimeBeforeRestore()
-                    applyBackup(extracted)
+                    applyBackup(extracted, strategy, currentPayload)
                     notifyRestored()
                 } catch (error: Exception) {
                     runCatching {
                         val stagingDir = freshCacheDir("backup-rollback")
                         rollbackDir = stagingDir
                         rollbackFile.inputStream().use { input ->
-                            archiveManager.readArchive(input, stagingDir).also(::applyBackup)
+                            archiveManager
+                                .readArchive(input, stagingDir)
+                                .also { rollback -> applyBackup(rollback) }
                         }
                     }
                     throw error
@@ -116,28 +121,62 @@ class BackupRepository internal constructor(
         )
     }
 
-    private fun applyBackup(extracted: BackupArchiveManager.ExtractedBackup) {
+    private fun applyBackup(
+        extracted: BackupArchiveManager.ExtractedBackup,
+        strategy: BackupRestoreStrategy = BackupRestoreStrategy.Overwrite,
+        currentPayload: BackupPayload? = null,
+    ) {
         val wallpaperFile = extracted.moeWallpaperFile.takeIf(File::isFile)
+        val payload =
+            when (strategy) {
+                BackupRestoreStrategy.Overwrite -> extracted.payload
+                BackupRestoreStrategy.Merge ->
+                    mergeBackupPayload(
+                        local = requireNotNull(currentPayload),
+                        backup = extracted.payload,
+                    )
+            }
+        val localWallpaperFile = application.moeWallpaperFile().takeIf(File::isFile)
+        val restoredWallpaperFile =
+            if (strategy == BackupRestoreStrategy.Merge) localWallpaperFile ?: wallpaperFile
+            else wallpaperFile
         val appBackup =
-            if (wallpaperFile != null) {
-                extracted.payload.appSettings.copy(
-                    moeWallpaperUri = "file://${application.moeWallpaperFile().absolutePath}"
+            if (restoredWallpaperFile != null) {
+                payload.appSettings.copy(
+                    moeWallpaperUri =
+                        "file://${application.moeWallpaperFile().absolutePath}"
                 )
             } else {
-                extracted.payload.appSettings
+                payload.appSettings
             }
 
-        storeAdapter.clearAndApply(extracted.payload.copy(appSettings = appBackup))
+        storeAdapter.clearAndApply(payload.copy(appSettings = appBackup))
 
-        replaceBackupDirectory(extracted.importedDir, application.importedDir)
-        replaceBackupDirectory(extracted.overridesDir, application.filesDir.resolve("overrides"))
-        replaceBackupDirectory(extracted.subStoreDataDir, SubStorePaths.dataDir)
-        if (wallpaperFile != null) {
+        when (strategy) {
+            BackupRestoreStrategy.Overwrite -> {
+                replaceBackupDirectory(extracted.importedDir, application.importedDir)
+                replaceBackupDirectory(
+                    extracted.overridesDir,
+                    application.filesDir.resolve("overrides"),
+                )
+                replaceBackupDirectory(extracted.subStoreDataDir, SubStorePaths.dataDir)
+            }
+            BackupRestoreStrategy.Merge -> {
+                mergeBackupDirectory(extracted.importedDir, application.importedDir)
+                mergeBackupDirectory(extracted.overridesDir, application.filesDir.resolve("overrides"))
+                mergeBackupDirectory(extracted.subStoreDataDir, SubStorePaths.dataDir)
+            }
+        }
+
+        if (
+            wallpaperFile != null &&
+                (strategy == BackupRestoreStrategy.Overwrite || localWallpaperFile == null)
+        ) {
             application.moeWallpaperFile().also { target ->
                 target.parentFile?.mkdirs()
                 wallpaperFile.copyTo(target, overwrite = true)
             }
-        } else {
+        } else if (strategy == BackupRestoreStrategy.Overwrite && wallpaperFile == null) {
             application.moeWallpaperFile().delete()
         }
     }
@@ -187,6 +226,11 @@ internal fun replaceBackupDirectory(source: File, target: File) {
     source.copyToBackupTarget(target)
 }
 
+internal fun mergeBackupDirectory(source: File, target: File) {
+    if (!source.exists()) return
+    source.mergeIntoBackupTarget(target)
+}
+
 private fun File.copyToBackupTarget(target: File) {
     if (isDirectory) {
         target.mkdirs()
@@ -196,5 +240,18 @@ private fun File.copyToBackupTarget(target: File) {
     } else {
         target.parentFile?.mkdirs()
         copyTo(target, overwrite = true)
+    }
+}
+
+private fun File.mergeIntoBackupTarget(target: File) {
+    if (isDirectory) {
+        if (target.exists() && !target.isDirectory) return
+        target.mkdirs()
+        listFiles().orEmpty().forEach { file ->
+            file.mergeIntoBackupTarget(target.resolve(file.name))
+        }
+    } else if (!target.exists()) {
+        target.parentFile?.mkdirs()
+        copyTo(target)
     }
 }

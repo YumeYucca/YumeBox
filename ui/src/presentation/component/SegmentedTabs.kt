@@ -52,6 +52,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
+import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -67,8 +70,27 @@ fun SegmentedTabRow(
     modifier: Modifier = Modifier,
     // 40dp 为默认;与并排元素(如顶栏 42dp 玻璃容器)对齐时可传入一致高度。
     tabHeight: Dp = 40.dp,
+    backdrop: LayerBackdrop? = null,
 ) {
     if (tabs.isEmpty()) return
+
+    if (backdrop != null && isRuntimeShaderSupported()) {
+        val colors = MiuixTheme.colorScheme
+        GlassSegmentedTabRow(
+            tabs = tabs,
+            selectedIndex = selectedTabIndex,
+            onSelect = onTabSelected,
+            backdrop = backdrop,
+            modifier = modifier,
+            height = tabHeight,
+            shadow = null,
+            trackColor = colors.surfaceVariant,
+            indicatorColor = colors.primary.copy(alpha = AppTheme.opacity.subtle),
+            selectedContentColor = colors.primary,
+            contentColor = colors.onSurface.copy(alpha = AppTheme.opacity.prominentText),
+        )
+        return
+    }
 
     val opacity = AppTheme.opacity
     val colorScheme = MiuixTheme.colorScheme

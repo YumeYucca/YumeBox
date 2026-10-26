@@ -21,6 +21,8 @@ internal val ZhHansYumeStrings_About: YumeStrings_About = YumeStrings_About(
     Link = YumeStrings_About_Link(
         TelegramGroup = "Telegram 群组",
         TelegramChannel = "Telegram 频道",
+        ProjectSource = "项目源码",
+        CoreSource = "内核源码",
     ),
     Support = YumeStrings_About_Support(
         ExportLogs = "导出日志",
@@ -58,6 +60,8 @@ internal val ZhYumeStrings_About: YumeStrings_About = YumeStrings_About(
     Link = YumeStrings_About_Link(
         TelegramGroup = "Telegram 群組",
         TelegramChannel = "Telegram 頻道",
+        ProjectSource = "專案原始碼",
+        CoreSource = "核心原始碼",
     ),
     Support = YumeStrings_About_Support(
         ExportLogs = "匯出日誌",
@@ -95,6 +99,8 @@ internal val EnYumeStrings_About: YumeStrings_About = YumeStrings_About(
     Link = YumeStrings_About_Link(
         TelegramGroup = "Telegram Group",
         TelegramChannel = "Telegram Channel",
+        ProjectSource = "Project Source",
+        CoreSource = "Core Source",
     ),
     Support = YumeStrings_About_Support(
         ExportLogs = "Export Logs",
@@ -132,6 +138,8 @@ internal val JaYumeStrings_About: YumeStrings_About = YumeStrings_About(
     Link = YumeStrings_About_Link(
         TelegramGroup = "Telegram グループ",
         TelegramChannel = "Telegram チャンネル",
+        ProjectSource = "プロジェクトのソースコード",
+        CoreSource = "コアのソースコード",
     ),
     Support = YumeStrings_About_Support(
         ExportLogs = "ログを書き出す",
@@ -169,6 +177,8 @@ internal val RuYumeStrings_About: YumeStrings_About = YumeStrings_About(
     Link = YumeStrings_About_Link(
         TelegramGroup = "Группа Telegram",
         TelegramChannel = "Канал Telegram",
+        ProjectSource = "Исходный код проекта",
+        CoreSource = "Исходный код ядра",
     ),
     Support = YumeStrings_About_Support(
         ExportLogs = "Экспорт журналов",
@@ -184,4 +194,3 @@ internal val RuYumeStrings_About: YumeStrings_About = YumeStrings_About(
     ),
     Copyright = "© 2025 – Present YumeYucca",
 )
-

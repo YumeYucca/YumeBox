@@ -61,7 +61,6 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Delete
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.text.Collator
 
@@ -218,7 +217,7 @@ fun TrafficStatisticsScreen() {
             item {
                 Spacer(modifier = Modifier.height(spacing.space12))
                 AppCard(insideMargin = PaddingValues(spacing.space0)) {
-                    OverlayDropdownPreference(
+                    GlassDropdownPreference(
                         items =
                             listOf(
                                 YumeTxt.TrafficStatistics.Metric.SortByName,

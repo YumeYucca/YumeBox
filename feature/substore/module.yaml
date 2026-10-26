@@ -25,5 +25,3 @@ dependencies:
   - $libs.xz
   - $libs.javet.node.android
   - $libs.timber
-  - $libs.miuix.ui
-  - $libs.miuix.preference

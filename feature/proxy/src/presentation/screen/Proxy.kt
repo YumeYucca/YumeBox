@@ -56,6 +56,10 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.glass.GlassPopupDefaults
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -243,7 +247,42 @@ fun ProxyPager(
                     searchVisible = nodeSearchVisible,
                     onToggleSearch = if (selectedGroupName != null) toggleNodeSearch else null,
                 )
-            }
+            },
+            contentOverlay = { scaffoldPadding ->
+                // Outside GlassScaffold's body recording; never sample a recorded ancestor.
+                if (proxyListTabs.isNotEmpty()) {
+                    val density = LocalDensity.current
+                    val tabRestTopPx =
+                        with(density) { (scaffoldPadding.calculateTopPadding() + UiDp.dp20).toPx() }
+                    val tabZonePx = with(density) { UiDp.dp46.toPx() }
+                    val activeListState = if (selectedGroupName != null) nodeListState else groupListState
+                    val tabScrollPx by remember(activeListState, tabRestTopPx) {
+                        derivedStateOf {
+                            if (activeListState.firstVisibleItemIndex == 0) {
+                                activeListState.firstVisibleItemScrollOffset.toFloat()
+                            } else {
+                                tabRestTopPx + tabZonePx
+                            }
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer { translationY = tabRestTopPx - tabScrollPx }
+                            .background(MiuixTheme.colorScheme.surface)
+                            .padding(bottom = UiDp.dp4)
+                            .padding(horizontal = UiDp.dp12),
+                    ) {
+                        SegmentedTabRow(
+                            tabs = proxyListTabs,
+                            selectedTabIndex = proxyListTabIndex,
+                            onTabSelected = selectProxyListTab,
+                            tabHeight = UiDp.dp42,
+                            backdrop = LocalTopBarBackdrop.current,
+                        )
+                    }
+                }
+            },
         ) { scaffoldPadding ->
             Box(
                 modifier =
@@ -381,45 +420,6 @@ fun ProxyPager(
                                 topOverlayInset = proxyListTabBandInset,
                             )
                         }
-                    }
-                }
-                // 顶部 tab:位于内容区最上方、随列表一起滚走(不吸附、不钉住),但渲染在
-                // 钻入/返回的 AnimatedContent 之外 —— 转场缩放不带动它:钻入瞬间活动列表
-                // 切到新页(列表在顶),tab 位移立即落在静止位,页面在它底下缩放。
-                // 位移在 graphicsLayer 绘制期读取列表状态,滚动全程零重组。
-                if (proxyListTabs.isNotEmpty()) {
-                    val density = LocalDensity.current
-                    val tabRestTopPx =
-                        with(density) { (scaffoldPadding.calculateTopPadding() + UiDp.dp20).toPx() }
-                    val tabZonePx = with(density) { UiDp.dp46.toPx() } // tab 42 + 底部 4
-                    val activeListState = if (selectedGroupName != null) nodeListState else groupListState
-                    val tabScrollPx by remember(activeListState, tabRestTopPx) {
-                        derivedStateOf {
-                            // 首项滚出视口后偏移按项重置:超过首项即视为已完全滚出 tab 区。
-                            if (activeListState.firstVisibleItemIndex == 0) {
-                                activeListState.firstVisibleItemScrollOffset.toFloat()
-                            } else {
-                                tabRestTopPx + tabZonePx
-                            }
-                        }
-                    }
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer {
-                                    translationY = tabRestTopPx - tabScrollPx
-                                }
-                                .background(MiuixTheme.colorScheme.surface)
-                                .padding(bottom = UiDp.dp4)
-                                .padding(horizontal = UiDp.dp12),
-                    ) {
-                        SegmentedTabRow(
-                            tabs = proxyListTabs,
-                            selectedTabIndex = proxyListTabIndex,
-                            onTabSelected = selectProxyListTab,
-                            tabHeight = UiDp.dp42,
-                        )
                     }
                 }
             }
@@ -643,6 +643,7 @@ private fun ProxyTopBar(
 ) {
     val backdrop = LocalTopBarBackdrop.current
     var showActionsMenu by remember { mutableStateOf(false) }
+    val actionsMenuAnchor = rememberGlassPopupAnchor()
     TopBar(
         title = title,
         scrollBehavior = scrollBehavior,
@@ -678,6 +679,7 @@ private fun ProxyTopBar(
             ) {
                 // 测速与更多保持在同一个玻璃胶囊里，弹窗只由右侧更多按钮触发。
                 GlassTopActionPill(
+
                     actions =
                         listOf(
                             GlassTopAction(
@@ -689,6 +691,11 @@ private fun ProxyTopBar(
                                 icon = Yume.ListChevronsUpDown,
                                 contentDescription = YumeTxt.Proxy.Action.Sort,
                                 onClick = { showActionsMenu = !showActionsMenu },
+                                iconModifier = Modifier.glassPopupAnchor(
+                                    anchor = actionsMenuAnchor,
+                                    cornerRadius = GlassTopActionDefaults.IconSize / 2,
+                                    floating = true,
+                                ).glassPopupAnchorContent(actionsMenuAnchor),
                             ),
                         ),
                     backdrop = backdrop,
@@ -704,6 +711,15 @@ private fun ProxyTopBar(
                                 searchVisible = searchVisible,
                                 onToggleSearch = onToggleSearch,
                                 onSortSelected = onSortSelected,
+                                anchor = actionsMenuAnchor,
+                                anchorContent = {
+                                    Icon(
+                                        imageVector = Yume.ListChevronsUpDown,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(GlassTopActionDefaults.IconSize),
+                                        tint = MiuixTheme.colorScheme.onSurface,
+                                    )
+                                },
                             )
                         }
                     },
@@ -723,3 +739,8 @@ private fun ProxyTopBar(
         },
     )
 }
+
+
+
+
+

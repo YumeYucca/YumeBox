@@ -57,10 +57,10 @@ class BackupRestoreViewModel(
         }
     }
 
-    fun restoreBackup(uri: Uri) {
+    internal fun restoreBackup(uri: Uri, strategy: BackupRestoreStrategy) {
         launchBusy {
             application.contentResolver.openInputStream(uri)?.use { input ->
-                repository.restoreBackup(input)
+                repository.restoreBackup(input, strategy)
             } ?: error(YumeTxt.Feature.BackupRestore.Error.OpenInputFailed)
             emitMessage(YumeTxt.Feature.BackupRestore.Message.RestoreSuccess)
         }

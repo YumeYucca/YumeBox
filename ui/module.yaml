@@ -3,6 +3,8 @@ product:
   platforms: [android]
 apply:
   - //compose.module-template.yaml
+plugins:
+  miuix-glass: enabled
 settings:
   android:
     namespace: com.github.yumeyucca.yumebox.core.ui
@@ -17,6 +19,7 @@ dependencies:
   - $libs.androidx.compose.material3
   - $libs.androidx.compose.material.icons.core
   - $libs.androidx.lifecycle.runtime.compose
+  - $libs.androidx.navigationevent.compose
   - $libs.decompose
   - $libs.sketch.compose
   - $libs.sketch.http
@@ -26,7 +29,12 @@ dependencies:
   - $libs.sketch.compose.resources
   - $libs.miuix.blur
   - $libs.shapes
-  - $libs.miuix.ui
-  - $libs.miuix.preference
+  - $libs.miuix.core
   - $libs.miuix.icons
   - $libs.lucide.compose
+  - $libs.miuix.squircle
+  - $libs.material.kolor.utilities
+
+
+
+

@@ -60,7 +60,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.RadioButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
+import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference as WindowDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private enum class WifiPermissionAction { Enable, Scan }

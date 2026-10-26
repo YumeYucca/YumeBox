@@ -50,6 +50,8 @@ public data class YumeStrings_About_Section(
 public data class YumeStrings_About_Link(
     public val TelegramGroup: String,
     public val TelegramChannel: String,
+    public val ProjectSource: String,
+    public val CoreSource: String,
 )
 
 public data class YumeStrings_About_Support(
@@ -561,6 +563,13 @@ public data class YumeStrings_Feature_BackupRestore(
     public val ExportSummary: String,
     public val RestoreTitle: String,
     public val RestoreSummary: String,
+    public val ActionSection: String,
+    public val RestoreStrategySection: String,
+    public val RestoreStrategyTitle: String,
+    public val RestoreOverwrite: String,
+    public val RestoreMerge: String,
+    public val RestoreOverwriteSummary: String,
+    public val RestoreMergeSummary: String,
     public val Cancel: String,
     public val RestoreDialog: YumeStrings_Feature_BackupRestore_RestoreDialog,
     public val Message: YumeStrings_Feature_BackupRestore_Message,
