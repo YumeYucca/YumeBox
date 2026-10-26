@@ -33,7 +33,7 @@ import com.github.yumeyucca.yumebox.presentation.component.PreferenceValueItem
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Switch
-import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
+import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference as WindowDropdownPreference
 
 private val ruleTypePresets =
     listOf(

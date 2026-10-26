@@ -31,6 +31,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import com.github.yumeyucca.yumebox.data.model.PROXY_SHEET_HEIGHT_FRACTION_DEFAULT
@@ -67,6 +70,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
 
     val showSheet = remember { mutableStateOf(true) }
     val showSortPopup = remember { mutableStateOf(false) }
+    var sortPopupAnchorBounds by remember { mutableStateOf(Rect.Zero) }
     val groupSelection =
         rememberProxyGroupSelectionState(
             proxyGroups = proxyGroups,
@@ -210,7 +214,12 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                                 backdrop = sheetBackdrop,
                             )
                         } else {
-                            Box {
+                            Box(
+                                modifier =
+                                    Modifier.onGloballyPositioned { coordinates ->
+                                        sortPopupAnchorBounds = coordinates.boundsInRoot()
+                                    },
+                            ) {
                                 GlassTopIconButton(
                                     action =
                                         GlassTopAction(
@@ -223,6 +232,8 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                                 NodeSortPopupOverlay(
                                     show = showSortPopup.value,
                                     onDismiss = { showSortPopup.value = false },
+                                    anchorBounds = sortPopupAnchorBounds,
+                                    backdrop = sheetBackdrop,
                                     sortMode = sortMode,
                                     onSortSelected = proxyViewModel::setSortMode,
                                 )

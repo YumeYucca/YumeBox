@@ -1,0 +1,9 @@
+tasks:
+  syncMiuixGlassSources:
+    action: !dev.yume.build.syncMiuixGlassSources
+      repositoryDir: ${project.rootDir}/third_party/miuix
+      sourceDir: ${taskOutputDir}
+generated:
+  sources:
+    - language: kotlin
+      directory: ${tasks.syncMiuixGlassSources.action.sourceDir}

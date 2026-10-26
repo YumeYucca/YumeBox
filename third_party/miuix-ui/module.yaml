@@ -1,0 +1,13 @@
+product:
+  type: kmp/lib
+  platforms: [android]
+apply:
+  - //compose.module-template.yaml
+settings:
+  android:
+    namespace: com.github.yumeyucca.yumebox.thirdparty.miuix.ui
+dependencies:
+  - $libs.miuix.core
+  - $libs.miuix.squircle
+  - $libs.androidx.navigationevent.compose
+  - $libs.material.kolor.utilities

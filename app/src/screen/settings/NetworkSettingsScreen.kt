@@ -51,7 +51,7 @@ import com.github.yumeyucca.yumebox.runtime.service.core.KernelManager
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
+import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference as WindowDropdownPreference
 
 /**
  * Network settings entry point. Top: a "run mode" radio picker — one card per mode.
@@ -76,7 +76,7 @@ fun NetworkSettingsScreen(navigator: Navigator) {
     var showKernelDialog by remember { mutableStateOf(false) }
     var showCustomKernelDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
+    GlassScaffold(
         topBar = { TopBar(title = YumeTxt.NetworkSettings.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         val mainLikePadding = rememberStandalonePageMainPadding()

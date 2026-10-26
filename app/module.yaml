@@ -42,8 +42,6 @@ dependencies:
   - $libs.androidx.compose.animation
   - $libs.androidx.compose.ui.tooling.preview
   - $libs.androidx.activity.compose
-  - $libs.miuix.ui
-  - $libs.miuix.preference
   - $libs.miuix.icons
   - $libs.miuix.blur
   - $libs.lucide.compose

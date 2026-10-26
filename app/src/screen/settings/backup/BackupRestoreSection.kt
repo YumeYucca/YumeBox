@@ -28,17 +28,22 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.presentation.component.AppDialog
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
+import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference
+import com.github.yumeyucca.yumebox.presentation.component.Title
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.SmallTitleDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -50,6 +55,9 @@ fun BackupRestoreSection() {
     val context = LocalContext.current
 
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
+    var restoreStrategy by rememberSaveable {
+        mutableStateOf(BackupRestoreStrategy.Overwrite)
+    }
 
     val exportLauncher =
         rememberLauncherForActivityResult(
@@ -72,10 +80,10 @@ fun BackupRestoreSection() {
         }
     }
 
+    Title(YumeTxt.Feature.BackupRestore.ActionSection)
     AppCard {
         ArrowPreference(
             title = YumeTxt.Feature.BackupRestore.ExportTitle,
-            summary = YumeTxt.Feature.BackupRestore.ExportSummary,
             enabled = !uiState.isBusy,
             onClick = {
                 runCatching { exportLauncher.launch(viewModel.defaultBackupFileName()) }
@@ -86,7 +94,6 @@ fun BackupRestoreSection() {
         )
         ArrowPreference(
             title = YumeTxt.Feature.BackupRestore.RestoreTitle,
-            summary = YumeTxt.Feature.BackupRestore.RestoreSummary,
             enabled = !uiState.isBusy,
             onClick = {
                 runCatching {
@@ -101,6 +108,42 @@ fun BackupRestoreSection() {
         )
     }
 
+    Text(
+        text = YumeTxt.Settings.More.BackupRestoreSummary,
+        modifier = Modifier.padding(SmallTitleDefaults.InsideMargin),
+        style = MiuixTheme.textStyles.footnote1,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+    )
+
+    Title(YumeTxt.Feature.BackupRestore.RestoreStrategySection)
+    AppCard {
+        GlassDropdownPreference(
+            items =
+                listOf(
+                    YumeTxt.Feature.BackupRestore.RestoreOverwrite,
+                    YumeTxt.Feature.BackupRestore.RestoreMerge,
+                ),
+            selectedIndex = restoreStrategy.ordinal,
+            title = YumeTxt.Feature.BackupRestore.RestoreStrategyTitle,
+            maxHeight = UiDp.dp200,
+            enabled = !uiState.isBusy,
+            onSelectedIndexChange = { index ->
+                BackupRestoreStrategy.entries.getOrNull(index)?.let { restoreStrategy = it }
+            },
+        )
+    }
+    Text(
+        text =
+            when (restoreStrategy) {
+                BackupRestoreStrategy.Overwrite ->
+                    YumeTxt.Feature.BackupRestore.RestoreOverwriteSummary
+                BackupRestoreStrategy.Merge -> YumeTxt.Feature.BackupRestore.RestoreMergeSummary
+            },
+        modifier = Modifier.padding(SmallTitleDefaults.InsideMargin),
+        style = MiuixTheme.textStyles.footnote1,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+    )
+
     BackupConfirmDialog(
         show = restoreUri != null,
         title = YumeTxt.Feature.BackupRestore.RestoreDialog.Title,
@@ -110,7 +153,7 @@ fun BackupRestoreSection() {
         onConfirm = {
             val uri = restoreUri ?: return@BackupConfirmDialog
             restoreUri = null
-            viewModel.restoreBackup(uri)
+            viewModel.restoreBackup(uri, restoreStrategy)
         },
     )
 }

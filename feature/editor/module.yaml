@@ -23,6 +23,4 @@ dependencies:
   - $libs.koin.android
   - $libs.koin.androidx.compose
   - $libs.timber
-  - $libs.miuix.ui
-  - $libs.miuix.preference
   - $libs.miuix.icons

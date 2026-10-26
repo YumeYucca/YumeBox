@@ -25,6 +25,7 @@ package com.github.yumeyucca.yumebox.presentation.component
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -36,7 +37,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +58,15 @@ import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.glassSurface
 import com.kyant.shapes.Capsule
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
+import top.yukonga.miuix.kmp.glass.GlassAnchorSurface
+import top.yukonga.miuix.kmp.glass.GlassDefaults
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
+import top.yukonga.miuix.kmp.glass.GlassPopupAnchorElement
+import top.yukonga.miuix.kmp.glass.GlassShape
+import top.yukonga.miuix.kmp.glass.glassPanel
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** NexioSchedule top-bar chrome sizing: 42dp containers carrying 22dp icons. */
@@ -71,6 +84,8 @@ data class GlassTopAction(
     val icon: ImageVector,
     val contentDescription: String,
     val onClick: () -> Unit,
+    val modifier: Modifier = Modifier,
+    val iconModifier: Modifier = Modifier,
 )
 
 /**
@@ -101,6 +116,36 @@ fun GlassTopActionPill(
         return
     }
     val glass = rememberGlassTopActionStyle()
+    val popupAnchor = modifier.foldIn<GlassPopupAnchor?>(null) { found, element ->
+        if (element is GlassPopupAnchorElement) element.anchor else found
+    }
+    val popupMaterial = GlassTopAppBarDefaults.buttonMaterial()
+    val popupStroke = GlassTopAppBarDefaults.buttonStroke()
+    val popupSurface = remember(backdrop, popupMaterial, popupStroke, glass.fallbackColor) {
+        GlassAnchorSurface(
+            backdrop = backdrop,
+            style = GlassDefaults.Style,
+            material = popupMaterial,
+            underlayMaterial = null,
+            stroke = popupStroke,
+            fill = glass.fallbackColor,
+        )
+    }
+    val collapsedSurfaceProgress = remember { mutableFloatStateOf(0f) }
+    SideEffect {
+        popupAnchor?.surface = popupSurface
+        popupAnchor?.surfaceProgress = collapsedSurfaceProgress
+        popupAnchor?.surfaceOpacity = 1f
+        popupAnchor?.surfaceFloating = false
+    }
+    DisposableEffect(popupAnchor, popupSurface) {
+        onDispose {
+            if (popupAnchor?.surface === popupSurface) {
+                popupAnchor.surface = null
+                popupAnchor.surfaceProgress = null
+            }
+        }
+    }
     val pillShape = remember { Capsule() }
     Box(
         modifier =
@@ -113,19 +158,15 @@ fun GlassTopActionPill(
                     ambientShadowColor = glass.shadowColor
                     spotShadowColor = glass.shadowColor
                 }
-                .clip(pillShape)
-                .glassSurface(
+                .glassPanel(
                     backdrop = backdrop,
-                    shape = pillShape,
-                    fallbackColor = glass.fallbackColor,
-                    tint = glass.tint,
-                )
-                .edgeLight(
-                    shape = pillShape,
-                    color = glass.edgeLightColor,
-                    width = glass.edgeLightWidth,
-                    blurRadius = EdgeLightDefaults.BlurRadius,
-                    blendMode = glass.edgeLightBlendMode,
+                    shape = GlassShape(GlassTopActionDefaults.ContainerSize / 2),
+                    style = GlassDefaults.Style,
+                    material = popupMaterial,
+                    stroke = popupStroke,
+                    shadow = null,
+                    shading = false,
+                    fallback = Modifier.clip(pillShape).background(glass.fallbackColor),
                 ),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -155,6 +196,24 @@ fun GlassTopIconButton(
     modifier: Modifier = Modifier,
 ) {
     val glass = rememberGlassTopActionStyle()
+    if (backdrop != null && isRuntimeShaderSupported()) {
+        GlassIconButton(
+            onClick = action.onClick,
+            modifier = modifier,
+            backdrop = backdrop,
+            size = GlassTopActionDefaults.ContainerSize,
+            fill = glass.fallbackColor,
+            shadow = null,
+        ) {
+            Icon(
+                imageVector = action.icon,
+                contentDescription = action.contentDescription,
+                modifier = Modifier.size(GlassTopActionDefaults.IconSize).then(action.iconModifier),
+                tint = glass.iconTint,
+            )
+        }
+        return
+    }
     val circleShape = remember { Capsule() }
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -205,7 +264,7 @@ fun GlassTopIconButton(
         Icon(
             imageVector = action.icon,
             contentDescription = action.contentDescription,
-            modifier = Modifier.size(GlassTopActionDefaults.IconSize),
+            modifier = Modifier.size(GlassTopActionDefaults.IconSize).then(action.iconModifier),
             tint = glass.iconTint,
         )
     }
@@ -227,7 +286,7 @@ private fun PillActionIcon(action: GlassTopAction) {
     val glass = rememberGlassTopActionStyle()
     Box(
         modifier =
-            Modifier
+            action.modifier
                 .height(GlassTopActionDefaults.ContainerSize)
                 .width(GlassTopActionDefaults.IconSize + GlassTopActionDefaults.PillIconHitInset)
                 .clickable(
@@ -241,7 +300,10 @@ private fun PillActionIcon(action: GlassTopAction) {
             imageVector = action.icon,
             contentDescription = action.contentDescription,
             modifier =
-                Modifier.size(GlassTopActionDefaults.IconSize).graphicsLayer {
+                Modifier
+                    .size(GlassTopActionDefaults.IconSize)
+                    .then(action.iconModifier)
+                    .graphicsLayer {
                     scaleX = pressScale
                     scaleY = pressScale
                 },
@@ -279,7 +341,7 @@ private fun rememberGlassTopActionStyle(): GlassTopActionStyle {
                 Color.Black.copy(
                     alpha = if (isLightTheme) opacity.softOverlay else opacity.surfaceSoft,
                 ),
-            shadowElevationPx = with(density) { UiDp.dp7.toPx() },
+            shadowElevationPx = 0f,
             edgeLightColor = EdgeLightDefaults.tint(surfaceContainer, isLightTheme),
             edgeLightWidth = EdgeLightDefaults.width(isLightTheme),
             edgeLightBlendMode = EdgeLightDefaults.blendMode(isLightTheme),
@@ -287,3 +349,10 @@ private fun rememberGlassTopActionStyle(): GlassTopActionStyle {
         )
     }
 }
+
+
+
+
+
+
+

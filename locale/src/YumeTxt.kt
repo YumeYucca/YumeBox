@@ -132,6 +132,16 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun TelegramChannel(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.About.Link.TelegramChannel else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.About.Link.TelegramChannel, *args)
+            public val ProjectSource: String
+                get() = YumeLocaleManager.activeStrings.About.Link.ProjectSource
+            @androidx.compose.runtime.Composable
+            public fun ProjectSource(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.About.Link.ProjectSource else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.About.Link.ProjectSource, *args)
+            public val CoreSource: String
+                get() = YumeLocaleManager.activeStrings.About.Link.CoreSource
+            @androidx.compose.runtime.Composable
+            public fun CoreSource(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.About.Link.CoreSource else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.About.Link.CoreSource, *args)
         }
         public object Support {
             public val ExportLogs: String
@@ -1610,6 +1620,41 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun RestoreSummary(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreSummary, *args)
+            public val ActionSection: String
+                get() = YumeLocaleManager.activeStrings.Feature.BackupRestore.ActionSection
+            @androidx.compose.runtime.Composable
+            public fun ActionSection(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.BackupRestore.ActionSection else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.BackupRestore.ActionSection, *args)
+            public val RestoreStrategySection: String
+                get() = YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreStrategySection
+            @androidx.compose.runtime.Composable
+            public fun RestoreStrategySection(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreStrategySection else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreStrategySection, *args)
+            public val RestoreStrategyTitle: String
+                get() = YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreStrategyTitle
+            @androidx.compose.runtime.Composable
+            public fun RestoreStrategyTitle(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreStrategyTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreStrategyTitle, *args)
+            public val RestoreOverwrite: String
+                get() = YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreOverwrite
+            @androidx.compose.runtime.Composable
+            public fun RestoreOverwrite(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreOverwrite else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreOverwrite, *args)
+            public val RestoreMerge: String
+                get() = YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreMerge
+            @androidx.compose.runtime.Composable
+            public fun RestoreMerge(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreMerge else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreMerge, *args)
+            public val RestoreOverwriteSummary: String
+                get() = YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreOverwriteSummary
+            @androidx.compose.runtime.Composable
+            public fun RestoreOverwriteSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreOverwriteSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreOverwriteSummary, *args)
+            public val RestoreMergeSummary: String
+                get() = YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreMergeSummary
+            @androidx.compose.runtime.Composable
+            public fun RestoreMergeSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreMergeSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.BackupRestore.RestoreMergeSummary, *args)
             public val Cancel: String
                 get() = YumeLocaleManager.activeStrings.Feature.BackupRestore.Cancel
             @androidx.compose.runtime.Composable

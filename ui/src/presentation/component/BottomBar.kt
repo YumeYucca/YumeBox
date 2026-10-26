@@ -63,6 +63,9 @@ import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.glassSurface
 import com.kyant.shapes.Capsule
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
+import top.yukonga.miuix.kmp.glass.GlassNavigationBar
+import top.yukonga.miuix.kmp.glass.GlassNavigationItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
@@ -92,7 +95,7 @@ class MainPagerState(
 
     fun animateToPage(targetIndex: Int) {
         val boundedTarget = targetIndex.coerceIn(0, pagerState.pageCount - 1)
-        if (boundedTarget == selectedPage && !pagerState.isScrollInProgress) return
+        if (boundedTarget == selectedPage && (isNavigating || !pagerState.isScrollInProgress)) return
 
         navJob?.cancel()
         selectedPage = boundedTarget
@@ -321,7 +324,8 @@ private fun FloatingBottomBarContent(
     val handlePageChange = LocalHandlePageChange.current
     val onItemClick: (BottomBarDestination) -> Unit = { destination ->
         val index = destinations.indexOf(destination)
-        if (index != pagerState.currentPage) {
+        if (index != mainPagerState.selectedPage ||
+            (!mainPagerState.isNavigating && pagerState.currentPageOffsetFraction != 0f)) {
             handlePageChange(destination)
         }
     }
@@ -353,6 +357,33 @@ private fun FloatingBottomBarContent(
                 ),
             label = "bottom_bar_width_fraction",
         )
+
+    if (glassBackdrop != null && isRuntimeShaderSupported()) {
+        if (tabs.isEmpty()) return
+        GlassNavigationBar(
+            items = tabs.map { GlassNavigationItem(icon = it.icon, label = it.label) },
+            selectedIndex = ((if (mainPagerState.isNavigating) mainPagerState.selectedPage else page) - 1)
+                .coerceIn(0, tabs.lastIndex),
+            onSelect = { index -> tabs.getOrNull(index)?.let(onItemClick) },
+            backdrop = glassBackdrop,
+            height = MainBottomBarDefaults.BarHeight,
+            selectedColor = selectedColor,
+            unselectedColor = unselectedColor,
+            indicatorColor = indicatorContainerColor,
+            indicatorPressedColor = selectedColor.copy(alpha = opacity.subtle * 2f),
+            modifier = Modifier
+                .fillMaxWidth(widthFraction)
+                .padding(bottom = maxOf(
+                    bottomSafeInset + MainBottomBarDefaults.InsetBreathingRoom,
+                    MainBottomBarDefaults.MinFloatingBottomGap,
+                ))
+                .graphicsLayer {
+                    alpha = animatedAlpha
+                    translationY = animatedTranslationY.value
+                },
+        )
+        return
+    }
 
     LegacyBottomNavigationBar(
         indicatorProgress = indicatorProgress,

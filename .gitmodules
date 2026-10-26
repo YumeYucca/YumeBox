@@ -1,0 +1,4 @@
+[submodule "miuix"]
+	path = third_party/miuix
+	url = https://github.com/lingqiqi5211/miuix.git
+	branch = feat/miuix-glass

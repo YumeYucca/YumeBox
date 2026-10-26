@@ -49,6 +49,8 @@ fun GlassScaffold(
     topBar: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     floatingActionButton: @Composable () -> Unit = {},
+    // Consumers of the body backdrop must be siblings of the recorded body, not its descendants.
+    contentOverlay: @Composable (PaddingValues) -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val surface = MiuixTheme.colorScheme.surface
@@ -65,8 +67,11 @@ fun GlassScaffold(
             modifier = modifier,
             floatingActionButton = floatingActionButton,
         ) { innerPadding ->
-            Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-                content(innerPadding)
+            Box(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
+                    content(innerPadding)
+                }
+                contentOverlay(innerPadding)
             }
         }
     }

@@ -2,6 +2,7 @@ modules:
   - api
   - app
   - build-logic
+  - build-logic/miuix-glass
   - common
   - core
   - data
@@ -20,3 +21,9 @@ modules:
   - ui
 plugins:
   - ./build-logic
+  - ./build-logic/miuix-glass
+
+
+
+
+

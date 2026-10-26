@@ -22,6 +22,4 @@ dependencies:
   - $libs.timber
   - $libs.sketch.compose
   - $libs.sketch.http
-  - $libs.miuix.ui
-  - $libs.miuix.preference
   - $libs.miuix.icons
