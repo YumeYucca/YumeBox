@@ -51,7 +51,9 @@ private val moeOpacity = Opacity()
 
 internal object MoeUi {
     object Shape {
-        val heroRadius = moeSpacing.space28
+        /** Hero corner follows the device corner, pulled in slightly like the Moe panel's radius. */
+        fun heroCornerRadius(deviceCorner: Dp): Dp =
+            (deviceCorner - moeSpacing.space2).coerceAtLeast(UiDp.dp14)
         val launchButton = RoundedCornerShape(moeRadii.full)
         val launchButtonRadius = moeRadii.full
     }
@@ -83,12 +85,12 @@ internal object MoeUi {
     }
 
     object Hero {
-        const val heightFraction = 0.63f
-        val containerHorizontalInset = moeSpacing.space12
+        const val heightFraction = 0.67f
+        val containerHorizontalInset = moeSpacing.space10
         val contentHorizontalInset = moeSpacing.space12
         val trafficRowGap = moeSpacing.space28
-        val trafficBottomInset = moeSpacing.space12
-        val runtimeInfoTopGap = moeSpacing.space16
+        val trafficBottomInset = moeSpacing.space6
+        val runtimeInfoTopGap = moeSpacing.space20
         val delayWidth = moeSizes.nodeDelayColumnWidth
         val belowHeroTopGap = moeSpacing.space14
         val belowHeroContentGap = moeSpacing.space12
@@ -113,10 +115,14 @@ internal object MoeUi {
 
     object Quote {
         val contentGap = moeSpacing.space12
-        val eyebrowSize = 17.sp
-        val textSize = 23.sp
-        val lineHeight = 31.sp
-        const val eyebrowAlpha = 0.56f
+        val greetingSize = 28.sp
+        val greetingLineHeight = 34.sp
+        val textSize = 16.sp
+        val lineHeight = 22.sp
+        val authorSize = 11.sp
+        val quoteTopGap = moeSpacing.space6
+        val authorTopGap = moeSpacing.space4
+        const val authorAlpha = 0.56f
     }
 
     object Traffic {

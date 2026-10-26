@@ -21,6 +21,7 @@
 package com.github.yumeyucca.yumebox.data.store
 
 import com.github.yumeyucca.yumebox.core.model.TunDnsMode
+import com.github.yumeyucca.yumebox.data.model.AccessControlImportStrategy
 import com.github.yumeyucca.yumebox.data.model.AccessControlMode
 import com.github.yumeyucca.yumebox.data.model.AccessControlSortMode
 import com.github.yumeyucca.yumebox.data.model.RunMode
@@ -72,6 +73,7 @@ class NetworkSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = e
     val accessControlSelectedFirst by boolFlow(true)
     val accessControlShowSystemApps by boolFlow(false)
     val accessControlSortMode by enumFlow(AccessControlSortMode.LABEL)
+    val accessControlImportStrategy by enumFlow(AccessControlImportStrategy.MERGE)
 
     // Wi-Fi SSIDs are location-sensitive on Android. This state is only enabled after the user
     // explicitly completes the location-permission flow from the Wi-Fi automation screen.

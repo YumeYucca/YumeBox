@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -27,6 +28,8 @@ import java.util.*
 internal fun MoeHomeCopyBlock(
     nowMillis: Long,
     quoteText: String,
+    quoteAuthor: String,
+    greetingColor: Color,
     color: Color,
     modifier: Modifier = Modifier,
     launchContent: @Composable (() -> Unit)? = null,
@@ -35,24 +38,46 @@ internal fun MoeHomeCopyBlock(
     Column(modifier, Arrangement.spacedBy(MoeUi.Quote.contentGap)) {
         Text(
             text = greeting,
-            color = color.copy(alpha = MoeUi.Quote.eyebrowAlpha),
-            style = MiuixTheme.textStyles.body1,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = MoeUi.Quote.eyebrowSize,
+            color = greetingColor,
+            style = MiuixTheme.textStyles.title1,
+            fontWeight = FontWeight.Bold,
+            fontSize = MoeUi.Quote.greetingSize,
+            lineHeight = MoeUi.Quote.greetingLineHeight,
             maxLines = 1,
             overflow = TextOverflow.Clip,
         )
-        Text(
-            text = quoteText,
-            color = color.copy(alpha = 0.88f),
-            style = MiuixTheme.textStyles.title2,
-            fontWeight = FontWeight.Medium,
-            fontSize = MoeUi.Quote.textSize,
-            lineHeight = MoeUi.Quote.lineHeight,
-            softWrap = true,
-            maxLines = 2,
-            overflow = TextOverflow.Clip,
-        )
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = MoeUi.Quote.quoteTopGap),
+            verticalArrangement = Arrangement.spacedBy(MoeUi.Quote.authorTopGap),
+        ) {
+            Text(
+                text = quoteText,
+                color = color.copy(alpha = 0.88f),
+                style = MiuixTheme.textStyles.title2,
+                fontWeight = FontWeight.Medium,
+                fontSize = MoeUi.Quote.textSize,
+                lineHeight = MoeUi.Quote.lineHeight,
+                softWrap = true,
+                maxLines = 2,
+                overflow = TextOverflow.Clip,
+            )
+            if (quoteAuthor.isNotBlank()) {
+                Text(
+                    text = "— $quoteAuthor",
+                    modifier = Modifier.fillMaxWidth(),
+                    color = color.copy(alpha = MoeUi.Quote.authorAlpha),
+                    style = MiuixTheme.textStyles.footnote1,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = MoeUi.Quote.authorSize,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         launchContent?.let { content ->
             Box(Modifier
                 .fillMaxWidth()

@@ -32,6 +32,7 @@ import com.github.yumeyucca.yumebox.common.util.stateInWhileSubscribed
 import com.github.yumeyucca.yumebox.core.presentation.AndroidContractStateViewModel
 import com.github.yumeyucca.yumebox.core.presentation.LoadableState
 import com.github.yumeyucca.yumebox.data.controller.AccessControlController
+import com.github.yumeyucca.yumebox.data.model.AccessControlImportStrategy
 import com.github.yumeyucca.yumebox.data.model.AccessControlMode
 import com.github.yumeyucca.yumebox.data.model.AccessControlSortMode
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
@@ -57,6 +58,7 @@ class AccessControlViewModel(
             showSystemApps = settings.accessControlShowSystemApps.value,
             sortMode = settings.accessControlSortMode.value,
             selectedFirst = settings.accessControlSelectedFirst.value,
+            importStrategy = settings.accessControlImportStrategy.value,
         ),
     ) {
     data class AppInfo(
@@ -80,6 +82,7 @@ class AccessControlViewModel(
         val showSystemApps: Boolean = false,
         val sortMode: AccessControlSortMode = AccessControlSortMode.LABEL,
         val selectedFirst: Boolean = true,
+        val importStrategy: AccessControlImportStrategy = AccessControlImportStrategy.MERGE,
         val needsMiuiPermission: Boolean = false,
         override val message: String? = null,
         override val error: String? = null,
@@ -290,6 +293,11 @@ class AccessControlViewModel(
         _uiState.update { state -> state.copy(selectedFirst = selectedFirst) }
     }
 
+    fun onImportStrategyChange(strategy: AccessControlImportStrategy) {
+        settings.accessControlImportStrategy.set(strategy)
+        _uiState.update { state -> state.copy(importStrategy = strategy) }
+    }
+
     fun onShowSystemAppsChange(show: Boolean) {
         settings.accessControlShowSystemApps.set(show)
         _uiState.update { state -> state.copy(showSystemApps = show) }
@@ -388,7 +396,13 @@ class AccessControlViewModel(
             packages.intersect(_uiState.value.apps.mapTo(linkedSetOf()) { it.packageName })
 
         _uiState.update { state ->
-            state.copy(selectedPackages = state.selectedPackages + validPackages)
+            state.copy(
+                selectedPackages =
+                    when (state.importStrategy) {
+                        AccessControlImportStrategy.MERGE -> state.selectedPackages + validPackages
+                        AccessControlImportStrategy.OVERWRITE -> validPackages
+                    }
+            )
         }
 
         persistSelectionAndApply()

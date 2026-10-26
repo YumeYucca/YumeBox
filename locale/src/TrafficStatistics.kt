@@ -1,7 +1,7 @@
 package com.github.yumeyucca.yumebox.core.locale
 
 internal val ZhHansYumeStrings_TrafficStatistics: YumeStrings_TrafficStatistics = YumeStrings_TrafficStatistics(
-    Title = "统计",
+    Title = "流量统计",
     EntrySummary = "查看流量使用情况",
     TimeRange = YumeStrings_TrafficStatistics_TimeRange(
         Today = "今日",
@@ -48,7 +48,7 @@ internal val ZhHansYumeStrings_TrafficStatistics: YumeStrings_TrafficStatistics 
 )
 
 internal val ZhYumeStrings_TrafficStatistics: YumeStrings_TrafficStatistics = YumeStrings_TrafficStatistics(
-    Title = "統計",
+    Title = "流量統計",
     EntrySummary = "檢視流量使用情況",
     TimeRange = YumeStrings_TrafficStatistics_TimeRange(
         Today = "今日",
@@ -95,7 +95,7 @@ internal val ZhYumeStrings_TrafficStatistics: YumeStrings_TrafficStatistics = Yu
 )
 
 internal val EnYumeStrings_TrafficStatistics: YumeStrings_TrafficStatistics = YumeStrings_TrafficStatistics(
-    Title = "Statistics",
+    Title = "Traffic Statistics",
     EntrySummary = "View traffic usage",
     TimeRange = YumeStrings_TrafficStatistics_TimeRange(
         Today = "Today",
@@ -142,7 +142,7 @@ internal val EnYumeStrings_TrafficStatistics: YumeStrings_TrafficStatistics = Yu
 )
 
 internal val JaYumeStrings_TrafficStatistics: YumeStrings_TrafficStatistics = YumeStrings_TrafficStatistics(
-    Title = "統計",
+    Title = "通信量統計",
     EntrySummary = "通信量の利用状況を表示",
     TimeRange = YumeStrings_TrafficStatistics_TimeRange(
         Today = "今日",
@@ -189,7 +189,7 @@ internal val JaYumeStrings_TrafficStatistics: YumeStrings_TrafficStatistics = Yu
 )
 
 internal val RuYumeStrings_TrafficStatistics: YumeStrings_TrafficStatistics = YumeStrings_TrafficStatistics(
-    Title = "Статистика",
+    Title = "Статистика трафика",
     EntrySummary = "Просмотр использования трафика",
     TimeRange = YumeStrings_TrafficStatistics_TimeRange(
         Today = "Сегодня",

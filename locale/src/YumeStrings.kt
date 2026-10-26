@@ -87,11 +87,16 @@ public data class YumeStrings_AccessControl_Search(
 )
 
 public data class YumeStrings_AccessControl_AppList(
+    public val ScreenTitle: String,
     public val Title: String,
     public val Loading: String,
 )
 
 public data class YumeStrings_AccessControl_Settings(
+    public val Summary: String,
+    public val ModeTitle: String,
+    public val Enabled: String,
+    public val EnabledSummary: String,
     public val Title: String,
     public val ShowSystemApps: String,
     public val SelectedFirst: String,
@@ -107,6 +112,10 @@ public data class YumeStrings_AccessControl_Settings(
     public val ImportSuccess: String,
     public val ExportSuccess: String,
     public val ImportFailed: String,
+    public val ImportExportSummary: String,
+    public val ImportStrategy: String,
+    public val ImportMerge: String,
+    public val ImportOverwrite: String,
     public val RegionQuickSelect: String,
     public val ChinaApps: String,
     public val OverseasApps: String,
@@ -178,6 +187,7 @@ public data class YumeStrings_AppSettings_Interface(
     public val PredictiveBackRestartSummary: String,
     public val PredictiveBackProgressTitle: String,
     public val ClassicHomeTitle: String,
+    public val StatusBarSpacingTitle: String,
     public val SystemWallpaperTitle: String,
     public val CustomIconTitle: String,
     public val HomeQuoteTitle: String,
@@ -507,6 +517,10 @@ public data class YumeStrings_Feature_Panel(
 public data class YumeStrings_Feature_RemoteController(
     public val Section: String,
     public val ModeTitle: String,
+    public val ModeSummary: String,
+    public val BackendSection: String,
+    public val BackendSummary: String,
+    public val ManageSection: String,
     public val ControlBackend: String,
     public val AddBackend: String,
     public val EditBackend: String,
@@ -624,6 +638,7 @@ public data class YumeStrings_Home_Status(
 public data class YumeStrings_Home_Settings(
     public val Title: String,
     public val Quote: String,
+    public val Author: String,
     public val ExpandSidebar: String,
     public val ChangeWallpaper: String,
 )
@@ -697,6 +712,8 @@ public data class YumeStrings_Log(
 
 public data class YumeStrings_MetaFeature_Section(
     public val ConnectionAndTraffic: String,
+    public val StatisticsAndLogs: String,
+    public val StatisticsAndLogsSummary: String,
     public val Routing: String,
 )
 
@@ -748,6 +765,7 @@ public data class YumeStrings_MetaFeature_Download(
 
 public data class YumeStrings_MetaFeature_AgeKey(
     public val Section: String,
+    public val Summary: String,
     public val X25519Title: String,
     public val HybridTitle: String,
     public val SecretKey: String,
@@ -1344,6 +1362,7 @@ public data class YumeStrings_Providers_Message(
 
 public data class YumeStrings_Providers(
     public val Title: String,
+    public val TabTitle: String,
     public val Action: YumeStrings_Providers_Action,
     public val Empty: YumeStrings_Providers_Empty,
     public val Type: YumeStrings_Providers_Type,
@@ -1366,6 +1385,7 @@ public data class YumeStrings_Proxy_Action(
     public val Panel: String,
     public val Test: String,
     public val Sort: String,
+    public val Locate: String,
     public val LocateCurrent: String,
     public val SearchNodes: String,
     public val More: String,

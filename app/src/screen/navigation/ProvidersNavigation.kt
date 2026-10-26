@@ -24,6 +24,8 @@ package com.github.yumeyucca.yumebox.screen.navigation
 
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.presentation.screen.ProvidersContent
@@ -35,11 +37,13 @@ fun ProvidersScreen(
     embedded: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(),
     scrollBehaviorOverride: ScrollBehavior? = null,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     ProvidersContent(
         navigator = navigator,
         embedded = embedded,
         contentPadding = contentPadding,
         scrollBehaviorOverride = scrollBehaviorOverride,
+        listState = listState,
     )
 }

@@ -66,6 +66,7 @@ internal data class MoeHomeLayoutState(
     val selectedServerPing: Int?,
     val now: Long,
     val quote: String,
+    val quoteAuthor: String,
     val controlState: HomeProxyControlState,
     val canLaunch: Boolean,
     val isRemoteController: Boolean,
@@ -87,8 +88,19 @@ internal fun MoeHomeLayout(state: MoeHomeLayoutState) {
     // content panel.
     val sidebarBackdrop = rememberLayerBackdrop { drawContent() }
     BoxWithConstraints(Modifier.fillMaxSize()) {
+        val greetingColor =
+            rememberMoeWallpaperAccentColor(
+                wallpaperUri = state.wallpaperUri,
+                surface = state.contentSurface,
+                fallback = MiuixTheme.colorScheme.primary,
+            )
         if (state.usesTabletLayout) {
-            MoeTabletHomeLayout(state = state, maxWidth = maxWidth, maxHeight = maxHeight)
+            MoeTabletHomeLayout(
+                state = state,
+                maxWidth = maxWidth,
+                maxHeight = maxHeight,
+                greetingColor = greetingColor,
+            )
             return@BoxWithConstraints
         }
         val sidebarWidth = maxWidth * MoeUi.Sidebar.fraction
@@ -101,8 +113,10 @@ internal fun MoeHomeLayout(state: MoeHomeLayoutState) {
         val page = state.pageProgress.coerceIn(0f, 1f)
         val sidebar = state.sidebarProgress.coerceIn(0f, 1f) * state.sidebarToggleProgress
         val sidebarWidthVisible = lerpDp(MoeUi.Sidebar.collapsedVisibleWidth, contentStart, sidebar)
+        val heroRadius = MoeUi.Shape.heroCornerRadius(screenCorner)
+        val heroTop = state.statusBarTop
         val heroHeight =
-            (maxHeight - state.statusBarTop).coerceAtLeast(UiDp.dp0) * MoeUi.Hero.heightFraction
+            (maxHeight - heroTop).coerceAtLeast(UiDp.dp0) * MoeUi.Hero.heightFraction
         // Glass blur needs a RuntimeShader (API 33+); miuix falls back to a solid surface without
         // one. Skip the effect entirely while the rail is fully collapsed.
         val blurReady by
@@ -141,7 +155,16 @@ internal fun MoeHomeLayout(state: MoeHomeLayoutState) {
                 visibleWidth = sidebarWidthVisible,
             )
         }
-        MoeHomePanel(state, contentStart, heroHeight, sidebar, screenCorner)
+        MoeHomePanel(
+            state = state,
+            greetingColor = greetingColor,
+            contentStart = contentStart,
+            heroTop = heroTop,
+            heroHeight = heroHeight,
+            heroRadius = heroRadius,
+            sidebar = sidebar,
+            screenCorner = screenCorner,
+        )
     }
 }
 
@@ -149,8 +172,11 @@ internal fun MoeHomeLayout(state: MoeHomeLayoutState) {
 context(actions: MoeHomeActions)
 private fun MoeHomePanel(
     state: MoeHomeLayoutState,
+    greetingColor: Color,
     contentStart: Dp,
+    heroTop: Dp,
     heroHeight: Dp,
+    heroRadius: Dp,
     sidebar: Float,
     screenCorner: Dp,
 ) {
@@ -176,14 +202,20 @@ private fun MoeHomePanel(
                     ),
             )
     ) {
-        MoeHero(state, heroScale)
-        MoeHomeCopy(state, heroHeight)
+        MoeHero(state, heroScale, heroTop, heroHeight, heroRadius)
+        MoeHomeCopy(state, greetingColor, heroTop, heroHeight, heroRadius)
     }
 }
 
 @Composable
 context(actions: MoeHomeActions)
-private fun BoxScope.MoeHero(state: MoeHomeLayoutState, scale: Float) {
+private fun BoxScope.MoeHero(
+    state: MoeHomeLayoutState,
+    scale: Float,
+    heroTop: Dp,
+    heroHeight: Dp,
+    heroRadius: Dp,
+) {
     val toggleSidebar by rememberUpdatedState(actions.toggleSidebar)
     val pickWallpaper by rememberUpdatedState(actions.pickWallpaper)
     Box(
@@ -193,9 +225,9 @@ private fun BoxScope.MoeHero(state: MoeHomeLayoutState, scale: Float) {
             .padding(
                 start = MoeUi.Hero.containerHorizontalInset,
                 end = MoeUi.Hero.containerHorizontalInset,
-                top = state.statusBarTop,
+                top = heroTop,
             )
-            .fillMaxHeight(MoeUi.Hero.heightFraction)
+            .height(heroHeight)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = { toggleSidebar() },
@@ -207,7 +239,7 @@ private fun BoxScope.MoeHero(state: MoeHomeLayoutState, scale: Float) {
                 scaleX = scale
                 scaleY = scale
             }
-            .squircleClip(MoeUi.Shape.heroRadius)
+            .squircleClip(heroRadius)
     ) {
         MoeWallpaperBackground(
             wallpaperUri = state.wallpaperUri,
@@ -222,13 +254,13 @@ private fun BoxScope.MoeHero(state: MoeHomeLayoutState, scale: Float) {
                 .matchParentSize()
                 .background(
                     Brush.verticalGradient(
-                        // Fully opaque from 0.90 so the rounded corner band never lets the
+                        // Fully opaque from 0.92 so the rounded corner band never lets the
                         // wallpaper bleed through as a colored line (issue #151 item 6); the
                         // longer fade avoids the hard mid-way cut (item 5).
                         0f to Color.Transparent,
-                        0.45f to Color.Transparent,
-                        0.78f to state.contentSurface.copy(alpha = 0.88f),
-                        0.90f to state.contentSurface,
+                        0.52f to Color.Transparent,
+                        0.82f to state.contentSurface.copy(alpha = 0.88f),
+                        0.92f to state.contentSurface,
                         1f to state.contentSurface,
                     )
                 )
@@ -261,7 +293,13 @@ private fun BoxScope.MoeHero(state: MoeHomeLayoutState, scale: Float) {
 
 @Composable
 context(actions: MoeHomeActions)
-private fun BoxScope.MoeHomeCopy(state: MoeHomeLayoutState, heroHeight: Dp) {
+private fun BoxScope.MoeHomeCopy(
+    state: MoeHomeLayoutState,
+    greetingColor: Color,
+    heroTop: Dp,
+    heroHeight: Dp,
+    heroRadius: Dp,
+) {
     Column(
         modifier =
             Modifier
@@ -270,7 +308,7 @@ private fun BoxScope.MoeHomeCopy(state: MoeHomeLayoutState, heroHeight: Dp) {
                 .padding(
                     start = MoeUi.Hero.containerHorizontalInset + MoeUi.Hero.contentHorizontalInset,
                     end = MoeUi.Hero.containerHorizontalInset + MoeUi.Hero.contentHorizontalInset,
-                    top = state.statusBarTop + heroHeight + MoeUi.Hero.belowHeroTopGap,
+                    top = heroTop + heroHeight + MoeUi.Hero.belowHeroTopGap,
                 ),
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(MoeUi.Hero.belowHeroContentGap),
@@ -278,6 +316,8 @@ private fun BoxScope.MoeHomeCopy(state: MoeHomeLayoutState, heroHeight: Dp) {
         MoeHomeCopyBlock(
             nowMillis = state.now,
             quoteText = state.quote,
+            quoteAuthor = state.quoteAuthor,
+            greetingColor = greetingColor,
             color = MiuixTheme.colorScheme.onBackground,
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -300,6 +340,7 @@ private fun MoeTabletHomeLayout(
     state: MoeHomeLayoutState,
     maxWidth: Dp,
     maxHeight: Dp,
+    greetingColor: Color,
 ) {
     val pickWallpaper by rememberUpdatedState(actions.pickWallpaper)
     val shortHeight = maxHeight < UiDp.dp560
@@ -308,8 +349,10 @@ private fun MoeTabletHomeLayout(
     // Phone-landscape panes are barely wider than the content itself; a floor keeps the launch
     // controls clear of the divider and screen edges instead of pressing against them.
     val horizontalGutter = ((maxWidth - contentMaxWidth) / 2f).coerceIn(UiDp.dp16, maxWidth / 2f)
-    val heroHeightFraction = if (shortHeight) 0.50f else MoeUi.Hero.heightFraction
-    val heroHeight = (maxHeight - state.statusBarTop).coerceAtLeast(UiDp.dp0) * heroHeightFraction
+    val heroHeightFraction = MoeUi.Hero.heightFraction
+    val heroRadius = MoeUi.Shape.heroCornerRadius(getRoundedCorner())
+    val heroTop = state.statusBarTop
+    val heroHeight = (maxHeight - heroTop).coerceAtLeast(UiDp.dp0) * heroHeightFraction
 
     Box(Modifier
         .fillMaxSize()
@@ -334,13 +377,13 @@ private fun MoeTabletHomeLayout(
                     .padding(
                         start = MoeUi.Hero.containerHorizontalInset,
                         end = MoeUi.Hero.containerHorizontalInset,
-                        top = state.statusBarTop,
+                        top = heroTop,
                     )
                     .height(heroHeight)
                     .pointerInput(Unit) {
                         detectTapGestures(onLongPress = { pickWallpaper() })
                     }
-                    .squircleClip(MoeUi.Shape.heroRadius)
+                    .squircleClip(heroRadius)
             ) {
                 MoeWallpaperBackground(
                     wallpaperUri = state.wallpaperUri,
@@ -356,9 +399,9 @@ private fun MoeTabletHomeLayout(
                         .background(
                             Brush.verticalGradient(
                                 0f to Color.Transparent,
-                                0.45f to Color.Transparent,
-                                0.78f to state.contentSurface.copy(alpha = 0.88f),
-                                0.90f to state.contentSurface,
+                                0.52f to Color.Transparent,
+                                0.82f to state.contentSurface.copy(alpha = 0.88f),
+                                0.92f to state.contentSurface,
                                 1f to state.contentSurface,
                             )
                         )
@@ -435,6 +478,8 @@ private fun MoeTabletHomeLayout(
                 MoeHomeCopyBlock(
                     nowMillis = state.now,
                     quoteText = state.quote,
+                    quoteAuthor = state.quoteAuthor,
+                    greetingColor = greetingColor,
                     color = MiuixTheme.colorScheme.onBackground,
                     modifier = Modifier.fillMaxWidth(),
                 ) {

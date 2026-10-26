@@ -61,6 +61,7 @@ internal class BackupStoreAdapter(
                     moeWallpaperBiasX = appSettings.moeWallpaperBiasX.value,
                     moeWallpaperBiasY = appSettings.moeWallpaperBiasY.value,
                     moeHomeQuote = appSettings.moeHomeQuote.value,
+                    moeHomeQuoteAuthor = appSettings.moeHomeQuoteAuthor.value,
                     moeSidebarExpanded = appSettings.moeSidebarExpanded.value,
                     pageScale = appSettings.pageScale.value,
                     customUserAgent = appSettings.customUserAgent.value,
@@ -89,6 +90,7 @@ internal class BackupStoreAdapter(
                     accessControlSelectedFirst = networkSettings.accessControlSelectedFirst.value,
                     accessControlShowSystemApps = networkSettings.accessControlShowSystemApps.value,
                     accessControlSortMode = networkSettings.accessControlSortMode.value,
+                    accessControlImportStrategy = networkSettings.accessControlImportStrategy.value,
                 ),
             featureSettings =
                 FeatureSettingsBackup(
@@ -178,6 +180,7 @@ internal class BackupStoreAdapter(
             appSettings.moeWallpaperBiasX,
             appSettings.moeWallpaperBiasY,
             appSettings.moeHomeQuote,
+            appSettings.moeHomeQuoteAuthor,
             appSettings.moeSidebarExpanded,
             appSettings.pageScale,
             appSettings.customUserAgent,
@@ -205,6 +208,7 @@ internal class BackupStoreAdapter(
             networkSettings.accessControlSelectedFirst,
             networkSettings.accessControlShowSystemApps,
             networkSettings.accessControlSortMode,
+            networkSettings.accessControlImportStrategy,
         )
         refreshAfterRawStoreClear(
             featureSettings.allowLanAccess,
@@ -255,6 +259,7 @@ internal class BackupStoreAdapter(
         appSettings.moeWallpaperBiasX.set(value.moeWallpaperBiasX)
         appSettings.moeWallpaperBiasY.set(value.moeWallpaperBiasY)
         appSettings.moeHomeQuote.set(value.moeHomeQuote)
+        appSettings.moeHomeQuoteAuthor.set(value.moeHomeQuoteAuthor)
         appSettings.moeSidebarExpanded.set(value.moeSidebarExpanded)
         appSettings.pageScale.set(value.pageScale)
         appSettings.customUserAgent.set(value.customUserAgent)
@@ -283,6 +288,7 @@ internal class BackupStoreAdapter(
         networkSettings.accessControlSelectedFirst.set(value.accessControlSelectedFirst)
         networkSettings.accessControlShowSystemApps.set(value.accessControlShowSystemApps)
         networkSettings.accessControlSortMode.set(value.accessControlSortMode)
+        networkSettings.accessControlImportStrategy.set(value.accessControlImportStrategy)
     }
 
     private fun applyFeatureSettings(value: FeatureSettingsBackup) {

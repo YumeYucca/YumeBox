@@ -60,6 +60,9 @@ sealed interface Route {
     data object AccessControl : Route
 
     @Serializable
+    data object AccessControlAppList : Route
+
+    @Serializable
     data object MetaFeature : Route
 
     @Serializable

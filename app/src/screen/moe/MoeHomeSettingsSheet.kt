@@ -28,9 +28,11 @@ import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 internal fun MoeHomeSettingsSheet(
     show: Boolean,
     quote: String,
+    author: String,
     sidebarExpanded: Boolean,
     useSystemWallpaper: Boolean,
     onQuoteChange: (String) -> Unit,
+    onAuthorChange: (String) -> Unit,
     onSidebarExpandedChange: (Boolean) -> Unit,
     onUseSystemWallpaperChange: (Boolean) -> Unit,
     onChangeWallpaper: () -> Unit,
@@ -38,9 +40,11 @@ internal fun MoeHomeSettingsSheet(
 ) {
     val spacing = AppTheme.spacing
     var draftQuote by remember(show, quote) { mutableStateOf(quote) }
+    var draftAuthor by remember(show, author) { mutableStateOf(author) }
     var draftSidebarExpanded by remember(show, sidebarExpanded) { mutableStateOf(sidebarExpanded) }
     val save = {
         onQuoteChange(draftQuote)
+        onAuthorChange(draftAuthor)
         onSidebarExpandedChange(draftSidebarExpanded)
         onDismiss()
     }
@@ -59,16 +63,28 @@ internal fun MoeHomeSettingsSheet(
             // 顶部让位悬浮头 76dp 带(内容从带下滚过)。
             contentPadding = PaddingValues(top = FloatingSheetHeaderDefaults.ContentTopInset)) {
             item {
-                OemTextField(
-                    value = draftQuote,
-                    onValueChange = { draftQuote = it },
-                    label = YumeTxt.Home.Settings.Quote,
-                    useLabelAsPlaceholder = true,
-                    maxLines = 2,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = spacing.space12),
-                )
+                Column {
+                    OemTextField(
+                        value = draftQuote,
+                        onValueChange = { draftQuote = it },
+                        label = YumeTxt.Home.Settings.Quote,
+                        useLabelAsPlaceholder = true,
+                        maxLines = 2,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = spacing.space12),
+                    )
+                    OemTextField(
+                        value = draftAuthor,
+                        onValueChange = { draftAuthor = it },
+                        label = YumeTxt.Home.Settings.Author,
+                        useLabelAsPlaceholder = true,
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = spacing.space12),
+                    )
+                }
             }
             item {
                 AppCard(

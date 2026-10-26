@@ -2,7 +2,7 @@ package com.github.yumeyucca.yumebox.core.locale
 
 internal val ZhHansYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
     Title = "日志",
-    Summary = "实时运行日志",
+    Summary = "查看内核实时运行日志，便于排查连接、分流与订阅更新问题",
     SearchHint = "搜索日志",
     Level = YumeStrings_Log_Level(
         All = "全部",
@@ -34,7 +34,7 @@ internal val ZhHansYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
 
 internal val ZhYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
     Title = "日誌",
-    Summary = "即時執行日誌",
+    Summary = "檢視核心即時執行日誌，便於排查連線、分流與訂閱更新問題",
     SearchHint = "搜尋日誌",
     Level = YumeStrings_Log_Level(
         All = "全部",
@@ -66,7 +66,7 @@ internal val ZhYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
 
 internal val EnYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
     Title = "Logs",
-    Summary = "Live runtime logs",
+    Summary = "View live kernel logs to troubleshoot connections, routing, and subscription updates",
     SearchHint = "Search logs",
     Level = YumeStrings_Log_Level(
         All = "All",
@@ -98,7 +98,7 @@ internal val EnYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
 
 internal val JaYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
     Title = "ログ",
-    Summary = "リアルタイム実行ログ",
+    Summary = "カーネルのリアルタイムログを表示し、接続・分流・購読更新の問題を調査できます",
     SearchHint = "ログを検索",
     Level = YumeStrings_Log_Level(
         All = "すべて",
@@ -130,7 +130,7 @@ internal val JaYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
 
 internal val RuYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
     Title = "Журналы",
-    Summary = "Журналы выполнения в реальном времени",
+    Summary = "Просмотр журналов ядра в реальном времени для диагностики подключений, маршрутизации и обновлений подписки",
     SearchHint = "Поиск по журналам",
     Level = YumeStrings_Log_Level(
         All = "Все",

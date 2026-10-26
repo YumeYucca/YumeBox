@@ -39,10 +39,12 @@ class ProvidersController(
 ) {
     @Suppress("TooGenericExceptionCaught")
     suspend fun queryProviders(): Result<List<Provider>> =
-        try {
-            Result.success(queryProvidersAction())
-        } catch (error: Exception) { // fault barrier: injected bridge action may fail arbitrarily
-            Result.failure(error)
+        withContext(Dispatchers.IO) {
+            try {
+                Result.success(queryProvidersAction())
+            } catch (error: Exception) { // fault barrier: injected bridge action may fail arbitrarily
+                Result.failure(error)
+            }
         }
 
     suspend fun updateProvider(provider: Provider): Result<Unit> =
