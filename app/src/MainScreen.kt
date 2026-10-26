@@ -252,11 +252,12 @@ fun MainScreen(
     val detailNavigator = remember { Navigator(listOf(Route.About)) }
     val detailBackStack = detailNavigator.backStack
 
-    // Leaving the proxy tab should not leave Providers stuck on the right pane.
+    // Leaving the proxy tab should not leave routing details stuck on the right pane.
     LaunchedEffect(settledDestination) {
         if (
             settledDestination != BottomBarDestination.Proxy &&
-            detailBackStack.lastOrNull() is Route.Providers
+            (detailBackStack.lastOrNull() is Route.Providers ||
+                detailBackStack.lastOrNull() is Route.Rules)
         ) {
             detailNavigator.replaceAll(listOf(Route.About))
         }
@@ -374,9 +375,9 @@ internal data class MainRootPageState(
 @Composable
 internal fun MainRootPageContent(state: MainRootPageState) {
     val detailNavigator = LocalDetailNavigator.current
-    val openProvidersFromProxy: () -> Unit = {
-        detailNavigator?.replaceAll(listOf(Route.Providers))
-            ?: state.navigator.push(Route.Providers)
+    val openRoutingFromProxy: () -> Unit = {
+        detailNavigator?.replaceAll(listOf(Route.Rules))
+            ?: state.navigator.push(Route.Rules)
     }
     when (state.destination) {
         BottomBarDestination.Home -> {
@@ -396,11 +397,7 @@ internal fun MainRootPageContent(state: MainRootPageState) {
         BottomBarDestination.Proxy -> {
             ProxyPager(
                 mainInnerPadding = state.mainInnerPadding,
-                onNavigateToProviders = openProvidersFromProxy,
-                onNavigateToRules = {
-                    detailNavigator?.replaceAll(listOf(Route.Rules))
-                        ?: state.navigator.push(Route.Rules)
-                },
+                onOpenRouting = openRoutingFromProxy,
                 isActive = state.selectedDestination == BottomBarDestination.Proxy,
                 windowLayoutMode = state.windowLayoutMode,
             )

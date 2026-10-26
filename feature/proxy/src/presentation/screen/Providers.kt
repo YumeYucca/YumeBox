@@ -52,6 +52,7 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.ListPopupDefaults
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -77,9 +78,14 @@ private data class ProviderSection(
 @OptIn(ExperimentalFoundationApi::class)
 @Suppress("KotlinConstantConditions")
 @Composable
-fun ProvidersContent(navigator: Navigator) {
+fun ProvidersContent(
+    navigator: Navigator,
+    embedded: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(),
+    scrollBehaviorOverride: ScrollBehavior? = null,
+) {
     val viewModel = koinViewModel<ProvidersViewModel>()
-    val scrollBehavior = MiuixScrollBehavior()
+    val scrollBehavior = scrollBehaviorOverride ?: MiuixScrollBehavior()
     val context = LocalContext.current
 
     val providers by viewModel.providers.collectAsState()
@@ -131,14 +137,7 @@ fun ProvidersContent(navigator: Navigator) {
             }
         }
 
-    GlassScaffold(
-        topBar = {
-            TopBar(
-                title = YumeTxt.Providers.Title,
-                scrollBehavior = scrollBehavior,
-            )
-        }
-    ) { innerPadding ->
+    val providersContent: @Composable (PaddingValues, ScrollBehavior) -> Unit = { padding, behavior ->
         if (!isRunning) {
             CenteredText(
                 firstLine = YumeTxt.Providers.Empty.NotRunning,
@@ -152,14 +151,13 @@ fun ProvidersContent(navigator: Navigator) {
                 showEmptyResourceIllustration = true,
             )
         } else {
-            val mainLikePadding = rememberStandalonePageMainPadding()
             var selectedSectionIndex by rememberSaveable { mutableStateOf(0) }
             val showProviderTabs = sections.size >= 2
             val activeSectionIndex =
                 if (showProviderTabs) selectedSectionIndex.coerceIn(0, sections.lastIndex) else 0
             ScreenLazyColumn(
-                scrollBehavior = scrollBehavior,
-                innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
+                scrollBehavior = behavior,
+                innerPadding = padding,
             ) {
                 if (showProviderTabs) {
                     // 代理/规则资源收进分段 tab,吸附在内容区顶部。
@@ -206,6 +204,23 @@ fun ProvidersContent(navigator: Navigator) {
                 }
             }
         }
+    }
+
+    if (embedded) {
+        providersContent(contentPadding, scrollBehavior)
+        return
+    }
+
+    GlassScaffold(
+        topBar = {
+            TopBar(
+                title = YumeTxt.Providers.Title,
+                scrollBehavior = scrollBehavior,
+            )
+        }
+    ) { innerPadding ->
+        val mainLikePadding = rememberStandalonePageMainPadding()
+        providersContent(combinePaddingValues(innerPadding, mainLikePadding), scrollBehavior)
     }
 }
 

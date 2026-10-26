@@ -44,7 +44,6 @@ import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.Archive
 import io.github.yumeyucca.lucide.lucide.FileBracesCorner
 import io.github.yumeyucca.lucide.lucide.ShieldCheck
-import io.github.yumeyucca.lucide.lucide.Split
 import io.github.yumeyucca.lucide.lucide.WifiPen
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
@@ -171,13 +170,6 @@ private fun SettingsMasterList(
                                     title = YumeTxt.Settings.UiSettings.RemoteControl,
                                     onClick = { onOpen(Route.Extensions) },
                                     icon = Yume.CPU,
-                                )
-                            },
-                            {
-                                SettingsListItem(
-                                    title = YumeTxt.Settings.UiSettings.MetaFeatures,
-                                    onClick = { onOpen(Route.MetaFeature) },
-                                    icon = Lucide.Split,
                                 )
                             },
                         )

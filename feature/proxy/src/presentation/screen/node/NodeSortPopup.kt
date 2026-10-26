@@ -43,7 +43,13 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
+import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
+import io.github.yumeyucca.lucide.Lucide
+import io.github.yumeyucca.lucide.lucide.ArrowUpDown
+import io.github.yumeyucca.lucide.lucide.Locate
+import io.github.yumeyucca.lucide.lucide.Search
+import io.github.yumeyucca.lucide.lucide.Waypoints
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.glass.GlassPopup
@@ -65,8 +71,7 @@ internal fun NodeActionsMenu(
     onDismiss: () -> Unit,
     sortMode: ProxySortMode,
     onLocateCurrentProxy: (() -> Unit)? = null,
-    onOpenProviders: (() -> Unit)? = null,
-    onOpenRules: (() -> Unit)? = null,
+    onOpenRouting: (() -> Unit)? = null,
     searchVisible: Boolean = false,
     onToggleSearch: (() -> Unit)? = null,
     onSortSelected: (ProxySortMode) -> Unit,
@@ -74,7 +79,7 @@ internal fun NodeActionsMenu(
     anchorContent: @Composable () -> Unit,
 ) {
     // PopupLayout relocates this content; capture the page backdrop before leaving its provider.
-    val backdrop = LocalTopBarBackdrop.current
+    val backdrop = LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current
     val popupVisible = remember { mutableStateOf(false) }
     val popupVisuals = GlassPopupDefaults.visuals()
     var submenu by remember { mutableStateOf(false) }
@@ -116,28 +121,28 @@ internal fun NodeActionsMenu(
                 anchor = anchor,
                 backdrop = backdrop,
                 anchorContent = anchorContent,
-                // The anchor is a bare glyph, not a glass button: fade in the panel and its shadow.
+                // The pill anchor supplies the shared surface; this remains the no-surface fallback.
                 anchorAlpha = 0f,
+                sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
                 visuals = popupVisuals,
                 stacked = submenu,
                 onDismissFinished = { if (!show) popupVisible.value = false },
                 onMeasured = { menuWidth = with(density) { it.width.toDp() } },
             ) {
-                onOpenRules?.let { openRules ->
-                    GlassPopupItem(text = YumeTxt.Rules.Title, onClick = {
-                        openRules()
-                        onDismiss()
-                    })
-                }
-                onOpenProviders?.let { openProviders ->
-                    GlassPopupItem(text = YumeTxt.Providers.Title, onClick = {
-                        openProviders()
-                        onDismiss()
-                    })
+                onOpenRouting?.let { openRouting ->
+                    GlassPopupItem(
+                        text = YumeTxt.MetaFeature.Title,
+                        icon = Lucide.Waypoints,
+                        onClick = {
+                            openRouting()
+                            onDismiss()
+                        },
+                    )
                 }
                 onToggleSearch?.let { toggleSearch ->
                     GlassPopupItem(
                         text = YumeTxt.Proxy.Action.SearchNodes,
+                        icon = Lucide.Search,
                         selected = searchVisible,
                         onClick = {
                             toggleSearch()
@@ -146,13 +151,18 @@ internal fun NodeActionsMenu(
                     )
                 }
                 onLocateCurrentProxy?.let { locateCurrentProxy ->
-                    GlassPopupItem(text = YumeTxt.Proxy.Action.LocateCurrent, onClick = {
-                        locateCurrentProxy()
-                        onDismiss()
-                    })
+                    GlassPopupItem(
+                        text = YumeTxt.Proxy.Action.LocateCurrent,
+                        icon = Lucide.Locate,
+                        onClick = {
+                            locateCurrentProxy()
+                            onDismiss()
+                        },
+                    )
                 }
                 GlassPopupItem(
                     text = YumeTxt.Proxy.Action.Sort,
+                    icon = Lucide.ArrowUpDown,
                     showArrow = true,
                     arrowRotation = { submenuArrow * (1f - anchor.secondaryBackProgress) },
                     modifier = Modifier.onGloballyPositioned {
@@ -170,7 +180,7 @@ internal fun NodeActionsMenu(
                 anchorBounds = submenuAnchor,
                 backdrop = backdrop,
                 materialAnchor = anchor,
-                sizing = GlassPopupSizing(minWidth = menuWidth),
+                sizing = GlassPopupSizing(minWidth = menuWidth, maxWidth = 188.dp),
                 visuals = popupVisuals,
                 onDismissFinished = { submenuPresent = false },
             ) {
@@ -224,6 +234,7 @@ internal fun NodeSortPopupOverlay(
                 onDismissRequest = onDismiss,
                 anchorBounds = anchorBounds,
                 backdrop = backdrop,
+                sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
             ) {
                 NodeSortModes.forEach { mode ->
                     GlassPopupItem(

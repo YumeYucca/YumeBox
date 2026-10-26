@@ -12,12 +12,10 @@ import androidx.compose.runtime.Composable
 @Composable
 fun ProxyShellNodeDetail(
     mainInnerPadding: PaddingValues,
-    onNavigateToProviders: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
-    onNavigateToRules: (() -> Unit)? = null,
+    onOpenRouting: (() -> Unit)? = null,
 ) = ProxyShellNodeDetailContent(
     mainInnerPadding = mainInnerPadding,
-    onNavigateToProviders = onNavigateToProviders,
     onOpenSettings = onOpenSettings,
-    onNavigateToRules = onNavigateToRules,
+    onOpenRouting = onOpenRouting,
 )

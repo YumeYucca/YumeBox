@@ -5,6 +5,8 @@ package com.github.yumeyucca.yumebox.presentation.component
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.glass.GlassDropdownPreference as MiuixGlassDropdownPreference
@@ -25,7 +27,7 @@ fun GlassDropdownPreference(
     showValue: Boolean = true,
     maxHeight: Dp? = null,
 ) {
-    val backdrop = LocalTopBarBackdrop.current
+    val backdrop = LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current
     if (backdrop != null && isRuntimeShaderSupported()) {
         MiuixGlassDropdownPreference(
             items = items,
@@ -36,7 +38,12 @@ fun GlassDropdownPreference(
             modifier = modifier,
             enabled = enabled,
             showValue = showValue,
-            sizing = GlassPopupSizing(maxHeight = maxHeight ?: GlassPopupDefaults.MaxHeight),
+            sizing =
+                GlassPopupSizing(
+                    minWidth = 188.dp,
+                    maxWidth = 188.dp,
+                    maxHeight = maxHeight ?: GlassPopupDefaults.MaxHeight,
+                ),
             onSelectedIndexChange = onSelectedIndexChange,
         )
     } else {
