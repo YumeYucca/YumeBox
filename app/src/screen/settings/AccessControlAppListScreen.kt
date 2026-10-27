@@ -35,13 +35,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.component.GlassTopActionDefaults
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Bolt
@@ -74,10 +72,7 @@ fun AccessControlAppListScreen() {
     val actionsMenuAnchor = rememberGlassPopupAnchor()
     var showSortMenu by remember { mutableStateOf(false) }
     val sortMenuAnchor = rememberGlassPopupAnchor()
-    var showImportExportMenu by remember { mutableStateOf(false) }
-    val importExportMenuAnchor = rememberGlassPopupAnchor()
     val backdrop = LocalTopBarBackdrop.current
-    val context = LocalContext.current
     var searchStatus by remember {
         mutableStateOf(
             SearchStatus(
@@ -156,147 +151,107 @@ fun AccessControlAppListScreen() {
                         title = YumeTxt.AccessControl.AppList.ScreenTitle,
                         scrollBehavior = scrollBehavior,
                         actions = {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box {
-                                    GlassTopIconButton(
-                                        action =
-                                            GlassTopAction(
-                                                icon = Yume.Copy,
-                                                contentDescription =
-                                                    YumeTxt.AccessControl.Settings.ImportExport,
-                                                onClick = { showImportExportMenu = true },
-                                                iconModifier =
-                                                    Modifier.glassPopupAnchorContent(
-                                                        importExportMenuAnchor
-                                                    ),
-                                            ),
-                                        backdrop = backdrop,
-                                        modifier =
-                                            Modifier.glassPopupAnchor(
-                                                anchor = importExportMenuAnchor,
-                                                cornerRadius =
-                                                    GlassTopActionDefaults.IconSize / 2,
-                                                floating = true,
-                                            ),
-                                    )
-                                    AccessControlImportExportMenu(
-                                        show = showImportExportMenu,
-                                        onDismiss = { showImportExportMenu = false },
-                                        onImport = {
-                                            importAccessControlPackages(context, viewModel)
-                                        },
-                                        onExport = {
-                                            exportAccessControlPackages(context, viewModel)
-                                        },
-                                        anchor = importExportMenuAnchor,
-                                        anchorContent = {
-                                            Icon(
-                                                imageVector = Yume.Copy,
-                                                contentDescription = null,
-                                                modifier =
-                                                    Modifier.size(GlassTopActionDefaults.IconSize),
-                                                tint = MiuixTheme.colorScheme.onSurface,
-                                            )
-                                        },
-                                    )
-                                }
-                                Box {
-                                    GlassTopIconButton(
-                                        action =
-                                            GlassTopAction(
-                                                icon = Yume.ListChevronsUpDown,
-                                                contentDescription =
-                                                    YumeTxt.AccessControl.Settings.SortMode,
-                                                onClick = { showSortMenu = true },
-                                                iconModifier =
-                                                    Modifier.glassPopupAnchorContent(
-                                                        sortMenuAnchor
-                                                    ),
-                                            ),
-                                        backdrop = backdrop,
-                                        modifier =
-                                            Modifier.glassPopupAnchor(
+                            // 与节点页一致：剩余两个操作收进同一枚玻璃胶囊。
+                            GlassTopActionPill(
+                                actions =
+                                    listOf(
+                                        GlassTopAction(
+                                            icon = Yume.ListChevronsUpDown,
+                                            contentDescription =
+                                                YumeTxt.AccessControl.Settings.SortMode,
+                                            onClick = { showSortMenu = !showSortMenu },
+                                            modifier =
+                                                Modifier.glassPopupAnchor(
+                                                    anchor = sortMenuAnchor,
+                                                    cornerRadius =
+                                                        GlassTopActionDefaults.IconSize / 2,
+                                                    floating = true,
+                                                ),
+                                            iconModifier =
+                                                Modifier.glassPopupAnchorContent(sortMenuAnchor),
+                                        ),
+                                        GlassTopAction(
+                                            icon = Yume.Bolt,
+                                            contentDescription =
+                                                YumeTxt.AccessControl.Settings.Title,
+                                            onClick = { showActionsMenu = !showActionsMenu },
+                                            modifier =
+                                                Modifier.glassPopupAnchor(
+                                                    anchor = actionsMenuAnchor,
+                                                    cornerRadius =
+                                                        GlassTopActionDefaults.IconSize / 2,
+                                                    floating = true,
+                                                ),
+                                            iconModifier =
+                                                Modifier.glassPopupAnchorContent(
+                                                    actionsMenuAnchor
+                                                ),
+                                        ),
+                                    ),
+                                popupAnchors = listOf(sortMenuAnchor, actionsMenuAnchor),
+                                backdrop = backdrop,
+                                actionOverlay = { index ->
+                                    when (index) {
+                                        0 ->
+                                            AccessControlSortMenu(
+                                                show = showSortMenu,
+                                                onDismiss = { showSortMenu = false },
+                                                sortMode = uiState.sortMode,
+                                                onSortSelected = viewModel::onSortModeChange,
                                                 anchor = sortMenuAnchor,
-                                                cornerRadius =
-                                                    GlassTopActionDefaults.IconSize / 2,
-                                                floating = true,
-                                            ),
-                                    )
-                                    AccessControlSortMenu(
-                                        show = showSortMenu,
-                                        onDismiss = { showSortMenu = false },
-                                        sortMode = uiState.sortMode,
-                                        onSortSelected = viewModel::onSortModeChange,
-                                        anchor = sortMenuAnchor,
-                                        anchorContent = {
-                                            Icon(
-                                                imageVector = Yume.ListChevronsUpDown,
-                                                contentDescription = null,
-                                                modifier =
-                                                    Modifier.size(GlassTopActionDefaults.IconSize),
-                                                tint = MiuixTheme.colorScheme.onSurface,
+                                                anchorContent = {
+                                                    Icon(
+                                                        imageVector = Yume.ListChevronsUpDown,
+                                                        contentDescription = null,
+                                                        modifier =
+                                                            Modifier.size(
+                                                                GlassTopActionDefaults.IconSize
+                                                            ),
+                                                        tint = MiuixTheme.colorScheme.onSurface,
+                                                    )
+                                                },
                                             )
-                                        },
-                                    )
-                                }
-                                Box {
-                                    GlassTopIconButton(
-                                        action =
-                                            GlassTopAction(
-                                                icon = Yume.Bolt,
-                                                contentDescription =
-                                                    YumeTxt.AccessControl.Settings.Title,
-                                                onClick = { showActionsMenu = true },
-                                                iconModifier =
-                                                    Modifier.glassPopupAnchorContent(
-                                                        actionsMenuAnchor
-                                                    ),
-                                            ),
-                                        backdrop = backdrop,
-                                        modifier =
-                                            Modifier.glassPopupAnchor(
+                                        1 ->
+                                            AccessControlOperationsMenu(
+                                                showPopup = showActionsMenu,
+                                                onShowPopupChange = { showActionsMenu = it },
                                                 anchor = actionsMenuAnchor,
-                                                cornerRadius =
-                                                    GlassTopActionDefaults.IconSize / 2,
-                                                floating = true,
-                                            ),
-                                    )
-                                    AccessControlOperationsMenu(
-                                        showPopup = showActionsMenu,
-                                        onShowPopupChange = { showActionsMenu = it },
-                                        anchor = actionsMenuAnchor,
-                                        uiState = uiState,
-                                        actions =
-                                            remember(viewModel) {
-                                                AccessControlMenuActions(
-                                                    onShowSystemAppsChange =
-                                                        viewModel::onShowSystemAppsChange,
-                                                    onSelectedFirstChange =
-                                                        viewModel::onSelectedFirstChange,
-                                                    onSelectAll = viewModel::selectAll,
-                                                    onDeselectAll = viewModel::deselectAll,
-                                                    onInvertSelection = viewModel::invertSelection,
-                                                    onSelectChinaApps =
-                                                        viewModel::selectChinaAppsInCurrentList,
-                                                    onSelectNonChinaApps =
-                                                        viewModel::selectNonChinaAppsInCurrentList,
-                                                )
-                                            },
-                                        anchorContent = {
-                                            Icon(
-                                                imageVector = Yume.Bolt,
-                                                contentDescription = null,
-                                                modifier =
-                                                    Modifier.size(GlassTopActionDefaults.IconSize),
-                                                tint = MiuixTheme.colorScheme.onSurface,
+                                                uiState = uiState,
+                                                actions =
+                                                    remember(viewModel) {
+                                                        AccessControlMenuActions(
+                                                            onShowSystemAppsChange =
+                                                                viewModel::onShowSystemAppsChange,
+                                                            onSelectedFirstChange =
+                                                                viewModel::onSelectedFirstChange,
+                                                            onSelectAll = viewModel::selectAll,
+                                                            onDeselectAll =
+                                                                viewModel::deselectAll,
+                                                            onInvertSelection =
+                                                                viewModel::invertSelection,
+                                                            onSelectChinaApps =
+                                                                viewModel::
+                                                                    selectChinaAppsInCurrentList,
+                                                            onSelectNonChinaApps =
+                                                                viewModel::
+                                                                    selectNonChinaAppsInCurrentList,
+                                                        )
+                                                    },
+                                                anchorContent = {
+                                                    Icon(
+                                                        imageVector = Yume.Bolt,
+                                                        contentDescription = null,
+                                                        modifier =
+                                                            Modifier.size(
+                                                                GlassTopActionDefaults.IconSize
+                                                            ),
+                                                        tint = MiuixTheme.colorScheme.onSurface,
+                                                    )
+                                                },
                                             )
-                                        },
-                                    )
-                                }
-                            }
+                                    }
+                                },
+                            )
                         },
                         bottomContent = {
                             Box(
