@@ -101,6 +101,7 @@ fun GlassTopActionPill(
     backdrop: LayerBackdrop?,
     modifier: Modifier = Modifier,
     popupAnchor: GlassPopupAnchor? = null,
+    popupAnchors: List<GlassPopupAnchor> = emptyList(),
     actionOverlay: (@Composable (Int) -> Unit)? = null,
 ) {
     if (actions.size < 2) {
@@ -117,11 +118,14 @@ fun GlassTopActionPill(
         return
     }
     val glass = rememberGlassTopActionStyle()
-    val resolvedPopupAnchor =
+    val primaryPopupAnchor =
         popupAnchor ?:
             modifier.foldIn<GlassPopupAnchor?>(null) { found, element ->
                 if (element is GlassPopupAnchorElement) element.anchor else found
             }
+    val resolvedPopupAnchors = remember(primaryPopupAnchor, popupAnchors) {
+        (listOfNotNull(primaryPopupAnchor) + popupAnchors).distinct()
+    }
     val popupMaterial = GlassTopAppBarDefaults.buttonMaterial()
     val popupStroke = GlassTopAppBarDefaults.buttonStroke()
     val popupSurface = remember(backdrop, popupMaterial, popupStroke, glass.fallbackColor) {
@@ -136,16 +140,20 @@ fun GlassTopActionPill(
     }
     val collapsedSurfaceProgress = remember { mutableFloatStateOf(0f) }
     SideEffect {
-        resolvedPopupAnchor?.surface = popupSurface
-        resolvedPopupAnchor?.surfaceProgress = collapsedSurfaceProgress
-        resolvedPopupAnchor?.surfaceOpacity = 1f
-        resolvedPopupAnchor?.surfaceFloating = false
+        resolvedPopupAnchors.forEach { anchor ->
+            anchor.surface = popupSurface
+            anchor.surfaceProgress = collapsedSurfaceProgress
+            anchor.surfaceOpacity = 1f
+            anchor.surfaceFloating = false
+        }
     }
-    DisposableEffect(resolvedPopupAnchor, popupSurface) {
+    DisposableEffect(resolvedPopupAnchors, popupSurface) {
         onDispose {
-            if (resolvedPopupAnchor?.surface === popupSurface) {
-                resolvedPopupAnchor.surface = null
-                resolvedPopupAnchor.surfaceProgress = null
+            resolvedPopupAnchors.forEach { anchor ->
+                if (anchor.surface === popupSurface) {
+                    anchor.surface = null
+                    anchor.surfaceProgress = null
+                }
             }
         }
     }
