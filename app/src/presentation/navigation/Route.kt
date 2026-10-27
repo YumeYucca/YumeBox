@@ -93,6 +93,10 @@ sealed interface Route {
     @Serializable
     data object OverrideConfigPreview : Route
 
+    /** "编辑配置" page for one profile: subscription fields plus its override selection. */
+    @Serializable
+    data class ProfileEdit(val profileId: String) : Route
+
     @Serializable
     data object Providers : Route
 

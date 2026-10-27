@@ -28,10 +28,8 @@ import kotlinx.serialization.json.Json
 import org.tukaani.xz.XZInputStream
 import timber.log.Timber
 import java.io.File
-import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
-import java.util.zip.ZipFile
 
 /** Downloadable `libmihomocore.so` catalog and installer. Bundled Alpha remains the fallback. */
 object KernelManager {
@@ -43,9 +41,7 @@ object KernelManager {
     private const val ACTIVE_FILE = "active-kernel"
     private const val ABI = "arm64-v8a"
     private const val SHELL_ABI = 1
-    private const val MAX_PLUGIN_BYTES = 128L * 1024 * 1024
-    private const val CUSTOM_PLUGIN_FORMAT = "kernel-plugin-v1"
-    private const val CERTIFIED_WORKFLOW = ".github/workflows/build-kernels.yml"
+    private const val MAX_KERNEL_BYTES = 128L * 1024 * 1024
     private const val CAPABILITY_EBPF = "ebpf"
     private const val LEGACY_EBPF_ID = "ebpf"
 
@@ -60,21 +56,7 @@ object KernelManager {
     }
 
     @Serializable
-    data class ReleaseMetadata(val kind: String = "official")
-
-    @Serializable
-    data class BuilderMetadata(
-        val repository: String = "",
-        val workflow: String = "",
-        val runId: String = "",
-        val commit: String = "",
-        val format: String = "",
-    )
-
-    @Serializable
     data class Index(
-        val release: ReleaseMetadata = ReleaseMetadata(),
-        val builder: BuilderMetadata? = null,
         val schemaVersion: Int,
         val defaultKernel: String,
         val abi: String,
@@ -123,66 +105,6 @@ object KernelManager {
             try {
                 download(kernel, archive)
                 installArchive(context, kernel, archive)
-            } finally {
-                archive.delete()
-            }
-        }
-    }
-
-    suspend fun installPlugin(context: Context, source: InputStream): Kernel = installMutex.withLock {
-        withContext(Dispatchers.IO) {
-            val plugin = File(context.cacheDir, "kernel-plugin-${System.nanoTime()}.zip")
-            source.use { input ->
-                plugin.outputStream().buffered().use { output -> input.copyTo(output) }
-            }
-            try {
-                check(plugin.length() in 1..MAX_PLUGIN_BYTES) { "Invalid kernel plugin size" }
-                installPluginFile(context, plugin)
-            } finally {
-                plugin.delete()
-            }
-        }
-    }
-
-    suspend fun installPluginUrl(context: Context, url: String): Kernel = installMutex.withLock {
-        withContext(Dispatchers.IO) {
-            require(url.startsWith("https://")) { "Kernel plugin must use HTTPS" }
-            val plugin = File(context.cacheDir, "kernel-plugin-${System.nanoTime()}.zip")
-            try {
-                val response = client.get(url)
-                check(response.status.isSuccess()) { "Kernel plugin request failed: ${response.status}" }
-                response.headers[HttpHeaders.ContentLength]?.toLongOrNull()?.let { length ->
-                    check(length in 1..MAX_PLUGIN_BYTES) { "Invalid kernel plugin size" }
-                }
-                plugin.outputStream().buffered().use { output -> response.bodyAsChannel().copyTo(output) }
-                check(plugin.length() in 1..MAX_PLUGIN_BYTES) { "Invalid kernel plugin size" }
-                installPluginFile(context, plugin)
-            } finally {
-                plugin.delete()
-            }
-        }
-    }
-
-    private fun installPluginFile(context: Context, plugin: File): Kernel {
-        ZipFile(plugin).use { zip ->
-            val names = zip.entries().asSequence().map { it.name }.toSet()
-            check("kernel-index.json" in names) { "Kernel plugin index is missing" }
-            val index = json.decodeFromString<Index>(
-                zip.getInputStream(zip.getEntry("kernel-index.json")).bufferedReader().use { it.readText() },
-            )
-            validateCustomIndex(index)
-            check(names == setOf("kernel-index.json", index.kernels.single().asset)) {
-                "Kernel plugin contains unexpected files"
-            }
-            val kernel = index.kernels.single()
-            val archive = File(libraryDirectory(context), "$CORE_FILE_PREFIX${kernel.id}.so.xz.download")
-            try {
-                zip.getInputStream(zip.getEntry(kernel.asset)).use { input ->
-                    archive.outputStream().buffered().use { output -> input.copyTo(output) }
-                }
-                check(archive.length() == kernel.sizeBytes) { "Kernel plugin archive size mismatch" }
-                installArchive(context, kernel, archive)
-                return kernel
             } finally {
                 archive.delete()
             }
@@ -325,25 +247,12 @@ object KernelManager {
         index.kernels.forEach(::validateKernel)
     }
 
-    private fun validateCustomIndex(index: Index) {
-        validateIndex(index)
-        check(index.release.kind == "custom") { "Kernel plugin must be a custom release" }
-        val builder = index.builder ?: error("Kernel plugin builder metadata is missing")
-        check(builder.format == CUSTOM_PLUGIN_FORMAT && builder.workflow == CERTIFIED_WORKFLOW) {
-            "Kernel plugin was not produced by the certified workflow"
-        }
-        check(builder.repository.matches(Regex("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"))) {
-            "Kernel plugin builder repository is invalid"
-        }
-        check(index.kernels.size == 1) { "Kernel plugin must contain exactly one kernel" }
-    }
-
     private fun validateKernel(kernel: Kernel) {
         check(isKernelId(kernel.id)) { "Invalid kernel channel" }
         check(kernel.abi == ABI && kernel.shellAbi == SHELL_ABI) { "Incompatible kernel" }
         check(kernel.asset == "kernel-${kernel.id}.so.xz") { "Invalid kernel asset" }
         check(kernel.compression == "xz") { "Unsupported kernel compression" }
-        check(kernel.sizeBytes > 0 && kernel.sizeBytes <= MAX_PLUGIN_BYTES) { "Invalid kernel size" }
+        check(kernel.sizeBytes > 0 && kernel.sizeBytes <= MAX_KERNEL_BYTES) { "Invalid kernel size" }
         check(kernel.downloadUrl.startsWith("https://")) { "Kernel download must use HTTPS" }
         check(kernel.sha256.matches(Regex("[0-9a-f]{64}"))) { "Invalid kernel checksum" }
         check(kernel.commit.matches(Regex("[0-9a-f]{40}"))) { "Invalid kernel commit" }

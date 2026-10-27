@@ -24,6 +24,8 @@ package com.github.yumeyucca.yumebox.presentation.component
 
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -33,25 +35,32 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,23 +68,35 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.common.util.ByteFormatter
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
-import kotlin.math.PI
-import kotlin.math.sin
 import com.github.yumeyucca.yumebox.presentation.icon.yume.CircleFadingArrowUp
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Delete
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Edit
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Share
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
+import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.horizontalPadding
 import com.github.yumeyucca.yumebox.presentation.util.*
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import io.github.yumeyucca.lucide.Lucide
+import io.github.yumeyucca.lucide.lucide.CalendarCheck2
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.squircle.squircleBorder
+import top.yukonga.miuix.kmp.glass.*
+import top.yukonga.miuix.kmp.layout.CascadingPopupDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
 import java.io.File
+import kotlin.math.PI
+import kotlin.math.sin
 
+/**
+ * 订阅卡片。
+ *
+ * 交互约定:点勾选按钮 = 启停该配置;点卡片其余位置 = 弹出操作列表(编辑 / 更新 / 分享 / 删除)。
+ * 卡片本身只保留「名称 + 启用勾选 + 流量 + 到期 + 波形进度」,更新时间等次要信息不再上卡。
+ */
 @Composable
 fun ProfileCard(
     profile: Profile,
@@ -87,33 +108,17 @@ fun ProfileCard(
     onEdit: (Profile) -> Unit,
     onToggleEnabled: (Profile) -> Unit,
     onOverrideSettings: ((Profile) -> Unit)? = null,
+    onShareFile: ((Profile) -> Unit)? = null,
+    onShareLink: ((Profile) -> Unit)? = null,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
 ) {
     val spacing = AppTheme.spacing
-    val opacity = AppTheme.opacity
-    val componentSizes = AppTheme.sizes
-
     val colorScheme = MiuixTheme.colorScheme
     val warnColor = AppTheme.colors.moe.pingWarning
 
-    val isDark = isSystemInDarkTheme()
-    val secondaryContainer = colorScheme.secondaryContainer.copy(alpha = opacity.strong)
-    val actionIconTint =
-        remember(isDark, opacity) {
-            colorScheme.onSurface.copy(
-                alpha = if (isDark) opacity.subtleText else opacity.prominentText
-            )
-        }
-
     val isConfigSaved = remember(profile.uuid, profile.updatedAt) { profile.isConfigSaved(workDir) }
 
-    val updateBg =
-        remember(colorScheme, opacity) { colorScheme.primary.copy(alpha = opacity.subtle) }
-    val updateTint = remember(colorScheme) { colorScheme.primary }
-
     val isActive = profile.active
-    val updatedText = profile.getRelativeUpdatedTime()
-    val updatedIsFresh = updatedText != null && updatedText == YumeTxt.Component.ProfileCard.JustNow
     val traffic = profile.trafficPreview
     val expiry = profile.expiryPreview
 
@@ -128,28 +133,40 @@ fun ProfileCard(
             else -> YumeTxt.Component.ProfileCard.LocalConfig
         }
 
-    // Selection ring hugs the card edge exactly: page side margins sit outside the ring Box, and
-    // the ring is a later-sibling overlay at the card's own bounds (squircleBorder paints behind
-    // its node, so an overlay paints it on top of the card) — toggling selection never shifts layout.
-    Box(
+    // 弹窗只在被打开的那张卡上挂载:关闭动画跑完(onDismissFinished)再卸载,列表里其余卡片不常驻弹窗。
+    var actionsOpen by remember(profile.uuid) { mutableStateOf(false) }
+    var actionsMounted by remember(profile.uuid) { mutableStateOf(false) }
+    val actionsMenuAnchor = rememberGlassPopupAnchor()
+
+    AppCard(
         modifier =
             modifier
                 .fillMaxWidth()
                 .padding(bottom = spacing.space12)
                 .horizontalPadding(),
+        applyHorizontalPadding = false,
+        // 底部留白由 insideMargin 统一提供,进度条不再压到卡片边框。
+        insideMargin =
+            PaddingValues(
+                start = spacing.space12,
+                top = spacing.space12,
+                end = spacing.space12,
+                bottom = spacing.space12,
+            ),
+        onClick = {
+            if (!isDownloading) {
+                actionsMounted = true
+                actionsOpen = true
+            }
+        },
     ) {
-        AppCard(
-            modifier = Modifier.fillMaxWidth(),
-            applyHorizontalPadding = false,
-            insideMargin = PaddingValues(spacing.space12),
-            onClick = { if (!isDownloading) onToggleEnabled(profile) },
-        ) {
-        // Header: name and "type · updated" pill.
+        // 标题 + 右上角启用勾选(独立点击,不触发卡片弹窗)。
         Row(
             modifier =
-                Modifier.fillMaxWidth().padding(horizontal = spacing.space2),
-            horizontalArrangement = Arrangement.spacedBy(spacing.space6),
+                Modifier.fillMaxWidth()
+                    .padding(start = spacing.space2, end = spacing.space2),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.space8),
         ) {
             Text(
                 text = profile.name,
@@ -160,13 +177,20 @@ fun ProfileCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            ProfileUpdatedTime(
-                updatedText = updatedText,
-                updatedIsFresh = updatedIsFresh,
+            ProfileEnabledToggle(
+                isActive = isActive,
+                enabled = !isDownloading,
+                onToggle = { onToggleEnabled(profile) },
+                modifier =
+                    Modifier.glassPopupAnchor(
+                        anchor = actionsMenuAnchor,
+                        cornerRadius = 13.dp,
+                        floating = true,
+                    ),
             )
         }
 
-        // Main: remaining traffic headline + expiry badge.
+        // 剩余流量 + 到期徽章。
         Row(
             modifier =
                 Modifier.fillMaxWidth()
@@ -217,163 +241,241 @@ fun ProfileCard(
             }
         }
 
+        // 波形进度保留卡片内边距,不再贴住底边。
         if (traffic != null) {
             TrafficWaveProgress(
                 ratio = traffic.ratio,
                 warn = traffic.lowTraffic,
                 modifier =
                     Modifier.fillMaxWidth().padding(
-                        top = spacing.space6,
+                        top = spacing.space12,
                         start = spacing.space2,
                         end = spacing.space2,
                     ),
             )
         }
-
-        // Footer: share / delete on the left, update / edit on the right.
-        Row(
-            modifier = Modifier.padding(top = spacing.space10),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(
-                backgroundColor = secondaryContainer,
-                minHeight = componentSizes.compactActionButtonSize,
-                minWidth = componentSizes.compactActionButtonSize,
-                enabled = isConfigSaved && !isDownloading,
-                onClick = { if (isConfigSaved && !isDownloading) onExport(profile) },
-            ) {
-                Icon(
-                    modifier =
-                        Modifier
-                            .size(spacing.space20)
-                            .alpha(if (isConfigSaved) 1f else opacity.disabledSecondary),
-                    imageVector = Yume.Share,
-                    tint =
-                        actionIconTint.copy(
-                            alpha = if (isConfigSaved) 1f else opacity.disabledSecondary
-                        ),
-                    contentDescription = YumeTxt.Component.ProfileCard.Export,
-                )
-            }
-
-            Spacer(Modifier.width(spacing.space8))
-
-            IconButton(
-                backgroundColor = secondaryContainer,
-                minHeight = componentSizes.compactActionButtonSize,
-                minWidth = componentSizes.compactActionButtonSize,
-                enabled = !isDownloading,
-                onClick = { if (!isDownloading) onDelete(profile) },
-            ) {
-                Icon(
-                    modifier = Modifier.size(spacing.space20),
-                    imageVector = Yume.Delete,
-                    tint = actionIconTint,
-                    contentDescription = YumeTxt.Component.ProfileCard.Delete,
-                )
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            if (profile.shouldShowUpdateButton()) {
-                IconButton(
-                    modifier = Modifier.padding(end = spacing.space8),
-                    backgroundColor = updateBg,
-                    minHeight = componentSizes.compactActionButtonSize,
-                    minWidth = componentSizes.compactActionButtonSize,
-                    enabled = !isDownloading,
-                    onClick = { if (!isDownloading) onUpdate(profile) },
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = spacing.space10),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(spacing.space2),
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(spacing.space20),
-                            imageVector = Yume.CircleFadingArrowUp,
-                            tint = updateTint,
-                            contentDescription = YumeTxt.Component.ProfileCard.Update,
-                        )
-                        Text(
-                            modifier =
-                                Modifier.padding(end = componentSizes.textLineCompactSpacing),
-                            text = YumeTxt.Component.ProfileCard.Update,
-                            color = updateTint,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 15.sp,
-                        )
-                    }
-                }
-            }
-
-            IconButton(
-                minHeight = componentSizes.compactActionButtonSize,
-                minWidth = componentSizes.compactActionButtonSize,
-                enabled = !isDownloading,
-                onClick = { if (!isDownloading) onEdit(profile) },
-                backgroundColor = secondaryContainer,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = spacing.space10),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        modifier = Modifier.size(spacing.space20),
-                        imageVector = Yume.Edit,
-                        tint = actionIconTint,
-                        contentDescription = YumeTxt.Component.ProfileCard.Edit,
-                    )
-                    Text(
-                        modifier =
-                            Modifier.padding(
-                                start = spacing.space4,
-                                end = componentSizes.textLineCompactSpacing,
-                            ),
-                        text = YumeTxt.Component.ProfileCard.Edit,
-                        color = actionIconTint,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 15.sp,
-                    )
-                }
-            }
-        }
     }
-        if (isActive) {
-            Box(
-                modifier =
-                    Modifier
-                        .matchParentSize()
-                        .squircleBorder(
-                            width = 1.5.dp,
-                            color = colorScheme.primary,
-                            cornerRadius = 24.dp,
-                        ),
-            )
-        }
+
+    if (actionsMounted) {
+        ProfileActionsMenu(
+            show = actionsOpen,
+            isDownloading = isDownloading,
+            canUpdate = profile.shouldShowUpdateButton(),
+            canExport = isConfigSaved,
+            onDismiss = { actionsOpen = false },
+            onDismissFinished = { actionsMounted = false },
+            onEdit = { onEdit(profile) },
+            onUpdate = { onUpdate(profile) },
+            onShareFile = { (onShareFile ?: onExport)(profile) },
+            onShareLink = { (onShareLink ?: onExport)(profile) },
+            onDelete = { onDelete(profile) },
+            anchor = actionsMenuAnchor,
+            anchorContent = {
+                Checkbox(
+                    state = if (isActive) ToggleableState.On else ToggleableState.Off,
+                    onClick = null,
+                    enabled = !isDownloading,
+                )
+            },
+        )
     }
 }
 
+/** 右上角启用勾选:使用 Miuix Checkbox,与标题行垂直居中。 */
 @Composable
-private fun ProfileUpdatedTime(
-    updatedText: String?,
-    updatedIsFresh: Boolean,
+private fun ProfileEnabledToggle(
+    isActive: Boolean,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    if (updatedText == null) return
-    val colorScheme = MiuixTheme.colorScheme
-
-    // 素文字形态:不套胶囊壳,紧跟标题行右侧的次要色相对时间;仅"刚刚更新"用主题色点一下。
-    // 右侧留 8dp,与下方到期徽章内部的日期文字右缘对齐(徽章自身有 8dp 内边距)。
-    Text(
-        text = updatedText,
-        fontSize = 12.sp,
-        fontWeight = FontWeight(500),
-        color =
-            if (updatedIsFresh) colorScheme.primary
-            else colorScheme.onSurfaceVariantSummary.copy(alpha = AppTheme.opacity.subtleText),
-        maxLines = 1,
-        modifier = Modifier.padding(start = AppTheme.spacing.space8, end = AppTheme.spacing.space8),
+    Checkbox(
+        state = if (isActive) ToggleableState.On else ToggleableState.Off,
+        onClick = if (enabled) onToggle else null,
+        modifier = modifier,
+        enabled = enabled,
     )
+}
+
+/** 卡片操作弹窗:节点页右上角同款的玻璃展开菜单。 */
+@Composable
+private fun ProfileActionsMenu(
+    show: Boolean,
+    isDownloading: Boolean,
+    canUpdate: Boolean,
+    canExport: Boolean,
+    onDismiss: () -> Unit,
+    onDismissFinished: () -> Unit,
+    onEdit: () -> Unit,
+    onUpdate: () -> Unit,
+    onShareFile: () -> Unit,
+    onShareLink: () -> Unit,
+    onDelete: () -> Unit,
+    anchor: GlassPopupAnchor,
+    anchorContent: @Composable () -> Unit,
+) {
+    val strings = YumeTxt.Component.ProfileCard
+    // PopupLayout relocates this content; capture the page backdrop before leaving its provider.
+    val backdrop = LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current
+    val popupVisible = remember { mutableStateOf(false) }
+    val popupVisuals = GlassPopupDefaults.visuals()
+    val density = LocalDensity.current
+    val arrowTurn = CascadingPopupDefaults.arrowRotation(LocalLayoutDirection.current)
+
+    var shareExpanded by remember { mutableStateOf(false) }
+    var sharePresent by remember { mutableStateOf(false) }
+    var shareAnchor by remember { mutableStateOf(Rect.Zero) }
+    var menuWidth by remember { mutableStateOf(0.dp) }
+    val shareArrow by animateFloatAsState(
+        targetValue = if (shareExpanded) arrowTurn else 0f,
+        animationSpec = CascadingPopupDefaults.arrowSpring(shareExpanded),
+        label = "profileShareArrow",
+    )
+
+    // 每次收起后重置二级菜单,下次打开从一级开始。
+    LaunchedEffect(show) {
+        if (show) {
+            popupVisible.value = true
+        } else {
+            shareExpanded = false
+        }
+    }
+
+    val actionsEnabled = !isDownloading
+
+    PopupLayout(
+        visible = popupVisible,
+        enterTransition = EnterTransition.None,
+        exitTransition = ExitTransition.None,
+        enableWindowDim = false,
+        enableBackHandler = false,
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            // Compose the component closed first, just like the persistent upstream sample.
+            // The outer host otherwise creates it with show=true and skips its entering transition.
+            var expanded by remember { mutableStateOf(false) }
+            LaunchedEffect(show) { expanded = show }
+            GlassTransformPopup(
+                show = expanded,
+                onDismissRequest = {
+                    shareExpanded = false
+                    onDismiss()
+                },
+                anchor = anchor,
+                backdrop = backdrop,
+                anchorContent = anchorContent,
+                anchorAlpha = 0f,
+                sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
+                visuals = popupVisuals,
+                stacked = shareExpanded,
+                alignToPageEnd = true,
+                onMeasured = { menuWidth = with(density) { it.width.toDp() } },
+                onDismissFinished = {
+                    if (!show) {
+                        popupVisible.value = false
+                        onDismissFinished()
+                    }
+                },
+            ) {
+                GlassPopupItem(
+                    text = strings.Edit,
+                    icon = Yume.Edit,
+                    iconSize = 18.dp,
+                    iconGap = 15.dp,
+                    enabled = actionsEnabled,
+                    onClick = {
+                        onDismiss()
+                        onEdit()
+                    },
+                )
+                if (canUpdate) {
+                    GlassPopupItem(
+                        text = strings.Update,
+                        icon = Yume.CircleFadingArrowUp,
+                        iconSize = 18.dp,
+                        iconGap = 15.dp,
+                        enabled = actionsEnabled,
+                        onClick = {
+                            onDismiss()
+                            onUpdate()
+                        },
+                    )
+                }
+                GlassPopupItem(
+                    text = strings.Share,
+                    icon = Yume.Share,
+                    iconSize = 18.dp,
+                    iconGap = 15.dp,
+                    enabled = actionsEnabled,
+                    showArrow = true,
+                    arrowRotation = { shareArrow * (1f - anchor.secondaryBackProgress) },
+                    modifier =
+                        Modifier.onGloballyPositioned {
+                            if (!sharePresent) shareAnchor = it.boundsInRoot()
+                        },
+                    onClick = {
+                        sharePresent = true
+                        shareExpanded = true
+                    },
+                )
+                GlassPopupItem(
+                    text = strings.Delete,
+                    icon = Yume.Delete,
+                    iconSize = 18.dp,
+                    iconGap = 15.dp,
+                    enabled = actionsEnabled,
+                    contentColor = AppTheme.colors.status.destructive,
+                    onClick = {
+                        onDismiss()
+                        onDelete()
+                    },
+                )
+            }
+            GlassSecondaryPopup(
+                show = expanded && shareExpanded,
+                onDismissRequest = { shareExpanded = false },
+                anchorBounds = shareAnchor,
+                backdrop = backdrop,
+                materialAnchor = anchor,
+                sizing = GlassPopupSizing(minWidth = menuWidth, maxWidth = 188.dp),
+                visuals = popupVisuals,
+                onDismissFinished = { sharePresent = false },
+            ) {
+                GlassPopupItem(
+                    text = strings.Share,
+                    showArrow = true,
+                    arrowRotation = { shareArrow * (1f - anchor.secondaryBackProgress) },
+                    onClick = { shareExpanded = false },
+                )
+                HorizontalDivider(
+                    modifier =
+                        Modifier.padding(
+                            horizontal = GlassPopupDefaults.DividerPaddingHorizontal,
+                            vertical = GlassPopupDefaults.DividerPaddingVertical,
+                        ),
+                    thickness = GlassPopupDefaults.DividerThickness,
+                )
+                GlassPopupItem(
+                    text = strings.ShareFile,
+                    enabled = actionsEnabled && canExport,
+                    onClick = {
+                        shareExpanded = false
+                        onDismiss()
+                        onShareFile()
+                    },
+                )
+                GlassPopupItem(
+                    text = strings.ShareLink,
+                    enabled = actionsEnabled && canUpdate,
+                    onClick = {
+                        shareExpanded = false
+                        onDismiss()
+                        onShareLink()
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -398,7 +500,7 @@ private fun ProfileExpiryBadge(
                     if (expiry.warning) {
                         warnColor.copy(alpha = opacity.subtle)
                     } else {
-                        colorScheme.surfaceContainer
+                        colorScheme.primary.copy(alpha = opacity.subtle)
                     }
                 )
                 .padding(horizontal = spacing.space8),
@@ -412,18 +514,30 @@ private fun ProfileExpiryBadge(
                 color = if (expiry.warning) warnColor else colorScheme.onSurface,
                 maxLines = 1,
             )
-            Text(
-                text = expiry.dateText,
-                fontSize = 10.sp,
-                color =
-                    if (expiry.warning) {
-                        warnColor.copy(alpha = opacity.mediumStrong)
-                    } else {
-                        colorScheme.onSurfaceVariantSummary
-                    },
-                maxLines = 1,
-                style = TextStyle(fontFeatureSettings = "tnum"),
-            )
+            val dateColor =
+                if (expiry.warning) {
+                    warnColor.copy(alpha = opacity.mediumStrong)
+                } else {
+                    colorScheme.onSurfaceVariantSummary
+                }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(spacing.space2),
+            ) {
+                Icon(
+                    imageVector = Lucide.CalendarCheck2,
+                    contentDescription = null,
+                    tint = dateColor,
+                    modifier = Modifier.size(10.dp),
+                )
+                Text(
+                    text = expiry.dateText,
+                    fontSize = 10.sp,
+                    color = dateColor,
+                    maxLines = 1,
+                    style = TextStyle(fontFeatureSettings = "tnum"),
+                )
+            }
         }
     }
 }

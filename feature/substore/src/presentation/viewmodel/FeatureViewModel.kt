@@ -343,6 +343,26 @@ class FeatureViewModel(
         }
     }
 
+    /** Installs the runtime first when missing, then the Sub-Store frontend and backend. */
+    fun installResources() {
+        viewModelScope.launch {
+            if (!_isJavetLoaded.value) {
+                downloadJavetLibrary()
+                while (_isDownloadingJavet.value) {
+                    PollingTimers.awaitTick(
+                        PollingTimerSpecs.dynamic(
+                            name = "substore_javet_install_wait",
+                            intervalMillis = 200L,
+                            initialDelayMillis = 200L,
+                        ),
+                    )
+                }
+                if (!_isJavetLoaded.value) return@launch
+            }
+            downloadSubStoreAll()
+        }
+    }
+
     private fun showToast(msg: String) = application.toast(msg)
 
     private fun launchResourceDownload(

@@ -336,6 +336,7 @@ fun AboutScreen(navigator: Navigator) {
                                 summary = YumeTxt.About.License.AgplDescription,
                             )
                         }
+                        Spacer(Modifier.height(UiDp.dp12))
 
                         Spacer(Modifier.height(UiDp.dp24))
                         Text(

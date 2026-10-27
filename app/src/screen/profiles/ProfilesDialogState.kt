@@ -21,22 +21,17 @@
 package com.github.yumeyucca.yumebox.screen.profiles
 
 import androidx.compose.runtime.*
-import com.github.yumeyucca.yumebox.data.model.ProfileBinding
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 
 @Stable
 internal class ProfilesDialogState {
     val showAdd = mutableStateOf(false)
-    val showSettings = mutableStateOf(false)
     val showShare = mutableStateOf(false)
     val showSortSheet = mutableStateOf(false)
     var showDelete by mutableStateOf(false)
-    var showEditOptions by mutableStateOf(false)
     var deleteTarget by mutableStateOf<Profile?>(null)
-    var editOptionsTarget by mutableStateOf<Profile?>(null)
     var shareTarget by mutableStateOf<Profile?>(null)
     var profileToEdit by mutableStateOf<Profile?>(null)
-    var binding by mutableStateOf<ProfileBinding?>(null)
     var isDownloading by mutableStateOf(false)
     var importUrl by mutableStateOf<String?>(null)
     var scannedUrl by mutableStateOf<String?>(null)

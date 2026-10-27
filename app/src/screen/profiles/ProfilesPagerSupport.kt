@@ -23,18 +23,7 @@
 package com.github.yumeyucca.yumebox.screen.profiles
 
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import com.github.yumeyucca.yumebox.presentation.component.AppDialog
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.File
 
 internal fun openProfileConfigPreview(
@@ -73,37 +62,4 @@ internal fun openProfileConfigPreview(
         }
 
     onPreviewPrepared(configContent, saveCallback)
-}
-
-@Composable
-internal fun ProfileEditOptionsDialog(
-    show: Boolean,
-    onOpenConfig: () -> Unit,
-    onEditSettings: () -> Unit,
-    onDismiss: () -> Unit,
-    onDismissFinished: () -> Unit,
-) {
-    AppDialog(
-        show = show,
-        title = YumeTxt.ProfilesPage.SettingsDialog.EditProfile,
-        onDismissRequest = onDismiss,
-        onDismissFinished = onDismissFinished,
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(UiDp.dp12)) {
-            Button(modifier = Modifier.fillMaxWidth(), onClick = onOpenConfig) {
-                Text(YumeTxt.ProfilesPage.SettingsDialog.OpenConfig)
-            }
-
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onEditSettings,
-                colors = ButtonDefaults.buttonColorsPrimary(),
-            ) {
-                Text(
-                    text = YumeTxt.ProfilesPage.SettingsDialog.EditSettings,
-                    color = MiuixTheme.colorScheme.onPrimary,
-                )
-            }
-        }
-    }
 }

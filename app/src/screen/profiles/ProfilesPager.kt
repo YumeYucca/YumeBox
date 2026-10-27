@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.*
 import com.github.yumeyucca.yumebox.MainActivity
 import com.github.yumeyucca.yumebox.presentation.component.WindowLayoutMode
-import com.github.yumeyucca.yumebox.presentation.viewmodel.OverrideConfigViewModel
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -36,26 +35,19 @@ import org.koin.androidx.compose.koinViewModel
 private data class ProfilesPagerUi(
     val profiles: List<com.github.yumeyucca.yumebox.runtime.api.Profile>,
     val isRunning: Boolean,
-    val builtInConfigs: List<com.github.yumeyucca.yumebox.data.model.OverrideConfig>,
-    val userConfigs: List<com.github.yumeyucca.yumebox.data.model.OverrideConfig>,
 )
 
 @Composable
 private fun rememberProfilesPagerUi(
     profilesViewModel: ProfilesViewModel,
     homeViewModel: HomeViewModel,
-    overrideConfigViewModel: OverrideConfigViewModel,
 ): ProfilesPagerUi {
     val profiles by profilesViewModel.profiles.collectAsState()
     val isRunning by homeViewModel.isRunning.collectAsState()
-    val builtInConfigs by overrideConfigViewModel.builtInConfigs.collectAsState()
-    val userConfigs by overrideConfigViewModel.userConfigs.collectAsState()
-    return remember(profiles, isRunning, builtInConfigs, userConfigs) {
+    return remember(profiles, isRunning) {
         ProfilesPagerUi(
             profiles = profiles,
             isRunning = isRunning,
-            builtInConfigs = builtInConfigs,
-            userConfigs = userConfigs,
         )
     }
 }
@@ -67,8 +59,7 @@ fun ProfilesPager(
 ) {
     val profilesViewModel = koinViewModel<ProfilesViewModel>()
     val homeViewModel = koinViewModel<HomeViewModel>()
-    val overrideConfigViewModel = koinViewModel<OverrideConfigViewModel>()
-    val screen = rememberProfilesPagerUi(profilesViewModel, homeViewModel, overrideConfigViewModel)
+    val screen = rememberProfilesPagerUi(profilesViewModel, homeViewModel)
     val dialogs = rememberProfilesDialogState()
     val pendingImportUrl by MainActivity.pendingImportUrl.collectAsState()
     LaunchedEffect(pendingImportUrl) {
@@ -93,11 +84,6 @@ fun ProfilesPager(
                 state = dialogs,
                 profiles = screen.profiles,
                 profilesViewModel = profilesViewModel,
-                homeViewModel = homeViewModel,
-                builtInConfigs = screen.builtInConfigs,
-                userConfigs = screen.userConfigs,
-                refreshOverrides = overrideConfigViewModel::refreshAndAwait,
-                isRunning = screen.isRunning,
             )
         },
     )

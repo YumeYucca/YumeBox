@@ -70,7 +70,6 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.Backdrop
-import top.yukonga.miuix.kmp.glass.GlassPopup
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
 import top.yukonga.miuix.kmp.glass.GlassPopupDefaults
 import top.yukonga.miuix.kmp.glass.GlassPopupItem
@@ -328,25 +327,40 @@ internal fun NodeActionsMenu(
 internal fun NodeSortPopupOverlay(
     show: Boolean,
     onDismiss: () -> Unit,
-    anchorBounds: Rect,
+    anchor: GlassPopupAnchor,
+    anchorContent: @Composable () -> Unit,
     backdrop: Backdrop?,
     sortMode: ProxySortMode,
     onSortSelected: (ProxySortMode) -> Unit,
 ) {
-    val popupVisible = remember { mutableStateOf(show) }
-    LaunchedEffect(show) { popupVisible.value = show }
+    val popupVisible = remember { mutableStateOf(false) }
+    val popupVisuals = GlassPopupDefaults.visuals()
+    LaunchedEffect(show) {
+        if (show) {
+            popupVisible.value = true
+        }
+    }
     PopupLayout(
         visible = popupVisible,
+        enterTransition = EnterTransition.None,
+        exitTransition = ExitTransition.None,
         enableWindowDim = false,
         enableBackHandler = false,
     ) {
         Box(Modifier.fillMaxSize()) {
-            GlassPopup(
-                show = show,
+            // Compose the panel closed first so the opening transform actually plays.
+            var expanded by remember { mutableStateOf(false) }
+            LaunchedEffect(show) { expanded = show }
+            GlassTransformPopup(
+                show = expanded,
                 onDismissRequest = onDismiss,
-                anchorBounds = anchorBounds,
+                anchor = anchor,
                 backdrop = backdrop,
+                anchorContent = anchorContent,
+                anchorAlpha = 1f,
                 sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
+                visuals = popupVisuals,
+                onDismissFinished = { if (!show) popupVisible.value = false },
             ) {
                 NodeSortModes.forEach { mode ->
                     GlassPopupItem(

@@ -27,13 +27,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -44,10 +44,9 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.PROXY_SHEET_HEIGHT_FRACTION_DEFAULT
+import com.github.yumeyucca.yumebox.presentation.component.SheetHeaderIconButton
 import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeader
 import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeaderDefaults
-import com.github.yumeyucca.yumebox.presentation.component.GlassTopAction
-import com.github.yumeyucca.yumebox.presentation.component.GlassTopIconButton
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Check
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Close
@@ -59,11 +58,11 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.window.WindowBottomSheet
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 
 /**
  * 拖拽排序配置的底部 sheet(参考系统"自定义排序"弹窗):每行一张卡片,名称在左,
@@ -81,67 +80,53 @@ internal fun ProfilesSortSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetColor = MiuixTheme.colorScheme.surface
-    // 弹窗内容自身的 backdrop(捕获"底色+列表"),供悬浮头玻璃圆钮采样;头在捕获子树之外,
-    // 满足 miuix-blur 的 same-subtree 约束(见 LocalGlassBackdrop 文档)。
-    val sheetBackdrop =
-        key(sheetColor) {
-            rememberLayerBackdrop {
-                drawRect(sheetColor)
-                drawContent()
-            }
-        }
+    val sheetContentBackdrop = rememberLayerBackdrop { drawContent() }
     // 草稿序:拖动途中只在本地重排预览,保存时整份提交一次。show/profiles 变化即重置草稿
     // (丢弃后重开、外部刷新、自己提交后都回到已提交序),拖动途中二者不变、草稿得以保留。
     var currentDraft by remember(show, profiles) { mutableStateOf(profiles) }
 
-    WindowBottomSheet(
+    GlassBottomSheet(
         show = show,
-        // 标题与关闭/保存玻璃钮渲染进悬浮头(节点弹窗同款:固定 76dp 带 + 常驻渐变遮罩,
-        // 内容从带下滚过);库层标题行传 null,其空行高由悬浮头偏移吸收。
+        // 面板不采样页面(纯实色)。库层标题行留空,标题与关闭/保存由 FloatingSheetHeader
+        // 从卡片顶边开始绘制(76dp 带、42dp 圆钮、外侧 18dp)。
+        backdrop = null,
+        containerColor = sheetColor,
         title = null,
-        backgroundColor = sheetColor,
         onDismissRequest = onDismiss,
         onDismissFinished = onDismiss,
         enableWindowDim = true,
-        insideMargin = DpSize(UiDp.dp16, UiDp.dp16),
+        // 水平内缩下放到列表 contentPadding:标题行和两侧圆钮要保持满卡片宽。
+        insideMargin = DpSize(0.dp, UiDp.dp16),
         enableNestedScroll = false,
     ) {
-        // 列表区域由 sheetBackdrop 捕获(底色+列表),悬浮头玻璃钮采样它;头在捕获子树之外。
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.fillMaxWidth().layerBackdrop(sheetBackdrop)) {
+        Box(Modifier.fillMaxWidth()) {
+            Box(Modifier.fillMaxWidth().layerBackdrop(sheetContentBackdrop)) {
                 ProfilesSortList(
                     draftProfiles = currentDraft,
                     onDraftChange = { currentDraft = it },
                 )
             }
             FloatingSheetHeader(
+                backdrop = sheetContentBackdrop,
                 title = YumeTxt.ProfilesPage.Action.Sort,
                 sheetColor = sheetColor,
                 startAction = {
-                    GlassTopIconButton(
-                        action =
-                            GlassTopAction(
-                                icon = Yume.Close,
-                                contentDescription = YumeTxt.ProfilesPage.LinkSettings.Close,
-                                onClick = onDismiss,
-                            ),
-                        backdrop = sheetBackdrop,
+                    SheetHeaderIconButton(
+                        icon = Yume.Close,
+                        contentDescription = YumeTxt.ProfilesPage.LinkSettings.Close,
+                        onClick = onDismiss,
                     )
                 },
                 endAction = {
-                    GlassTopIconButton(
-                        action =
-                            GlassTopAction(
-                                icon = Yume.Check,
-                                contentDescription = YumeTxt.Editor.Action.Save,
-                                onClick = {
-                                    if (currentDraft.map { it.uuid } != profiles.map { it.uuid }) {
-                                        onOrderCommitted(currentDraft)
-                                    }
-                                    onDismiss()
-                                },
-                            ),
-                        backdrop = sheetBackdrop,
+                    SheetHeaderIconButton(
+                        icon = Yume.Check,
+                        contentDescription = YumeTxt.Editor.Action.Save,
+                        onClick = {
+                            if (currentDraft.map { it.uuid } != profiles.map { it.uuid }) {
+                                onOrderCommitted(currentDraft)
+                            }
+                            onDismiss()
+                        },
                     )
                 },
             )
@@ -177,13 +162,17 @@ private fun ProfilesSortList(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(sheetHeight)
+                // 短列表按内容收高、长列表封顶内滚(节点弹窗 heightIn(max) 同款、NexioSchedule 语义),
+                // 而不是无条件撑满屏幕比例 —— 否则标题带会被顶到屏幕上更高的位置。
+                .heightIn(max = sheetHeight)
                 .overScrollVertical(),
-        // 顶部让位悬浮头的 76dp 带(58dp 内容让位 + 8dp 呼吸留白):首行从头带之下开始,
-        // 向上滚动时行"沉入"常驻渐变遮罩(节点弹窗 NodeSheetContentPadding 同款)。
+        // 首行落在 76dp 悬浮带下沿;水平 16dp 由列表自己给,
+        // 因为库层水平内缩已置 0,好让标题带和两侧圆钮铺满卡片。
         contentPadding =
             PaddingValues(
-                top = FloatingSheetHeaderDefaults.ContentTopInset + UiDp.dp8,
+                start = UiDp.dp16,
+                end = UiDp.dp16,
+                top = FloatingSheetHeaderDefaults.ContentTopInset,
                 bottom = UiDp.dp16,
             ),
         verticalArrangement = Arrangement.spacedBy(UiDp.dp12),

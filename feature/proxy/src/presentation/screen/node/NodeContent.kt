@@ -44,8 +44,8 @@ import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.data.model.normalizeProxySheetHeightFraction
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
-import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeaderDefaults
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeaderDefaults
 import com.github.yumeyucca.yumebox.presentation.theme.rememberRowReveal
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import kotlinx.coroutines.flow.StateFlow
@@ -55,13 +55,15 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollHorizontal
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
-// 顶部让位悬浮头的 76dp 带(58dp 内容让位 + 原有 8dp 呼吸留白):列表首行从头带之下开始,
-// 向上滚动时行"沉入"常驻渐变遮罩。仅用于 sheet 内的分组/节点列表。
+// sheet 内的分组/节点列表内边距:库层标题行留空后,内容从卡片顶 + 42dp 开始,
+// 再让出 34dp,首行正好落在 76dp 悬浮带的下沿。
+// 水平 16dp 是内容自己的内缩——标题带和两侧圆钮是满卡片宽,所以 sheet 的库层 insideMargin
+// 水平值已置 0,由这里补上。
 val NodeSheetContentPadding =
     PaddingValues(
-        start = UiDp.dp0,
-        end = UiDp.dp0,
-        top = FloatingSheetHeaderDefaults.ContentTopInset + UiDp.dp8,
+        start = UiDp.dp16,
+        end = UiDp.dp16,
+        top = FloatingSheetHeaderDefaults.ContentTopInset,
         bottom = UiDp.dp16,
     )
 

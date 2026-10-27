@@ -27,21 +27,20 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.data.model.PROXY_SHEET_HEIGHT_FRACTION_DEFAULT
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
+import com.github.yumeyucca.yumebox.presentation.component.GlassTopActionDefaults
+import com.github.yumeyucca.yumebox.presentation.component.SheetHeaderIconButton
 import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeader
-import com.github.yumeyucca.yumebox.presentation.component.GlassTopAction
-import com.github.yumeyucca.yumebox.presentation.component.GlassTopIconButton
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ListChevronsUpDown
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Speed
@@ -52,15 +51,19 @@ import com.github.yumeyucca.yumebox.presentation.screen.node.ProvideProxyDelayFl
 import com.github.yumeyucca.yumebox.presentation.screen.rememberProxyGroupSelectionState
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowBottomSheet
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
 
 @Composable
 fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
@@ -70,7 +73,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
 
     val showSheet = remember { mutableStateOf(true) }
     val showSortPopup = remember { mutableStateOf(false) }
-    var sortPopupAnchorBounds by remember { mutableStateOf(Rect.Zero) }
+    val sortPopupAnchor = rememberGlassPopupAnchor()
     val groupSelection =
         rememberProxyGroupSelectionState(
             proxyGroups = proxyGroups,
@@ -83,16 +86,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
     val nodeListState =
         rememberSaveable(selectedGroupName, saver = LazyListState.Saver) { LazyListState() }
     val sheetColor = MiuixTheme.colorScheme.surface
-    // 弹窗内容自身的 backdrop(捕获"底色+内容"),供标题栏的玻璃圆钮采样。
-    // 玻璃按钮在悬浮头里,位于被捕获的内容子树之外,
-    // 满足 miuix-blur 的 same-subtree 约束(见 LocalGlassBackdrop 文档)。
-    val sheetBackdrop =
-        key(sheetColor) {
-            rememberLayerBackdrop {
-                drawRect(sheetColor)
-                drawContent()
-            }
-        }
+    val sheetContentBackdrop = rememberLayerBackdrop { drawContent() }
 
     DisposableEffect(Unit) {
         proxyViewModel.ensureCoreLoaded(true, source = "proxy_sheet")
@@ -117,147 +111,155 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                 proxyViewModel.testDelay(groupName)
             }
         }
-    WindowBottomSheet(
+    val headerStartAction: @Composable () -> Unit = {
+        AnimatedContent(
+            targetState = selectedGroup != null,
+            transitionSpec = {
+                val motion = AnimationSpecs.Proxy
+                val forward = targetState
+                proxySheetTransition(
+                    enterSlideMillis =
+                        if (forward) {
+                            motion.SheetSlideInDuration
+                        } else {
+                            motion.SheetSlideOutDuration
+                        },
+                    exitSlideMillis = motion.SheetSlideOutDuration,
+                    enterOffsetX = { width -> if (forward) width / 3 else -width / 3 },
+                    exitOffsetX = { width -> if (forward) -width / 3 else width / 3 },
+                )
+            },
+            label = "notification_node_sheet_start_action",
+        ) { showBackAction ->
+            if (showBackAction) {
+                SheetHeaderIconButton(
+                    icon = MiuixIcons.Back,
+                    contentDescription = YumeTxt.Component.Navigation.Back,
+                    onClick = groupSelection.clearSelection,
+                )
+            } else {
+                Box {
+                    Box(
+                        modifier =
+                            Modifier.glassPopupAnchor(
+                                anchor = sortPopupAnchor,
+                                cornerRadius = GlassTopActionDefaults.ContainerSize / 2,
+                                floating = true,
+                            ),
+                    ) {
+                        SheetHeaderIconButton(
+                            icon = Yume.ListChevronsUpDown,
+                            contentDescription = YumeTxt.Proxy.Action.Sort,
+                            onClick = { showSortPopup.value = true },
+                            iconModifier = Modifier.glassPopupAnchorContent(sortPopupAnchor),
+                        )
+                    }
+                    NodeSortPopupOverlay(
+                        show = showSortPopup.value,
+                        onDismiss = { showSortPopup.value = false },
+                        anchor = sortPopupAnchor,
+                        anchorContent = {
+                            Icon(
+                                imageVector = Yume.ListChevronsUpDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(GlassTopActionDefaults.IconSize),
+                                tint = MiuixTheme.colorScheme.onSurface,
+                            )
+                        },
+                        backdrop = null,
+                        sortMode = sortMode,
+                        onSortSelected = proxyViewModel::setSortMode,
+                    )
+                }
+            }
+        }
+    }
+    val headerEndAction: @Composable () -> Unit = {
+        SheetHeaderIconButton(
+            icon = Yume.Speed,
+            contentDescription = YumeTxt.Proxy.Action.Test,
+            onClick = {
+                if (selectedGroup == null) {
+                    triggerTopDelayTest()
+                } else {
+                    triggerSelectedGroupDelayTest()
+                }
+            },
+        )
+    }
+    GlassBottomSheet(
         show = showSheet.value,
-        // 标题与左右动作渲染进自绘的悬浮头(NexioSchedule BlurBottomSheet 结构:固定 76dp
-        // 带 + 常驻渐变遮罩,内容从带下滚过);库层标题行传 null,其空行高由悬浮头偏移吸收。
+        // 面板不采样页面(纯实色)。库层标题行留空(24dp 把手 + 18dp 空行 = 42dp chrome),
+        // 标题与左右圆钮由 FloatingSheetHeader 从卡片顶边开始绘制(76dp 带、42dp 圆钮、外侧 18dp)。
+        backdrop = null,
+        containerColor = sheetColor,
         title = null,
-        backgroundColor = MiuixTheme.colorScheme.surface,
         onDismissRequest = { dismissSheet() },
         onDismissFinished = onDismiss,
         enableWindowDim = true,
-        insideMargin = DpSize(UiDp.dp16, UiDp.dp16),
+        // 水平内缩下放到内容层:库层 insideMargin 会把标题行和两侧圆钮一起缩进,
+        // 参考里标题行是满卡片宽、只有内容吃 16dp。
+        insideMargin = DpSize(0.dp, UiDp.dp16),
         enableNestedScroll = false,
     ) {
-        // 内容区域由 sheetBackdrop 捕获(底色+列表),悬浮头玻璃钮采样它;头在捕获子树之外。
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.fillMaxWidth().layerBackdrop(sheetBackdrop)) {
-                ProvideProxyDelayFlows(proxyViewModel) {
-            AnimatedContent(
-                targetState = selectedGroupName,
-                transitionSpec = {
-                    val motion = AnimationSpecs.Proxy
-                    if (targetState != null) {
-                        proxySheetTransition(
-                            enterSlideMillis = motion.SheetSlideInDuration,
-                            exitSlideMillis = motion.SheetSlideOutDuration,
-                            enterOffsetX = { fullWidth -> fullWidth },
-                            exitOffsetX = { fullWidth -> -fullWidth / 3 },
-                        )
-                    } else {
-                        proxySheetTransition(
-                            enterSlideMillis = motion.SheetSlideOutDuration,
-                            exitSlideMillis = motion.SheetSlideInDuration - 20,
-                            enterOffsetX = { fullWidth -> -fullWidth / 3 },
-                            exitOffsetX = { fullWidth -> fullWidth },
-                            enterFadeMillis = motion.SheetFadeInDuration - 20,
-                        )
-                    }
-                },
-                label = "notification_node_sheet_content",
-            ) { targetGroupName ->
-                val targetGroup = targetGroupName?.let { name ->
-                    proxyGroups.firstOrNull { group -> group.name == name }
-                }
-                if (targetGroup == null) {
-                    val testingGroupNames by proxyViewModel.testingGroupNames.collectAsState()
-                    NodeGroupSheetContent(
-                        groups = proxyGroups,
-                        onGroupClick = groupSelection.selectGroup,
-                        onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
-                        testingGroupNames = testingGroupNames,
-                        sheetHeightFraction = PROXY_SHEET_HEIGHT_FRACTION_DEFAULT,
-                        listState = groupListState,
-                    )
-                } else {
-                    ProxySheetNodeContent(
-                        proxyViewModel = proxyViewModel,
-                        group = targetGroup,
-                        testingProxyNames = testingProxyNames,
-                        onTestDelay = triggerSelectedGroupDelayTest,
-                        sheetHeightFraction = PROXY_SHEET_HEIGHT_FRACTION_DEFAULT,
-                        listState = nodeListState,
-                    )
-                }
-                }
-            }
-            }
-            // 悬浮头(固定 76dp):标题居中,左侧返回/排序玻璃钮、右侧测速玻璃钮,
-            // 之下常驻渐变遮罩,列表行滚入带下时"沉入"表面。
-            FloatingSheetHeader(
-                title = selectedGroup?.name ?: YumeTxt.Proxy.Title,
-                sheetColor = sheetColor,
-                startAction = {
+        Box(Modifier.fillMaxWidth()) {
+            Box(Modifier.fillMaxWidth().layerBackdrop(sheetContentBackdrop)) {
+                    ProvideProxyDelayFlows(proxyViewModel) {
                     AnimatedContent(
-                        targetState = selectedGroup != null,
+                        targetState = selectedGroupName,
                         transitionSpec = {
                             val motion = AnimationSpecs.Proxy
-                            val forward = targetState
-                            proxySheetTransition(
-                                enterSlideMillis =
-                                    if (forward) motion.SheetSlideInDuration else motion.SheetSlideOutDuration,
-                                exitSlideMillis = motion.SheetSlideOutDuration,
-                                enterOffsetX = { width -> if (forward) width / 3 else -width / 3 },
-                                exitOffsetX = { width -> if (forward) -width / 3 else width / 3 },
-                            )
-                        },
-                        label = "notification_node_sheet_start_action",
-                    ) { showBackAction ->
-                        if (showBackAction) {
-                            GlassTopIconButton(
-                                action =
-                                    GlassTopAction(
-                                        icon = MiuixIcons.Back,
-                                        contentDescription = YumeTxt.Component.Navigation.Back,
-                                        onClick = groupSelection.clearSelection,
-                                    ),
-                                backdrop = sheetBackdrop,
-                            )
-                        } else {
-                            Box(
-                                modifier =
-                                    Modifier.onGloballyPositioned { coordinates ->
-                                        sortPopupAnchorBounds = coordinates.boundsInRoot()
-                                    },
-                            ) {
-                                GlassTopIconButton(
-                                    action =
-                                        GlassTopAction(
-                                            icon = Yume.ListChevronsUpDown,
-                                            contentDescription = YumeTxt.Proxy.Action.Sort,
-                                            onClick = { showSortPopup.value = true },
-                                        ),
-                                    backdrop = sheetBackdrop,
+                            if (targetState != null) {
+                                proxySheetTransition(
+                                    enterSlideMillis = motion.SheetSlideInDuration,
+                                    exitSlideMillis = motion.SheetSlideOutDuration,
+                                    enterOffsetX = { fullWidth -> fullWidth },
+                                    exitOffsetX = { fullWidth -> -fullWidth / 3 },
                                 )
-                                NodeSortPopupOverlay(
-                                    show = showSortPopup.value,
-                                    onDismiss = { showSortPopup.value = false },
-                                    anchorBounds = sortPopupAnchorBounds,
-                                    backdrop = sheetBackdrop,
-                                    sortMode = sortMode,
-                                    onSortSelected = proxyViewModel::setSortMode,
+                            } else {
+                                proxySheetTransition(
+                                    enterSlideMillis = motion.SheetSlideOutDuration,
+                                    exitSlideMillis = motion.SheetSlideInDuration - 20,
+                                    enterOffsetX = { fullWidth -> -fullWidth / 3 },
+                                    exitOffsetX = { fullWidth -> fullWidth },
+                                    enterFadeMillis = motion.SheetFadeInDuration - 20,
                                 )
                             }
+                        },
+                        label = "notification_node_sheet_content",
+                    ) { targetGroupName ->
+                        val targetGroup = targetGroupName?.let { name ->
+                            proxyGroups.firstOrNull { group -> group.name == name }
+                        }
+                        if (targetGroup == null) {
+                            val testingGroupNames by proxyViewModel.testingGroupNames.collectAsState()
+                            NodeGroupSheetContent(
+                                groups = proxyGroups,
+                                onGroupClick = groupSelection.selectGroup,
+                                onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
+                                testingGroupNames = testingGroupNames,
+                                sheetHeightFraction = PROXY_SHEET_HEIGHT_FRACTION_DEFAULT,
+                                listState = groupListState,
+                            )
+                        } else {
+                            ProxySheetNodeContent(
+                                proxyViewModel = proxyViewModel,
+                                group = targetGroup,
+                                testingProxyNames = testingProxyNames,
+                                onTestDelay = triggerSelectedGroupDelayTest,
+                                sheetHeightFraction = PROXY_SHEET_HEIGHT_FRACTION_DEFAULT,
+                                listState = nodeListState,
+                            )
                         }
                     }
-                },
-                endAction = {
-                    GlassTopIconButton(
-                        action =
-                            GlassTopAction(
-                                icon = Yume.Speed,
-                                contentDescription = YumeTxt.Proxy.Action.Test,
-                                onClick = {
-                                    if (selectedGroup == null) {
-                                        triggerTopDelayTest()
-                                    } else {
-                                        triggerSelectedGroupDelayTest()
-                                    }
-                                },
-                            ),
-                        backdrop = sheetBackdrop,
-                    )
-                },
+                }
+            }
+            FloatingSheetHeader(
+                backdrop = sheetContentBackdrop,
+                title = selectedGroup?.name ?: YumeTxt.Proxy.Title,
+                sheetColor = sheetColor,
+                startAction = headerStartAction,
+                endAction = headerEndAction,
             )
         }
     }
