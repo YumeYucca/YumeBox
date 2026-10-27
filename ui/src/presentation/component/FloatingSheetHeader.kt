@@ -30,104 +30,173 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.zIndex
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+/** Sheet surface sampled by [SheetHeaderIconButton] so its glass matches the node page chrome. */
+private val LocalSheetHeaderBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 
 object FloatingSheetHeaderDefaults {
 
     /**
-     * NexioSchedule BlurBottomSheet header band: one fixed 76dp row shared by the persistent top
-     * fade mask and the title/actions, so the title stays vertically centered at the same spot
-     * whether zero, one or both actions render.
+     * Fixed title band height. The band is a constant, so the title keeps one spot whether zero,
+     * one or both side actions render — the reference sheet's "固定高度使有无操作按钮时标题都垂直居中".
      */
     val Height = 76.dp
 
     /**
-     * Upstream miuix 0.9.4 always renders its TitleAndActionsRow paddings (6dp + 12dp) even with
-     * a null title and no actions. Sheets render their own floating header instead and absorb
-     * that empty strip by offsetting the header up by exactly this amount, so the 76dp band
-     * starts right under the 24dp drag handle.
+     * Chrome the miuix sheet lays out above its content: the 24dp drag handle plus the empty title
+     * row (6dp + 12dp) it still renders when `title` is null. The band is offset up by exactly this
+     * much so it starts at the card's top edge, with the handle floating over its upper part.
      */
-    val LibraryEmptyTitleRowHeight = 18.dp
+    val ChromeAboveContent = 42.dp
+
+    /** Top spacer for content that scrolls under the band. */
+    val ContentTopInset = Height - ChromeAboveContent
 
     /**
-     * Top spacer for content that scrolls under the floating header: the header band (76dp)
-     * minus the absorbed empty title row (18dp).
+     * Inset of a side action from the card edge. Only the outer side is inset (the reference pads
+     * `start = 18.dp` on the leading button and `end = 18.dp` on the trailing one).
      */
-    val ContentTopInset = Height - LibraryEmptyTitleRowHeight
+    val ActionInset = 18.dp
 }
 
 /**
- * NexioSchedule BlurBottomSheet sheet chrome, laid over the sheet content: a persistent 76dp
- * top-fade gradient (the sheet's own color fading to transparent, always on) with a fixed 76dp
- * header row on top of it — centered title, start/end actions at the sides, all vertically
- * centered. Content scrolls under the band and sinks into the gradient.
+ * Fixed-height sheet title band, laid over the sheet content: the top bar's progressive band
+ * with a 76dp row on top of it — centred title, side actions at the two edges, all vertically
+ * centred.
  *
- * Host it as the last child of the sheet content Box, and give the scrolling content a
- * [FloatingSheetHeaderDefaults.ContentTopInset] top spacer/content padding. Glass action
- * buttons that sample a [top.yukonga.miuix.kmp.blur.LayerBackdrop] must stay OUTSIDE the
- * captured subtree — host this header as a sibling of the layerBackdrop box, like
- * NexioSchedule hosts its header next to the content backdrop box.
+ * Host it as the last child of the sheet content Box, and give scrolling content a
+ * [FloatingSheetHeaderDefaults.ContentTopInset] top spacer. The band is drawn from the card's top
+ * edge (`offset(-ChromeAboveContent)`), so the title sits 38dp below it and the drag handle floats
+ * over the band's upper area.
  */
 @Composable
 fun BoxScope.FloatingSheetHeader(
     title: String,
-    sheetColor: androidx.compose.ui.graphics.Color,
+    sheetColor: Color,
     modifier: Modifier = Modifier,
+    backdrop: LayerBackdrop? = null,
+    showTopFade: Boolean = true,
     startAction: (@Composable () -> Unit)? = null,
     endAction: (@Composable () -> Unit)? = null,
 ) {
-    // Persistent top fade (NexioSchedule mask, same gradient stops as YumeBlur.sheetTopFadeBrush).
-    Box(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .height(FloatingSheetHeaderDefaults.Height)
-                .offset(y = -FloatingSheetHeaderDefaults.LibraryEmptyTitleRowHeight)
-                .zIndex(1f)
-                .background(YumeBlur.sheetTopFadeBrush(sheetColor)),
-    )
-    // Fixed-height header: title and actions share one constant 76dp band (zIndex above the mask).
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(FloatingSheetHeaderDefaults.Height)
-                .offset(y = -FloatingSheetHeaderDefaults.LibraryEmptyTitleRowHeight)
-                .zIndex(2f),
-    ) {
-        Text(
-            text = title,
+    // Reuse the sheet content's own recording when the host provides one; otherwise fall back to
+    // the sheet surface so the action chrome still has a material to sample.
+    val fallbackBackdrop = rememberLayerBackdrop { drawRect(sheetColor) }
+    val headerBackdrop = backdrop ?: fallbackBackdrop
+    CompositionLocalProvider(LocalSheetHeaderBackdrop provides headerBackdrop) {
+        if (showTopFade) {
+            Box(
+                modifier =
+                    modifier
+                        .fillMaxWidth()
+                        .height(FloatingSheetHeaderDefaults.Height)
+                        .offset(y = -FloatingSheetHeaderDefaults.ChromeAboveContent)
+                        .zIndex(1f)
+                        .then(if (backdrop == null) Modifier.layerBackdrop(fallbackBackdrop) else Modifier)
+                        .background(GlassTopAppBarDefaults.bandBrush(sheetColor)),
+            )
+        }
+        Box(
             modifier =
                 Modifier
-                    .align(Alignment.Center)
-                    // Keep long group names from running under the side actions.
-                    .padding(horizontal = UiDp.dp56),
-            fontSize = MiuixTheme.textStyles.title4.fontSize,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            color = MiuixTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (startAction != null) {
-            Box(modifier = Modifier.align(Alignment.CenterStart)) {
-                startAction()
+                    .fillMaxWidth()
+                    .height(FloatingSheetHeaderDefaults.Height)
+                    .offset(y = -FloatingSheetHeaderDefaults.ChromeAboveContent)
+                    .zIndex(2f),
+        ) {
+            Text(
+                text = title,
+                modifier =
+                    Modifier
+                        .align(Alignment.Center)
+                        // Keep long group names from running under the side actions.
+                        .padding(horizontal = UiDp.dp56),
+                fontSize = MiuixTheme.textStyles.title4.fontSize,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                color = MiuixTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (startAction != null) {
+                Box(
+                    modifier =
+                        Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = FloatingSheetHeaderDefaults.ActionInset),
+                ) {
+                    startAction()
+                }
             }
-        }
-        if (endAction != null) {
-            Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                endAction()
+            if (endAction != null) {
+                Box(
+                    modifier =
+                        Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = FloatingSheetHeaderDefaults.ActionInset),
+                ) {
+                    endAction()
+                }
             }
         }
     }
 }
+
+/**
+ * A sheet side action: exactly the chrome the node page uses in its top-left / top-right slots —
+ * the 42dp glass circle with the edge-light rim and 22dp icon, sampling the sheet surface through
+ * [LocalSheetHeaderBackdrop], so a sheet's actions and the page's top bar read as the same control.
+ */
+@Composable
+fun SheetHeaderIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    tint: Color = Color.Unspecified,
+    iconModifier: Modifier = Modifier,
+) {
+    // A disabled action keeps its chrome but stops accepting taps; the glass button has no enabled
+    // flag of its own.
+    val performClick: () -> Unit = if (enabled) onClick else NoOpClick
+    GlassTopIconButton(
+        action =
+            GlassTopAction(
+                icon = icon,
+                contentDescription = contentDescription,
+                onClick = performClick,
+                iconModifier =
+                    if (enabled) {
+                        iconModifier
+                    } else {
+                        iconModifier.alpha(AppTheme.opacity.disabled)
+                    },
+                tint = tint,
+            ),
+        backdrop = LocalSheetHeaderBackdrop.current,
+    )
+}
+
+/** Tap sink for a disabled action, kept allocation-free across recompositions. */
+private val NoOpClick: () -> Unit = {}

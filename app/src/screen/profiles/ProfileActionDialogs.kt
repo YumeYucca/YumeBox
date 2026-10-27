@@ -30,11 +30,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.FileProvider
 import com.github.yumeyucca.yumebox.App
 import com.github.yumeyucca.yumebox.common.util.toast
-import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
-import com.github.yumeyucca.yumebox.presentation.component.BottomBarDestination
-import com.github.yumeyucca.yumebox.presentation.component.LocalNavigator
-import com.github.yumeyucca.yumebox.presentation.navigation.Route
-import com.github.yumeyucca.yumebox.presentation.util.OverrideEditorStore
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
@@ -60,67 +55,6 @@ internal fun ProfileShareDialog(
         onShareLink = {
             shareProfileLink(profileToShare)
             onDismiss()
-        },
-    )
-}
-
-@Composable
-internal fun ProfileEditOptionsDialogHost(
-    profile: Profile?,
-    show: Boolean,
-    onDismiss: () -> Unit,
-    onDismissFinished: () -> Unit,
-    onSettingsRequested: (Profile) -> Unit,
-) {
-    val profileToEdit = profile ?: return
-    val context = LocalContext.current
-    val navigator = LocalNavigator.current
-    var openPreviewOnDismiss by remember(profileToEdit.uuid) { mutableStateOf(false) }
-
-    ProfileEditOptionsDialog(
-        show = show,
-        onOpenConfig = {
-            openPreviewOnDismiss = false
-            onDismiss()
-            val configFile = importedConfigFile(profileToEdit)
-            openProfileConfigPreview(
-                targetFile = configFile,
-                missingMessage =
-                    YumeTxt.ProfilesPage.SettingsDialog.ConfigMissing.format(
-                        configFile.absolutePath
-                    ),
-                editable = true,
-                onReadFailed = context::toast,
-            ) { content, callback ->
-                OverrideEditorStore.setupConfigPreview(
-                    title = profileToEdit.name,
-                    content = content,
-                    language = LanguageScope.Yaml,
-                    callback = callback,
-                )
-                openPreviewOnDismiss = true
-            }
-        },
-        onEditSettings = {
-            openPreviewOnDismiss = false
-            onDismiss()
-            onSettingsRequested(profileToEdit)
-        },
-        onDismiss = {
-            openPreviewOnDismiss = false
-            onDismiss()
-        },
-        onDismissFinished = {
-            onDismissFinished()
-            if (openPreviewOnDismiss) {
-                openPreviewOnDismiss = false
-                navigator.replaceAll(
-                    listOf(
-                        Route.Main(initialPage = BottomBarDestination.Config.ordinal),
-                        Route.OverrideConfigPreview,
-                    )
-                )
-            }
         },
     )
 }

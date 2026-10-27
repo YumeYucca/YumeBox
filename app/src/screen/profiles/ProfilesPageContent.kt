@@ -35,6 +35,7 @@ import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.ShellIcons
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ArrowDownUp
+import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
@@ -59,6 +60,7 @@ internal fun ProfilesPageHost(
     sheetHost: @Composable () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
+    val navigator = LocalNavigator.current
 
     ProfilesPageContent(
         mainInnerPadding = mainInnerPadding,
@@ -93,8 +95,8 @@ internal fun ProfilesPageHost(
         },
         onEditProfile = { profile ->
             if (!state.isDownloading) {
-                state.editOptionsTarget = profile
-                state.showEditOptions = true
+                // Editing goes straight to the full 编辑配置 page; the old options dialog is gone.
+                navigator.push(Route.ProfileEdit(profile.uuid.toString()))
             }
         },
         onToggleProfile = { profile ->
@@ -133,7 +135,6 @@ internal fun ProfilesPageContent(
             TopBar(
                 title = YumeTxt.ProfilesPage.Title,
                 scrollBehavior = scrollBehavior,
-                actionIconPadding = UiDp.dp24,
                 actions = {
                     // 节点页同款玻璃 chrome:排序(弹拖拽排序 sheet)+ 添加配置 收进一枚胶囊。
                     GlassTopActionPill(

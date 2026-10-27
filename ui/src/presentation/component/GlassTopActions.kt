@@ -58,10 +58,10 @@ import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.glassSurface
 import com.kyant.shapes.Capsule
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.glass.GlassAnchorSurface
 import top.yukonga.miuix.kmp.glass.GlassDefaults
-import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchorElement
 import top.yukonga.miuix.kmp.glass.GlassShape
@@ -86,6 +86,8 @@ data class GlassTopAction(
     val onClick: () -> Unit,
     val modifier: Modifier = Modifier,
     val iconModifier: Modifier = Modifier,
+    /** Icon tint override; [Color.Unspecified] keeps the chrome's own on-surface tint. */
+    val tint: Color = Color.Unspecified,
 )
 
 /**
@@ -205,9 +207,10 @@ fun GlassTopIconButton(
     action: GlassTopAction,
     backdrop: LayerBackdrop?,
     modifier: Modifier = Modifier,
+    keepSurface: Boolean = false,
 ) {
     val glass = rememberGlassTopActionStyle()
-    if (backdrop != null && isRuntimeShaderSupported()) {
+    if (!keepSurface && backdrop != null && isRuntimeShaderSupported()) {
         GlassIconButton(
             onClick = action.onClick,
             modifier = modifier,
@@ -220,12 +223,13 @@ fun GlassTopIconButton(
                 imageVector = action.icon,
                 contentDescription = action.contentDescription,
                 modifier = Modifier.size(GlassTopActionDefaults.IconSize).then(action.iconModifier),
-                tint = glass.iconTint,
+                tint = action.tint.takeOr(glass.iconTint),
             )
         }
         return
     }
     val circleShape = remember { Capsule() }
+    val glassShape = remember { GlassShape(GlassTopActionDefaults.ContainerSize / 2) }
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     // Reference LiquidTopBarButton press feedback: scale up by ~4dp over the container height.
@@ -251,19 +255,37 @@ fun GlassTopIconButton(
                     ambientShadowColor = glass.shadowColor
                     spotShadowColor = glass.shadowColor
                 }
-                .clip(circleShape)
-                .glassSurface(
-                    backdrop = backdrop,
-                    shape = circleShape,
-                    fallbackColor = glass.fallbackColor,
-                    tint = glass.tint,
-                )
-                .edgeLight(
-                    shape = circleShape,
-                    color = glass.edgeLightColor,
-                    width = glass.edgeLightWidth,
-                    blurRadius = EdgeLightDefaults.BlurRadius,
-                    blendMode = glass.edgeLightBlendMode,
+                .then(
+                    if (backdrop != null && isRuntimeShaderSupported()) {
+                        // Keep the circle on the action pill's material and always mounted; the
+                        // bar's scroll-driven floating state must not hide it at rest.
+                        Modifier.glassPanel(
+                            backdrop = backdrop,
+                            shape = glassShape,
+                            style = GlassDefaults.Style,
+                            material = GlassTopAppBarDefaults.buttonMaterial(),
+                            stroke = GlassTopAppBarDefaults.buttonStroke(),
+                            shadow = null,
+                            shading = false,
+                            fallback = Modifier.clip(circleShape).background(glass.fallbackColor),
+                        )
+                    } else {
+                        Modifier
+                            .clip(circleShape)
+                            .glassSurface(
+                                backdrop = backdrop,
+                                shape = circleShape,
+                                fallbackColor = glass.fallbackColor,
+                                tint = glass.tint,
+                            )
+                            .edgeLight(
+                                shape = circleShape,
+                                color = glass.edgeLightColor,
+                                width = glass.edgeLightWidth,
+                                blurRadius = EdgeLightDefaults.BlurRadius,
+                                blendMode = glass.edgeLightBlendMode,
+                            )
+                    },
                 )
                 .clickable(
                     interactionSource = interactionSource,
@@ -276,7 +298,7 @@ fun GlassTopIconButton(
             imageVector = action.icon,
             contentDescription = action.contentDescription,
             modifier = Modifier.size(GlassTopActionDefaults.IconSize).then(action.iconModifier),
-            tint = glass.iconTint,
+            tint = action.tint.takeOr(glass.iconTint),
         )
     }
 }
@@ -318,10 +340,14 @@ private fun PillActionIcon(action: GlassTopAction) {
                     scaleX = pressScale
                     scaleY = pressScale
                 },
-            tint = glass.iconTint,
+            tint = action.tint.takeOr(glass.iconTint),
         )
     }
 }
+
+/** [fallback] unless this colour carries an explicit tint. */
+private fun Color.takeOr(fallback: Color): Color =
+    if (this == Color.Unspecified) fallback else this
 
 /** Shared material recipe for the pill and circle containers, resolved per theme. */
 private class GlassTopActionStyle(

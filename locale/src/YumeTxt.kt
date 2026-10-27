@@ -747,6 +747,21 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun Delete(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.Delete else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.Delete, *args)
+            public val Share: String
+                get() = YumeLocaleManager.activeStrings.Component.ProfileCard.Share
+            @androidx.compose.runtime.Composable
+            public fun Share(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.Share else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.Share, *args)
+            public val ShareFile: String
+                get() = YumeLocaleManager.activeStrings.Component.ProfileCard.ShareFile
+            @androidx.compose.runtime.Composable
+            public fun ShareFile(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.ShareFile else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.ShareFile, *args)
+            public val ShareLink: String
+                get() = YumeLocaleManager.activeStrings.Component.ProfileCard.ShareLink
+            @androidx.compose.runtime.Composable
+            public fun ShareLink(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Component.ProfileCard.ShareLink else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Component.ProfileCard.ShareLink, *args)
             public val RemoteSubscription: String
                 get() = YumeLocaleManager.activeStrings.Component.ProfileCard.RemoteSubscription
             @androidx.compose.runtime.Composable
@@ -1407,6 +1422,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun AutoCloseModeTitle(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.ServiceStatus.AutoCloseModeTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.ServiceStatus.AutoCloseModeTitle, *args)
+            public val RuntimeSection: String
+                get() = YumeLocaleManager.activeStrings.Feature.ServiceStatus.RuntimeSection
+            @androidx.compose.runtime.Composable
+            public fun RuntimeSection(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.ServiceStatus.RuntimeSection else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.ServiceStatus.RuntimeSection, *args)
             public val AutoCloseModeAlwaysOn: String
                 get() = YumeLocaleManager.activeStrings.Feature.ServiceStatus.AutoCloseModeAlwaysOn
             @androidx.compose.runtime.Composable
@@ -1444,11 +1464,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun OpenMode(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.Panel.OpenMode else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.Panel.OpenMode, *args)
-            public val OpenPanel: String
-                get() = YumeLocaleManager.activeStrings.Feature.Panel.OpenPanel
+            public val OpenSection: String
+                get() = YumeLocaleManager.activeStrings.Feature.Panel.OpenSection
             @androidx.compose.runtime.Composable
-            public fun OpenPanel(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.Panel.OpenPanel else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.Panel.OpenPanel, *args)
+            public fun OpenSection(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.Panel.OpenSection else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.Panel.OpenSection, *args)
             public val Unknown: String
                 get() = YumeLocaleManager.activeStrings.Feature.Panel.Unknown
             @androidx.compose.runtime.Composable
@@ -1593,16 +1613,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun JavetLibraryDownload(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.SubStore.JavetLibraryDownload else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.SubStore.JavetLibraryDownload, *args)
-            public val JavetAvailable: String
-                get() = YumeLocaleManager.activeStrings.Feature.SubStore.JavetAvailable
-            @androidx.compose.runtime.Composable
-            public fun JavetAvailable(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.SubStore.JavetAvailable else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.SubStore.JavetAvailable, *args)
-            public val DownloadHint: String
-                get() = YumeLocaleManager.activeStrings.Feature.SubStore.DownloadHint
-            @androidx.compose.runtime.Composable
-            public fun DownloadHint(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.SubStore.DownloadHint else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.SubStore.DownloadHint, *args)
             public val JavetDownloadSuccess: String
                 get() = YumeLocaleManager.activeStrings.Feature.SubStore.JavetDownloadSuccess
             @androidx.compose.runtime.Composable
@@ -1613,11 +1623,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun JavetDownloadFailed(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.SubStore.JavetDownloadFailed else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.SubStore.JavetDownloadFailed, *args)
-            public val DownloadResources: String
-                get() = YumeLocaleManager.activeStrings.Feature.SubStore.DownloadResources
-            @androidx.compose.runtime.Composable
-            public fun DownloadResources(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Feature.SubStore.DownloadResources else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Feature.SubStore.DownloadResources, *args)
             public val DownloadResourcesSummary: String
                 get() = YumeLocaleManager.activeStrings.Feature.SubStore.DownloadResourcesSummary
             @androidx.compose.runtime.Composable
@@ -2321,6 +2326,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun DisableOverrideTitle(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Advanced.DisableOverrideTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Advanced.DisableOverrideTitle, *args)
+            public val DisableOverrideSummary: String
+                get() = YumeLocaleManager.activeStrings.NetworkSettings.Advanced.DisableOverrideSummary
+            @androidx.compose.runtime.Composable
+            public fun DisableOverrideSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Advanced.DisableOverrideSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Advanced.DisableOverrideSummary, *args)
         }
         public object RunMode {
             public val SectionTitle: String
@@ -2328,6 +2338,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun SectionTitle(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.RunMode.SectionTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.RunMode.SectionTitle, *args)
+            public val CurrentTitle: String
+                get() = YumeLocaleManager.activeStrings.NetworkSettings.RunMode.CurrentTitle
+            @androidx.compose.runtime.Composable
+            public fun CurrentTitle(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.RunMode.CurrentTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.RunMode.CurrentTitle, *args)
             public val VpnServiceTitle: String
                 get() = YumeLocaleManager.activeStrings.NetworkSettings.RunMode.VpnServiceTitle
             @androidx.compose.runtime.Composable
@@ -2358,6 +2373,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun EbpfSummary(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.RunMode.EbpfSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.RunMode.EbpfSummary, *args)
+            public val Notice: String
+                get() = YumeLocaleManager.activeStrings.NetworkSettings.RunMode.Notice
+            @androidx.compose.runtime.Composable
+            public fun Notice(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.RunMode.Notice else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.RunMode.Notice, *args)
         }
         public object VpnOptions {
             public val BypassPrivateTitle: String
@@ -2501,41 +2521,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun DownloadButton(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Kernel.DownloadButton else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Kernel.DownloadButton, *args)
-            public val CustomTitle: String
-                get() = YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomTitle
-            @androidx.compose.runtime.Composable
-            public fun CustomTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomTitle, *args)
-            public val CustomMethodTitle: String
-                get() = YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomMethodTitle
-            @androidx.compose.runtime.Composable
-            public fun CustomMethodTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomMethodTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomMethodTitle, *args)
-            public val CustomUrlMethod: String
-                get() = YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomUrlMethod
-            @androidx.compose.runtime.Composable
-            public fun CustomUrlMethod(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomUrlMethod else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomUrlMethod, *args)
-            public val CustomFileMethod: String
-                get() = YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomFileMethod
-            @androidx.compose.runtime.Composable
-            public fun CustomFileMethod(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomFileMethod else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomFileMethod, *args)
-            public val CustomUrlLabel: String
-                get() = YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomUrlLabel
-            @androidx.compose.runtime.Composable
-            public fun CustomUrlLabel(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomUrlLabel else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomUrlLabel, *args)
-            public val CustomChooseFile: String
-                get() = YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomChooseFile
-            @androidx.compose.runtime.Composable
-            public fun CustomChooseFile(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomChooseFile else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomChooseFile, *args)
-            public val CustomInstallButton: String
-                get() = YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomInstallButton
-            @androidx.compose.runtime.Composable
-            public fun CustomInstallButton(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomInstallButton else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Kernel.CustomInstallButton, *args)
         }
         public object ProxyOptions {
             public val AccessControlModeTitle: String
@@ -3656,6 +3641,16 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun SectionOverride(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.SectionOverride else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.SectionOverride, *args)
+            public val SectionSubscriptionSummary: String
+                get() = YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.SectionSubscriptionSummary
+            @androidx.compose.runtime.Composable
+            public fun SectionSubscriptionSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.SectionSubscriptionSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.SectionSubscriptionSummary, *args)
+            public val SectionOverrideSummary: String
+                get() = YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.SectionOverrideSummary
+            @androidx.compose.runtime.Composable
+            public fun SectionOverrideSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.SectionOverrideSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.SectionOverrideSummary, *args)
             public val SaveFailed: String
                 get() = YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.SaveFailed
             @androidx.compose.runtime.Composable

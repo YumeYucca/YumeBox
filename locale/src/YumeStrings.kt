@@ -252,6 +252,9 @@ public data class YumeStrings_Component_ProfileCard(
     public val Export: String,
     public val Edit: String,
     public val Delete: String,
+    public val Share: String,
+    public val ShareFile: String,
+    public val ShareLink: String,
     public val RemoteSubscription: String,
     public val LocalFile: String,
     public val LocalConfig: String,
@@ -494,6 +497,7 @@ public data class YumeStrings_Feature_ServiceStatus(
     public val OpenSubStorePanel: String,
     public val AllowLan: String,
     public val AutoCloseModeTitle: String,
+    public val RuntimeSection: String,
     public val AutoCloseModeAlwaysOn: String,
     public val AutoCloseMode5Min: String,
     public val AutoCloseMode10Min: String,
@@ -504,7 +508,7 @@ public data class YumeStrings_Feature_Panel(
     public val Section: String,
     public val SelectPanel: String,
     public val OpenMode: String,
-    public val OpenPanel: String,
+    public val OpenSection: String,
     public val Unknown: String,
     public val CreateShortcut: String,
     public val CreateShortcutSummary: String,
@@ -539,11 +543,8 @@ public data class YumeStrings_Feature_SubStore(
     public val Section: String,
     public val JavetLibraryReady: String,
     public val JavetLibraryDownload: String,
-    public val JavetAvailable: String,
-    public val DownloadHint: String,
     public val JavetDownloadSuccess: String,
     public val JavetDownloadFailed: String,
-    public val DownloadResources: String,
     public val DownloadResourcesSummary: String,
     public val Not32Bit: String,
     public val DownloadSubStoreFirst: String,
@@ -795,16 +796,19 @@ public data class YumeStrings_NetworkSettings_Section(
 
 public data class YumeStrings_NetworkSettings_Advanced(
     public val DisableOverrideTitle: String,
+    public val DisableOverrideSummary: String,
 )
 
 public data class YumeStrings_NetworkSettings_RunMode(
     public val SectionTitle: String,
+    public val CurrentTitle: String,
     public val VpnServiceTitle: String,
     public val VpnServiceSummary: String,
     public val TunTitle: String,
     public val TunSummary: String,
     public val EbpfTitle: String,
     public val EbpfSummary: String,
+    public val Notice: String,
 )
 
 public data class YumeStrings_NetworkSettings_VpnOptions(
@@ -844,13 +848,6 @@ public data class YumeStrings_NetworkSettings_Kernel(
     public val DownloadTitle: String,
     public val FetchButton: String,
     public val DownloadButton: String,
-    public val CustomTitle: String,
-    public val CustomMethodTitle: String,
-    public val CustomUrlMethod: String,
-    public val CustomFileMethod: String,
-    public val CustomUrlLabel: String,
-    public val CustomChooseFile: String,
-    public val CustomInstallButton: String,
 )
 
 public data class YumeStrings_NetworkSettings_ProxyOptions(
@@ -1269,6 +1266,8 @@ public data class YumeStrings_ProfilesPage_SettingsDialog(
     public val SectionType: String,
     public val SectionSubscription: String,
     public val SectionOverride: String,
+    public val SectionSubscriptionSummary: String,
+    public val SectionOverrideSummary: String,
     public val SaveFailed: String,
     public val ConfigMissing: String,
     public val AgeSecretKey: String,

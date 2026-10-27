@@ -642,8 +642,6 @@ private fun ProxyTopBar(
     TopBar(
         title = title,
         scrollBehavior = scrollBehavior,
-        navigationIconPadding = UiDp.dp24,
-        actionIconPadding = UiDp.dp24,
         navigationIcon = {
             if (showBack) {
                 IconButton(onClick = onBack) {
@@ -663,6 +661,7 @@ private fun ProxyTopBar(
                             onClick = { handlePageChange(BottomBarDestination.Home) },
                         ),
                     backdrop = backdrop,
+                    keepSurface = true,
                 )
             }
         },
@@ -729,6 +728,7 @@ private fun ProxyTopBar(
                                 onClick = openSettings,
                             ),
                         backdrop = backdrop,
+                        keepSurface = true,
                     )
                 }
             }

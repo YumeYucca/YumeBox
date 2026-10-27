@@ -41,7 +41,6 @@ import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreferen
 @Composable
 fun FeatureContent(
     onOpenInAppUrl: (String) -> Unit,
-    onOpenPanel: (url: String) -> Unit,
     onCreatePanelShortcut: (url: String, label: String) -> Unit = { _, _ -> },
     topSection: @Composable () -> Unit = {},
     bottomSection: @Composable () -> Unit = {},
@@ -68,6 +67,9 @@ fun FeatureContent(
     val panelProtocol by viewModel.panelProtocol.state.collectAsState()
 
     val panelDisplayNames = listOf("Zashboard", "MetaCubeXD", "Yacd")
+    val currentPanelName =
+        panelDisplayNames.getOrElse(selectedPanelType) { YumeTxt.Feature.Panel.Unknown }
+    val panelUrl = panelUrlFor(selectedPanelType, panelProtocol)
 
     LaunchedEffect(Unit) { viewModel.initializeSubStoreStatus() }
 
@@ -80,10 +82,6 @@ fun FeatureContent(
             item { topSection() }
 
             item {
-                val currentPanelName =
-                    panelDisplayNames.getOrElse(selectedPanelType) { YumeTxt.Feature.Panel.Unknown }
-                val panelUrl = panelUrlFor(selectedPanelType, panelProtocol)
-
                 Title(YumeTxt.Feature.Panel.Section)
                 AppCard {
                     val safeSelectedPanelType =
@@ -95,7 +93,12 @@ fun FeatureContent(
                         selectedIndex = safeSelectedPanelType,
                         onSelectedIndexChange = { viewModel.setSelectedPanelType(it) },
                     )
+                }
+            }
 
+            item {
+                Title(YumeTxt.Feature.Panel.OpenSection)
+                AppCard {
                     EnumSelector(
                         title = YumeTxt.Feature.Panel.OpenMode,
                         summary = null,
@@ -105,26 +108,18 @@ fun FeatureContent(
                         onValueChange = viewModel::setPanelProtocol,
                     )
                     ArrowPreference(
-                        title = YumeTxt.Feature.Panel.OpenPanel,
-                        summary = null,
-                        enabled = panelUrl.isNotBlank(),
-                        onClick = { onOpenPanel(panelUrl) },
-                    )
-                    ArrowPreference(
                         title = YumeTxt.Feature.Panel.CreateShortcut,
                         summary = null,
                         enabled = panelUrl.isNotBlank(),
                         onClick = { onCreatePanelShortcut(panelUrl, currentPanelName) },
                     )
                 }
+                SectionSummary(YumeTxt.Feature.Panel.CreateShortcutSummary)
             }
 
             item {
                 Title(YumeTxt.Feature.ServiceStatus.Section)
                 AppCard {
-                    val autoCloseItems = AutoCloseMode.entries.map { it.getDisplayName() }
-                    val autoCloseValues = AutoCloseMode.entries
-
                     SwitchPreference(
                         title = YumeTxt.Feature.ServiceStatus.SwitchStartSubStore,
                         summary = null,
@@ -132,20 +127,6 @@ fun FeatureContent(
                         onCheckedChange = {
                             if (it) viewModel.startService() else viewModel.stopService()
                         },
-                    )
-                    SwitchPreference(
-                        title = YumeTxt.Feature.ServiceStatus.AllowLan,
-                        summary = null,
-                        checked = allowLanAccess,
-                        onCheckedChange = { viewModel.setAllowLanAccess(it) },
-                    )
-                    EnumSelector(
-                        title = YumeTxt.Feature.ServiceStatus.AutoCloseModeTitle,
-                        summary = null,
-                        currentValue = autoCloseMode,
-                        items = autoCloseItems,
-                        values = autoCloseValues,
-                        onValueChange = { viewModel.setAutoCloseMode(it) },
                     )
                     ArrowPreference(
                         title = YumeTxt.Feature.ServiceStatus.OpenSubStorePanel,
@@ -160,6 +141,26 @@ fun FeatureContent(
             }
 
             item {
+                Title(YumeTxt.Feature.ServiceStatus.RuntimeSection)
+                AppCard {
+                    SwitchPreference(
+                        title = YumeTxt.Feature.ServiceStatus.AllowLan,
+                        summary = null,
+                        checked = allowLanAccess,
+                        onCheckedChange = { viewModel.setAllowLanAccess(it) },
+                    )
+                    EnumSelector(
+                        title = YumeTxt.Feature.ServiceStatus.AutoCloseModeTitle,
+                        summary = null,
+                        currentValue = autoCloseMode,
+                        items = AutoCloseMode.entries.map { it.getDisplayName() },
+                        values = AutoCloseMode.entries,
+                        onValueChange = { viewModel.setAutoCloseMode(it) },
+                    )
+                }
+            }
+
+            item {
                 Title(YumeTxt.Feature.SubStore.Section)
                 AppCard {
                     ArrowPreference(
@@ -169,22 +170,15 @@ fun FeatureContent(
                             } else {
                                 YumeTxt.Feature.SubStore.JavetLibraryDownload
                             },
-                        summary =
-                            if (isJavetLoaded) {
-                                YumeTxt.Feature.SubStore.JavetAvailable
-                            } else {
-                                YumeTxt.Feature.SubStore.DownloadHint
-                            },
-                        onClick = { viewModel.downloadJavetLibrary() },
-                        enabled = !isDownloadingJavet,
-                    )
-                    ArrowPreference(
-                        title = YumeTxt.Feature.SubStore.DownloadResources,
-                        summary = YumeTxt.Feature.SubStore.DownloadResourcesSummary,
-                        onClick = { viewModel.downloadSubStoreAll() },
-                        enabled = !isDownloadingSubStoreFrontend && !isDownloadingSubStoreBackend,
+                        summary = null,
+                        onClick = { viewModel.installResources() },
+                        enabled =
+                            !isDownloadingJavet &&
+                                !isDownloadingSubStoreFrontend &&
+                                !isDownloadingSubStoreBackend,
                     )
                 }
+                SectionSummary(YumeTxt.Feature.SubStore.DownloadResourcesSummary)
             }
 
             item { bottomSection() }

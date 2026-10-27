@@ -21,7 +21,6 @@
 package com.github.yumeyucca.yumebox.screen.settings
 
 import android.app.Application
-import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumeyucca.yumebox.common.util.stateInWhileSubscribed
@@ -413,54 +412,6 @@ class NetworkSettingsViewModel(
                 }
                 .onFailure { error -> _kernelStatus.value = "Kernel install failed: ${error.message}" }
             _kernelBusy.value = false
-        }
-    }
-
-    fun installCustomPlugin(uri: Uri, onFinished: (Boolean) -> Unit = {}) {
-        if (_kernelBusy.value) return
-        viewModelScope.launch {
-            _kernelBusy.value = true
-            _kernelStatus.value = "Installing custom kernel"
-            var installed = false
-            runCatching {
-                getApplication<Application>().contentResolver.openInputStream(uri)
-                    ?.use { KernelManager.installPlugin(getApplication(), it) }
-                    ?: error("Unable to read kernel plugin")
-            }
-                .onSuccess { kernel ->
-                    _kernels.value = (_kernels.value.filterNot { it.id == kernel.id } + kernel)
-                        .sortedBy { it.id }
-                    KernelManager.activate(getApplication(), kernel.id)
-                    refreshInstalledKernelCommits()
-                    onKernelActivated(kernel.id)
-                    _kernelStatus.value = "${kernel.name} selected. Restart the service to load it."
-                    installed = true
-                }
-                .onFailure { error -> _kernelStatus.value = "Custom kernel install failed: ${error.message}" }
-            _kernelBusy.value = false
-            onFinished(installed)
-        }
-    }
-
-    fun installCustomPluginUrl(url: String, onFinished: (Boolean) -> Unit = {}) {
-        if (_kernelBusy.value) return
-        viewModelScope.launch {
-            _kernelBusy.value = true
-            _kernelStatus.value = "Downloading custom kernel"
-            var installed = false
-            runCatching { KernelManager.installPluginUrl(getApplication(), url.trim()) }
-                .onSuccess { kernel ->
-                    _kernels.value = (_kernels.value.filterNot { it.id == kernel.id } + kernel)
-                        .sortedBy { it.id }
-                    KernelManager.activate(getApplication(), kernel.id)
-                    refreshInstalledKernelCommits()
-                    onKernelActivated(kernel.id)
-                    _kernelStatus.value = "${kernel.name} selected. Restart the service to load it."
-                    installed = true
-                }
-                .onFailure { error -> _kernelStatus.value = "Custom kernel install failed: ${error.message}" }
-            _kernelBusy.value = false
-            onFinished(installed)
         }
     }
 

@@ -60,8 +60,8 @@ internal fun MoeHomeSettingsSheet(
         LazyColumn(modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = spacing.space16),
-            // 顶部让位悬浮头 76dp 带(内容从带下滚过)。
-            contentPadding = PaddingValues(top = FloatingSheetHeaderDefaults.ContentTopInset)) {
+            // 首行落在 76dp 悬浮带下沿。
+            contentPadding = PaddingValues(top = AppBottomSheetDefaults.ContentTopGap)) {
             item {
                 Column {
                     OemTextField(
