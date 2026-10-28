@@ -4,7 +4,7 @@ internal val ZhHansYumeStrings_About: YumeStrings_About = YumeStrings_About(
     Title = "关于",
     App = YumeStrings_About_App(
         Description = "基于 mihomo 的开源 Android 客户端",
-        VersionLoading = "加载中...",
+        VersionLoading = "加载中",
         VersionFailed = "加载失败",
     ),
     Debug = YumeStrings_About_Debug(
@@ -34,7 +34,7 @@ internal val ZhHansYumeStrings_About: YumeStrings_About = YumeStrings_About(
         Libraries = "引用库",
         LibrariesSummary = "查看本应用使用的所有第三方库",
         AgplName = "GNU Affero General Public License v3.0",
-        AgplDescription = "本程序是自由软件：你可以根据 GNU Affero 通用公共许可证的条款重新分发和修改.",
+        AgplDescription = "本程序是自由软件：你可以根据 GNU Affero 通用公共许可证的条款重新分发和修改",
     ),
     Copyright = "© 2025 – 至今 YumeYucca",
 )
@@ -43,7 +43,7 @@ internal val ZhYumeStrings_About: YumeStrings_About = YumeStrings_About(
     Title = "關於",
     App = YumeStrings_About_App(
         Description = "基於 mihomo 的開源 Android 用戶端",
-        VersionLoading = "載入中...",
+        VersionLoading = "載入中",
         VersionFailed = "載入失敗",
     ),
     Debug = YumeStrings_About_Debug(
@@ -73,7 +73,7 @@ internal val ZhYumeStrings_About: YumeStrings_About = YumeStrings_About(
         Libraries = "引用函式庫",
         LibrariesSummary = "檢視本應用使用的所有第三方函式庫",
         AgplName = "GNU Affero General Public License v3.0",
-        AgplDescription = "本程式為自由軟體：你可依 GNU Affero 通用公眾授權條款重新散布與／或修改.",
+        AgplDescription = "本程式為自由軟體：你可依 GNU Affero 通用公眾授權條款重新散布與／或修改",
     ),
     Copyright = "© 2025 – 至今 YumeYucca",
 )
@@ -82,7 +82,7 @@ internal val EnYumeStrings_About: YumeStrings_About = YumeStrings_About(
     Title = "About",
     App = YumeStrings_About_App(
         Description = "An open-source Android client based on mihomo",
-        VersionLoading = "Loading...",
+        VersionLoading = "Loading",
         VersionFailed = "Failed to load",
     ),
     Debug = YumeStrings_About_Debug(
@@ -112,7 +112,7 @@ internal val EnYumeStrings_About: YumeStrings_About = YumeStrings_About(
         Libraries = "Libraries",
         LibrariesSummary = "View all third-party libraries used in this app",
         AgplName = "GNU Affero General Public License v3.0",
-        AgplDescription = "This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License.",
+        AgplDescription = "This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License",
     ),
     Copyright = "© 2025 – Present YumeYucca",
 )
@@ -121,7 +121,7 @@ internal val JaYumeStrings_About: YumeStrings_About = YumeStrings_About(
     Title = "情報",
     App = YumeStrings_About_App(
         Description = "mihomo ベースのオープンソース Android クライアント",
-        VersionLoading = "読み込み中...",
+        VersionLoading = "読み込み中",
         VersionFailed = "読み込みに失敗しました",
     ),
     Debug = YumeStrings_About_Debug(
@@ -151,7 +151,7 @@ internal val JaYumeStrings_About: YumeStrings_About = YumeStrings_About(
         Libraries = "ライブラリ",
         LibrariesSummary = "このアプリで使用しているサードパーティライブラリを表示",
         AgplName = "GNU Affero General Public License v3.0",
-        AgplDescription = "本プログラムはフリーソフトウェアです.GNU Affero 一般公衆ライセンスの条項に従って再配布および/または改変できます.",
+        AgplDescription = "本プログラムはフリーソフトウェアです.GNU Affero 一般公衆ライセンスの条項に従って再配布および/または改変できます",
     ),
     Copyright = "© 2025 – Present YumeYucca",
 )
@@ -160,7 +160,7 @@ internal val RuYumeStrings_About: YumeStrings_About = YumeStrings_About(
     Title = "О приложении",
     App = YumeStrings_About_App(
         Description = "Android-клиент с открытым исходным кодом на базе mihomo",
-        VersionLoading = "Загрузка...",
+        VersionLoading = "Загрузка",
         VersionFailed = "Не удалось загрузить",
     ),
     Debug = YumeStrings_About_Debug(
@@ -190,7 +190,7 @@ internal val RuYumeStrings_About: YumeStrings_About = YumeStrings_About(
         Libraries = "Библиотеки",
         LibrariesSummary = "Просмотреть все сторонние библиотеки, используемые в приложении",
         AgplName = "GNU Affero General Public License v3.0",
-        AgplDescription = "Эта программа — свободное ПО: вы можете распространять и/или изменять её на условиях GNU Affero General Public License.",
+        AgplDescription = "Эта программа — свободное ПО: вы можете распространять и/или изменять её на условиях GNU Affero General Public License",
     ),
     Copyright = "© 2025 – Present YumeYucca",
 )

@@ -18,7 +18,7 @@ internal val ZhHansYumeStrings_Editor: YumeStrings_Editor = YumeStrings_Editor(
     ),
     Discard = YumeStrings_Editor_Discard(
         Title = "未保存的修改",
-        Summary = "当前有未保存的修改，确定要放弃吗？",
+        Summary = "当前有未保存的修改，确定要放弃吗",
         Confirm = "放弃",
     ),
     JsonSubtitle = "使用 JSON 格式编辑",
@@ -42,7 +42,7 @@ internal val ZhYumeStrings_Editor: YumeStrings_Editor = YumeStrings_Editor(
     ),
     Discard = YumeStrings_Editor_Discard(
         Title = "未儲存的修改",
-        Summary = "目前有未儲存的修改，確定要放棄嗎？",
+        Summary = "目前有未儲存的修改，確定要放棄嗎",
         Confirm = "放棄",
     ),
     JsonSubtitle = "使用 JSON 格式編輯",
@@ -66,7 +66,7 @@ internal val EnYumeStrings_Editor: YumeStrings_Editor = YumeStrings_Editor(
     ),
     Discard = YumeStrings_Editor_Discard(
         Title = "Unsaved changes",
-        Summary = "There are unsaved changes. Discard them?",
+        Summary = "There are unsaved changes. Discard them",
         Confirm = "Discard",
     ),
     JsonSubtitle = "Edit as JSON",
@@ -90,7 +90,7 @@ internal val JaYumeStrings_Editor: YumeStrings_Editor = YumeStrings_Editor(
     ),
     Discard = YumeStrings_Editor_Discard(
         Title = "未保存の変更",
-        Summary = "未保存の変更があります.破棄しますか？",
+        Summary = "未保存の変更があります.破棄しますか",
         Confirm = "破棄",
     ),
     JsonSubtitle = "JSON 形式で編集",
@@ -114,7 +114,7 @@ internal val RuYumeStrings_Editor: YumeStrings_Editor = YumeStrings_Editor(
     ),
     Discard = YumeStrings_Editor_Discard(
         Title = "Несохранённые изменения",
-        Summary = "Есть несохранённые изменения. Отменить их?",
+        Summary = "Есть несохранённые изменения. Отменить их",
         Confirm = "Отменить",
     ),
     JsonSubtitle = "Редактировать в формате JSON",

@@ -200,6 +200,21 @@ public data class YumeStrings_AppSettings_Privacy(
     public val HideFromRecentsTitle: String,
 )
 
+public data class YumeStrings_AppSettings_Appearance(
+    public val ThemeTitle: String,
+    public val ThemeSummary: String,
+    public val ColorSummary: String,
+    public val InterfaceTitle: String,
+    public val InterfaceSummary: String,
+    public val HomeTitle: String,
+    public val HomeSummary: String,
+    public val BehaviorSummary: String,
+    public val PrivacySummary: String,
+    public val ServiceSummary: String,
+    public val NavigationSummary: String,
+    public val NetworkSummary: String,
+)
+
 public data class YumeStrings_AppSettings_ServiceSection(
     public val TrafficNotificationTitle: String,
     public val ExitUiWhenBackgroundTitle: String,
@@ -237,6 +252,7 @@ public data class YumeStrings_AppSettings(
     public val Section: YumeStrings_AppSettings_Section,
     public val Behavior: YumeStrings_AppSettings_Behavior,
     public val Interface: YumeStrings_AppSettings_Interface,
+    public val Appearance: YumeStrings_AppSettings_Appearance,
     public val Privacy: YumeStrings_AppSettings_Privacy,
     public val ServiceSection: YumeStrings_AppSettings_ServiceSection,
     public val Network: YumeStrings_AppSettings_Network,
@@ -255,6 +271,10 @@ public data class YumeStrings_Component_ProfileCard(
     public val Share: String,
     public val ShareFile: String,
     public val ShareLink: String,
+    public val Enable: String,
+    public val Disable: String,
+    public val CurrentProfile: String,
+    public val NotEnabled: String,
     public val RemoteSubscription: String,
     public val LocalFile: String,
     public val LocalConfig: String,
@@ -641,6 +661,7 @@ public data class YumeStrings_Home_Settings(
     public val Quote: String,
     public val Author: String,
     public val ExpandSidebar: String,
+    public val StatusBarSpacing: String,
     public val ChangeWallpaper: String,
 )
 
@@ -1185,6 +1206,8 @@ public data class YumeStrings_ProfilesPage_Input(
     public val SelectFile: String,
     public val NewProfile: String,
     public val AgeSecretKey: String,
+    public val Optional: String,
+    public val Required: String,
 )
 
 public data class YumeStrings_ProfilesPage_QrScanner(
@@ -1268,9 +1291,19 @@ public data class YumeStrings_ProfilesPage_SettingsDialog(
     public val SectionOverride: String,
     public val SectionSubscriptionSummary: String,
     public val SectionOverrideSummary: String,
+    public val ProfileInfo: String,
+    public val ProfileStatus: String,
+    public val ProfileEnabled: String,
+    public val ProfileEnabledSummary: String,
+    public val ConfigFile: String,
+    public val ConfigFileSummary: String,
+    public val UpdatedAt: String,
+    public val ConfigFileSize: String,
     public val SaveFailed: String,
     public val ConfigMissing: String,
     public val AgeSecretKey: String,
+    public val AgeSection: String,
+    public val AgeSecretKeySummary: String,
 )
 
 public data class YumeStrings_ProfilesPage(

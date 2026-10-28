@@ -9,6 +9,10 @@ internal val ZhHansYumeStrings_Component: YumeStrings_Component = YumeStrings_Co
         Share = "分享",
         ShareFile = "文件分享",
         ShareLink = "链接分享",
+        Enable = "启用",
+        Disable = "禁用",
+        CurrentProfile = "当前配置",
+        NotEnabled = "未启用",
         RemoteSubscription = "远程订阅",
         LocalFile = "本地文件",
         LocalConfig = "本地配置文件",
@@ -61,7 +65,7 @@ internal val ZhHansYumeStrings_Component: YumeStrings_Component = YumeStrings_Co
         ContentDescription = "%s 旗帜",
     ),
     Loading = YumeStrings_Component_Loading(
-        Starting = "启动中...",
+        Starting = "启动中",
     ),
     ConfigInput = YumeStrings_Component_ConfigInput(
         PortLabel = "端口号 (留空表示不修改)",
@@ -82,7 +86,7 @@ internal val ZhHansYumeStrings_Component: YumeStrings_Component = YumeStrings_Co
             AddTitle = "添加条目",
             EditTitle = "编辑条目",
             ResetTitle = "重置确认",
-            ResetMessage = "清空所有条目并恢复为不修改状态？",
+            ResetMessage = "清空所有条目并恢复为不修改状态",
         ),
         Empty = YumeStrings_Component_Editor_Empty(
             Title = "暂无条目",
@@ -115,6 +119,10 @@ internal val ZhYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
         Share = "分享",
         ShareFile = "檔案分享",
         ShareLink = "連結分享",
+        Enable = "啟用",
+        Disable = "停用",
+        CurrentProfile = "目前設定檔",
+        NotEnabled = "未啟用",
         RemoteSubscription = "遠端訂閱",
         LocalFile = "本機檔案",
         LocalConfig = "本機設定檔",
@@ -167,7 +175,7 @@ internal val ZhYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
         ContentDescription = "%s 旗幟",
     ),
     Loading = YumeStrings_Component_Loading(
-        Starting = "啟動中...",
+        Starting = "啟動中",
     ),
     ConfigInput = YumeStrings_Component_ConfigInput(
         PortLabel = "連接埠 (留空表示不修改)",
@@ -188,7 +196,7 @@ internal val ZhYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
             AddTitle = "新增項目",
             EditTitle = "編輯項目",
             ResetTitle = "重設確認",
-            ResetMessage = "清空所有項目並恢復為不修改狀態？",
+            ResetMessage = "清空所有項目並恢復為不修改狀態",
         ),
         Empty = YumeStrings_Component_Editor_Empty(
             Title = "暫無項目",
@@ -221,6 +229,10 @@ internal val EnYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
         Share = "Share",
         ShareFile = "Share file",
         ShareLink = "Share link",
+        Enable = "Enable",
+        Disable = "Disable",
+        CurrentProfile = "Current profile",
+        NotEnabled = "Not enabled",
         RemoteSubscription = "Remote Subscription",
         LocalFile = "Local File",
         LocalConfig = "Local Configuration",
@@ -273,7 +285,7 @@ internal val EnYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
         ContentDescription = "%s flag",
     ),
     Loading = YumeStrings_Component_Loading(
-        Starting = "Starting...",
+        Starting = "Starting",
     ),
     ConfigInput = YumeStrings_Component_ConfigInput(
         PortLabel = "Port (leave empty to not modify)",
@@ -294,7 +306,7 @@ internal val EnYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
             AddTitle = "Add Entry",
             EditTitle = "Edit Entry",
             ResetTitle = "Confirm Reset",
-            ResetMessage = "Clear all entries and restore to unmodified state?",
+            ResetMessage = "Clear all entries and restore to unmodified state",
         ),
         Empty = YumeStrings_Component_Editor_Empty(
             Title = "No Entries",
@@ -327,6 +339,10 @@ internal val JaYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
         Share = "共有",
         ShareFile = "ファイルを共有",
         ShareLink = "リンクを共有",
+        Enable = "有効にする",
+        Disable = "無効にする",
+        CurrentProfile = "現在のプロファイル",
+        NotEnabled = "未使用",
         RemoteSubscription = "リモート購読",
         LocalFile = "ローカルファイル",
         LocalConfig = "ローカル設定",
@@ -379,7 +395,7 @@ internal val JaYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
         ContentDescription = "%s の旗",
     ),
     Loading = YumeStrings_Component_Loading(
-        Starting = "開始中...",
+        Starting = "開始中",
     ),
     ConfigInput = YumeStrings_Component_ConfigInput(
         PortLabel = "ポート (空欄で変更しない)",
@@ -400,7 +416,7 @@ internal val JaYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
             AddTitle = "項目を追加",
             EditTitle = "項目を編集",
             ResetTitle = "リセットの確認",
-            ResetMessage = "すべての項目を消去し、未変更状態に戻しますか？",
+            ResetMessage = "すべての項目を消去し、未変更状態に戻しますか",
         ),
         Empty = YumeStrings_Component_Editor_Empty(
             Title = "項目がありません",
@@ -433,6 +449,10 @@ internal val RuYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
         Share = "Поделиться",
         ShareFile = "Поделиться файлом",
         ShareLink = "Поделиться ссылкой",
+        Enable = "Включить",
+        Disable = "Отключить",
+        CurrentProfile = "Текущий профиль",
+        NotEnabled = "Не включено",
         RemoteSubscription = "Удалённая подписка",
         LocalFile = "Локальный файл",
         LocalConfig = "Локальная конфигурация",
@@ -443,9 +463,9 @@ internal val RuYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
         ExpireToday = "Истекает: сегодня",
         Expired = "Истекло: %s",
         RemainingOfTotal = "/ %s",
-        ExpireInDays = "осталось %d дн.",
-        ExpireInMonths = "осталось %d мес.",
-        ExpireInYears = "осталось %d г.",
+        ExpireInDays = "осталось %d дн",
+        ExpireInMonths = "осталось %d мес",
+        ExpireInYears = "осталось %d г",
         ExpireInPermanent = "Бессрочно",
         ExpireTodayShort = "истекает сегодня",
         ExpiredShort = "истёк",
@@ -485,7 +505,7 @@ internal val RuYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
         ContentDescription = "Флаг %s",
     ),
     Loading = YumeStrings_Component_Loading(
-        Starting = "Запуск...",
+        Starting = "Запуск",
     ),
     ConfigInput = YumeStrings_Component_ConfigInput(
         PortLabel = "Порт (оставьте пустым, чтобы не менять)",
@@ -506,7 +526,7 @@ internal val RuYumeStrings_Component: YumeStrings_Component = YumeStrings_Compon
             AddTitle = "Добавить запись",
             EditTitle = "Изменить запись",
             ResetTitle = "Подтвердить сброс",
-            ResetMessage = "Очистить все записи и вернуть неизменённое состояние?",
+            ResetMessage = "Очистить все записи и вернуть неизменённое состояние",
         ),
         Empty = YumeStrings_Component_Editor_Empty(
             Title = "Нет записей",

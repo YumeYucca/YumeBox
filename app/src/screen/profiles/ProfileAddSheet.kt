@@ -38,6 +38,7 @@ import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.presentation.util.*
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import java.io.File
 import java.util.*
 import kotlin.math.max
 
@@ -70,6 +71,7 @@ internal fun AddProfileSheet(
     var urlTextFieldValue by form.url
     var filePath by form.filePath
     var fileNameTextFieldValue by form.fileName
+    var fileSize by form.fileSize
     var ageSecretKeyTextFieldValue by form.ageSecretKey
     var error by form.error
     var isDownloading by form.isDownloading
@@ -142,6 +144,9 @@ internal fun AddProfileSheet(
                 } else {
                     selectedImportType = ProfileImportType.fromProfile(profileToEdit.type)
                     filePath = profileToEdit.source
+                    // Editing an existing local profile: show its size too, so the row reads the
+                    // same as a freshly picked file.
+                    fileSize = File(profileToEdit.source).length()
                     applyFileNameText(sourceFileName(profileToEdit.source))
                 }
             } else if (!importUrl.isNullOrBlank()) {
@@ -194,6 +199,7 @@ internal fun AddProfileSheet(
             onFileSelected = { uri, fileName ->
                 filePath = uri.toString()
                 error = ""
+                fileSize = readDisplaySize(context, uri)
                 applyFileNameText(fileName)
                 if (nameTextFieldValue.text.isBlank() || nameTextFieldValue.text == fileName) {
                     applyNameText(
@@ -272,7 +278,7 @@ internal fun AddProfileSheet(
             selectedImportType = selectedImportType,
             nameValue = nameTextFieldValue,
             urlValue = urlTextFieldValue,
-            fileNameValue = fileNameTextFieldValue,
+            fileSize = fileSize,
             ageSecretKeyValue = ageSecretKeyTextFieldValue,
             error = error,
             hasCameraPermission = hasCameraPermission,

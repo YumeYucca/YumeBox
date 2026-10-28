@@ -17,17 +17,19 @@ internal val ZhHansYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStri
         Complete = "完成",
     ),
     Type = YumeStrings_ProfilesPage_Type(
-        Title = "配置类型",
+        Title = "类型",
         Subscription = "订阅链接",
         LocalFile = "本地文件",
         QrScan = "扫码添加",
     ),
     Input = YumeStrings_ProfilesPage_Input(
-        ProfileName = "配置名称",
-        SubscriptionUrl = "订阅链接 (HTTP/HTTPS)",
-        SelectFile = "点击选择文件",
+        ProfileName = "名称",
+        SubscriptionUrl = "订阅链接",
+        SelectFile = "选择文件",
         NewProfile = "新配置",
-        AgeSecretKey = "Age 私钥（可选）",
+        AgeSecretKey = "Age 私钥",
+        Optional = "可选",
+        Required = "必填",
     ),
     QrScanner = YumeStrings_ProfilesPage_QrScanner(
         NeedPermission = "需要相机权限",
@@ -46,7 +48,7 @@ internal val ZhHansYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStri
         YamlOnly = "仅支持 .yaml 或 .yml 格式的配置文件",
     ),
     Progress = YumeStrings_ProfilesPage_Progress(
-        Downloading = "下载中...",
+        Downloading = "下载中",
     ),
     Button = YumeStrings_ProfilesPage_Button(
         Cancel = "取消",
@@ -54,7 +56,7 @@ internal val ZhHansYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStri
     ),
     DeleteDialog = YumeStrings_ProfilesPage_DeleteDialog(
         Title = "删除配置",
-        Message = "确定要删除「%s」吗？",
+        Message = "确定要删除「%s」吗",
         Confirm = "删除",
     ),
     EditDialog = YumeStrings_ProfilesPage_EditDialog(
@@ -99,9 +101,19 @@ internal val ZhHansYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStri
         SectionOverride = "覆写",
         SectionSubscriptionSummary = "配置名称、订阅链接与 Age 私钥",
         SectionOverrideSummary = "该配置启用的覆写，拖动可调整顺序",
+        ProfileInfo = "订阅信息",
+        ProfileStatus = "配置状态",
+        ProfileEnabled = "启用配置",
+        ProfileEnabledSummary = "关闭后该配置不参与运行",
+        ConfigFile = "配置文件",
+        ConfigFileSummary = "配置文件的更新时间与大小",
+        UpdatedAt = "更新时间",
+        ConfigFileSize = "配置文件大小",
         SaveFailed = "保存配置失败",
         ConfigMissing = "配置不存在：%s",
         AgeSecretKey = "Age 私钥",
+        AgeSection = "Age",
+        AgeSecretKeySummary = "用于解密 Age 加密的配置，留空则保持不变",
     ),
 )
 
@@ -122,17 +134,19 @@ internal val ZhYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         Complete = "完成",
     ),
     Type = YumeStrings_ProfilesPage_Type(
-        Title = "設定檔類型",
+        Title = "類型",
         Subscription = "訂閱連結",
         LocalFile = "本機檔案",
         QrScan = "掃描 QR Code",
     ),
     Input = YumeStrings_ProfilesPage_Input(
-        ProfileName = "設定檔名稱",
-        SubscriptionUrl = "訂閱連結 (HTTP/HTTPS)",
-        SelectFile = "點一下選擇檔案",
+        ProfileName = "名稱",
+        SubscriptionUrl = "訂閱連結",
+        SelectFile = "選擇檔案",
         NewProfile = "新設定檔",
-        AgeSecretKey = "Age 私鑰（選填）",
+        AgeSecretKey = "Age 私鑰",
+        Optional = "可選",
+        Required = "必填",
     ),
     QrScanner = YumeStrings_ProfilesPage_QrScanner(
         NeedPermission = "需要相機權限",
@@ -151,7 +165,7 @@ internal val ZhYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         YamlOnly = "僅支援 .yaml 或 .yml 格式",
     ),
     Progress = YumeStrings_ProfilesPage_Progress(
-        Downloading = "下載中...",
+        Downloading = "下載中",
     ),
     Button = YumeStrings_ProfilesPage_Button(
         Cancel = "取消",
@@ -159,7 +173,7 @@ internal val ZhYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
     ),
     DeleteDialog = YumeStrings_ProfilesPage_DeleteDialog(
         Title = "刪除設定檔",
-        Message = "確定要刪除「%s」嗎？",
+        Message = "確定要刪除「%s」嗎",
         Confirm = "刪除",
     ),
     EditDialog = YumeStrings_ProfilesPage_EditDialog(
@@ -204,9 +218,19 @@ internal val ZhYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         SectionOverride = "覆寫",
         SectionSubscriptionSummary = "設定檔名稱、訂閱連結與 Age 私鑰",
         SectionOverrideSummary = "此設定檔啟用的覆寫，拖曳可調整順序",
+        ProfileInfo = "訂閱資訊",
+        ProfileStatus = "設定檔狀態",
+        ProfileEnabled = "啟用設定檔",
+        ProfileEnabledSummary = "關閉後此設定檔不參與執行",
+        ConfigFile = "設定檔",
+        ConfigFileSummary = "設定檔的更新時間與大小",
+        UpdatedAt = "更新時間",
+        ConfigFileSize = "設定檔大小",
         SaveFailed = "儲存設定檔失敗",
         ConfigMissing = "設定檔不存在：%s",
         AgeSecretKey = "Age 私鑰",
+        AgeSection = "Age",
+        AgeSecretKeySummary = "用於解密 Age 加密的設定，留空則維持不變",
     ),
 )
 
@@ -227,17 +251,19 @@ internal val EnYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         Complete = "Complete",
     ),
     Type = YumeStrings_ProfilesPage_Type(
-        Title = "Profile Type",
+        Title = "Type",
         Subscription = "Subscription URL",
         LocalFile = "Local File",
         QrScan = "Scan QR Code",
     ),
     Input = YumeStrings_ProfilesPage_Input(
-        ProfileName = "Profile Name",
-        SubscriptionUrl = "Subscription URL (HTTP/HTTPS)",
-        SelectFile = "Click to select file",
+        ProfileName = "Name",
+        SubscriptionUrl = "Subscription URL",
+        SelectFile = "Select file",
         NewProfile = "New Profile",
-        AgeSecretKey = "Age Secret Key (optional)",
+        AgeSecretKey = "Age Secret Key",
+        Optional = "Optional",
+        Required = "Required",
     ),
     QrScanner = YumeStrings_ProfilesPage_QrScanner(
         NeedPermission = "Camera permission required",
@@ -256,7 +282,7 @@ internal val EnYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         YamlOnly = "Only .yaml or .yml format supported",
     ),
     Progress = YumeStrings_ProfilesPage_Progress(
-        Downloading = "Downloading...",
+        Downloading = "Downloading",
     ),
     Button = YumeStrings_ProfilesPage_Button(
         Cancel = "Cancel",
@@ -264,7 +290,7 @@ internal val EnYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
     ),
     DeleteDialog = YumeStrings_ProfilesPage_DeleteDialog(
         Title = "Delete Profile",
-        Message = "Are you sure you want to delete '%s'?",
+        Message = "Are you sure you want to delete '%s'",
         Confirm = "Delete",
     ),
     EditDialog = YumeStrings_ProfilesPage_EditDialog(
@@ -309,9 +335,19 @@ internal val EnYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         SectionOverride = "Overrides",
         SectionSubscriptionSummary = "Name, subscription link and Age secret key",
         SectionOverrideSummary = "Overrides applied to this profile; drag to reorder",
+        ProfileInfo = "Subscription info",
+        ProfileStatus = "Profile status",
+        ProfileEnabled = "Enable profile",
+        ProfileEnabledSummary = "When off, this profile is not used",
+        ConfigFile = "Config file",
+        ConfigFileSummary = "When the config file was updated and how large it is",
+        UpdatedAt = "Updated",
+        ConfigFileSize = "File size",
         SaveFailed = "Failed to save profile",
         ConfigMissing = "Config not found: %s",
         AgeSecretKey = "Age Secret Key",
+        AgeSection = "Age",
+        AgeSecretKeySummary = "Used to decrypt Age-encrypted configs; leave blank to keep the current key",
     ),
 )
 
@@ -332,17 +368,19 @@ internal val JaYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         Complete = "完了",
     ),
     Type = YumeStrings_ProfilesPage_Type(
-        Title = "プロファイル種別",
+        Title = "タイプ",
         Subscription = "購読 URL",
         LocalFile = "ローカルファイル",
         QrScan = "QR コードをスキャン",
     ),
     Input = YumeStrings_ProfilesPage_Input(
-        ProfileName = "プロファイル名",
-        SubscriptionUrl = "購読 URL (HTTP/HTTPS)",
-        SelectFile = "タップしてファイルを選択",
+        ProfileName = "名前",
+        SubscriptionUrl = "購読 URL",
+        SelectFile = "ファイルを選択",
         NewProfile = "新規プロファイル",
-        AgeSecretKey = "Age 秘密鍵（任意）",
+        AgeSecretKey = "Age 秘密鍵",
+        Optional = "任意",
+        Required = "必須",
     ),
     QrScanner = YumeStrings_ProfilesPage_QrScanner(
         NeedPermission = "カメラ権限が必要です",
@@ -361,7 +399,7 @@ internal val JaYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         YamlOnly = ".yaml または .yml 形式のみ対応",
     ),
     Progress = YumeStrings_ProfilesPage_Progress(
-        Downloading = "ダウンロード中...",
+        Downloading = "ダウンロード中",
     ),
     Button = YumeStrings_ProfilesPage_Button(
         Cancel = "キャンセル",
@@ -369,7 +407,7 @@ internal val JaYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
     ),
     DeleteDialog = YumeStrings_ProfilesPage_DeleteDialog(
         Title = "プロファイルを削除",
-        Message = "「%s」を削除しますか？",
+        Message = "「%s」を削除しますか",
         Confirm = "削除",
     ),
     EditDialog = YumeStrings_ProfilesPage_EditDialog(
@@ -414,9 +452,19 @@ internal val JaYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         SectionOverride = "上書き",
         SectionSubscriptionSummary = "プロファイル名・購読リンク・Age 秘密鍵",
         SectionOverrideSummary = "このプロファイルに適用する上書き。ドラッグで並べ替え",
+        ProfileInfo = "購読情報",
+        ProfileStatus = "プロファイルの状態",
+        ProfileEnabled = "プロファイルを有効化",
+        ProfileEnabledSummary = "オフにすると、このプロファイルは使用されません",
+        ConfigFile = "設定ファイル",
+        ConfigFileSummary = "設定ファイルの更新日時とサイズ",
+        UpdatedAt = "更新日時",
+        ConfigFileSize = "ファイルサイズ",
         SaveFailed = "プロファイルの保存に失敗しました",
         ConfigMissing = "設定が見つかりません: %s",
         AgeSecretKey = "Age 秘密鍵",
+        AgeSection = "Age",
+        AgeSecretKeySummary = "Age 暗号化された設定の復号に使用します。空欄の場合は現在の鍵を維持します",
     ),
 )
 
@@ -437,17 +485,19 @@ internal val RuYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         Complete = "Готово",
     ),
     Type = YumeStrings_ProfilesPage_Type(
-        Title = "Тип профиля",
+        Title = "Тип",
         Subscription = "URL подписки",
         LocalFile = "Локальный файл",
         QrScan = "Сканировать QR-код",
     ),
     Input = YumeStrings_ProfilesPage_Input(
-        ProfileName = "Имя профиля",
-        SubscriptionUrl = "URL подписки (HTTP/HTTPS)",
-        SelectFile = "Нажмите, чтобы выбрать файл",
+        ProfileName = "Имя",
+        SubscriptionUrl = "URL подписки",
+        SelectFile = "Выбрать файл",
         NewProfile = "Новый профиль",
-        AgeSecretKey = "Секретный ключ Age (необязательно)",
+        AgeSecretKey = "Секретный ключ Age",
+        Optional = "Необязательно",
+        Required = "Обязательно",
     ),
     QrScanner = YumeStrings_ProfilesPage_QrScanner(
         NeedPermission = "Требуется доступ к камере",
@@ -466,7 +516,7 @@ internal val RuYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         YamlOnly = "Поддерживаются только форматы .yaml или .yml",
     ),
     Progress = YumeStrings_ProfilesPage_Progress(
-        Downloading = "Загрузка...",
+        Downloading = "Загрузка",
     ),
     Button = YumeStrings_ProfilesPage_Button(
         Cancel = "Отмена",
@@ -474,7 +524,7 @@ internal val RuYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
     ),
     DeleteDialog = YumeStrings_ProfilesPage_DeleteDialog(
         Title = "Удалить профиль",
-        Message = "Удалить «%s»?",
+        Message = "Удалить «%s»",
         Confirm = "Удалить",
     ),
     EditDialog = YumeStrings_ProfilesPage_EditDialog(
@@ -519,9 +569,19 @@ internal val RuYumeStrings_ProfilesPage: YumeStrings_ProfilesPage = YumeStrings_
         SectionOverride = "Переопределения",
         SectionSubscriptionSummary = "Имя, ссылка подписки и ключ Age",
         SectionOverrideSummary = "Переопределения для этого профиля; перетащите для изменения порядка",
+        ProfileInfo = "Информация о подписке",
+        ProfileStatus = "Состояние профиля",
+        ProfileEnabled = "Включить профиль",
+        ProfileEnabledSummary = "Если выключено, профиль не используется",
+        ConfigFile = "Файл конфигурации",
+        ConfigFileSummary = "Время обновления и размер файла конфигурации",
+        UpdatedAt = "Обновлено",
+        ConfigFileSize = "Размер файла",
         SaveFailed = "Не удалось сохранить профиль",
         ConfigMissing = "Конфигурация не найдена: %s",
         AgeSecretKey = "Секретный ключ Age",
+        AgeSection = "Age",
+        AgeSecretKeySummary = "Используется для расшифровки конфигураций Age; оставьте пустым, чтобы сохранить текущий ключ",
     ),
 )
 

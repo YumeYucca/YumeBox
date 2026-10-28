@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -80,7 +81,14 @@ internal fun ProfilesSortSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetColor = MiuixTheme.colorScheme.surface
-    val sheetContentBackdrop = rememberLayerBackdrop { drawContent() }
+    // 玻璃钮采样「sheet 底色 + 列表」:没有底色时静止状态下背后是空的,只有列表滚过才透出玻璃与描边。
+    val sheetContentBackdrop =
+        key(sheetColor) {
+            rememberLayerBackdrop {
+                drawRect(sheetColor)
+                drawContent()
+            }
+        }
     // 草稿序:拖动途中只在本地重排预览,保存时整份提交一次。show/profiles 变化即重置草稿
     // (丢弃后重开、外部刷新、自己提交后都回到已提交序),拖动途中二者不变、草稿得以保留。
     var currentDraft by remember(show, profiles) { mutableStateOf(profiles) }

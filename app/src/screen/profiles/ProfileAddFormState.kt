@@ -31,6 +31,8 @@ internal class ProfileAddFormState {
     val url = mutableStateOf(TextFieldValue())
     val filePath = mutableStateOf("")
     val fileName = mutableStateOf(TextFieldValue())
+    // Shown at the right edge of the file row: a non-zero size is the "file already picked" signal.
+    val fileSize = mutableStateOf(0L)
     val ageSecretKey = mutableStateOf(TextFieldValue())
     val error = mutableStateOf("")
     val isDownloading = mutableStateOf(false)
@@ -42,6 +44,7 @@ internal class ProfileAddFormState {
         url.value = textValueAtEnd("")
         filePath.value = ""
         fileName.value = textValueAtEnd("")
+        fileSize.value = 0L
         ageSecretKey.value = TextFieldValue()
         error.value = ""
         isDownloading.value = false
@@ -54,6 +57,7 @@ internal class ProfileAddFormState {
             ProfileImportType.LocalFile -> {
                 filePath.value = ""
                 fileName.value = textValueAtEnd("")
+                fileSize.value = 0L
             }
             ProfileImportType.Qr -> Unit
         }

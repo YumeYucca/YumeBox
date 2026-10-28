@@ -338,10 +338,12 @@ fun MoeHomePage(
         author = moeHomeQuoteAuthor,
         sidebarExpanded = sidebarExpanded,
         useSystemWallpaper = useSystemWallpaper,
+        statusBarSpacing = statusBarSpacing,
         onQuoteChange = appSettingsViewModel::onMoeHomeQuoteChange,
         onAuthorChange = appSettingsViewModel::onMoeHomeQuoteAuthorChange,
         onSidebarExpandedChange = appSettingsViewModel::onMoeSidebarExpandedChange,
         onUseSystemWallpaperChange = appSettingsViewModel::onUseSystemWallpaperChange,
+        onStatusBarSpacingChange = appSettingsViewModel::onMoeStatusBarSpacingChange,
         onChangeWallpaper = {
             showHomeSettingsSheet = false
             launchWallpaperPicker()

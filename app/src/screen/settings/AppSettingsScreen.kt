@@ -37,13 +37,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.net.toUri
-import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.screen.moe.SystemWallpaperPreferenceItem
 import com.github.yumeyucca.yumebox.runtime.api.Intents
 import com.github.yumeyucca.yumebox.screen.settings.component.ThemeColorPickerItem
 import org.koin.androidx.compose.koinViewModel
@@ -65,7 +63,10 @@ fun AppSettingsScreen() {
             innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
         ) {
             item { AppBehaviorSettingsSection(viewModel) }
-            item { AppInterfaceSettingsSection(viewModel = viewModel) }
+            item { AppThemeModeSettingsSection(viewModel) }
+            item { AppThemeColorSettingsSection(viewModel) }
+            item { AppInterfaceSettingsSection(viewModel) }
+            item { AppNavigationSettingsSection(viewModel) }
             item { AppPrivacySettingsSection(viewModel) }
             item { AppServiceSettingsSection(viewModel) }
             item { AppNetworkSettingsSection(viewModel) }
@@ -92,30 +93,18 @@ private fun AppBehaviorSettingsSection(viewModel: AppSettingsViewModel) {
             onCheckedChange = viewModel::onAutoUpdateCurrentProfileOnStartChange,
         )
     }
+    SectionSummary(YumeTxt.AppSettings.Appearance.BehaviorSummary)
 }
 
 @Composable
-private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
-    val context = LocalContext.current
+private fun AppThemeModeSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
     val section by viewModel.interfaceSectionState.collectAsState()
-    val themeMode = section.themeMode
-    val appLanguage = section.appLanguage
-    val themeSeedColorArgb = section.themeSeedColorArgb
-    val invertOnPrimaryColors = section.invertOnPrimaryColors
-    val bottomBarAutoHide = section.bottomBarAutoHide
-    val topBarBlurEnabled = section.topBarBlurEnabled
-    val pageScale = section.pageScale
-    val predictiveBackEnabled by viewModel.predictiveBackEnabled.state.collectAsState()
-    val predictiveBackMaxProgress by viewModel.predictiveBackMaxProgress.state.collectAsState()
-    val classicHomeEnabled = section.classicHomeEnabled
-    val useSystemWallpaper = section.useSystemWallpaper
-    val moeStatusBarSpacing by viewModel.moeStatusBarSpacing.state.collectAsState()
 
-    Title(YumeTxt.AppSettings.Interface.ColorThemeTitle)
+    Title(YumeTxt.AppSettings.Interface.ThemeModeTitle)
     AppCard {
         PreferenceEnumItem(
             title = YumeTxt.AppSettings.Interface.ThemeModeTitle,
-            currentValue = themeMode,
+            currentValue = section.themeMode,
             items =
                 listOf(
                     YumeTxt.AppSettings.Interface.ThemeModeSystem,
@@ -125,21 +114,38 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
             values = ThemeMode.entries,
             onValueChange = viewModel::onThemeModeChange,
         )
+    }
+    SectionSummary(YumeTxt.AppSettings.Appearance.ThemeSummary)
+}
+
+@Composable
+private fun AppThemeColorSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
+    val section by viewModel.interfaceSectionState.collectAsState()
+
+    Title(YumeTxt.AppSettings.Interface.ColorThemeTitle)
+    AppCard {
         PreferenceSwitchItem(
             title = YumeTxt.AppSettings.Interface.ThemeColorPolarityInvertTitle,
-            checked = invertOnPrimaryColors,
+            checked = section.invertOnPrimaryColors,
             onCheckedChange = viewModel::onInvertOnPrimaryColorsChange,
         )
         ThemeColorPickerItem(
-            themeSeedColorArgb = themeSeedColorArgb,
+            themeSeedColorArgb = section.themeSeedColorArgb,
             onThemeSeedColorChange = viewModel::onThemeSeedColorChange,
         )
     }
+    SectionSummary(YumeTxt.AppSettings.Appearance.ColorSummary)
+}
+
+@Composable
+private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
+    val section by viewModel.interfaceSectionState.collectAsState()
+
     Title(YumeTxt.AppSettings.Section.Interface)
     AppCard {
         PreferenceEnumItem(
             title = YumeTxt.AppSettings.Interface.LanguageTitle,
-            currentValue = appLanguage,
+            currentValue = section.appLanguage,
             items =
                 listOf(
                     YumeTxt.AppSettings.Interface.LanguageSystem,
@@ -154,16 +160,28 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
         )
         PreferenceSwitchItem(
             title = YumeTxt.AppSettings.Interface.AutoHideNavbarTitle,
-            checked = bottomBarAutoHide,
+            checked = section.bottomBarAutoHide,
             onCheckedChange = viewModel::onBottomBarAutoHideChange,
         )
         PreferenceSwitchItem(
             title = YumeTxt.AppSettings.Interface.TopBarBlurTitle,
-            checked = topBarBlurEnabled,
+            checked = section.topBarBlurEnabled,
             onCheckedChange = viewModel::onTopBarBlurEnabledChange,
         )
-        PageScalePreferenceItem(pageScale = pageScale, onApply = viewModel::onPageScaleChange)
+        PageScalePreferenceItem(
+            pageScale = section.pageScale,
+            onApply = viewModel::onPageScaleChange,
+        )
     }
+    SectionSummary(YumeTxt.AppSettings.Appearance.InterfaceSummary)
+}
+
+@Composable
+private fun AppNavigationSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
+    val context = LocalContext.current
+    val predictiveBackEnabled by viewModel.predictiveBackEnabled.state.collectAsState()
+    val predictiveBackMaxProgress by viewModel.predictiveBackMaxProgress.state.collectAsState()
+
     Title(YumeTxt.AppSettings.Section.Navigation)
     AppCard {
         PreferenceSwitchItem(
@@ -179,27 +197,7 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
             onApply = viewModel::onPredictiveBackMaxProgressChange,
         )
     }
-    Title(YumeTxt.AppSettings.Section.Home)
-    AppCard {
-        PreferenceSwitchItem(
-            title = YumeTxt.AppSettings.Interface.ClassicHomeTitle,
-            checked = classicHomeEnabled,
-            onCheckedChange = viewModel::onClassicHomeEnabledChange,
-        )
-        PreferenceSwitchItem(
-            title = YumeTxt.AppSettings.Interface.StatusBarSpacingTitle,
-            checked = moeStatusBarSpacing,
-            onCheckedChange = viewModel::onMoeStatusBarSpacingChange,
-        )
-        SystemWallpaperPreferenceItem(
-            checked = useSystemWallpaper,
-            onCheckedChange = viewModel::onUseSystemWallpaperChange,
-        )
-        PreferenceArrowItem(
-            title = YumeTxt.AppSettings.Interface.CustomIconTitle,
-            onClick = { openUrl(context, "https://yumebox.yumeyuka.moe/guide/icon-builder") },
-        )
-    }
+    SectionSummary(YumeTxt.AppSettings.Appearance.NavigationSummary)
 }
 
 @Composable
@@ -214,17 +212,16 @@ private fun AppPrivacySettingsSection(viewModel: AppSettingsViewModel) {
             onCheckedChange = viewModel::onExcludeFromRecentsChange,
         )
     }
+    SectionSummary(YumeTxt.AppSettings.Appearance.PrivacySummary)
 }
 
 @Composable
-private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
+private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val section by viewModel.serviceSectionState.collectAsState()
     val shizukuAccess by viewModel.shizukuAccess.collectAsState()
-    val showTrafficNotification = section.showTrafficNotification
     val superIslandEnabled = section.superIslandEnabled
-    val exitUiWhenBackground = section.exitUiWhenBackground
 
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer =
@@ -237,16 +234,6 @@ private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
 
     Title(YumeTxt.AppSettings.Section.Service)
     AppCard {
-        PreferenceSwitchItem(
-            title = YumeTxt.AppSettings.ServiceSection.TrafficNotificationTitle,
-            checked = showTrafficNotification,
-            onCheckedChange = viewModel::onShowTrafficNotificationChange,
-        )
-        PreferenceSwitchItem(
-            title = YumeTxt.AppSettings.ServiceSection.ExitUiWhenBackgroundTitle,
-            checked = exitUiWhenBackground,
-            onCheckedChange = viewModel::onExitUiWhenBackgroundChange,
-        )
         if (shizukuAccess.islandSupported) {
             PreferenceSwitchItem(
                 title = YumeTxt.AppSettings.ServiceSection.SuperIslandTitle,
@@ -279,6 +266,7 @@ private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
             },
         )
     }
+    SectionSummary(YumeTxt.AppSettings.Appearance.ServiceSummary)
 }
 
 @Composable
@@ -292,6 +280,7 @@ private fun AppNetworkSettingsSection(viewModel: AppSettingsViewModel) {
             onConfirm = viewModel::applyCustomUserAgent,
         )
     }
+    SectionSummary(YumeTxt.AppSettings.Appearance.NetworkSummary)
 }
 
 @SuppressLint("BatteryLife")

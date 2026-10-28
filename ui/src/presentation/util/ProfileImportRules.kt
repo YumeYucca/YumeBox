@@ -88,3 +88,18 @@ fun readDisplayName(context: Context, uri: Uri, fallback: String): String =
 
 fun sourceFileName(source: String): String =
     source.takeIf(String::isNotEmpty)?.let { File(it).name }.orEmpty()
+
+/** Byte size of a picked document, or 0 when the provider does not report one. */
+fun readDisplaySize(context: Context, uri: Uri): Long =
+    runCatching {
+        context.contentResolver
+            .query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)
+            ?.use { cursor ->
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (sizeIndex < 0 || !cursor.moveToFirst() || cursor.isNull(sizeIndex)) {
+                    0L
+                } else {
+                    cursor.getLong(sizeIndex)
+                }
+            } ?: 0L
+    }.getOrDefault(0L)

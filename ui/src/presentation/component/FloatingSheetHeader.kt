@@ -195,6 +195,10 @@ fun SheetHeaderIconButton(
                 tint = tint,
             ),
         backdrop = LocalSheetHeaderBackdrop.current,
+        // Same chrome as the page top bar's glass circles (and the config top-right pill): the app's
+        // own glassPanel recipe with its always-drawn bloom stroke, instead of the library
+        // GlassIconButton variant whose rim only reads once content scrolls underneath.
+        keepSurface = true,
     )
 }
 

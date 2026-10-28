@@ -63,6 +63,8 @@ class ProfilesViewModel(
     private val _profiles = MutableStateFlow<List<Profile>>(emptyList())
     val profiles: StateFlow<List<Profile>> = _profiles.asStateFlow()
 
+    private var refreshGeneration = 0
+
     private val _activeProfile = MutableStateFlow<Profile?>(null)
     val activeProfile: StateFlow<Profile?> = _activeProfile.asStateFlow()
 
@@ -76,22 +78,25 @@ class ProfilesViewModel(
     // Fault barrier: any refresh failure is surfaced as UI error state (CE rethrown).
     @Suppress("TooGenericExceptionCaught")
     fun refreshProfiles() {
+        val generation = ++refreshGeneration
         viewModelScope.launch {
             try {
                 setLoading(true)
                 val allProfiles = profilesRepository.queryAllProfiles()
                 val active = profilesRepository.queryActiveProfile()
 
+                if (generation != refreshGeneration) return@launch
                 _profiles.value = allProfiles
                 _activeProfile.value = active
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
+                if (generation != refreshGeneration) return@launch
                 Timber.e(error, "Failed to refresh profiles")
                 showError(
                     YumeTxt.ProfilesVM.Message.UpdateFailed.format(error.message ?: "Unknown")
                 )
             } finally {
-                setLoading(false)
+                if (generation == refreshGeneration) setLoading(false)
             }
         }
     }
@@ -338,24 +343,38 @@ class ProfilesViewModel(
 
     // Fault barrier: any toggle failure is surfaced as UI error state (CE rethrown).
     @Suppress("TooGenericExceptionCaught")
-    fun toggleProfileEnabled(uuid: UUID) {
+    fun setProfileActive(uuid: UUID, active: Boolean) {
         viewModelScope.launch {
             try {
                 val profile =
                     profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
 
-                if (profile.active) {
-                    profilesRepository.clearActiveProfile(profile)
-                    showMessage(YumeTxt.ProfilesVM.Message.ProfileUpdated.format(profile.name))
-                } else {
+                if (active) {
                     profilesRepository.setActiveProfile(uuid)
-                    showMessage(YumeTxt.ProfilesVM.Message.ProfileUpdated.format(profile.name))
+                } else {
+                    profilesRepository.clearActiveProfile(profile)
                 }
+
+                // Keep the list in the intended state while the refresh runs; a stale refresh
+                // must not flip the pill back for a frame.
+                _profiles.value =
+                    _profiles.value.map { item ->
+                        when {
+                            item.uuid == uuid -> item.copy(active = active)
+                            active -> item.copy(active = false)
+                            else -> item
+                        }
+                    }
+                _activeProfile.value =
+                    if (active) profile.copy(active = true) else null
+
+                showMessage(YumeTxt.ProfilesVM.Message.ProfileUpdated.format(profile.name))
                 refreshProfiles()
-                Timber.d("Profile toggled: $uuid, active=${!profile.active}")
+                Timber.d("Profile active set: $uuid, active=$active")
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 Timber.e(error, "Failed to toggle profile")
+                refreshProfiles()
                 showError(
                     YumeTxt.ProfilesVM.Message.ToggleFailed.format(error.message ?: "Unknown")
                 )

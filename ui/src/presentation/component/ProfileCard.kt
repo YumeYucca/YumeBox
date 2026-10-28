@@ -26,6 +26,7 @@ package com.github.yumeyucca.yumebox.presentation.component
 import android.annotation.SuppressLint
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -35,8 +36,10 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,21 +49,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,43 +88,63 @@ import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.CalendarCheck2
+import io.github.yumeyucca.lucide.lucide.FileBracesCorner
+import io.github.yumeyucca.lucide.lucide.FileSymlink
+import io.github.yumeyucca.lucide.lucide.Link
+import io.github.yumeyucca.lucide.lucide.ToggleRight
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.glass.*
 import top.yukonga.miuix.kmp.layout.CascadingPopupDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
-import java.io.File
+import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.sin
 
 /**
  * 订阅卡片。
  *
- * 交互约定:点勾选按钮 = 启停该配置;点卡片其余位置 = 弹出操作列表(编辑 / 更新 / 分享 / 删除)。
- * 卡片本身只保留「名称 + 启用勾选 + 流量 + 到期 + 波形进度」,更新时间等次要信息不再上卡。
+ * 交互约定:点右上角开关 = 启停该配置;点卡片其余位置 = 弹出操作列表(启用 / 编辑 / 覆写 / 更新 / 分享 / 删除)。
+ * 卡片本身只保留「名称 + 启用开关 + 流量 + 到期 + 波形进度」,更新时间等次要信息不再上卡。
  */
 @Composable
 fun ProfileCard(
     profile: Profile,
-    workDir: File,
     isDownloading: Boolean = false,
-    onExport: (Profile) -> Unit,
+    onShareFile: (Profile) -> Unit,
+    onShareLink: (Profile) -> Unit,
     onUpdate: (Profile) -> Unit,
     onDelete: (Profile) -> Unit,
     onEdit: (Profile) -> Unit,
-    onToggleEnabled: (Profile) -> Unit,
+    onToggleEnabled: (Profile, Boolean) -> Unit,
     onOverrideSettings: ((Profile) -> Unit)? = null,
-    onShareFile: ((Profile) -> Unit)? = null,
-    onShareLink: ((Profile) -> Unit)? = null,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
 ) {
     val spacing = AppTheme.spacing
     val colorScheme = MiuixTheme.colorScheme
     val warnColor = AppTheme.colors.moe.pingWarning
 
-    val isConfigSaved = remember(profile.uuid, profile.updatedAt) { profile.isConfigSaved(workDir) }
-
-    val isActive = profile.active
+    // Keep the pill on the user's chosen state while the profile list refreshes. A stale refresh
+    // must not flip "当前配置" back to "未启用" for a frame.
+    var pendingActive by remember(profile.uuid) { mutableStateOf<Boolean?>(null) }
+    val isActive = pendingActive ?: profile.active
+    LaunchedEffect(profile.active, pendingActive) {
+        if (pendingActive == profile.active) {
+            // Let a burst of refresh emissions settle before handing the pill back to the list.
+            delay(1000)
+            if (pendingActive == profile.active) pendingActive = null
+        }
+    }
+    LaunchedEffect(pendingActive) {
+        val pending = pendingActive ?: return@LaunchedEffect
+        delay(4000)
+        if (pendingActive == pending) pendingActive = null
+    }
+    val toggleEnabled = {
+        val target = !isActive
+        pendingActive = target
+        onToggleEnabled(profile, target)
+    }
     val traffic = profile.trafficPreview
     val expiry = profile.expiryPreview
 
@@ -160,7 +186,7 @@ fun ProfileCard(
             }
         },
     ) {
-        // 标题 + 右上角启用勾选(独立点击,不触发卡片弹窗)。
+        // 标题 + 右上角启用开关(独立点击,不触发卡片弹窗)。
         Row(
             modifier =
                 Modifier.fillMaxWidth()
@@ -180,11 +206,11 @@ fun ProfileCard(
             ProfileEnabledToggle(
                 isActive = isActive,
                 enabled = !isDownloading,
-                onToggle = { onToggleEnabled(profile) },
+                onToggle = toggleEnabled,
                 modifier =
                     Modifier.glassPopupAnchor(
                         anchor = actionsMenuAnchor,
-                        cornerRadius = 13.dp,
+                        cornerRadius = 12.dp,
                         floating = true,
                     ),
             )
@@ -259,21 +285,23 @@ fun ProfileCard(
     if (actionsMounted) {
         ProfileActionsMenu(
             show = actionsOpen,
+            isActive = isActive,
             isDownloading = isDownloading,
             canUpdate = profile.shouldShowUpdateButton(),
-            canExport = isConfigSaved,
             onDismiss = { actionsOpen = false },
             onDismissFinished = { actionsMounted = false },
+            onToggleEnabled = toggleEnabled,
             onEdit = { onEdit(profile) },
+            onOverrideSettings =
+                onOverrideSettings?.let { callback -> { callback(profile) } },
             onUpdate = { onUpdate(profile) },
-            onShareFile = { (onShareFile ?: onExport)(profile) },
-            onShareLink = { (onShareLink ?: onExport)(profile) },
+            onShareFile = { onShareFile(profile) },
+            onShareLink = { onShareLink(profile) },
             onDelete = { onDelete(profile) },
             anchor = actionsMenuAnchor,
             anchorContent = {
-                Checkbox(
-                    state = if (isActive) ToggleableState.On else ToggleableState.Off,
-                    onClick = null,
+                ProfileEnabledToggleVisual(
+                    isActive = isActive,
                     enabled = !isDownloading,
                 )
             },
@@ -281,7 +309,7 @@ fun ProfileCard(
     }
 }
 
-/** 右上角启用勾选:使用 Miuix Checkbox,与标题行垂直居中。 */
+/** 右上角启用开关:自绘胶囊 + 滑动圆点,与卡片下方的紧凑信息行保持同一视觉重量。 */
 @Composable
 private fun ProfileEnabledToggle(
     isActive: Boolean,
@@ -289,24 +317,90 @@ private fun ProfileEnabledToggle(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Checkbox(
-        state = if (isActive) ToggleableState.On else ToggleableState.Off,
-        onClick = if (enabled) onToggle else null,
-        modifier = modifier,
+    val interactionSource = remember { MutableInteractionSource() }
+    ProfileEnabledToggleVisual(
+        isActive = isActive,
         enabled = enabled,
+        modifier =
+            modifier.toggleable(
+                value = isActive,
+                enabled = enabled,
+                role = Role.Switch,
+                interactionSource = interactionSource,
+                indication = null,
+                onValueChange = { onToggle() },
+            ),
     )
+}
+
+@Composable
+private fun ProfileEnabledToggleVisual(
+    isActive: Boolean,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val colorScheme = MiuixTheme.colorScheme
+    val strings = YumeTxt.Component.ProfileCard
+    val inactiveContainer =
+        if (colorScheme.background.luminance() < 0.5f) {
+            Color(0xFF131415)
+        } else {
+            Color(0xFFF7F7F7)
+        }
+    val containerColor by animateColorAsState(
+        targetValue =
+            if (isActive) {
+                colorScheme.primary.copy(alpha = AppTheme.opacity.subtle)
+            } else {
+                inactiveContainer
+            },
+        animationSpec = tween(180),
+        label = "profileEnabledContainer",
+    )
+    val contentColor by animateColorAsState(
+        targetValue =
+            if (isActive) {
+                colorScheme.primary
+            } else {
+                colorScheme.onSurfaceVariantSummary
+            },
+        animationSpec = tween(180),
+        label = "profileEnabledContent",
+    )
+
+    Box(
+        modifier =
+            modifier
+                .height(24.dp)
+                .widthIn(min = 64.dp)
+                .clip(CircleShape)
+                .background(containerColor)
+                .alpha(if (enabled) 1f else 0.45f)
+                .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (isActive) strings.CurrentProfile else strings.NotEnabled,
+            fontSize = 12.sp,
+            fontWeight = FontWeight(600),
+            color = contentColor,
+            maxLines = 1,
+        )
+    }
 }
 
 /** 卡片操作弹窗:节点页右上角同款的玻璃展开菜单。 */
 @Composable
 private fun ProfileActionsMenu(
     show: Boolean,
+    isActive: Boolean,
     isDownloading: Boolean,
     canUpdate: Boolean,
-    canExport: Boolean,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
+    onToggleEnabled: () -> Unit,
     onEdit: () -> Unit,
+    onOverrideSettings: (() -> Unit)?,
     onUpdate: () -> Unit,
     onShareFile: () -> Unit,
     onShareLink: () -> Unit,
@@ -332,7 +426,6 @@ private fun ProfileActionsMenu(
         label = "profileShareArrow",
     )
 
-    // 每次收起后重置二级菜单,下次打开从一级开始。
     LaunchedEffect(show) {
         if (show) {
             popupVisible.value = true
@@ -378,6 +471,18 @@ private fun ProfileActionsMenu(
                 },
             ) {
                 GlassPopupItem(
+                    text = if (isActive) strings.Disable else strings.Enable,
+                    icon = Lucide.ToggleRight,
+                    iconSize = 18.dp,
+                    iconGap = 15.dp,
+                    enabled = actionsEnabled,
+                    selected = isActive,
+                    onClick = {
+                        onDismiss()
+                        onToggleEnabled()
+                    },
+                )
+                GlassPopupItem(
                     text = strings.Edit,
                     icon = Yume.Edit,
                     iconSize = 18.dp,
@@ -388,6 +493,20 @@ private fun ProfileActionsMenu(
                         onEdit()
                     },
                 )
+                val overrideAction = onOverrideSettings
+                if (overrideAction != null) {
+                    GlassPopupItem(
+                        text = YumeTxt.ProfilesPage.SettingsDialog.SectionOverride,
+                        icon = Lucide.FileBracesCorner,
+                        iconSize = 18.dp,
+                        iconGap = 15.dp,
+                        enabled = actionsEnabled,
+                        onClick = {
+                            onDismiss()
+                            overrideAction()
+                        },
+                    )
+                }
                 if (canUpdate) {
                     GlassPopupItem(
                         text = strings.Update,
@@ -443,6 +562,9 @@ private fun ProfileActionsMenu(
             ) {
                 GlassPopupItem(
                     text = strings.Share,
+                    icon = Yume.Share,
+                    iconSize = 18.dp,
+                    iconGap = 15.dp,
                     showArrow = true,
                     arrowRotation = { shareArrow * (1f - anchor.secondaryBackProgress) },
                     onClick = { shareExpanded = false },
@@ -457,7 +579,10 @@ private fun ProfileActionsMenu(
                 )
                 GlassPopupItem(
                     text = strings.ShareFile,
-                    enabled = actionsEnabled && canExport,
+                    icon = Lucide.FileSymlink,
+                    iconSize = 18.dp,
+                    iconGap = 15.dp,
+                    enabled = actionsEnabled,
                     onClick = {
                         shareExpanded = false
                         onDismiss()
@@ -466,6 +591,9 @@ private fun ProfileActionsMenu(
                 )
                 GlassPopupItem(
                     text = strings.ShareLink,
+                    icon = Lucide.Link,
+                    iconSize = 18.dp,
+                    iconGap = 15.dp,
                     enabled = actionsEnabled && canUpdate,
                     onClick = {
                         shareExpanded = false
@@ -490,54 +618,40 @@ private fun ProfileExpiryBadge(
 
     val headline = formatExpiryHeadline(expiry.daysLeft)
 
-    Box(
-        modifier =
-            modifier
-                .padding(start = spacing.space8)
-                .height(UiDp.dp32)
-                .clip(RoundedCornerShape(UiDp.dp10))
-                .background(
-                    if (expiry.warning) {
-                        warnColor.copy(alpha = opacity.subtle)
-                    } else {
-                        colorScheme.primary.copy(alpha = opacity.subtle)
-                    }
-                )
-                .padding(horizontal = spacing.space8),
-        contentAlignment = Alignment.Center,
+    Column(
+        modifier = modifier.padding(start = spacing.space8),
+        horizontalAlignment = Alignment.End,
     ) {
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = headline,
-                fontSize = 12.sp,
-                fontWeight = FontWeight(700),
-                color = if (expiry.warning) warnColor else colorScheme.onSurface,
-                maxLines = 1,
-            )
-            val dateColor =
-                if (expiry.warning) {
-                    warnColor.copy(alpha = opacity.mediumStrong)
-                } else {
-                    colorScheme.onSurfaceVariantSummary
-                }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(spacing.space2),
-            ) {
-                Icon(
-                    imageVector = Lucide.CalendarCheck2,
-                    contentDescription = null,
-                    tint = dateColor,
-                    modifier = Modifier.size(10.dp),
-                )
-                Text(
-                    text = expiry.dateText,
-                    fontSize = 10.sp,
-                    color = dateColor,
-                    maxLines = 1,
-                    style = TextStyle(fontFeatureSettings = "tnum"),
-                )
+        Text(
+            text = headline,
+            fontSize = 12.sp,
+            fontWeight = FontWeight(700),
+            color = if (expiry.warning) warnColor else colorScheme.onSurface,
+            maxLines = 1,
+        )
+        val dateColor =
+            if (expiry.warning) {
+                warnColor.copy(alpha = opacity.mediumStrong)
+            } else {
+                colorScheme.onSurfaceVariantSummary
             }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.space2),
+        ) {
+            Icon(
+                imageVector = Lucide.CalendarCheck2,
+                contentDescription = null,
+                tint = dateColor,
+                modifier = Modifier.size(10.dp),
+            )
+            Text(
+                text = expiry.dateText,
+                fontSize = 10.sp,
+                color = dateColor,
+                maxLines = 1,
+                style = TextStyle(fontFeatureSettings = "tnum"),
+            )
         }
     }
 }

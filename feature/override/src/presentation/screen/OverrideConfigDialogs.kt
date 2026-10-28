@@ -28,26 +28,34 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.data.model.OverrideConfig
 import com.github.yumeyucca.yumebox.data.model.OverrideContentType
 import com.github.yumeyucca.yumebox.presentation.component.AppActionBottomSheet
+import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetAction
+import com.github.yumeyucca.yumebox.common.util.formatBytes
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetCloseAction
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetConfirmAction
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.component.AppDialog
+import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldRow
 import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference
-import com.github.yumeyucca.yumebox.presentation.component.OemTextField
+import com.github.yumeyucca.yumebox.presentation.util.readDisplaySize
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.viewmodel.OverrideConfigViewModel
 import kotlinx.coroutines.launch
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
 internal enum class OverrideConfigInputMode {
@@ -73,6 +81,7 @@ internal fun CreateConfigDialog(
     var contentType by remember(show.value) { mutableStateOf(OverrideContentType.Yaml) }
     var selectedImportUri by remember(show.value) { mutableStateOf<Uri?>(null) }
     var selectedImportFileName by remember(show.value) { mutableStateOf("") }
+    var selectedImportFileSize by remember(show.value) { mutableStateOf(0L) }
     var networkImportUrl by remember(show.value) { mutableStateOf("") }
     var isImporting by remember(show.value) { mutableStateOf(false) }
     // Exposed as state (not a plain val) because it is read inside the sheet's endAction lambda:
@@ -118,11 +127,19 @@ internal fun CreateConfigDialog(
                         }
                 }
                     .orEmpty()
+            selectedImportFileSize = uri?.let { readDisplaySize(context, it) } ?: 0L
         }
 
     AppActionBottomSheet(
         show = show.value,
-        title = YumeTxt.Override.Dialog.Create.Title,
+        // Title follows the mode: "新建配置" / "本地文件" / "链接导入" say what the sheet is about,
+        // where a single generic "添加配置" made all three look identical.
+        title =
+            when (inputMode) {
+                OverrideConfigInputMode.CreateNew -> YumeTxt.Override.Action.New
+                OverrideConfigInputMode.LocalFile -> YumeTxt.ProfilesPage.Type.LocalFile
+                OverrideConfigInputMode.NetworkUrl -> YumeTxt.Override.Action.NetworkImport
+            },
         startAction = { AppBottomSheetCloseAction(onClick = onDismiss) },
         scrollableContent = true,
         endAction = {
@@ -138,7 +155,8 @@ internal fun CreateConfigDialog(
                         }
 
                         OverrideConfigInputMode.LocalFile -> {
-                            val importUri = selectedImportUri ?: return@AppBottomSheetConfirmAction
+                            val importUri = selectedImportUri
+                                ?: return@AppBottomSheetConfirmAction
                             runCatching {
                                 context.contentResolver
                                     .openInputStream(importUri)
@@ -162,7 +180,9 @@ internal fun CreateConfigDialog(
                                 }
                                 .onFailure { error ->
                                     context.toast(
-                                        YumeTxt.Override.Import.FileError.format(error.message)
+                                        YumeTxt.Override.Import.FileError.format(
+                                            error.message
+                                        )
                                     )
                                 }
                         }
@@ -176,7 +196,8 @@ internal fun CreateConfigDialog(
                                     .onFailure { error ->
                                         context.toast(
                                             YumeTxt.Override.Import.NetworkError.format(
-                                                error.message ?: YumeTxt.Util.Error.UnknownError
+                                                error.message
+                                                    ?: YumeTxt.Util.Error.UnknownError
                                             )
                                         )
                                     }
@@ -210,20 +231,22 @@ internal fun CreateConfigDialog(
             }
             when (inputMode) {
                 OverrideConfigInputMode.CreateNew -> {
-                    OemTextField(
-                        value = nameTextFieldValueState.value,
-                        onValueChange = { updatedTextFieldValue ->
-                            nameTextFieldValueState.value = updatedTextFieldValue
-                        },
-                        label = YumeTxt.Override.Dialog.Create.Name,
-                        useLabelAsPlaceholder = true,
-                    )
+                    AppCard(applyHorizontalPadding = false) {
+                        AppTextFieldRow(
+                            label = YumeTxt.Override.Dialog.Create.Name,
+                            value = nameTextFieldValueState.value,
+                            onValueChange = { updatedTextFieldValue ->
+                                nameTextFieldValueState.value = updatedTextFieldValue
+                            },
+                            hint = YumeTxt.ProfilesPage.Input.Optional,
+                        )
+                    }
                 }
 
                 OverrideConfigInputMode.LocalFile -> {
                     ImportOverrideFileContent(
                         modifier = Modifier.fillMaxWidth(),
-                        fileName = selectedImportFileName,
+                        fileSize = selectedImportFileSize,
                         onPickFile = { importConfigLauncher.launch("*/*") },
                     )
                 }
@@ -284,17 +307,29 @@ private fun OverrideTypeSelector(
 @Composable
 private fun ImportOverrideFileContent(
     modifier: Modifier = Modifier,
-    fileName: String,
+    fileSize: Long,
     onPickFile: () -> Unit,
 ) {
-    Box(modifier = modifier) {
-        AppCard(applyHorizontalPadding = false) {
-            BasicComponent(
-                title = YumeTxt.ProfilesPage.Input.SelectFile,
-                summary = fileName.ifBlank { YumeTxt.ProfilesPage.Validation.SelectFile },
-                onClick = onPickFile,
-            )
-        }
+    AppCard(modifier = modifier, applyHorizontalPadding = false) {
+        ArrowPreference(
+            title = YumeTxt.ProfilesPage.Input.SelectFile,
+            // The right-hand text is the "already picked" signal — the file size once a file is
+            // chosen, the faint 可选 tag before that.
+            endActions = {
+                Text(
+                    text =
+                        if (fileSize > 0L) {
+                            formatBytes(fileSize)
+                        } else {
+                            YumeTxt.ProfilesPage.Input.Optional
+                        },
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    maxLines = 1,
+                )
+            },
+            onClick = onPickFile,
+        )
     }
 }
 
@@ -305,15 +340,15 @@ private fun ImportOverrideNetworkContent(
     enabled: Boolean,
     onUrlChange: (String) -> Unit,
 ) {
-    OemTextField(
-        value = url,
-        onValueChange = onUrlChange,
-        label = YumeTxt.Override.Dialog.Create.Url,
-        useLabelAsPlaceholder = true,
-        singleLine = true,
-        enabled = enabled,
-        modifier = modifier,
-    )
+    AppCard(modifier = modifier, applyHorizontalPadding = false) {
+        AppTextFieldRow(
+            label = YumeTxt.Override.Dialog.Create.Url,
+            value = url,
+            onValueChange = onUrlChange,
+            enabled = enabled,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+        )
+    }
 }
 
 @Composable

@@ -72,8 +72,8 @@ internal val ZhHansYumeStrings_Override: YumeStrings_Override = YumeStrings_Over
         ),
         Delete = YumeStrings_Override_Dialog_Delete(
             Title = "删除配置",
-            InUseMessage = "配置 %s 正在被订阅使用，删除后将解除绑定关系.确定要删除吗？此操作不可恢复.",
-            Message = "确定要删除配置 %s 吗？此操作不可恢复.",
+            InUseMessage = "配置 %s 正在被订阅使用，删除后将解除绑定关系.确定要删除吗？此操作不可恢复",
+            Message = "确定要删除配置 %s 吗？此操作不可恢复",
         ),
         Button = YumeStrings_Override_Dialog_Button(
             Cancel = "取消",
@@ -165,8 +165,8 @@ internal val ZhYumeStrings_Override: YumeStrings_Override = YumeStrings_Override
         ),
         Delete = YumeStrings_Override_Dialog_Delete(
             Title = "刪除設定",
-            InUseMessage = "設定 %s 正在被訂閱使用，刪除後將解除綁定關係.確定要刪除嗎？此操作無法復原.",
-            Message = "確定要刪除設定 %s 嗎？此操作無法復原.",
+            InUseMessage = "設定 %s 正在被訂閱使用，刪除後將解除綁定關係.確定要刪除嗎？此操作無法復原",
+            Message = "確定要刪除設定 %s 嗎？此操作無法復原",
         ),
         Button = YumeStrings_Override_Dialog_Button(
             Cancel = "取消",
@@ -258,8 +258,8 @@ internal val EnYumeStrings_Override: YumeStrings_Override = YumeStrings_Override
         ),
         Delete = YumeStrings_Override_Dialog_Delete(
             Title = "Delete Config",
-            InUseMessage = "Config %s is being used by subscriptions. Deleting will unbind the relationship. Are you sure? This action cannot be undone.",
-            Message = "Are you sure you want to delete config %s? This action cannot be undone.",
+            InUseMessage = "Config %s is being used by subscriptions. Deleting will unbind the relationship. Are you sure? This action cannot be undone",
+            Message = "Are you sure you want to delete config %s? This action cannot be undone",
         ),
         Button = YumeStrings_Override_Dialog_Button(
             Cancel = "Cancel",
@@ -351,8 +351,8 @@ internal val JaYumeStrings_Override: YumeStrings_Override = YumeStrings_Override
         ),
         Delete = YumeStrings_Override_Dialog_Delete(
             Title = "設定を削除",
-            InUseMessage = "設定 %s は購読で使用中です.削除すると関連付けが解除されます.本当に削除しますか？この操作は元に戻せません.",
-            Message = "設定 %s を削除しますか？この操作は元に戻せません.",
+            InUseMessage = "設定 %s は購読で使用中です.削除すると関連付けが解除されます.本当に削除しますか？この操作は元に戻せません",
+            Message = "設定 %s を削除しますか？この操作は元に戻せません",
         ),
         Button = YumeStrings_Override_Dialog_Button(
             Cancel = "キャンセル",
@@ -444,8 +444,8 @@ internal val RuYumeStrings_Override: YumeStrings_Override = YumeStrings_Override
         ),
         Delete = YumeStrings_Override_Dialog_Delete(
             Title = "Удалить конфигурацию",
-            InUseMessage = "Конфигурация %s используется подписками. Удаление снимет привязку. Удалить? Это действие нельзя отменить.",
-            Message = "Удалить конфигурацию %s? Это действие нельзя отменить.",
+            InUseMessage = "Конфигурация %s используется подписками. Удаление снимет привязку. Удалить? Это действие нельзя отменить",
+            Message = "Удалить конфигурацию %s? Это действие нельзя отменить",
         ),
         Button = YumeStrings_Override_Dialog_Button(
             Cancel = "Отмена",

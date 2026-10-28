@@ -38,6 +38,7 @@ internal fun ProfilesDialogHost(
         profiles = profiles,
         onOrderCommitted = { ordered ->
             profilesViewModel.commitProfileOrder(ordered.map { it.uuid })
+            state.sortCommitCount.value++
         },
         onDismiss = { state.showSortSheet.value = false },
     )
@@ -66,12 +67,6 @@ internal fun ProfilesDialogHost(
     )
 
     ProfileDeleteDialog(state, profilesViewModel)
-    ProfileShareDialog(
-        profile = state.shareTarget,
-        show = state.showShare.value,
-        onDismiss = { state.showShare.value = false },
-        onDismissFinished = { state.shareTarget = null },
-    )
 }
 
 @Composable

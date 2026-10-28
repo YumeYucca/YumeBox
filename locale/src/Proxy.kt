@@ -28,7 +28,7 @@ internal val ZhHansYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
     ),
     Testing = YumeStrings_Proxy_Testing(
         Group = "正在测试节点组：%s",
-        All = "正在测试所有节点组...",
+        All = "正在测试所有节点组",
         RequestSent = "测试请求已发送",
         Progress = "正在测试 %d/%d",
         Completed = "测试完成",
@@ -81,7 +81,7 @@ internal val ZhYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
     ),
     Testing = YumeStrings_Proxy_Testing(
         Group = "正在測試節點組：%s",
-        All = "正在測試所有節點組...",
+        All = "正在測試所有節點組",
         RequestSent = "測試請求已送出",
         Progress = "正在測試 %d/%d",
         Completed = "測試完成",
@@ -134,7 +134,7 @@ internal val EnYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
     ),
     Testing = YumeStrings_Proxy_Testing(
         Group = "Testing node group: %s",
-        All = "Testing all node groups...",
+        All = "Testing all node groups",
         RequestSent = "Test request sent",
         Progress = "Testing %d/%d",
         Completed = "Test completed",
@@ -187,7 +187,7 @@ internal val JaYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
     ),
     Testing = YumeStrings_Proxy_Testing(
         Group = "ノードグループをテスト中: %s",
-        All = "すべてのノードグループをテスト中...",
+        All = "すべてのノードグループをテスト中",
         RequestSent = "テスト要求を送信しました",
         Progress = "テスト中 %d/%d",
         Completed = "テスト完了",
@@ -240,7 +240,7 @@ internal val RuYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
     ),
     Testing = YumeStrings_Proxy_Testing(
         Group = "Тестирование группы узлов: %s",
-        All = "Тестирование всех групп узлов...",
+        All = "Тестирование всех групп узлов",
         RequestSent = "Запрос теста отправлен",
         Progress = "Тест %d/%d",
         Completed = "Тест завершён",

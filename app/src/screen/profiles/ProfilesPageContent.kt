@@ -27,10 +27,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.github.yumeyucca.yumebox.App
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.ShellIcons
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
@@ -66,16 +66,21 @@ internal fun ProfilesPageHost(
         mainInnerPadding = mainInnerPadding,
         profiles = profiles,
         isDownloading = state.isDownloading,
+        sortCommitCount = state.sortCommitCount.value,
         onAddProfile = {
             state.profileToEdit = null
             state.showAdd.value = true
         },
         onOpenSortSheet = { state.showSortSheet.value = true },
         onReorderProfiles = { from, to -> profilesViewModel.reorderProfiles(from, to) },
-        onShareProfile = { profile ->
+        onShareFile = { profile ->
             if (!state.isDownloading) {
-                state.shareTarget = profile
-                state.showShare.value = true
+                shareProfileFileDirectly(profile)
+            }
+        },
+        onShareLink = { profile ->
+            if (!state.isDownloading) {
+                shareProfileLinkDirectly(profile)
             }
         },
         onUpdateProfile = { profile ->
@@ -99,13 +104,18 @@ internal fun ProfilesPageHost(
                 navigator.push(Route.ProfileEdit(profile.uuid.toString()))
             }
         },
-        onToggleProfile = { profile ->
+        onOverrideSettings = { profile ->
+            if (!state.isDownloading) {
+                navigator.push(Route.ProfileOverride(profile.uuid.toString()))
+            }
+        },
+        onToggleProfile = { profile, active ->
             if (!state.isDownloading) {
                 scope.launch {
-                    if (profile.active && isRunning) {
+                    if (!active && profile.active && isRunning) {
                         homeViewModel.stopProxy()
                     }
-                    profilesViewModel.toggleProfileEnabled(profile.uuid)
+                    profilesViewModel.setProfileActive(profile.uuid, active)
                 }
             }
         },
@@ -118,14 +128,17 @@ internal fun ProfilesPageContent(
     mainInnerPadding: PaddingValues,
     profiles: List<Profile>,
     isDownloading: Boolean,
+    sortCommitCount: Int = 0,
     onAddProfile: () -> Unit,
     onOpenSortSheet: () -> Unit,
     onReorderProfiles: (Int, Int) -> Unit,
-    onShareProfile: (Profile) -> Unit,
+    onShareFile: (Profile) -> Unit,
+    onShareLink: (Profile) -> Unit,
     onUpdateProfile: (Profile) -> Unit,
     onDeleteProfile: (Profile) -> Unit,
     onEditProfile: (Profile) -> Unit,
-    onToggleProfile: (Profile) -> Unit,
+    onOverrideSettings: (Profile) -> Unit,
+    onToggleProfile: (Profile, Boolean) -> Unit,
     sheetHost: @Composable () -> Unit = {},
 ) {
     val scrollBehavior = MiuixScrollBehavior()
@@ -167,11 +180,14 @@ internal fun ProfilesPageContent(
                     innerPadding = innerPadding,
                     scrollBehavior = scrollBehavior,
                     isDownloading = isDownloading,
+                    sortCommitCount = sortCommitCount,
                     onReorderProfiles = onReorderProfiles,
-                    onShareProfile = onShareProfile,
+                    onShareFile = onShareFile,
+                    onShareLink = onShareLink,
                     onUpdateProfile = onUpdateProfile,
                     onDeleteProfile = onDeleteProfile,
                     onEditProfile = onEditProfile,
+                    onOverrideSettings = onOverrideSettings,
                     onToggleProfile = onToggleProfile,
                 )
             }
@@ -189,20 +205,26 @@ private fun ProfilesList(
     innerPadding: PaddingValues,
     scrollBehavior: ScrollBehavior,
     isDownloading: Boolean,
+    sortCommitCount: Int = 0,
     onReorderProfiles: (Int, Int) -> Unit,
-    onShareProfile: (Profile) -> Unit,
+    onShareFile: (Profile) -> Unit,
+    onShareLink: (Profile) -> Unit,
     onUpdateProfile: (Profile) -> Unit,
     onDeleteProfile: (Profile) -> Unit,
     onEditProfile: (Profile) -> Unit,
-    onToggleProfile: (Profile) -> Unit,
+    onOverrideSettings: (Profile) -> Unit,
+    onToggleProfile: (Profile, Boolean) -> Unit,
 ) {
     val listState = rememberLazyListState()
     val reorderState =
         rememberReorderableLazyListState(listState) { from, to ->
             onReorderProfiles(from.index, to.index)
         }
-    val importedDir = App.instance.filesDir.resolve("imported")
-
+    // 排序弹窗应用后整份顺序变了:带 key 的 LazyColumn 会跟着原首个可见项挪到新位置,
+    // 看起来像自动滚到底。这里提交后动画回顶(不是瞬跳),保持与打开弹窗时一致的顶部视图。
+    LaunchedEffect(sortCommitCount) {
+        if (sortCommitCount > 0) listState.animateScrollToItem(0)
+    }
     ScreenLazyColumn(
         lazyListState = listState,
         scrollBehavior = scrollBehavior,
@@ -213,14 +235,15 @@ private fun ProfilesList(
             ReorderableItem(reorderState, key = profile.uuid.toString()) { _ ->
                 ProfileCard(
                     profile = profile,
-                    workDir = importedDir,
                     isDownloading = isDownloading,
                     modifier = Modifier.longPressDraggableHandle(),
-                    onExport = { onShareProfile(it) },
+                    onShareFile = { onShareFile(it) },
+                    onShareLink = { onShareLink(it) },
                     onUpdate = { onUpdateProfile(it) },
                     onDelete = { onDeleteProfile(it) },
                     onEdit = { onEditProfile(it) },
-                    onToggleEnabled = { onToggleProfile(it) },
+                    onOverrideSettings = { onOverrideSettings(it) },
+                    onToggleEnabled = { profile, active -> onToggleProfile(profile, active) },
                 )
             }
         }

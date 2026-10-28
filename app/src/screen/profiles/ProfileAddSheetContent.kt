@@ -26,33 +26,43 @@ package com.github.yumeyucca.yumebox.screen.profiles
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
-import com.github.yumeyucca.yumebox.presentation.component.AgeSecretKeyField
+import com.github.yumeyucca.yumebox.common.util.formatBytes
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
-import com.github.yumeyucca.yumebox.presentation.component.OemTextField
+import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference
+import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldRow
+import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldRowIcon
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
+import com.github.yumeyucca.yumebox.presentation.icon.yume.Eye
 import com.github.yumeyucca.yumebox.presentation.icon.yume.PackageCheck
+import io.github.yumeyucca.lucide.Lucide
+import io.github.yumeyucca.lucide.lucide.FileText
+import io.github.yumeyucca.lucide.lucide.Link
+import io.github.yumeyucca.lucide.lucide.QrCode
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -135,7 +145,7 @@ internal fun ProfileFormContent(
     profileLocked: Boolean,
     nameTextFieldValue: TextFieldValue,
     urlTextFieldValue: TextFieldValue,
-    fileNameTextFieldValue: TextFieldValue,
+    fileSize: Long,
     ageSecretKeyTextFieldValue: TextFieldValue,
     error: String,
     hasCameraPermission: Boolean,
@@ -155,12 +165,6 @@ internal fun ProfileFormContent(
             .onSizeChanged(onContainerMeasured),
         verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
     ) {
-        ProfileTypeSelectorCard(
-            selectedImportType = selectedImportType,
-            profileLocked = profileLocked,
-            onTypeSelected = onTypeSelected,
-        )
-
         Crossfade(
             targetState = selectedImportType,
             animationSpec = tween(200),
@@ -168,12 +172,22 @@ internal fun ProfileFormContent(
         ) { importType ->
             when (importType) {
                 ProfileImportType.Qr ->
-                    QrScannerContent(
-                        hasCameraPermission = hasCameraPermission,
-                        showCameraPreview = showCameraPreview,
-                        onSelectQrImage = onSelectQrImage,
-                        onQrScanned = onQrScanned,
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
+                    ) {
+                        ProfileTypeSelectorCard(
+                            selectedImportType = selectedImportType,
+                            profileLocked = profileLocked,
+                            onTypeSelected = onTypeSelected,
+                        )
+                        QrScannerContent(
+                            hasCameraPermission = hasCameraPermission,
+                            showCameraPreview = showCameraPreview,
+                            onSelectQrImage = onSelectQrImage,
+                            onQrScanned = onQrScanned,
+                        )
+                    }
 
                 ProfileImportType.Url,
                 ProfileImportType.LocalFile ->
@@ -182,9 +196,10 @@ internal fun ProfileFormContent(
                         profileLocked = profileLocked,
                         nameTextFieldValue = nameTextFieldValue,
                         urlTextFieldValue = urlTextFieldValue,
-                        fileNameTextFieldValue = fileNameTextFieldValue,
+                        fileSize = fileSize,
                         ageSecretKeyTextFieldValue = ageSecretKeyTextFieldValue,
                         error = error,
+                        onTypeSelected = onTypeSelected,
                         onNameChange = onNameChange,
                         onUrlChange = onUrlChange,
                         onAgeSecretKeyChange = onAgeSecretKeyChange,
@@ -202,26 +217,16 @@ private fun ProfileTypeSelectorCard(
     onTypeSelected: (ProfileImportType) -> Unit,
 ) {
     AppCard(applyHorizontalPadding = false) {
-        Box(
-            modifier =
-                Modifier
-                    .alpha(if (profileLocked) 0.5f else 1f)
-                    .clickable(
-                        enabled = profileLocked,
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() },
-                        onClick = {},
-                    )
-        ) {
-            WindowSpinnerPreference(
-                title = YumeTxt.ProfilesPage.Type.Title,
-                items = ProfileImportType.entries.map { type -> DropdownItem(title = type.spinnerTitle()) },
-                selectedIndex = selectedImportType.ordinal,
-                onSelectedIndexChange = { index ->
-                    onTypeSelected(ProfileImportType.fromSpinnerIndex(index))
-                },
-            )
-        }
+        GlassDropdownPreference(
+            title = YumeTxt.ProfilesPage.Type.Title,
+            items = ProfileImportType.entries.map { type -> type.spinnerTitle() },
+            icons = listOf(Lucide.Link, Lucide.FileText, Lucide.QrCode),
+            selectedIndex = selectedImportType.ordinal,
+            enabled = !profileLocked,
+            onSelectedIndexChange = { index ->
+                onTypeSelected(ProfileImportType.fromSpinnerIndex(index))
+            },
+        )
     }
 }
 
@@ -269,67 +274,107 @@ private fun ManualProfileContent(
     profileLocked: Boolean,
     nameTextFieldValue: TextFieldValue,
     urlTextFieldValue: TextFieldValue,
-    fileNameTextFieldValue: TextFieldValue,
+    fileSize: Long,
     ageSecretKeyTextFieldValue: TextFieldValue,
     error: String,
+    onTypeSelected: (ProfileImportType) -> Unit,
     onNameChange: (TextFieldValue) -> Unit,
     onUrlChange: (TextFieldValue) -> Unit,
     onAgeSecretKeyChange: (TextFieldValue) -> Unit,
     onPickFile: () -> Unit,
 ) {
+    // The age key is a secret: it types as dots until the row's own eye is tapped.
+    var ageSecretVisible by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
     ) {
-        OemTextField(
-            value = nameTextFieldValue,
-            onValueChange = onNameChange,
-            label = YumeTxt.ProfilesPage.Input.ProfileName,
-            useLabelAsPlaceholder = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        if (importType == ProfileImportType.Url) {
-            OemTextField(
-                value = urlTextFieldValue,
-                onValueChange = onUrlChange,
-                label = YumeTxt.ProfilesPage.Input.SubscriptionUrl,
-                useLabelAsPlaceholder = true,
-                maxLines = 2,
-                readOnly = profileLocked,
-                enabled = !profileLocked,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OemTextField(
-                    value = fileNameTextFieldValue,
-                    onValueChange = {},
-                    label = YumeTxt.ProfilesPage.Input.SelectFile,
-                    useLabelAsPlaceholder = true,
-                    readOnly = true,
-                    enabled = false,
-                    modifier = Modifier.fillMaxWidth(),
+        AppCard(applyHorizontalPadding = false) {
+            Column {
+                GlassDropdownPreference(
+                    title = YumeTxt.ProfilesPage.Type.Title,
+                    items = ProfileImportType.entries.map { type -> type.spinnerTitle() },
+                    icons = listOf(Lucide.Link, Lucide.FileText, Lucide.QrCode),
+                    selectedIndex = importType.ordinal,
+                    enabled = !profileLocked,
+                    onSelectedIndexChange = { index ->
+                        onTypeSelected(ProfileImportType.fromSpinnerIndex(index))
+                    },
                 )
-                Box(
-                    modifier =
-                        Modifier
-                            .matchParentSize()
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() },
-                                onClick = onPickFile,
-                            ),
+                AppTextFieldRow(
+                    label = YumeTxt.ProfilesPage.Input.ProfileName,
+                    value = nameTextFieldValue,
+                    onValueChange = onNameChange,
+                    enabled = !profileLocked,
+                    readOnly = profileLocked,
+                    hint = YumeTxt.ProfilesPage.Input.Optional,
                 )
             }
         }
 
-        AgeSecretKeyField(
-            value = ageSecretKeyTextFieldValue,
-            onValueChange = onAgeSecretKeyChange,
-            label = YumeTxt.ProfilesPage.Input.AgeSecretKey,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        AppCard(applyHorizontalPadding = false) {
+            Column {
+                if (importType == ProfileImportType.Url) {
+                    AppTextFieldRow(
+                        label = YumeTxt.ProfilesPage.Input.SubscriptionUrl,
+                        value = urlTextFieldValue,
+                        onValueChange = onUrlChange,
+                        enabled = !profileLocked,
+                        readOnly = profileLocked,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                        hint = YumeTxt.ProfilesPage.Input.Required,
+                    )
+                } else {
+                    ArrowPreference(
+                        title = YumeTxt.ProfilesPage.Input.SelectFile,
+                        enabled = !profileLocked,
+                        endActions = {
+                            if (fileSize > 0L) {
+                                Text(
+                                    text = formatBytes(fileSize),
+                                    style = MiuixTheme.textStyles.body2,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    maxLines = 1,
+                                )
+                            }
+                        },
+                        onClick = onPickFile,
+                    )
+                }
+
+                AppTextFieldRow(
+                    label = YumeTxt.ProfilesPage.Input.AgeSecretKey,
+                    value = ageSecretKeyTextFieldValue,
+                    onValueChange = onAgeSecretKeyChange,
+                    enabled = !profileLocked,
+                    readOnly = profileLocked,
+                    hint = YumeTxt.ProfilesPage.Input.Optional,
+                    keyboardOptions =
+                        KeyboardOptions(
+                            keyboardType =
+                                if (ageSecretVisible) {
+                                    KeyboardType.Text
+                                } else {
+                                    KeyboardType.Password
+                                },
+                        ),
+                    trailingIcon = {
+                        AppTextFieldRowIcon(
+                            icon = Yume.Eye,
+                            contentDescription = YumeTxt.ProfilesPage.Input.AgeSecretKey,
+                            tint =
+                                if (ageSecretVisible) {
+                                    MiuixTheme.colorScheme.primary
+                                } else {
+                                    Color.Unspecified
+                                },
+                            onClick = { ageSecretVisible = !ageSecretVisible },
+                        )
+                    },
+                )
+            }
+        }
+
         if (error.isNotEmpty()) {
             Text(
                 text = error,

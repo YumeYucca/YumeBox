@@ -8,8 +8,8 @@ internal val ZhHansYumeStrings_Connection: YumeStrings_Connection = YumeStrings_
         Closed = "已关闭",
     ),
     Search = "搜索",
-    SearchHint = "搜索主机、进程...",
-    SortBy = "排序:",
+    SearchHint = "搜索主机、进程",
+    SortBy = "排序",
     Sort = YumeStrings_Connection_Sort(
         Time = "时间",
         Upload = "上传",
@@ -27,7 +27,7 @@ internal val ZhHansYumeStrings_Connection: YumeStrings_Connection = YumeStrings_
     Detail = YumeStrings_Connection_Detail(
         Title = "连接详情",
         Action = YumeStrings_Connection_Detail_Action(
-            Interrupting = "正在打断连接...",
+            Interrupting = "正在打断连接",
             Interrupt = "打断连接",
         ),
         Section = YumeStrings_Connection_Detail_Section(
@@ -49,7 +49,7 @@ internal val ZhHansYumeStrings_Connection: YumeStrings_Connection = YumeStrings_
             Chain = "链路",
         ),
     ),
-    Loading = "加载中...",
+    Loading = "加载中",
     Empty = "暂无活动连接",
     NoResults = "没有匹配的连接",
 )
@@ -62,8 +62,8 @@ internal val ZhYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
         Closed = "已關閉",
     ),
     Search = "搜尋",
-    SearchHint = "搜尋主機、程序...",
-    SortBy = "排序:",
+    SearchHint = "搜尋主機、程序",
+    SortBy = "排序",
     Sort = YumeStrings_Connection_Sort(
         Time = "時間",
         Upload = "上傳",
@@ -81,7 +81,7 @@ internal val ZhYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
     Detail = YumeStrings_Connection_Detail(
         Title = "連線詳情",
         Action = YumeStrings_Connection_Detail_Action(
-            Interrupting = "正在中斷連線...",
+            Interrupting = "正在中斷連線",
             Interrupt = "中斷連線",
         ),
         Section = YumeStrings_Connection_Detail_Section(
@@ -103,7 +103,7 @@ internal val ZhYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
             Chain = "鏈路",
         ),
     ),
-    Loading = "載入中...",
+    Loading = "載入中",
     Empty = "暫無作用中連線",
     NoResults = "沒有符合的連線",
 )
@@ -116,8 +116,8 @@ internal val EnYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
         Closed = "Closed",
     ),
     Search = "Search",
-    SearchHint = "Search host, process...",
-    SortBy = "Sort by:",
+    SearchHint = "Search host, process",
+    SortBy = "Sort by",
     Sort = YumeStrings_Connection_Sort(
         Time = "Time",
         Upload = "Upload",
@@ -135,7 +135,7 @@ internal val EnYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
     Detail = YumeStrings_Connection_Detail(
         Title = "Connection Details",
         Action = YumeStrings_Connection_Detail_Action(
-            Interrupting = "Interrupting connection...",
+            Interrupting = "Interrupting connection",
             Interrupt = "Interrupt connection",
         ),
         Section = YumeStrings_Connection_Detail_Section(
@@ -157,7 +157,7 @@ internal val EnYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
             Chain = "Chain",
         ),
     ),
-    Loading = "Loading...",
+    Loading = "Loading",
     Empty = "No active connections",
     NoResults = "No matching connections",
 )
@@ -170,8 +170,8 @@ internal val JaYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
         Closed = "終了済み",
     ),
     Search = "検索",
-    SearchHint = "ホスト、プロセスを検索...",
-    SortBy = "並び替え:",
+    SearchHint = "ホスト、プロセスを検索",
+    SortBy = "並び替え",
     Sort = YumeStrings_Connection_Sort(
         Time = "時間",
         Upload = "アップロード",
@@ -189,7 +189,7 @@ internal val JaYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
     Detail = YumeStrings_Connection_Detail(
         Title = "接続の詳細",
         Action = YumeStrings_Connection_Detail_Action(
-            Interrupting = "接続を切断中...",
+            Interrupting = "接続を切断中",
             Interrupt = "接続を切断",
         ),
         Section = YumeStrings_Connection_Detail_Section(
@@ -211,7 +211,7 @@ internal val JaYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
             Chain = "チェーン",
         ),
     ),
-    Loading = "読み込み中...",
+    Loading = "読み込み中",
     Empty = "アクティブな接続はありません",
     NoResults = "一致する接続がありません",
 )
@@ -224,8 +224,8 @@ internal val RuYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
         Closed = "Закрытые",
     ),
     Search = "Поиск",
-    SearchHint = "Поиск хоста, процесса...",
-    SortBy = "Сортировка:",
+    SearchHint = "Поиск хоста, процесса",
+    SortBy = "Сортировка",
     Sort = YumeStrings_Connection_Sort(
         Time = "Время",
         Upload = "Отдача",
@@ -243,7 +243,7 @@ internal val RuYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
     Detail = YumeStrings_Connection_Detail(
         Title = "Сведения о соединении",
         Action = YumeStrings_Connection_Detail_Action(
-            Interrupting = "Прерывание соединения...",
+            Interrupting = "Прерывание соединения",
             Interrupt = "Прервать соединение",
         ),
         Section = YumeStrings_Connection_Detail_Section(
@@ -265,7 +265,7 @@ internal val RuYumeStrings_Connection: YumeStrings_Connection = YumeStrings_Conn
             Chain = "Цепочка",
         ),
     ),
-    Loading = "Загрузка...",
+    Loading = "Загрузка",
     Empty = "Нет активных соединений",
     NoResults = "Нет подходящих соединений",
 )

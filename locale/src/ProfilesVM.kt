@@ -13,8 +13,8 @@ internal val ZhHansYumeStrings_ProfilesVM: YumeStrings_ProfilesVM = YumeStrings_
         ProvidersUndiscovered = "配置已保存，但未能识别外部资源列表",
     ),
     Progress = YumeStrings_ProfilesVM_Progress(
-        Preparing = "准备下载...",
-        Verifying = "正在验证配置...",
+        Preparing = "准备下载",
+        Verifying = "正在验证配置",
         ImportComplete = "导入完成",
     ),
     Error = YumeStrings_ProfilesVM_Error(
@@ -35,8 +35,8 @@ internal val ZhYumeStrings_ProfilesVM: YumeStrings_ProfilesVM = YumeStrings_Prof
         ProvidersUndiscovered = "設定檔已儲存，但未能識別外部資源列表",
     ),
     Progress = YumeStrings_ProfilesVM_Progress(
-        Preparing = "準備下載...",
-        Verifying = "正在驗證設定...",
+        Preparing = "準備下載",
+        Verifying = "正在驗證設定",
         ImportComplete = "匯入完成",
     ),
     Error = YumeStrings_ProfilesVM_Error(
@@ -57,8 +57,8 @@ internal val EnYumeStrings_ProfilesVM: YumeStrings_ProfilesVM = YumeStrings_Prof
         ProvidersUndiscovered = "Profile saved, but external resource list was not recognized",
     ),
     Progress = YumeStrings_ProfilesVM_Progress(
-        Preparing = "Preparing download...",
-        Verifying = "Verifying configuration...",
+        Preparing = "Preparing download",
+        Verifying = "Verifying configuration",
         ImportComplete = "Import complete",
     ),
     Error = YumeStrings_ProfilesVM_Error(
@@ -79,8 +79,8 @@ internal val JaYumeStrings_ProfilesVM: YumeStrings_ProfilesVM = YumeStrings_Prof
         ProvidersUndiscovered = "プロファイルを保存しましたが、外部リソース一覧を認識できませんでした",
     ),
     Progress = YumeStrings_ProfilesVM_Progress(
-        Preparing = "ダウンロードを準備中...",
-        Verifying = "設定を検証中...",
+        Preparing = "ダウンロードを準備中",
+        Verifying = "設定を検証中",
         ImportComplete = "インポート完了",
     ),
     Error = YumeStrings_ProfilesVM_Error(
@@ -101,8 +101,8 @@ internal val RuYumeStrings_ProfilesVM: YumeStrings_ProfilesVM = YumeStrings_Prof
         ProvidersUndiscovered = "Профиль сохранён, но список внешних ресурсов не распознан",
     ),
     Progress = YumeStrings_ProfilesVM_Progress(
-        Preparing = "Подготовка загрузки...",
-        Verifying = "Проверка конфигурации...",
+        Preparing = "Подготовка загрузки",
+        Verifying = "Проверка конфигурации",
         ImportComplete = "Импорт завершён",
     ),
     Error = YumeStrings_ProfilesVM_Error(
