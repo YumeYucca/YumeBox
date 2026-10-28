@@ -86,7 +86,14 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
     val nodeListState =
         rememberSaveable(selectedGroupName, saver = LazyListState.Saver) { LazyListState() }
     val sheetColor = MiuixTheme.colorScheme.surface
-    val sheetContentBackdrop = rememberLayerBackdrop { drawContent() }
+    // 玻璃钮采样「sheet 底色 + 列表」:没有底色时静止状态下背后是空的,只有列表滚过才透出玻璃与描边。
+    val sheetContentBackdrop =
+        key(sheetColor) {
+            rememberLayerBackdrop {
+                drawRect(sheetColor)
+                drawContent()
+            }
+        }
 
     DisposableEffect(Unit) {
         proxyViewModel.ensureCoreLoaded(true, source = "proxy_sheet")

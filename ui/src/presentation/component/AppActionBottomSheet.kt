@@ -32,12 +32,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -183,7 +186,15 @@ fun AppActionBottomSheet(
             sheetMaxWidth
         }
 
-    val sheetContentBackdrop = rememberLayerBackdrop { drawContent() }
+    // Sample the sheet body plus its content: without the base colour the side actions read as
+    // bare icons at rest and only show their glass once content scrolls underneath.
+    val sheetContentBackdrop =
+        key(resolvedBackgroundColor) {
+            rememberLayerBackdrop {
+                drawRect(resolvedBackgroundColor)
+                drawContent()
+            }
+        }
     // miuix-glass bottom sheet. The panel does not sample the page (backdrop = null): it paints
     // the opaque container colour, which is what the reference sheet does ("弹窗本体不做壁纸
     // 玻璃模糊，纯实色").
@@ -214,38 +225,40 @@ fun AppActionBottomSheet(
         enableNestedScroll = enableNestedScroll,
         renderInRootScaffold = resolvedRenderInRoot,
         content = {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.fillMaxWidth().layerBackdrop(sheetContentBackdrop)) {
-                    if (scrollableContent) {
-                        // The content column scrolls itself and wraps up to the sheet's max height. The
-                        // sheet column is not scrollable, so a tall non-lazy form (add profile, settings)
-                        // would otherwise be clipped with no way to reach the cut-off fields — especially
-                        // with the IME consuming half the window.
-                        Column(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(horizontal = insideMargin.width),
-                        ) {
-                            Spacer(modifier = Modifier.height(AppBottomSheetDefaults.ContentTopGap))
-                            content()
-                        }
-                    } else {
-                        // Self-scrolling content (LazyColumn): the caller pads its own top with
-                        // AppBottomSheetDefaults.ContentTopGap so the first row starts under the band.
-                        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = insideMargin.width)) {
-                            content()
+            CompositionLocalProvider(LocalGlassBackdrop provides sheetContentBackdrop) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Box(modifier = Modifier.fillMaxWidth().layerBackdrop(sheetContentBackdrop)) {
+                        if (scrollableContent) {
+                            // The content column scrolls itself and wraps up to the sheet's max height. The
+                            // sheet column is not scrollable, so a tall non-lazy form (add profile, settings)
+                            // would otherwise be clipped with no way to reach the cut-off fields — especially
+                            // with the IME consuming half the window.
+                            Column(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .verticalScroll(rememberScrollState())
+                                        .padding(horizontal = insideMargin.width),
+                            ) {
+                                Spacer(modifier = Modifier.height(AppBottomSheetDefaults.ContentTopGap))
+                                content()
+                            }
+                        } else {
+                            // Self-scrolling content (LazyColumn): the caller pads its own top with
+                            // AppBottomSheetDefaults.ContentTopGap so the first row starts under the band.
+                            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = insideMargin.width)) {
+                                content()
+                            }
                         }
                     }
+                    FloatingSheetHeader(
+                        backdrop = sheetContentBackdrop,
+                        title = title,
+                        sheetColor = resolvedBackgroundColor,
+                        startAction = startAction,
+                        endAction = endAction,
+                    )
                 }
-                FloatingSheetHeader(
-                    backdrop = sheetContentBackdrop,
-                    title = title,
-                    sheetColor = resolvedBackgroundColor,
-                    startAction = startAction,
-                    endAction = endAction,
-                )
             }
         },
     )

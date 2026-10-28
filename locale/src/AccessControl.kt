@@ -3,13 +3,13 @@ package com.github.yumeyucca.yumebox.core.locale
 internal val ZhHansYumeStrings_AccessControl: YumeStrings_AccessControl = YumeStrings_AccessControl(
     Title = "访问控制",
     Search = YumeStrings_AccessControl_Search(
-        Placeholder = "搜索应用...",
+        Placeholder = "搜索应用",
         Empty = "没有匹配的应用",
     ),
     AppList = YumeStrings_AccessControl_AppList(
         ScreenTitle = "应用列表",
         Title = "应用列表 (%d 已选择)",
-        Loading = "加载中...",
+        Loading = "加载中",
     ),
     Settings = YumeStrings_AccessControl_Settings(
         Summary = "应用级代理的分流控制",
@@ -55,13 +55,13 @@ internal val ZhHansYumeStrings_AccessControl: YumeStrings_AccessControl = YumeSt
 internal val ZhYumeStrings_AccessControl: YumeStrings_AccessControl = YumeStrings_AccessControl(
     Title = "存取控制",
     Search = YumeStrings_AccessControl_Search(
-        Placeholder = "搜尋應用...",
+        Placeholder = "搜尋應用",
         Empty = "沒有符合的應用",
     ),
     AppList = YumeStrings_AccessControl_AppList(
         ScreenTitle = "應用列表",
         Title = "應用列表 (%d 已選取)",
-        Loading = "載入中...",
+        Loading = "載入中",
     ),
     Settings = YumeStrings_AccessControl_Settings(
         Summary = "應用級代理的分流控制",
@@ -107,13 +107,13 @@ internal val ZhYumeStrings_AccessControl: YumeStrings_AccessControl = YumeString
 internal val EnYumeStrings_AccessControl: YumeStrings_AccessControl = YumeStrings_AccessControl(
     Title = "Access Control",
     Search = YumeStrings_AccessControl_Search(
-        Placeholder = "Search apps...",
+        Placeholder = "Search apps",
         Empty = "No matching apps",
     ),
     AppList = YumeStrings_AccessControl_AppList(
         ScreenTitle = "App List",
         Title = "App List (%d selected)",
-        Loading = "Loading...",
+        Loading = "Loading",
     ),
     Settings = YumeStrings_AccessControl_Settings(
         Summary = "App-level proxy routing",
@@ -159,13 +159,13 @@ internal val EnYumeStrings_AccessControl: YumeStrings_AccessControl = YumeString
 internal val JaYumeStrings_AccessControl: YumeStrings_AccessControl = YumeStrings_AccessControl(
     Title = "アクセス制御",
     Search = YumeStrings_AccessControl_Search(
-        Placeholder = "アプリを検索...",
+        Placeholder = "アプリを検索",
         Empty = "一致するアプリがありません",
     ),
     AppList = YumeStrings_AccessControl_AppList(
         ScreenTitle = "アプリ一覧",
         Title = "アプリ一覧（%d 件選択中）",
-        Loading = "読み込み中...",
+        Loading = "読み込み中",
     ),
     Settings = YumeStrings_AccessControl_Settings(
         Summary = "アプリ単位のプロキシ制御",
@@ -211,13 +211,13 @@ internal val JaYumeStrings_AccessControl: YumeStrings_AccessControl = YumeString
 internal val RuYumeStrings_AccessControl: YumeStrings_AccessControl = YumeStrings_AccessControl(
     Title = "Контроль доступа",
     Search = YumeStrings_AccessControl_Search(
-        Placeholder = "Поиск приложений...",
+        Placeholder = "Поиск приложений",
         Empty = "Нет подходящих приложений",
     ),
     AppList = YumeStrings_AccessControl_AppList(
         ScreenTitle = "Список приложений",
         Title = "Список приложений (выбрано: %d)",
-        Loading = "Загрузка...",
+        Loading = "Загрузка",
     ),
     Settings = YumeStrings_AccessControl_Settings(
         Summary = "Управление прокси по приложениям",

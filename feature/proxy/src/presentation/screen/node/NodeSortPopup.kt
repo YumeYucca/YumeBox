@@ -297,6 +297,9 @@ internal fun NodeActionsMenu(
             ) {
                 GlassPopupItem(
                     text = YumeTxt.Proxy.Action.Sort,
+                    icon = Lucide.ArrowUpDown,
+                    iconSize = 18.dp,
+                    iconGap = 15.dp,
                     showArrow = true,
                     arrowRotation = { submenuArrow * (1f - anchor.secondaryBackProgress) },
                     onClick = { submenu = false },

@@ -26,11 +26,11 @@ import com.github.yumeyucca.yumebox.runtime.api.Profile
 @Stable
 internal class ProfilesDialogState {
     val showAdd = mutableStateOf(false)
-    val showShare = mutableStateOf(false)
     val showSortSheet = mutableStateOf(false)
+    /** Bumped when the sort sheet commits a new order, so the page can return to the top. */
+    val sortCommitCount = mutableStateOf(0)
     var showDelete by mutableStateOf(false)
     var deleteTarget by mutableStateOf<Profile?>(null)
-    var shareTarget by mutableStateOf<Profile?>(null)
     var profileToEdit by mutableStateOf<Profile?>(null)
     var isDownloading by mutableStateOf(false)
     var importUrl by mutableStateOf<String?>(null)

@@ -23,9 +23,6 @@
 package com.github.yumeyucca.yumebox.screen.profiles
 
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextRange
@@ -33,14 +30,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.github.yumeyucca.yumebox.presentation.component.AppDialog
 import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldDialog
 import com.github.yumeyucca.yumebox.presentation.component.DialogButtonRow
-import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.layout.DialogDefaults
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun EditProfileNameDialog(
@@ -96,64 +87,6 @@ internal fun DeleteConfirmDialog(
                 cancelText = YumeTxt.ProfilesPage.Button.Cancel,
                 confirmText = YumeTxt.ProfilesPage.DeleteDialog.Confirm,
             )
-        },
-    )
-}
-
-@Composable
-internal fun ShareOptionsDialog(
-    show: Boolean,
-    profile: Profile,
-    onDismiss: () -> Unit,
-    onDismissFinished: (() -> Unit)? = null,
-    onShareFile: (Profile) -> Unit,
-    onShareLink: (Profile) -> Unit,
-) {
-    val spacing = AppTheme.spacing
-
-    AppDialog(
-        show = show,
-        modifier = Modifier,
-        title = YumeTxt.ProfilesPage.ShareDialog.Title,
-        titleColor = DialogDefaults.titleColor(),
-        summary = null,
-        summaryColor = DialogDefaults.summaryColor(),
-        backgroundColor = DialogDefaults.backgroundColor(),
-        enableWindowDim = true,
-        onDismissRequest = onDismiss,
-        onDismissFinished = onDismissFinished,
-        outsideMargin = DialogDefaults.outsideMargin,
-        insideMargin = DialogDefaults.insideMargin,
-        defaultWindowInsetsPadding = true,
-        content = {
-            Column(verticalArrangement = Arrangement.spacedBy(spacing.space12)) {
-                if (profile.type == Profile.Type.Url) {
-                    Button(
-                        onClick = { onShareLink(profile) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColorsPrimary(),
-                    ) {
-                        Text(
-                            YumeTxt.ProfilesPage.ShareDialog.ShareLink,
-                            color = MiuixTheme.colorScheme.onPrimary,
-                        )
-                    }
-                }
-                Button(
-                    onClick = { onShareFile(profile) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(),
-                ) {
-                    Text(YumeTxt.ProfilesPage.ShareDialog.ShareFile)
-                }
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(),
-                ) {
-                    Text(YumeTxt.ProfilesPage.Button.Cancel)
-                }
-            }
         },
     )
 }

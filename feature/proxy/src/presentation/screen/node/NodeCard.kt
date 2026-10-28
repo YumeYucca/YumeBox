@@ -23,6 +23,7 @@
 package com.github.yumeyucca.yumebox.presentation.screen.node
 
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,7 +33,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
@@ -168,7 +169,7 @@ internal fun NodeSelectableCard(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     paddingVertical: Dp,
-    content: @Composable BoxScope.(isSelected: Boolean) -> Unit,
+    content: @Composable BoxScope.(isSelected: Boolean, selectionProgress: Float) -> Unit,
 ) {
     val radii = AppTheme.radii
     val sizes = AppTheme.sizes
@@ -176,6 +177,21 @@ internal fun NodeSelectableCard(
     val hapticFeedback = LocalHapticFeedback.current
     val shape = RoundedCornerShape(radii.radius24)
     val backgroundColor = MiuixTheme.colorScheme.background
+    val selectionProgress by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0f,
+        animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
+        label = "node_card_selection",
+    )
+    val selectionBorderColor by animateColorAsState(
+        targetValue =
+            if (isSelected) {
+                MiuixTheme.colorScheme.primary
+            } else {
+                MiuixTheme.colorScheme.primary.copy(alpha = 0f)
+            },
+        animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
+        label = "node_card_selection_border",
+    )
 
     // Selection ring mirrors ProfileCard: the ring is a later sibling at the card's own bounds,
     // OUTSIDE the card body's clip — inside it, the RoundedCornerShape clip shaves the squircle
@@ -217,18 +233,16 @@ internal fun NodeSelectableCard(
                     }
                     .padding(horizontal = sizes.nodeCardPaddingHorizontal, vertical = paddingVertical),
         ) {
-            content(isSelected)
+            content(isSelected, selectionProgress)
         }
-        if (isSelected) {
-            Box(
-                modifier =
-                    Modifier.matchParentSize().squircleBorder(
-                        width = 1.5.dp,
-                        color = MiuixTheme.colorScheme.primary,
-                        cornerRadius = radii.radius24,
-                    ),
-            )
-        }
+        Box(
+            modifier =
+                Modifier.matchParentSize().squircleBorder(
+                    width = 1.5.dp,
+                    color = selectionBorderColor,
+                    cornerRadius = radii.radius24,
+                ),
+        )
     }
 }
 
@@ -251,7 +265,7 @@ internal fun NodeCard(
         onClick = onCardClick,
         modifier = modifier,
         paddingVertical = sizes.nodeCardPaddingVertical,
-    ) { selected ->
+    ) { _, selectionProgress ->
         val presentation =
             remember(proxy.name, proxy.title) {
                 resolveProxyDisplayPresentation(name = proxy.name, title = proxy.title)
@@ -303,7 +317,7 @@ internal fun NodeCard(
             }
 
             NodeSelectionTag(
-                isSelected = selected,
+                selectionProgress = selectionProgress,
                 modifier = Modifier.align(Alignment.CenterVertically),
             )
         }
@@ -477,34 +491,41 @@ private fun NodeLatencyChip(
 }
 
 @Composable
-private fun NodeSelectionTag(isSelected: Boolean, modifier: Modifier = Modifier) {
-    val scale = remember { Animatable(if (isSelected) 0.72f else 1f) }
+private fun NodeSelectionTag(selectionProgress: Float, modifier: Modifier = Modifier) {
+    val colorScheme = MiuixTheme.colorScheme
+    val opacity = AppTheme.opacity
+    val cardColor = colorScheme.background
+    val contentColor =
+        lerp(colorScheme.onSurfaceVariantSummary, colorScheme.primary, selectionProgress)
+    val containerColor =
+        lerp(
+            cardColor,
+            lerp(
+                cardColor,
+                colorScheme.primary.copy(alpha = 1f),
+                opacity.subtle,
+            ),
+            selectionProgress,
+        )
+    val scale = 0.92f + 0.08f * selectionProgress
 
-    LaunchedEffect(isSelected) {
-        if (isSelected) {
-            scale.snapTo(0.72f)
-            scale.animateTo(
-                targetValue = 1f,
-                animationSpec =
-                    keyframes {
-                        durationMillis = 260
-                        1.1f at 150 using FastOutSlowInEasing
-                    },
-            )
-        }
-    }
-    if (!isSelected) return
-
-    Icon(
-        imageVector = Yume.Tags,
-        contentDescription = null,
-        tint = MiuixTheme.colorScheme.primary,
+    Box(
         modifier =
             modifier
                 .size(UiDp.dp24)
                 .graphicsLayer {
-                    scaleX = scale.value
-                    scaleY = scale.value
-                },
-    )
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .clip(RoundedCornerShape(AppTheme.radii.full))
+                .background(containerColor),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Yume.Tags,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(UiDp.dp24 - AppTheme.spacing.space4),
+        )
+    }
 }

@@ -14,10 +14,8 @@
 package com.github.yumeyucca.yumebox.screen.moe
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.github.yumeyucca.yumebox.presentation.component.*
@@ -31,10 +29,12 @@ internal fun MoeHomeSettingsSheet(
     author: String,
     sidebarExpanded: Boolean,
     useSystemWallpaper: Boolean,
+    statusBarSpacing: Boolean,
     onQuoteChange: (String) -> Unit,
     onAuthorChange: (String) -> Unit,
     onSidebarExpandedChange: (Boolean) -> Unit,
     onUseSystemWallpaperChange: (Boolean) -> Unit,
+    onStatusBarSpacingChange: (Boolean) -> Unit,
     onChangeWallpaper: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -56,58 +56,62 @@ internal fun MoeHomeSettingsSheet(
         endAction = { AppBottomSheetConfirmAction(onClick = save) },
         onDismissRequest = onDismiss,
         enableNestedScroll = true,
+        // The sheet scrolls this column itself, so a form taller than the sheet (or half-covered by
+        // the IME) stays reachable.
+        scrollableContent = true,
     ) {
-        LazyColumn(modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = spacing.space16),
-            // 首行落在 76dp 悬浮带下沿。
-            contentPadding = PaddingValues(top = AppBottomSheetDefaults.ContentTopGap)) {
-            item {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = spacing.space16),
+        ) {
+            AppCard(
+                modifier = Modifier.fillMaxWidth(),
+                applyHorizontalPadding = false,
+            ) {
                 Column {
-                    OemTextField(
+                    // Label + value rows instead of placeholder-labelled fields: the copy stays
+                    // readable once text is typed, and the value sits on the card surface.
+                    AppTextFieldRow(
+                        label = YumeTxt.Home.Settings.Quote,
                         value = draftQuote,
                         onValueChange = { draftQuote = it },
-                        label = YumeTxt.Home.Settings.Quote,
-                        useLabelAsPlaceholder = true,
-                        maxLines = 2,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = spacing.space12),
                     )
-                    OemTextField(
+                    AppTextFieldRow(
+                        label = YumeTxt.Home.Settings.Author,
                         value = draftAuthor,
                         onValueChange = { draftAuthor = it },
-                        label = YumeTxt.Home.Settings.Author,
-                        useLabelAsPlaceholder = true,
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = spacing.space12),
+                        showTopDivider = true,
                     )
                 }
             }
-            item {
-                AppCard(
-                    modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = spacing.space12),
-                    applyHorizontalPadding = false,
-                ) {
-                    Column {
-                        PreferenceSwitchItem(
-                            title = YumeTxt.Home.Settings.ExpandSidebar,
-                            checked = draftSidebarExpanded,
-                            onCheckedChange = { draftSidebarExpanded = it },
-                        )
-                        SystemWallpaperPreferenceItem(
-                            checked = useSystemWallpaper,
-                            onCheckedChange = onUseSystemWallpaperChange,
-                        )
-                        PreferenceArrowItem(
-                            title = YumeTxt.Home.Settings.ChangeWallpaper,
-                            onClick = onChangeWallpaper,
-                        )
-                    }
+            AppCard(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = spacing.space12),
+                applyHorizontalPadding = false,
+            ) {
+                Column {
+                    PreferenceSwitchItem(
+                        title = YumeTxt.Home.Settings.ExpandSidebar,
+                        checked = draftSidebarExpanded,
+                        onCheckedChange = { draftSidebarExpanded = it },
+                    )
+                    PreferenceSwitchItem(
+                        title = YumeTxt.Home.Settings.StatusBarSpacing,
+                        checked = statusBarSpacing,
+                        onCheckedChange = onStatusBarSpacingChange,
+                    )
+                    SystemWallpaperPreferenceItem(
+                        checked = useSystemWallpaper,
+                        onCheckedChange = onUseSystemWallpaperChange,
+                    )
+                    PreferenceArrowItem(
+                        title = YumeTxt.Home.Settings.ChangeWallpaper,
+                        onClick = onChangeWallpaper,
+                    )
                 }
             }
         }

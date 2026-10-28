@@ -25,38 +25,18 @@ package com.github.yumeyucca.yumebox.screen.profiles
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.FileProvider
 import com.github.yumeyucca.yumebox.App
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
-@Composable
-internal fun ProfileShareDialog(
-    profile: Profile?,
-    show: Boolean,
-    onDismiss: () -> Unit,
-    onDismissFinished: () -> Unit,
-) {
-    val profileToShare = profile ?: return
-    val context = LocalContext.current
+internal fun shareProfileFileDirectly(profile: Profile) {
+    shareProfileFile(App.instance, profile)
+}
 
-    ShareOptionsDialog(
-        show = show,
-        profile = profileToShare,
-        onDismiss = onDismiss,
-        onDismissFinished = onDismissFinished,
-        onShareFile = {
-            shareProfileFile(context, profileToShare)
-            onDismiss()
-        },
-        onShareLink = {
-            shareProfileLink(profileToShare)
-            onDismiss()
-        },
-    )
+internal fun shareProfileLinkDirectly(profile: Profile) {
+    shareProfileLink(profile)
 }
 
 private fun shareProfileFile(context: Context, profile: Profile) {
@@ -93,7 +73,7 @@ private fun shareProfileFile(context: Context, profile: Profile) {
 
 private fun shareProfileLink(profile: Profile) {
     val context = App.instance
-    val url = profile.source.takeIf { profile.type == Profile.Type.Url }
+    val url = profile.source.takeIf { profile.type == Profile.Type.Url && it.isNotBlank() }
     if (url == null) {
         context.toast(YumeTxt.ProfilesPage.ShareDialog.NoLink)
         return
