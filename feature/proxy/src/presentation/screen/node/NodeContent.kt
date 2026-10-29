@@ -104,7 +104,7 @@ internal fun NodeGroupSheetContent(
             .heightIn(max = sheetHeight)
             .overScrollVertical(),
         state = listState,
-        verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
+        verticalArrangement = Arrangement.spacedBy(UiDp.dp10),
         contentPadding = NodeSheetContentPadding,
         overscrollEffect = null,
     ) {
@@ -145,7 +145,7 @@ fun NodeSheetContent(
                 .heightIn(max = sheetHeight)
                 .overScrollVertical(),
         state = listState,
-        verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
+        verticalArrangement = Arrangement.spacedBy(UiDp.dp10),
         contentPadding = NodeSheetContentPadding,
         overscrollEffect = null,
     ) {

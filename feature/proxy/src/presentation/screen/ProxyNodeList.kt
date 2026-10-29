@@ -173,7 +173,7 @@ internal fun NodeListPage(
                 state = activeGridState,
                 contentPadding = contentPadding,
                 horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
-                verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
+                verticalArrangement = Arrangement.spacedBy(UiDp.dp10),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 // 搜索框常驻槽位:展开/收起走 AnimatedVisibility 高度过渡,而不是硬切。
@@ -271,7 +271,7 @@ internal fun NodeListPage(
             onProxyTest = onTestProxyDelay,
             testingProxyNames = testingProxyNames,
             outerHorizontalPadding = UiDp.dp0,
-            itemVerticalPadding = UiDp.dp6,
+            itemVerticalPadding = UiDp.dp5,
             revealCount = revealCount,
         )
     }

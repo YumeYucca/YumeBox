@@ -93,7 +93,7 @@ internal fun NodeGrid(
             .overScrollVertical(),
         state = listState,
         contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
+        verticalArrangement = Arrangement.spacedBy(UiDp.dp10),
         overscrollEffect = null,
     ) {
         nodeGridItems(

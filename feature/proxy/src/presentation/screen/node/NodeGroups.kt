@@ -74,7 +74,7 @@ internal fun LazyListScope.nodeGroupItems(
     onGroupClick: (ProxyGroupInfo) -> Unit,
     onGroupTest: (ProxyGroupInfo) -> Unit,
     testingGroupNames: Set<String> = emptySet(),
-    itemVerticalPadding: Dp = UiDp.dp6,
+    itemVerticalPadding: Dp = UiDp.dp5,
     revealCount: Int = Int.MAX_VALUE,
 ) {
     itemsIndexed(
