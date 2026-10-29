@@ -30,14 +30,17 @@ import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.GeoXItem
 import com.github.yumeyucca.yumebox.core.model.geoXItems
 import com.github.yumeyucca.yumebox.core.util.runtimeHomeDir
+import com.github.yumeyucca.yumebox.di.APPLICATION_SCOPE_NAME
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.substore.util.SubStoreDownloadClient
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
+import org.koin.core.qualifier.named
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -55,7 +58,9 @@ private data class GeoFileStatus(
 fun MetaFeatureScreen(navigator: Navigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    // Geo downloads must outlive this screen: cancelling an in-flight HttpURLConnection
+    // read from the composition scope closes the socket on the wrong thread and crashes.
+    val downloadScope: CoroutineScope = koinInject(qualifier = named(APPLICATION_SCOPE_NAME))
     val downloadClient: SubStoreDownloadClient = koinInject()
 
     var geoRefreshKey by remember { mutableStateOf(0) }
@@ -113,7 +118,7 @@ fun MetaFeatureScreen(navigator: Navigator) {
                         onClick = {
                             downloadGeoXFiles(
                                 context = context,
-                                scope = scope,
+                                scope = downloadScope,
                                 downloadClient = downloadClient,
                                 items = geoXItems,
                                 onComplete = { geoRefreshKey++ },

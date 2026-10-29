@@ -41,6 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -427,7 +428,10 @@ internal fun NodeSortPopupOverlay(
     onSortSelected: (ProxySortMode) -> Unit,
 ) {
     val popupVisible = remember { mutableStateOf(false) }
-    val popupVisuals = GlassPopupDefaults.visuals()
+    val currentShow by rememberUpdatedState(show)
+    // This is a single icon anchor, not the top-bar pill: keep the sheet popup flat so no
+    // button-sized shadow is left behind when it collapses back into the icon.
+    val popupVisuals = GlassPopupDefaults.visuals(shadow = null)
     LaunchedEffect(show) {
         if (show) {
             popupVisible.value = true
@@ -450,10 +454,14 @@ internal fun NodeSortPopupOverlay(
                 anchor = anchor,
                 backdrop = backdrop,
                 anchorContent = anchorContent,
-                anchorAlpha = 1f,
+                // This is a single icon anchor; the popup starts and ends at the icon rather
+                // than the surrounding 42dp glass button.
+                anchorAlpha = 0f,
                 sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
                 visuals = popupVisuals,
-                onDismissFinished = { if (!show) popupVisible.value = false },
+                // Drop the popup host as soon as the collapse ends. Its full-screen catcher must
+                // not outlive the animation and swallow taps on the sheet underneath.
+                onDismissFinished = { if (!currentShow) popupVisible.value = false },
             ) {
                 NodeSortModes.forEach { mode ->
                     GlassPopupItem(

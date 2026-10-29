@@ -146,21 +146,22 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                 )
             } else {
                 Box {
-                    Box(
-                        modifier =
-                            Modifier.glassPopupAnchor(
-                                anchor = sortPopupAnchor,
-                                cornerRadius = GlassTopActionDefaults.ContainerSize / 2,
-                                floating = true,
-                            ),
-                    ) {
-                        SheetHeaderIconButton(
-                            icon = Yume.ListChevronsUpDown,
-                            contentDescription = YumeTxt.Proxy.Action.Sort,
-                            onClick = { showSortPopup.value = true },
-                            iconModifier = Modifier.glassPopupAnchorContent(sortPopupAnchor),
-                        )
-                    }
+                    SheetHeaderIconButton(
+                        icon = Yume.ListChevronsUpDown,
+                        contentDescription = YumeTxt.Proxy.Action.Sort,
+                        onClick = { showSortPopup.value = true },
+                        iconModifier =
+                            Modifier
+                                .glassPopupAnchor(
+                                    anchor = sortPopupAnchor,
+                                    cornerRadius = GlassTopActionDefaults.IconSize / 2,
+                                    // This icon sits in the sheet header, not over the page like
+                                    // the top-bar pill. Non-floating anchors fade the panel with
+                                    // the icon instead of keeping it alive until geometry reaches 0.
+                                    floating = false,
+                                )
+                                .glassPopupAnchorContent(sortPopupAnchor),
+                    )
                     NodeSortPopupOverlay(
                         show = showSortPopup.value,
                         onDismiss = { showSortPopup.value = false },

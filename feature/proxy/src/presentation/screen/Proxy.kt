@@ -390,74 +390,9 @@ fun ProxyPager(
                     AnimatedContent(
                     targetState = selectedGroupName,
                     transitionSpec = {
-                        if (targetState != null) {
-                            // 钻入分组 = 镜头向前推(shared-axis Z,纯 scale+alpha):
-                            // 分组列表放大掠过镜头淡出,节点页从远处(0.90)迎面长到原位淡入。
-                            (fadeIn(
-                                animationSpec =
-                                    tween(
-                                        durationMillis = 220,
-                                        easing = AnimationSpecs.Legacy,
-                                    )
-                            ) +
-                                scaleIn(
-                                    animationSpec =
-                                        tween(
-                                            durationMillis = 360,
-                                            easing = AnimationSpecs.EmphasizedDecelerate,
-                                        ),
-                                    initialScale = 0.90f,
-                                )) togetherWith
-                                (fadeOut(
-                                    animationSpec =
-                                        tween(
-                                            durationMillis = 160,
-                                            easing = AnimationSpecs.Legacy,
-                                        )
-                                ) +
-                                    scaleOut(
-                                        animationSpec =
-                                            tween(
-                                                durationMillis = 360,
-                                                easing = AnimationSpecs.EmphasizedAccelerate,
-                                            ),
-                                        targetScale = 1.10f,
-                                    ))
-                        } else {
-                            // 返回 = 镜头拉回:分组列表从 1.10 缩回复位,节点页退回远处(0.90)淡出。
-                            (fadeIn(
-                                animationSpec =
-                                    tween(
-                                        durationMillis = 220,
-                                        easing = AnimationSpecs.Legacy,
-                                    )
-                            ) +
-                                scaleIn(
-                                    animationSpec =
-                                        tween(
-                                            durationMillis = 360,
-                                            easing = AnimationSpecs.EmphasizedDecelerate,
-                                        ),
-                                    initialScale = 1.10f,
-                                )) togetherWith
-                                (fadeOut(
-                                    animationSpec =
-                                        tween(
-                                            durationMillis = 160,
-                                            easing = AnimationSpecs.Legacy,
-                                        )
-                                ) +
-                                    scaleOut(
-                                        animationSpec =
-                                            tween(
-                                                durationMillis = 360,
-                                                easing = AnimationSpecs.EmphasizedAccelerate,
-                                            ),
-                                        targetScale = 0.90f,
-                                    ))
-                        }
+                        proxyGroupContentTransform(forward = targetState != null)
                     },
-                    label = "proxy_content_drill",
+                    label = "proxy_content_slide",
                 ) { targetGroupName ->
                     if (targetGroupName == null) {
                         if (proxyGroups.isNotEmpty()) {
@@ -475,7 +410,7 @@ fun ProxyPager(
                             )
                         }
                     } else {
-                        // 钻入转场需要不透明底色,才能盖住底下的分组列表。
+                        // 转场需要不透明底色,才能盖住底下的分组列表。
                         Box(
                             modifier =
                                 Modifier
@@ -515,6 +450,20 @@ fun ProxyPager(
     }
 }
 
+/** Horizontal group ↔ node transition used by the phone and split-shell proxy pages. */
+private fun proxyGroupContentTransform(forward: Boolean): ContentTransform {
+    val enterMillis = if (forward) 380 else 340
+    val exitMillis = if (forward) 340 else 380
+    return (slideInHorizontally(
+        animationSpec = tween(durationMillis = enterMillis, easing = AnimationSpecs.Legacy),
+        initialOffsetX = { width -> if (forward) width else -width / 3 },
+    ) + fadeIn(animationSpec = tween(durationMillis = 180, easing = AnimationSpecs.Legacy))) togetherWith
+        (slideOutHorizontally(
+            animationSpec = tween(durationMillis = exitMillis, easing = AnimationSpecs.Legacy),
+            targetOffsetX = { width -> if (forward) -width / 3 else width },
+        ) + fadeOut(animationSpec = tween(durationMillis = 160, easing = AnimationSpecs.Legacy)))
+}
+
 @Composable
 private fun ProxyContent(
     proxyGroups: List<ProxyGroupInfo>,
@@ -529,7 +478,6 @@ private fun ProxyContent(
 ) {
     val testingNames by testingGroupNames.collectAsState()
     val spacing = LocalSpacing.current
-    val revealCount = rememberRowReveal(itemCount = proxyGroups.size, listState = listState)
     ScreenLazyColumn(
         lazyListState = listState,
         scrollBehavior = scrollBehavior,
@@ -551,7 +499,6 @@ private fun ProxyContent(
             onGroupTest = onGroupTest,
             testingGroupNames = testingNames,
             itemVerticalPadding = UiDp.dp5,
-            revealCount = revealCount,
         )
     }
 }
@@ -659,7 +606,7 @@ internal fun ProxyShellNodeDetailContent(
                 initialState?.let { name -> proxyGroups.indexOfFirst { it.name == name } } ?: -1
             val toIndex =
                 targetState?.let { name -> proxyGroups.indexOfFirst { it.name == name } } ?: -1
-            verticalBounceContentTransform(forward = toIndex >= fromIndex)
+            proxyGroupContentTransform(forward = toIndex >= fromIndex)
         },
         label = "proxy_shell_group_switch",
     ) { groupName ->

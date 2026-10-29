@@ -55,14 +55,11 @@ import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.chevron
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.theme.rememberRowShown
-import com.github.yumeyucca.yumebox.presentation.theme.rowReveal
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.SinkFeedback
-import top.yukonga.miuix.kmp.utils.pressable
 import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 
 private data class GroupBadge(val label: String)
@@ -75,13 +72,12 @@ internal fun LazyListScope.nodeGroupItems(
     onGroupTest: (ProxyGroupInfo) -> Unit,
     testingGroupNames: Set<String> = emptySet(),
     itemVerticalPadding: Dp = UiDp.dp5,
-    revealCount: Int = Int.MAX_VALUE,
 ) {
     itemsIndexed(
         items = groups,
         key = { _, group -> "${group.type}:${group.name}" },
         contentType = { _, _ -> "NodeGroupCard" },
-    ) { index, group ->
+    ) { _, group ->
         NodeGroupCard(
             group = group,
             allGroups = groups,
@@ -89,7 +85,6 @@ internal fun LazyListScope.nodeGroupItems(
             onClick = onGroupClick,
             onTestClick = onGroupTest,
             modifier = Modifier
-                .rowReveal(rememberRowShown(index, revealCount))
                 .fillMaxWidth()
                 .padding(vertical = itemVerticalPadding),
         )
@@ -138,9 +133,14 @@ internal fun NodeGroupCard(
     Column(
         modifier =
             modifier
-                // Keep the original press motion, but put it outside the card's visual layers so
-                // the shadow, shape, background, and content move as a single card.
-                .pressable(interactionSource = interactionSource, indication = SinkFeedback())
+                // Keep the press motion outside the card's visual layers so the shadow, shape,
+                // background, and content move as one card. Use one clickable node rather than a
+                // separate pressable + clickable pair, which can compete for the same gesture.
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = SinkFeedback(),
+                    onClick = { onClick(group) },
+                )
                 .shadow(
                     elevation = UiDp.dp4,
                     shape = cardShape,
@@ -149,11 +149,6 @@ internal fun NodeGroupCard(
                 )
                 .clip(cardShape)
                 .background(MiuixTheme.colorScheme.background)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = { onClick(group) },
-                )
                 .padding(horizontal = UiDp.dp16, vertical = UiDp.dp10),
         verticalArrangement = Arrangement.spacedBy(UiDp.dp8),
     ) {
