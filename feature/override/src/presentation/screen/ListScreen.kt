@@ -24,9 +24,14 @@ package com.github.yumeyucca.yumebox.presentation.screen
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -36,12 +41,17 @@ import com.github.yumeyucca.yumebox.data.model.OverrideConfig
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.BadgePlus
+import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.viewmodel.OverrideConfigViewModel
+import io.github.yumeyucca.lucide.Lucide
+import io.github.yumeyucca.lucide.lucide.Download
 import org.koin.androidx.compose.koinViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private data class OverrideListVmState(
     val builtInConfigs: List<OverrideConfig>,
@@ -69,10 +79,8 @@ private fun rememberOverrideListVmState(viewModel: OverrideConfigViewModel): Ove
 private class OverrideListDialogState {
     val showCreateDialog = mutableStateOf(false)
     var createDialogMode by mutableStateOf(OverrideConfigInputMode.CreateNew)
-    val showDeleteDialog = mutableStateOf(false)
-    val deleteTargetConfig = mutableStateOf<OverrideConfig?>(null)
     val exportTargetConfig = mutableStateOf<OverrideConfig?>(null)
-    val applyTargetConfig = mutableStateOf<OverrideConfig?>(null)
+    val renameTargetConfig = mutableStateOf<OverrideConfig?>(null)
 }
 
 @Composable
@@ -80,6 +88,7 @@ private fun rememberOverrideListDialogState(): OverrideListDialogState = remembe
     OverrideListDialogState()
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OverrideListScreen(
     onOpenCodeEditor: (OverrideConfig) -> Unit,
@@ -98,13 +107,11 @@ fun OverrideListScreen(
     val dialogs = rememberOverrideListDialogState()
     val showCreateDialog = dialogs.showCreateDialog
     var createDialogMode by dialogs::createDialogMode
-    val showDeleteDialog = dialogs.showDeleteDialog
-    val deleteTargetConfig = dialogs.deleteTargetConfig
     val exportTargetConfig = dialogs.exportTargetConfig
-    val applyTargetConfig = dialogs.applyTargetConfig
+    val renameTargetConfig = dialogs.renameTargetConfig
 
     val listState = rememberLazyListState()
-    val createFabController = rememberOverrideFabController()
+    var selectedSectionIndex by rememberSaveable { mutableIntStateOf(0) }
     val builtInItems =
         remember(builtInConfigs, usageCountMap) {
             builtInConfigs.map { config ->
@@ -125,16 +132,11 @@ fun OverrideListScreen(
                 )
             }
         }
-    // Reorder only applies to the user section; list indices must skip built-in rows + titles.
-    // Layout: [builtin title?] + N built-in cards + [user title?] + M user cards
-    val userListIndexOffset =
-        remember(builtInItems, userItems) {
-            val builtinBlock = if (builtInItems.isEmpty()) 0 else 1 + builtInItems.size
-            val userTitle = if (userItems.isEmpty()) 0 else 1
-            builtinBlock + userTitle
-        }
+    // One tab row always sits above the cards, so both sections start at index 1.
+    val userListIndexOffset = 1
     val reorderState =
         rememberReorderableLazyListState(listState) { from, to ->
+            if (selectedSectionIndex != 1) return@rememberReorderableLazyListState
             val fromUser = from.index - userListIndexOffset
             val toUser = to.index - userListIndexOffset
             if (fromUser < 0 || toUser < 0) return@rememberReorderableLazyListState
@@ -179,49 +181,93 @@ fun OverrideListScreen(
 
     // Only jump after an explicit create/import/duplicate. Re-run when list data arrives so we
     // don't consume the pending id before the new row is composed.
-    LaunchedEffect(pendingRevealConfigId, builtInItems, userItems, userListIndexOffset) {
+    LaunchedEffect(
+        pendingRevealConfigId,
+        builtInItems,
+        userItems,
+        selectedSectionIndex,
+        userListIndexOffset,
+    ) {
         val targetId = pendingRevealConfigId ?: return@LaunchedEffect
         val builtInIndex = builtInItems.indexOfFirst { it.config.id == targetId }
         val userIndex = userItems.indexOfFirst { it.config.id == targetId }
-        val targetIndex =
+        val targetSection =
             when {
-                builtInIndex >= 0 -> (if (builtInItems.isEmpty()) 0 else 1) + builtInIndex
-
-                userIndex >= 0 -> userListIndexOffset + userIndex
+                userIndex >= 0 -> 1
+                builtInIndex >= 0 -> 0
                 else -> return@LaunchedEffect
             }
+        if (selectedSectionIndex != targetSection) {
+            selectedSectionIndex = targetSection
+            return@LaunchedEffect
+        }
+        val targetIndex =
+            userListIndexOffset + if (targetSection == 0) builtInIndex else userIndex
         listState.animateScrollToItem(targetIndex.coerceAtLeast(0))
         viewModel.consumePendingRevealConfig(targetId)
     }
 
     GlassScaffold(
-        floatingActionButton = {
-            OverrideAnimatedFab(
-                controller = createFabController,
-                visible = !showCreateDialog.value,
-                imageVector = Yume.BadgePlus,
-                contentDescription = YumeTxt.Override.Action.Create,
-                onClick = {
-                    createDialogMode = OverrideConfigInputMode.CreateNew
-                    showCreateDialog.value = true
+        topBar = {
+            TopBar(
+                title = YumeTxt.Override.Title,
+                scrollBehavior = scrollBehavior,
+                actions = {
+                    GlassTopActionPill(
+                        actions =
+                            listOf(
+                                GlassTopAction(
+                                    icon = Yume.BadgePlus,
+                                    contentDescription = YumeTxt.Override.Action.Create,
+                                    onClick = {
+                                        createDialogMode = OverrideConfigInputMode.CreateNew
+                                        showCreateDialog.value = true
+                                    },
+                                ),
+                                GlassTopAction(
+                                    icon = Lucide.Download,
+                                    contentDescription = YumeTxt.Override.Action.NetworkImport,
+                                    onClick = {
+                                        createDialogMode = OverrideConfigInputMode.LocalFile
+                                        showCreateDialog.value = true
+                                    },
+                                ),
+                            ),
+                        backdrop = LocalTopBarBackdrop.current,
+                    )
                 },
             )
         },
-        topBar = { TopBar(title = YumeTxt.Override.Title, scrollBehavior = scrollBehavior) },
     ) { paddingValues ->
         val mainLikePadding = rememberStandalonePageMainPadding()
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = combinePaddingValues(paddingValues, mainLikePadding),
             lazyListState = listState,
-            onScrollDirectionChanged = createFabController::onScrollDirectionChanged,
         ) {
-            // Built-ins first. No empty-state placeholder — with bundled overrides the list is
-            // never blank.
-            if (builtInItems.isNotEmpty()) {
-                item(key = "section-builtin", contentType = "section-title") {
-                    Title(YumeTxt.Override.Section.BuiltIn)
+            stickyHeader(key = "__override_sections__") {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(MiuixTheme.colorScheme.surface)
+                            .padding(vertical = UiDp.dp4),
+                ) {
+                    SegmentedTabRow(
+                        tabs =
+                            listOf(
+                                YumeTxt.Override.Section.BuiltIn,
+                                YumeTxt.Override.Section.User,
+                            ),
+                        selectedTabIndex = selectedSectionIndex,
+                        onTabSelected = { selectedSectionIndex = it },
+                        modifier = Modifier.padding(horizontal = UiDp.dp12),
+                        tabHeight = UiDp.dp42,
+                    )
                 }
+            }
+
+            if (selectedSectionIndex == 0) {
                 items(
                     items = builtInItems,
                     key = { it.config.id },
@@ -233,7 +279,6 @@ fun OverrideListScreen(
                         isDragging = false,
                         isInUse = item.isInUse,
                         isBuiltIn = true,
-                        onApply = { applyTargetConfig.value = config },
                         onExport = {
                             exportTargetConfig.value = config
                             exportConfigLauncher.launch(
@@ -241,17 +286,12 @@ fun OverrideListScreen(
                             )
                         },
                         onEdit = { onOpenCodeEditor(config) },
+                        onRename = { renameTargetConfig.value = config },
                         onDelete = null,
                         enableDrag = false,
                     )
                 }
-            }
-
-            // "导入覆写" section only appears when the user actually has imports — no empty title/hint.
-            if (userItems.isNotEmpty()) {
-                item(key = "section-user", contentType = "section-title") {
-                    Title(YumeTxt.Override.Section.User)
-                }
+            } else {
                 items(
                     items = userItems,
                     key = { it.config.id },
@@ -264,7 +304,6 @@ fun OverrideListScreen(
                             isDragging = isDragging,
                             isInUse = item.isInUse,
                             isBuiltIn = false,
-                            onApply = { applyTargetConfig.value = config },
                             onExport = {
                                 exportTargetConfig.value = config
                                 exportConfigLauncher.launch(
@@ -272,10 +311,8 @@ fun OverrideListScreen(
                                 )
                             },
                             onEdit = { onOpenCodeEditor(config) },
-                            onDelete = {
-                                deleteTargetConfig.value = config
-                                showDeleteDialog.value = true
-                            },
+                            onRename = { renameTargetConfig.value = config },
+                            onDelete = { viewModel.deleteConfig(config.id) },
                             enableDrag = true,
                         )
                     }
@@ -295,25 +332,14 @@ fun OverrideListScreen(
             onDismiss = { showCreateDialog.value = false },
         )
 
-        DeleteConfirmDialog(
-            show = showDeleteDialog,
-            config = deleteTargetConfig.value,
-            viewModel = viewModel,
-            onConfirm = {
-                deleteTargetConfig.value?.id?.let(viewModel::deleteConfig)
-                deleteTargetConfig.value = null
-                showDeleteDialog.value = false
+        RenameConfigDialog(
+            show = renameTargetConfig.value != null,
+            config = renameTargetConfig.value,
+            onConfirm = { newName ->
+                renameTargetConfig.value?.id?.let { id -> viewModel.renameConfig(id, newName) }
+                renameTargetConfig.value = null
             },
-            onDismiss = {
-                deleteTargetConfig.value = null
-                showDeleteDialog.value = false
-            },
-        )
-
-        OverrideApplyToProfilesSheet(
-            target = applyTargetConfig.value,
-            viewModel = viewModel,
-            onDismiss = { applyTargetConfig.value = null },
+            onDismiss = { renameTargetConfig.value = null },
         )
     }
 }

@@ -29,7 +29,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -53,7 +52,6 @@ import com.github.yumeyucca.yumebox.domain.model.displayedSelectionDelay
 import com.github.yumeyucca.yumebox.domain.model.resolveTerminalProxy
 import com.github.yumeyucca.yumebox.presentation.component.CountryFlagCircle
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Speed
 import com.github.yumeyucca.yumebox.presentation.icon.yume.chevron
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
@@ -109,8 +107,6 @@ internal fun NodeGroupCard(
 ) {
     val cardShape = RoundedCornerShape(AppTheme.radii.radius24)
     val interactionSource = remember { MutableInteractionSource() }
-    val testInteractionSource = remember { MutableInteractionSource() }
-
     val currentProxy =
         remember(group.now, allGroups) {
             allGroups.resolveTerminalProxy(group.now)
@@ -204,52 +200,13 @@ internal fun NodeGroupCard(
                                 .background(primary.copy(alpha = 0.1f))
                                 .padding(horizontal = UiDp.dp8, vertical = UiDp.dp3),
                     )
-                    Box(
-                        modifier =
-                            Modifier
-                                .padding(start = UiDp.dp6)
-                                .width(UiDp.dp28)
-                                .height(UiDp.dp22)
-                                .clickable(
-                                    interactionSource = testInteractionSource,
-                                    indication = null,
-                                    enabled = !isDelayTesting,
-                                    onClick = { onTestClick(group) },
-                                ),
-                        contentAlignment = Alignment.CenterEnd,
-                    ) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(UiDp.dp22)
-                                    .clip(CircleShape)
-                                    .background(primary.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (isDelayTesting) {
-                                RotatingCircleGauge(
-                                    isRotating = true,
-                                    modifier = Modifier.size(UiDp.dp14),
-                                    tint = primary,
-                                    contentDescription = null,
-                                )
-                            } else {
-                                Icon(
-                                    Yume.Speed,
-                                    contentDescription = YumeTxt.Proxy.Action.Test,
-                                    modifier = Modifier.size(UiDp.dp14),
-                                    tint = primary,
-                                )
-                            }
-                        }
-                    }
                 }
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(UiDp.dp14))
-                        .background(MiuixTheme.colorScheme.surface)
+                        .background(nodeInactiveContainerColor())
                         .padding(horizontal = UiDp.dp10, vertical = UiDp.dp6),
                 ) {
                     Row(
@@ -269,7 +226,7 @@ internal fun NodeGroupCard(
                             Text(
                                 text = currentNodeName,
                                 style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurface,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )

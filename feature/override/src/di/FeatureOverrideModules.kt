@@ -31,7 +31,6 @@ val featureOverrideViewModelModule = module {
             resolver = get(),
             bindingProvider = get(),
             activeProfileOverrideReloader = get(),
-            profilesRepository = get(),
         )
     }
 }
