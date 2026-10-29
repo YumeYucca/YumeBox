@@ -46,7 +46,6 @@ import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeaderDefaults
-import com.github.yumeyucca.yumebox.presentation.theme.rememberRowReveal
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import kotlinx.coroutines.flow.StateFlow
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
@@ -88,7 +87,6 @@ internal fun NodeGroupSheetContent(
     listState: LazyListState = rememberLazyListState(),
 ) {
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
-    val revealCount = rememberRowReveal(itemCount = groups.size, listState = listState)
 
     LaunchedEffect(testingGroupNames) {
         if (testingGroupNames.isNotEmpty() && listState.isScrolledFromTop()) {
@@ -114,7 +112,6 @@ internal fun NodeGroupSheetContent(
             onGroupTest = onGroupTest,
             testingGroupNames = testingGroupNames,
             itemVerticalPadding = UiDp.dp0,
-            revealCount = revealCount,
         )
     }
 }
@@ -132,11 +129,6 @@ fun NodeSheetContent(
     listState: LazyListState = rememberLazyListState(),
 ) {
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
-    val revealCount = rememberRowReveal(
-        itemCount = group.proxies.size,
-        replayKey = group.name,
-        listState = listState,
-    )
 
     LazyColumn(
         modifier =
@@ -169,7 +161,6 @@ fun NodeSheetContent(
             },
             onProxyTest = onTestProxyDelay,
             testingProxyNames = testingProxyNames,
-            revealCount = revealCount,
         )
     }
 }

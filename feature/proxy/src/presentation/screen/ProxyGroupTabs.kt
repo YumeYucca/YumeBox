@@ -55,13 +55,11 @@ import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 internal val ProxyTabBandInset = 66.dp
 
 @Stable
-internal class ProxyTabScrollState internal constructor(
-    private val maxCollapsePx: Float,
-) {
+internal class ProxyTabScrollState internal constructor() {
     private var distanceFromTopPx by mutableFloatStateOf(0f)
 
     val collapsedPx: Float
-        get() = distanceFromTopPx.coerceAtMost(maxCollapsePx)
+        get() = distanceFromTopPx
 
     val nestedScrollConnection =
         object : NestedScrollConnection {
@@ -79,21 +77,22 @@ internal class ProxyTabScrollState internal constructor(
         }
 
     fun syncContent(isAtTop: Boolean) {
-        distanceFromTopPx = if (isAtTop) 0f else Float.MAX_VALUE
+        // The strip is a scrolling overlay, not a pinned header. A finite off-screen
+        // distance keeps the translation safe when a different page becomes active.
+        distanceFromTopPx = if (isAtTop) 0f else OffscreenPx
     }
 
     fun resetToTop() {
         distanceFromTopPx = 0f
     }
+
+    private companion object {
+        const val OffscreenPx = 10_000f
+    }
 }
 
 @Composable
-internal fun rememberProxyTabScrollState(
-    maxCollapse: Dp = ProxyTabBandInset,
-): ProxyTabScrollState {
-    val maxCollapsePx = with(LocalDensity.current) { maxCollapse.toPx() }
-    return remember(maxCollapsePx) { ProxyTabScrollState(maxCollapsePx) }
-}
+internal fun rememberProxyTabScrollState(): ProxyTabScrollState = remember { ProxyTabScrollState() }
 
 @Composable
 internal fun rememberProxyGroupPagerState(
@@ -122,7 +121,7 @@ internal fun rememberProxyGroupPagerState(
                 selectedIndex != pagerState.currentPage &&
                 !pagerState.isScrollInProgress
         ) {
-            pagerState.scrollToPage(selectedIndex)
+            pagerState.animateScrollToPage(selectedIndex)
         }
     }
 
