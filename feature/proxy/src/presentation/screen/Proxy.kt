@@ -463,7 +463,7 @@ private fun ProxyContent(
             onGroupClick = onGroupClick,
             onGroupTest = onGroupTest,
             testingGroupNames = testingNames,
-            itemVerticalPadding = UiDp.dp6,
+            itemVerticalPadding = UiDp.dp5,
             revealCount = revealCount,
         )
     }
