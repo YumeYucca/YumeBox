@@ -4015,11 +4015,16 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun Sort(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Action.Sort else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Action.Sort, *args)
-            public val LocateCurrent: String
-                get() = YumeLocaleManager.activeStrings.Proxy.Action.LocateCurrent
+            public val Layout: String
+                get() = YumeLocaleManager.activeStrings.Proxy.Action.Layout
             @androidx.compose.runtime.Composable
-            public fun LocateCurrent(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Action.LocateCurrent else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Action.LocateCurrent, *args)
+            public fun Layout(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Action.Layout else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Action.Layout, *args)
+            public val TabsMode: String
+                get() = YumeLocaleManager.activeStrings.Proxy.Action.TabsMode
+            @androidx.compose.runtime.Composable
+            public fun TabsMode(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Action.TabsMode else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Action.TabsMode, *args)
             public val SearchNodes: String
                 get() = YumeLocaleManager.activeStrings.Proxy.Action.SearchNodes
             @androidx.compose.runtime.Composable
@@ -4030,11 +4035,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun More(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Action.More else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Action.More, *args)
-            public val Locate: String
-                get() = YumeLocaleManager.activeStrings.Proxy.Action.Locate
-            @androidx.compose.runtime.Composable
-            public fun Locate(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.Action.Locate else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.Action.Locate, *args)
         }
         public object Node {
             public val Timeout: String
@@ -4132,6 +4132,16 @@ public object YumeTxt {
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.SortMode.ByLatency else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.SortMode.ByLatency, *args)
         }
         public object DisplayMode {
+            public val Single: String
+                get() = YumeLocaleManager.activeStrings.Proxy.DisplayMode.Single
+            @androidx.compose.runtime.Composable
+            public fun Single(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.DisplayMode.Single else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.DisplayMode.Single, *args)
+            public val Double: String
+                get() = YumeLocaleManager.activeStrings.Proxy.DisplayMode.Double
+            @androidx.compose.runtime.Composable
+            public fun Double(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Proxy.DisplayMode.Double else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Proxy.DisplayMode.Double, *args)
             public val SingleDetailed: String
                 get() = YumeLocaleManager.activeStrings.Proxy.DisplayMode.SingleDetailed
             @androidx.compose.runtime.Composable

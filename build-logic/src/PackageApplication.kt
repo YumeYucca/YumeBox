@@ -87,7 +87,10 @@ private fun packageLocked(root: File, state: File, options: Map<String, String>,
     }
     val prepared = workspace.resolve("prepared.apk")
     rewriteApk(rewritten, prepared, additions) { name ->
-        name.startsWith("META-INF/") || name.endsWith(".kotlin_module") || name.endsWith(".kotlin_builtins") ||
+        // ServiceLoader metadata is runtime behavior (for example Sketch's HTTP and image
+        // providers); only strip the remaining dependency/signature metadata.
+        (name.startsWith("META-INF/") && !name.startsWith("META-INF/services/")) ||
+            name.endsWith(".kotlin_module") || name.endsWith(".kotlin_builtins") ||
             (name.startsWith("lib/") && name.substringAfterLast('/').startsWith("libjavet") || name.endsWith("BundleMRS.7z"))
     }
     val signing = signingIdentity(root, tools, variant, "--allow-unsigned" in flags)
