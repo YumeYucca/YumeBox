@@ -192,6 +192,38 @@ public data class YumeStrings_AppSettings_Interface(
     public val HomeWallpaperImportFailed: String,
 )
 
+public data class YumeStrings_AppSettings_Notification(
+    public val Title: String,
+    public val EntrySummary: String,
+    public val PreviewSection: String,
+    public val PreviewSummary: String,
+    public val ContentSection: String,
+    public val ContentSummary: String,
+    public val ShowTrafficTitle: String,
+    public val ShowTrafficSummary: String,
+    public val FirstLineTitle: String,
+    public val SecondLineTitle: String,
+    public val RightSideTitle: String,
+    public val RightSideSummary: String,
+    public val CustomTextTitle: String,
+    public val CustomTextEmpty: String,
+    public val HyperOsSection: String,
+    public val HyperOsSummary: String,
+    public val StandardSummary: String,
+    public val LineProfileName: String,
+    public val LineStatus: String,
+    public val LineCurrentNode: String,
+    public val LineLiveTraffic: String,
+    public val LineUsedTraffic: String,
+    public val LineSessionTraffic: String,
+    public val LineTotalTraffic: String,
+    public val LineRemainingTraffic: String,
+    public val LineSubscriptionUsage: String,
+    public val LineExpiryDate: String,
+    public val LineCustomText: String,
+    public val LineHidden: String,
+)
+
 public data class YumeStrings_AppSettings_Privacy(
     public val HideFromRecentsTitle: String,
 )
@@ -242,6 +274,7 @@ public data class YumeStrings_AppSettings(
     public val Section: YumeStrings_AppSettings_Section,
     public val Behavior: YumeStrings_AppSettings_Behavior,
     public val Interface: YumeStrings_AppSettings_Interface,
+    public val Notification: YumeStrings_AppSettings_Notification,
     public val Appearance: YumeStrings_AppSettings_Appearance,
     public val Privacy: YumeStrings_AppSettings_Privacy,
     public val ServiceSection: YumeStrings_AppSettings_ServiceSection,
@@ -477,6 +510,13 @@ public data class YumeStrings_Editor_Title(
 public data class YumeStrings_Editor_Action(
     public val Format: String,
     public val Save: String,
+    public val Undo: String,
+    public val Redo: String,
+    public val FontSize: String,
+    public val Cut: String,
+    public val Copy: String,
+    public val Paste: String,
+    public val SelectAll: String,
 )
 
 public data class YumeStrings_Editor_Message(
@@ -690,7 +730,6 @@ public data class YumeStrings_Log_Level(
 )
 
 public data class YumeStrings_Log_Action(
-    public val Export: String,
     public val Copied: String,
 )
 
@@ -724,8 +763,8 @@ public data class YumeStrings_Log(
 
 public data class YumeStrings_MetaFeature_Section(
     public val ConnectionAndTraffic: String,
-    public val StatisticsAndLogs: String,
-    public val StatisticsAndLogsSummary: String,
+    public val LogsAndConnections: String,
+    public val LogsAndConnectionsSummary: String,
     public val Routing: String,
 )
 

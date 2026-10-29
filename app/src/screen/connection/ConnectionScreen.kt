@@ -42,7 +42,6 @@ import androidx.compose.ui.platform.LocalDensity
 import com.github.yumeyucca.yumebox.core.model.ConnectionInfo
 import com.github.yumeyucca.yumebox.feature.meta.presentation.component.ConnectionCard
 import com.github.yumeyucca.yumebox.feature.meta.presentation.component.TabRowWithContour
-import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionSort
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionTab
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionViewModel
 import com.github.yumeyucca.yumebox.presentation.component.*
@@ -51,21 +50,7 @@ import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Sort
-import top.yukonga.miuix.kmp.overlay.OverlayListPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private val SortModes =
-    listOf(ConnectionSort.Time, ConnectionSort.Upload, ConnectionSort.Download, ConnectionSort.Host)
-
-private fun ConnectionSort.getDisplayName(): String =
-    when (this) {
-        ConnectionSort.Time -> YumeTxt.Connection.Sort.Time
-        ConnectionSort.Upload -> YumeTxt.Connection.Sort.Upload
-        ConnectionSort.Download -> YumeTxt.Connection.Sort.Download
-        ConnectionSort.Host -> YumeTxt.Connection.Sort.Host
-    }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -79,7 +64,6 @@ fun ConnectionScreen(navigator: Navigator) {
     val mainLikePadding = rememberStandalonePageMainPadding()
 
     val scrollBehavior = MiuixScrollBehavior()
-    var showSortPopup by remember { mutableStateOf(false) }
 
     val tabs = listOf(YumeTxt.Connection.Tab.Active, YumeTxt.Connection.Tab.Closed)
     var selectedTabIndex by
@@ -91,8 +75,6 @@ fun ConnectionScreen(navigator: Navigator) {
             }
         )
     }
-    val selectedSortIndex =
-        remember(state.sortBy) { SortModes.indexOf(state.sortBy).coerceAtLeast(0) }
     val emptyStateText =
         when {
             state.isLoading -> YumeTxt.Connection.Loading
@@ -176,43 +158,6 @@ fun ConnectionScreen(navigator: Navigator) {
                     TopBar(
                         title = YumeTxt.Connection.Title,
                         scrollBehavior = scrollBehavior,
-                        actions = {
-                            Box {
-                                IconButton(
-                                    modifier = Modifier.padding(end = spacing.space12),
-                                    onClick = { showSortPopup = true },
-                                ) {
-                                    Icon(
-                                        imageVector = MiuixIcons.Sort,
-                                        contentDescription =
-                                            YumeTxt.Connection.SortBy.trimEnd(':', '：'),
-                                        tint = MiuixTheme.colorScheme.onSurface,
-                                    )
-                                }
-                                OverlayListPopup(
-                                    show = showSortPopup,
-                                    alignment = PopupPositionProvider.Align.BottomEnd,
-                                    onDismissRequest = { showSortPopup = false },
-                                ) {
-                                    ListPopupColumn {
-                                        SortModes.forEachIndexed { index, mode ->
-                                            DropdownImpl(
-                                                text = mode.getDisplayName(),
-                                                optionSize = SortModes.size,
-                                                isSelected = selectedSortIndex == index,
-                                                onSelectedIndexChange = {
-                                                    if (mode != state.sortBy) {
-                                                        viewModel.setSortBy(mode)
-                                                    }
-                                                    showSortPopup = false
-                                                },
-                                                index = index,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        },
                         bottomContent = {
                             Box(
                                 modifier =

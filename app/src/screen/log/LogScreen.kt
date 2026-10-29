@@ -25,8 +25,6 @@ package com.github.yumeyucca.yumebox.screen.log
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -48,12 +46,8 @@ import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.model.LogMessage
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
-import com.github.yumeyucca.yumebox.presentation.icon.Yume
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Share
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.DropdownImpl
@@ -93,7 +87,6 @@ fun LogScreen(navigator: Navigator) {
     val viewModel = koinViewModel<LogViewModel>()
     val scrollBehavior = MiuixScrollBehavior()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val spacing = AppTheme.spacing
 
     val screen by viewModel.screenState.collectAsState()
@@ -165,19 +158,6 @@ fun LogScreen(navigator: Navigator) {
         }
     }
 
-    val saveFileLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.CreateDocument("text/plain")
-        ) { uri ->
-            uri ?: return@rememberLauncherForActivityResult
-            scope.launch(Dispatchers.IO) {
-                val success = viewModel.export(uri)
-                if (!success) {
-                    launch(Dispatchers.Main) { context.toast(YumeTxt.Util.Error.UnknownError) }
-                }
-            }
-        }
-
     LaunchedEffect(Unit) { viewModel.connect() }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -189,10 +169,7 @@ fun LogScreen(navigator: Navigator) {
                         scrollBehavior = scrollBehavior,
                         actions = {
                             Box {
-                                IconButton(
-                                    modifier = Modifier.padding(end = spacing.space12),
-                                    onClick = { showLevelPopup = true },
-                                ) {
+                                IconButton(onClick = { showLevelPopup = true }) {
                                     Icon(
                                         imageVector = MiuixIcons.Filter,
                                         contentDescription = YumeTxt.Log.Level.Filter,
@@ -220,20 +197,6 @@ fun LogScreen(navigator: Navigator) {
                                             )
                                         }
                                     }
-                                }
-                            }
-                            if (filteredEntries.isNotEmpty()) {
-                                IconButton(
-                                    onClick = {
-                                        saveFileLauncher.launch(
-                                            "log_${System.currentTimeMillis()}.txt"
-                                        )
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Yume.Share,
-                                        contentDescription = YumeTxt.Log.Action.Export,
-                                    )
                                 }
                             }
                         },

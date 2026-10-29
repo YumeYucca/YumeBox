@@ -13,7 +13,6 @@ internal val ZhHansYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
         Filter = "等级筛选",
     ),
     Action = YumeStrings_Log_Action(
-        Export = "导出",
         Copied = "已复制日志",
     ),
     Empty = YumeStrings_Log_Empty(
@@ -45,7 +44,6 @@ internal val ZhYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
         Filter = "等級篩選",
     ),
     Action = YumeStrings_Log_Action(
-        Export = "匯出",
         Copied = "已複製日誌",
     ),
     Empty = YumeStrings_Log_Empty(
@@ -77,7 +75,6 @@ internal val EnYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
         Filter = "Level filter",
     ),
     Action = YumeStrings_Log_Action(
-        Export = "Export",
         Copied = "Log copied",
     ),
     Empty = YumeStrings_Log_Empty(
@@ -109,7 +106,6 @@ internal val JaYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
         Filter = "レベル絞り込み",
     ),
     Action = YumeStrings_Log_Action(
-        Export = "書き出し",
         Copied = "ログをコピーしました",
     ),
     Empty = YumeStrings_Log_Empty(
@@ -141,7 +137,6 @@ internal val RuYumeStrings_Log: YumeStrings_Log = YumeStrings_Log(
         Filter = "Фильтр уровня",
     ),
     Action = YumeStrings_Log_Action(
-        Export = "Экспорт",
         Copied = "Журнал скопирован",
     ),
     Empty = YumeStrings_Log_Empty(

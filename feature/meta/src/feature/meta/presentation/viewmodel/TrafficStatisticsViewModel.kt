@@ -31,7 +31,6 @@ import com.github.yumeyucca.yumebox.data.store.TrafficStatisticsStore
 import com.github.yumeyucca.yumebox.presentation.component.BarChartItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import java.util.*
 
@@ -60,10 +59,6 @@ class TrafficStatisticsViewModel(private val trafficStatisticsStore: TrafficStat
 
     fun setTimeRange(range: StatisticsTimeRange) {
         selectedTimeRange.value = range
-    }
-
-    fun clearAllStatistics() {
-        viewModelScope.launch { trafficStatisticsStore.clearAll() }
     }
 
     private fun buildUiState(

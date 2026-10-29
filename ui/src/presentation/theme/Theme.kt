@@ -32,7 +32,8 @@ import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.github.yumeyucca.yumebox.core.locale.ProvideYumeStrings
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-internal val LocalPlatformSystemUiEffect = compositionLocalOf<@Composable () -> Unit> { {} }
+internal val LocalPlatformSystemUiEffect =
+    compositionLocalOf<@Composable (isDark: Boolean) -> Unit> { {} }
 
 @Composable
 fun YumeTheme(
@@ -46,7 +47,6 @@ fun YumeTheme(
     appColors: AppColors = AppColors(),
     content: @Composable () -> Unit,
 ) = ProvideYumeStrings {
-    LocalPlatformSystemUiEffect.current()
     val effectiveThemeMode = themeMode ?: ThemeMode.Auto
     val isDark =
         when (effectiveThemeMode) {
@@ -54,6 +54,8 @@ fun YumeTheme(
             ThemeMode.Light -> false
             ThemeMode.Dark -> true
         }
+    val systemUiEffect = LocalPlatformSystemUiEffect.current
+    systemUiEffect(isDark)
     val colorScheme =
         remember(isDark, themeSeedColorArgb, invertOnPrimaryColors) {
             colorSchemeFromSeed(

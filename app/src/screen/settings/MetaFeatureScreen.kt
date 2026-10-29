@@ -97,18 +97,27 @@ fun MetaFeatureScreen(navigator: Navigator) {
             innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
         ) {
             item {
-                Title(YumeTxt.MetaFeature.Section.StatisticsAndLogs)
+                Title(YumeTxt.MetaFeature.Section.LogsAndConnections)
+                AppCard {
+                    ArrowPreference(
+                        title = YumeTxt.Settings.More.Logs,
+                        onClick = { navigator.push(Route.Log) },
+                    )
+                    ArrowPreference(
+                        title = YumeTxt.Connection.Title,
+                        onClick = { navigator.push(Route.Connection) },
+                    )
+                }
+                SectionSummary(YumeTxt.MetaFeature.Section.LogsAndConnectionsSummary)
+            }
+            item {
+                Title(YumeTxt.TrafficStatistics.Title)
                 AppCard {
                     ArrowPreference(
                         title = YumeTxt.TrafficStatistics.Title,
                         onClick = { navigator.push(Route.TrafficStatistics) },
                     )
-                    ArrowPreference(
-                        title = YumeTxt.Settings.More.Logs,
-                        onClick = { navigator.push(Route.Log) },
-                    )
                 }
-                SectionSummary(YumeTxt.MetaFeature.Section.StatisticsAndLogsSummary)
             }
             item {
                 Title(YumeTxt.MetaFeature.GeoX.OnlineUpdateTitle)

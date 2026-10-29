@@ -33,14 +33,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.net.toUri
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.github.yumeyucca.yumebox.presentation.component.*
+import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.runtime.api.Intents
 import com.github.yumeyucca.yumebox.screen.settings.component.ThemeColorPickerItem
@@ -50,7 +48,7 @@ import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-fun AppSettingsScreen() {
+fun AppSettingsScreen(navigator: Navigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<AppSettingsViewModel>()
 
@@ -65,7 +63,14 @@ fun AppSettingsScreen() {
             item { AppBehaviorSettingsSection(viewModel) }
             item { AppThemeModeSettingsSection(viewModel) }
             item { AppThemeColorSettingsSection(viewModel) }
-            item { AppInterfaceSettingsSection(viewModel) }
+            item {
+                AppNotificationSettingsSection(
+                    onOpenNotificationSettings = { navigator.push(Route.NotificationSettings) },
+                )
+            }
+            item {
+                AppInterfaceSettingsSection(viewModel)
+            }
             item { AppNavigationSettingsSection(viewModel) }
             item { AppPrivacySettingsSection(viewModel) }
             item { AppServiceSettingsSection(viewModel) }
@@ -135,6 +140,17 @@ private fun AppThemeColorSettingsSection(viewModel: AppSettingsViewModel = koinV
         )
     }
     SectionSummary(YumeTxt.AppSettings.Appearance.ColorSummary)
+}
+
+@Composable
+private fun AppNotificationSettingsSection(onOpenNotificationSettings: () -> Unit) {
+    Title(YumeTxt.AppSettings.Notification.Title)
+    AppCard {
+        PreferenceArrowItem(
+            title = YumeTxt.AppSettings.Notification.ContentSection,
+            onClick = onOpenNotificationSettings,
+        )
+    }
 }
 
 @Composable
@@ -218,39 +234,9 @@ private fun AppPrivacySettingsSection(viewModel: AppSettingsViewModel) {
 @Composable
 private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val section by viewModel.serviceSectionState.collectAsState()
-    val shizukuAccess by viewModel.shizukuAccess.collectAsState()
-    val superIslandEnabled = section.superIslandEnabled
-
-    DisposableEffect(lifecycleOwner, viewModel) {
-        val observer =
-            LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshShizukuAccess()
-            }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
 
     Title(YumeTxt.AppSettings.Section.Service)
     AppCard {
-        if (shizukuAccess.islandSupported) {
-            PreferenceSwitchItem(
-                title = YumeTxt.AppSettings.ServiceSection.SuperIslandTitle,
-                checked = superIslandEnabled,
-                onCheckedChange = viewModel::onSuperIslandEnabledChange,
-            )
-            PreferenceArrowItem(
-                title = YumeTxt.AppSettings.ServiceSection.ShizukuTitle,
-                endActions = {
-                    Text(
-                        text = shizukuAccess.statusText,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                    )
-                },
-                onClick = viewModel::onShizukuAccessClick,
-            )
-        }
         PreferenceArrowItem(
             title = YumeTxt.AppSettings.ServiceSection.BatteryOptimizationTitle,
             onClick = {

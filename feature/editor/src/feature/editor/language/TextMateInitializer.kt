@@ -40,8 +40,8 @@ import timber.log.Timber
 object TextMateInitializer {
     private const val TAG = "TextMateInitializer"
 
-    private const val THEME_DARK = "dark-high-contrast"
-    private const val THEME_LIGHT = "light"
+    private const val THEME_DARK = "cursor-dark"
+    private const val THEME_LIGHT = "cursor-light-colorblind"
 
     private var initialized = false
     private var grammarDefinitions: Map<LanguageScope, GrammarDefinition> = emptyMap()
@@ -84,9 +84,14 @@ object TextMateInitializer {
         Timber.tag(TAG).d("Loading themes...")
         val themeRegistry = ThemeRegistry.getInstance()
 
-        loadTheme(themeRegistry, THEME_DARK, "textmate/dark-colorblind.json", isDark = true)
+        loadTheme(themeRegistry, THEME_DARK, "textmate/cursor-dark.json", isDark = true)
 
-        loadTheme(themeRegistry, THEME_LIGHT, "textmate/light-colorblind.json", isDark = false)
+        loadTheme(
+            themeRegistry,
+            THEME_LIGHT,
+            "textmate/cursor-light-colorblind.json",
+            isDark = false,
+        )
 
         themeRegistry.setTheme(THEME_DARK)
     }
@@ -153,7 +158,7 @@ object TextMateInitializer {
                     definition,
                     grammarRegistry,
                     themeRegistry,
-                    false,
+                    true,
                 )
             editor.setEditorLanguage(textMateLanguage)
             Timber.tag(TAG).d("Language set to: ${language.displayName}")

@@ -22,6 +22,7 @@ package com.github.yumeyucca.yumebox.data.store
 
 import com.github.yumeyucca.yumebox.data.model.AppColorTheme
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
+import com.github.yumeyucca.yumebox.data.model.NotificationLineContent
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.tencent.mmkv.MMKV
 
@@ -36,6 +37,10 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     val autoUpdateCurrentProfileOnStart by boolFlow(true)
     val excludeFromRecents by boolFlow(false)
     val showTrafficNotification by boolFlow(true)
+    val notificationFirstLine by enumFlow(NotificationLineContent.ProfileName)
+    val notificationSecondLine by enumFlow(NotificationLineContent.LiveTraffic)
+    val notificationFirstLineText by strFlow("")
+    val notificationSecondLineText by strFlow("")
     // Read by the foreground service through the same multi-process "settings" store.
     val superIslandEnabled by boolFlow(true)
     val bottomBarAutoHide by boolFlow(true)

@@ -121,6 +121,7 @@ class HomeViewModel(
             .stateInWhileSubscribed(viewModelScope, null)
     val currentProfile = proxyFacade.currentProfile
     val trafficNow = proxyFacade.trafficNow
+    val trafficTotal = proxyFacade.trafficTotal
     val proxyGroups = proxyFacade.proxyGroups
     val nodeSession = proxyFacade.nodeSession
 
