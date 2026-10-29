@@ -581,11 +581,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun PredictiveBackProgressTitle(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.PredictiveBackProgressTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.PredictiveBackProgressTitle, *args)
-            public val ClassicHomeTitle: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.Interface.ClassicHomeTitle
-            @androidx.compose.runtime.Composable
-            public fun ClassicHomeTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.ClassicHomeTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.ClassicHomeTitle, *args)
             public val StatusBarSpacingTitle: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Interface.StatusBarSpacingTitle
             @androidx.compose.runtime.Composable
@@ -596,26 +591,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun SystemWallpaperTitle(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.SystemWallpaperTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.SystemWallpaperTitle, *args)
-            public val CustomIconTitle: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.Interface.CustomIconTitle
-            @androidx.compose.runtime.Composable
-            public fun CustomIconTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.CustomIconTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.CustomIconTitle, *args)
-            public val HomeQuoteTitle: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.Interface.HomeQuoteTitle
-            @androidx.compose.runtime.Composable
-            public fun HomeQuoteTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.HomeQuoteTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.HomeQuoteTitle, *args)
             public val HomeQuoteDefault: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Interface.HomeQuoteDefault
             @androidx.compose.runtime.Composable
             public fun HomeQuoteDefault(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.HomeQuoteDefault else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.HomeQuoteDefault, *args)
-            public val EditHomeQuoteTitle: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.Interface.EditHomeQuoteTitle
-            @androidx.compose.runtime.Composable
-            public fun EditHomeQuoteTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.EditHomeQuoteTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.EditHomeQuoteTitle, *args)
             public val HomeWallpaperImportFailed: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Interface.HomeWallpaperImportFailed
             @androidx.compose.runtime.Composable
@@ -623,11 +603,6 @@ public object YumeTxt {
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.HomeWallpaperImportFailed else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Interface.HomeWallpaperImportFailed, *args)
         }
         public object Appearance {
-            public val ThemeTitle: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.Appearance.ThemeTitle
-            @androidx.compose.runtime.Composable
-            public fun ThemeTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Appearance.ThemeTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Appearance.ThemeTitle, *args)
             public val ThemeSummary: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Appearance.ThemeSummary
             @androidx.compose.runtime.Composable
@@ -638,26 +613,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun ColorSummary(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Appearance.ColorSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Appearance.ColorSummary, *args)
-            public val InterfaceTitle: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.Appearance.InterfaceTitle
-            @androidx.compose.runtime.Composable
-            public fun InterfaceTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Appearance.InterfaceTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Appearance.InterfaceTitle, *args)
             public val InterfaceSummary: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Appearance.InterfaceSummary
             @androidx.compose.runtime.Composable
             public fun InterfaceSummary(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Appearance.InterfaceSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Appearance.InterfaceSummary, *args)
-            public val HomeTitle: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.Appearance.HomeTitle
-            @androidx.compose.runtime.Composable
-            public fun HomeTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Appearance.HomeTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Appearance.HomeTitle, *args)
-            public val HomeSummary: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.Appearance.HomeSummary
-            @androidx.compose.runtime.Composable
-            public fun HomeSummary(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Appearance.HomeSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Appearance.HomeSummary, *args)
             public val BehaviorSummary: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Appearance.BehaviorSummary
             @androidx.compose.runtime.Composable
@@ -692,16 +652,6 @@ public object YumeTxt {
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Privacy.HideFromRecentsTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Privacy.HideFromRecentsTitle, *args)
         }
         public object ServiceSection {
-            public val TrafficNotificationTitle: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.ServiceSection.TrafficNotificationTitle
-            @androidx.compose.runtime.Composable
-            public fun TrafficNotificationTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.ServiceSection.TrafficNotificationTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.ServiceSection.TrafficNotificationTitle, *args)
-            public val ExitUiWhenBackgroundTitle: String
-                get() = YumeLocaleManager.activeStrings.AppSettings.ServiceSection.ExitUiWhenBackgroundTitle
-            @androidx.compose.runtime.Composable
-            public fun ExitUiWhenBackgroundTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.ServiceSection.ExitUiWhenBackgroundTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.ServiceSection.ExitUiWhenBackgroundTitle, *args)
             public val SuperIslandTitle: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.ServiceSection.SuperIslandTitle
             @androidx.compose.runtime.Composable
@@ -3187,6 +3137,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun DeleteButton(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Override.Card.DeleteButton else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Override.Card.DeleteButton, *args)
+            public val Rename: String
+                get() = YumeLocaleManager.activeStrings.Override.Card.Rename
+            @androidx.compose.runtime.Composable
+            public fun Rename(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Override.Card.Rename else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Override.Card.Rename, *args)
             public val Apply: String
                 get() = YumeLocaleManager.activeStrings.Override.Card.Apply
             @androidx.compose.runtime.Composable
@@ -3326,6 +3281,11 @@ public object YumeTxt {
                 public fun Message(vararg args: Any?): String =
                     if (args.isEmpty()) YumeLocaleManager.activeStrings.Override.Dialog.Delete.Message else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Override.Dialog.Delete.Message, *args)
             }
+            public val Rename: String
+                get() = YumeLocaleManager.activeStrings.Override.Dialog.Rename
+            @androidx.compose.runtime.Composable
+            public fun Rename(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Override.Dialog.Rename else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Override.Dialog.Rename, *args)
             public object Button {
                 public val Cancel: String
                     get() = YumeLocaleManager.activeStrings.Override.Dialog.Button.Cancel
@@ -3703,6 +3663,10 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun CustomRoutingSummary(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.CustomRoutingSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.CustomRoutingSummary, *args)
+            public val EnableCustomRouting: String
+                get() = YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.EnableCustomRouting
+            public val OpenCustomRouting: String
+                get() = YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.OpenCustomRouting
             public val NoDescription: String
                 get() = YumeLocaleManager.activeStrings.ProfilesPage.SettingsDialog.NoDescription
             @androidx.compose.runtime.Composable

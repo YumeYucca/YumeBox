@@ -106,16 +106,6 @@ fun MetaFeatureScreen(navigator: Navigator) {
                 SectionSummary(YumeTxt.MetaFeature.Section.StatisticsAndLogsSummary)
             }
             item {
-                Title(YumeTxt.MetaFeature.Section.Routing)
-                AppCard {
-                    ArrowPreference(
-                        title = YumeTxt.MetaFeature.CustomRouting.Title,
-                        onClick = { navigator.push(Route.CustomRouting) },
-                    )
-                }
-                SectionSummary(YumeTxt.MetaFeature.CustomRouting.Summary)
-            }
-            item {
                 Title(YumeTxt.MetaFeature.GeoX.OnlineUpdateTitle)
                 AppCard {
                     ArrowPreference(

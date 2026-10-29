@@ -32,8 +32,6 @@ import com.github.yumeyucca.yumebox.data.model.OverrideContentType
 import com.github.yumeyucca.yumebox.data.model.OverrideMetadata
 import com.github.yumeyucca.yumebox.data.store.OverrideConfigStore
 import com.github.yumeyucca.yumebox.data.store.ProfileBindingProvider
-import com.github.yumeyucca.yumebox.runtime.api.Profile
-import com.github.yumeyucca.yumebox.runtime.client.ProfilesRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,7 +55,6 @@ class OverrideConfigViewModel(
     private val resolver: OverrideResolver,
     private val bindingProvider: ProfileBindingProvider,
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
-    private val profilesRepository: ProfilesRepository,
 ) : ViewModel() {
     companion object {
         private const val TAG = "OverrideConfigViewModel"
@@ -84,16 +81,6 @@ class OverrideConfigViewModel(
     private val _pendingRevealConfigId = MutableStateFlow<String?>(null)
     val pendingRevealConfigId: StateFlow<String?> = _pendingRevealConfigId.asStateFlow()
     private val refreshMutex = Mutex()
-
-    /**
-     * Snapshot of which subscriptions currently bind [overrideId]. Used by the apply sheet so
-     * checkboxes can seed without racing the async profile list load.
-     */
-    data class OverrideApplySnapshot(
-        val overrideId: String,
-        val profiles: List<Profile>,
-        val selectedProfileIds: Set<String>,
-    )
 
     init {
         refresh()
@@ -200,6 +187,21 @@ class OverrideConfigViewModel(
                 refreshNow()
             }
                 .onFailure { error -> Timber.tag(TAG).e(error, "Failed to delete override") }
+        }
+    }
+
+    fun renameConfig(id: String, name: String) {
+        if (isBuiltInConfig(id)) return
+        val trimmedName = name.trim()
+        if (trimmedName.isEmpty()) return
+        viewModelScope.launch {
+            runCatching {
+                val current = getConfigById(id) ?: configRepo.getById(id) ?: return@runCatching
+                if (current.name == trimmedName) return@runCatching
+                configRepo.save(current.copy(name = trimmedName))
+                refreshNow()
+            }
+                .onFailure { error -> Timber.tag(TAG).e(error, "Failed to rename override") }
         }
     }
 
@@ -371,101 +373,6 @@ class OverrideConfigViewModel(
                     onFailure = { Result.failure(it) },
                 )
         }
-
-    /**
-     * Load every subscription + which of them currently include [overrideId] in their chain.
-     * Profiles without a binding are treated as unbound (unchecked).
-     */
-    suspend fun loadApplySnapshot(overrideId: String): Result<OverrideApplySnapshot> =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val profiles = profilesRepository.queryAllProfiles()
-                val selectedProfileIds = mutableSetOf<String>()
-                for (profile in profiles) {
-                    val profileId = profile.uuid.toString()
-                    val isBound =
-                        bindingProvider.getBinding(profileId)?.overrideIds?.contains(overrideId) ==
-                                true
-                    if (isBound) {
-                        selectedProfileIds += profileId
-                    }
-                }
-                OverrideApplySnapshot(
-                    overrideId = overrideId,
-                    profiles = profiles,
-                    selectedProfileIds = selectedProfileIds,
-                )
-            }
-                .onFailure { error ->
-                    Timber.tag(TAG).e(error, "Failed to load apply snapshot for %s", overrideId)
-                }
-        }
-
-    /**
-     * Rewrite every subscription binding so [overrideId] is present exactly for
-     * [selectedProfileIds]. Order of existing chain entries is preserved; newly added ids are
-     * appended (chain order = application order).
-     *
-     * Persisting the bindings is the whole operation. The runtime reapply is fired afterwards on
-     * [viewModelScope] and is deliberately NOT awaited: it needs the runtime service and a full
-     * override-chain resolve, and letting that gate the apply left the confirm action stuck behind
-     * work the user did not ask for. A reload that fails only means the running session keeps its
-     * previous chain until the next start/reload — the bindings on disk are already correct.
-     */
-    suspend fun applyOverrideToProfiles(
-        overrideId: String,
-        selectedProfileIds: Set<String>,
-    ): Result<Unit> =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                // Resolved from local metadata rather than the runtime profile list: unbinding only
-                // ever concerns profiles that already reference this override, so the write path
-                // never has to reach the service.
-                val boundProfileIds = bindingProvider.getProfilesUsingOverride(overrideId).toSet()
-
-                (selectedProfileIds - boundProfileIds).forEach { profileId ->
-                    bindingProvider.addOverride(profileId, overrideId)
-                }
-                (boundProfileIds - selectedProfileIds).forEach { profileId ->
-                    bindingProvider.removeOverride(profileId, overrideId)
-                }
-
-                val changedProfileIds =
-                    (selectedProfileIds - boundProfileIds) + (boundProfileIds - selectedProfileIds)
-                if (changedProfileIds.isNotEmpty()) {
-                    reapplyActiveProfileInBackground(overrideId, changedProfileIds)
-                }
-                loadUsageCounts()
-            }
-                .onFailure { error ->
-                    Timber.tag(TAG)
-                        .e(error, "Failed to apply override %s to selected profiles", overrideId)
-                }
-        }
-
-    /** Best-effort: never surfaced to the caller, never allowed to fail the binding write. */
-    private fun reapplyActiveProfileInBackground(
-        overrideId: String,
-        changedProfileIds: Set<String>,
-    ) {
-        viewModelScope.launch {
-            runCatching {
-                // Resolving the active profile is itself a runtime call, so it happens here and
-                // not on the write path. Only a change to the active profile's own chain is worth
-                // a reload.
-                val activeProfileId = profilesRepository.queryActiveProfile()?.uuid?.toString()
-                if (activeProfileId in changedProfileIds) {
-                    activeProfileOverrideReloader.reapplyActiveProfileOverride()
-                }
-            }
-                .onFailure { error ->
-                    Timber.tag(TAG)
-                        .w(error, "Deferred runtime reload failed after applying %s", overrideId)
-                }
-        }
-    }
-
-    suspend fun isConfigInUse(id: String): Boolean = resolver.isOverrideInUse(id)
 
     fun consumePendingRevealConfig(configId: String) {
         if (_pendingRevealConfigId.value == configId) {

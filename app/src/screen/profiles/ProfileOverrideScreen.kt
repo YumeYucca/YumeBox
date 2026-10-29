@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
@@ -43,20 +44,22 @@ import com.github.yumeyucca.yumebox.data.store.ProfileBindingProvider
 import com.github.yumeyucca.yumebox.feature.meta.presentation.util.CustomRoutingBootstrapper
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Check
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import com.github.yumeyucca.yumebox.presentation.viewmodel.OverrideConfigViewModel
+import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import timber.log.Timber
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 
 /**
@@ -76,7 +79,6 @@ fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val spacing = AppTheme.spacing
     val componentSizes = AppTheme.sizes
     val scrollBehavior = MiuixScrollBehavior()
     val pageListState = rememberLazyListState()
@@ -98,7 +100,37 @@ fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
     // clobber a toggle the user already changed.
     var overrideSelectionInitialized by remember(profileId) { mutableStateOf(false) }
     var binding by remember(profileId) { mutableStateOf<ProfileBinding?>(null) }
-    var isSaving by remember(profileId) { mutableStateOf(false) }
+    val currentProfile by rememberUpdatedState(profile)
+    val currentIsRunning by rememberUpdatedState(isRunning)
+    val saveMutex = remember(profileId) { Mutex() }
+    val persistOverrides: () -> Unit = {
+        scope.launch {
+            saveMutex.withLock {
+                val target = currentProfile ?: return@withLock
+                runCatching {
+                    binding =
+                        saveProfileOverrides(
+                            profile = target,
+                            selectedIds =
+                                buildFinalOverrideIds(
+                                    selectedOverrideIds = pendingSelectedOverrideIds,
+                                    customRoutingSelected = customRoutingSelected,
+                                ),
+                            binding = binding,
+                            bindingProvider = bindingProvider,
+                            routingBootstrapper = routingBootstrapper,
+                            overrideService = overrideService,
+                            homeViewModel = homeViewModel,
+                            isRunning = currentIsRunning,
+                            context = context,
+                        )
+                }
+                    .onFailure { error ->
+                        context.toast(error.message ?: YumeTxt.Util.Error.UnknownError)
+                    }
+            }
+        }
+    }
 
     val customRoutingId = OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
     val selectableById = remember(selectableConfigs) { selectableConfigs.associateBy { it.id } }
@@ -126,6 +158,7 @@ fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
                     from = from.index,
                     to = to.index,
                 )
+            persistOverrides()
         }
 
     LaunchedEffect(profileId) {
@@ -147,42 +180,7 @@ fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
             } else {
                 (pendingSelectedOverrideIds + overrideId).distinct()
             }
-    }
-
-    val saveOverrides = {
-        if (!isSaving) {
-            scope.launch {
-                val target = profile
-                if (target == null) {
-                    navigator.pop()
-                    return@launch
-                }
-                isSaving = true
-                runCatching {
-                    binding =
-                        saveProfileOverrides(
-                            profile = target,
-                            selectedIds =
-                                buildFinalOverrideIds(
-                                    selectedOverrideIds = pendingSelectedOverrideIds,
-                                    customRoutingSelected = customRoutingSelected,
-                                ),
-                            binding = binding,
-                            bindingProvider = bindingProvider,
-                            routingBootstrapper = routingBootstrapper,
-                            overrideService = overrideService,
-                            homeViewModel = homeViewModel,
-                            isRunning = isRunning,
-                            context = context,
-                        )
-                }
-                    .onSuccess { navigator.pop() }
-                    .onFailure { error ->
-                        context.toast(error.message ?: YumeTxt.Util.Error.UnknownError)
-                    }
-                isSaving = false
-            }
-        }
+        persistOverrides()
     }
 
     GlassScaffold(
@@ -190,19 +188,6 @@ fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
             TopBar(
                 title = YumeTxt.ProfilesPage.SettingsDialog.SectionOverride,
                 scrollBehavior = scrollBehavior,
-                actions = {
-                    GlassTopActionPill(
-                        actions =
-                            listOf(
-                                GlassTopAction(
-                                    icon = Yume.Check,
-                                    contentDescription = YumeTxt.ProfilesPage.Button.Confirm,
-                                    onClick = saveOverrides,
-                                ),
-                            ),
-                        backdrop = LocalTopBarBackdrop.current,
-                    )
-                },
             )
         }
     ) { paddingValues ->
@@ -213,15 +198,11 @@ fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
             lazyListState = pageListState,
         ) {
             item(key = "profile-override-section") {
-                Spacer(modifier = Modifier.height(spacing.space16))
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(spacing.space12),
-                ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Title(YumeTxt.ProfilesPage.SettingsDialog.CustomRouting)
                     AppCard {
                         SwitchPreference(
-                            title = YumeTxt.ProfilesPage.SettingsDialog.CustomRouting,
-                            summary = YumeTxt.ProfilesPage.SettingsDialog.CustomRoutingSummary,
+                            title = YumeTxt.ProfilesPage.SettingsDialog.EnableCustomRouting,
                             checked = customRoutingSelected,
                             onCheckedChange = {
                                 overrideSelectionInitialized = true
@@ -232,9 +213,15 @@ fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
                                     } else {
                                         pendingSelectedOverrideIds - customRoutingId
                                     }
+                                persistOverrides()
                             },
                         )
+                        ArrowPreference(
+                            title = YumeTxt.ProfilesPage.SettingsDialog.OpenCustomRouting,
+                            onClick = { navigator.push(Route.CustomRouting) },
+                        )
                     }
+                    SectionSummary(YumeTxt.ProfilesPage.SettingsDialog.CustomRoutingSummary)
 
                     if (overrideRowIds.isNotEmpty()) {
                         AppCard {
@@ -281,10 +268,7 @@ fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
                                                         Checkbox(
                                                             state = ToggleableState.On,
                                                             onClick = {
-                                                                overrideSelectionInitialized =
-                                                                    true
-                                                                pendingSelectedOverrideIds =
-                                                                    pendingSelectedOverrideIds - id
+                                                                toggleUserOverrideSelection(id)
                                                             },
                                                         )
                                                     },

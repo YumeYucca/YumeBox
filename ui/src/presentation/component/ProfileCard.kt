@@ -24,15 +24,22 @@ package com.github.yumeyucca.yumebox.presentation.component
 
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -51,8 +58,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -63,8 +73,8 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -147,6 +157,7 @@ fun ProfileCard(
     }
     val traffic = profile.trafficPreview
     val expiry = profile.expiryPreview
+    val progressColor = if (traffic?.lowTraffic == true) warnColor else colorScheme.primary
 
     val fallbackInfoText =
         when {
@@ -162,6 +173,7 @@ fun ProfileCard(
     // 弹窗只在被打开的那张卡上挂载:关闭动画跑完(onDismissFinished)再卸载,列表里其余卡片不常驻弹窗。
     var actionsOpen by remember(profile.uuid) { mutableStateOf(false) }
     var actionsMounted by remember(profile.uuid) { mutableStateOf(false) }
+    var pendingToggleAfterDismiss by remember(profile.uuid) { mutableStateOf(false) }
     val actionsMenuAnchor = rememberGlassPopupAnchor()
 
     AppCard(
@@ -206,6 +218,7 @@ fun ProfileCard(
             ProfileEnabledToggle(
                 isActive = isActive,
                 enabled = !isDownloading,
+                activeColor = progressColor,
                 onToggle = toggleEnabled,
                 modifier =
                     Modifier.glassPopupAnchor(
@@ -289,8 +302,14 @@ fun ProfileCard(
             isDownloading = isDownloading,
             canUpdate = profile.shouldShowUpdateButton(),
             onDismiss = { actionsOpen = false },
-            onDismissFinished = { actionsMounted = false },
-            onToggleEnabled = toggleEnabled,
+            onDismissFinished = {
+                actionsMounted = false
+                if (pendingToggleAfterDismiss) {
+                    pendingToggleAfterDismiss = false
+                    toggleEnabled()
+                }
+            },
+            onToggleEnabled = { pendingToggleAfterDismiss = true },
             onEdit = { onEdit(profile) },
             onOverrideSettings =
                 onOverrideSettings?.let { callback -> { callback(profile) } },
@@ -303,30 +322,32 @@ fun ProfileCard(
                 ProfileEnabledToggleVisual(
                     isActive = isActive,
                     enabled = !isDownloading,
+                    activeColor = progressColor,
                 )
             },
         )
     }
 }
 
-/** 右上角启用开关:自绘胶囊 + 滑动圆点,与卡片下方的紧凑信息行保持同一视觉重量。 */
+/** 右上角启用开关:组件内部照搬 Miuix Switch 的轨道颜色动画。 */
 @Composable
 private fun ProfileEnabledToggle(
     isActive: Boolean,
     enabled: Boolean,
+    activeColor: Color,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     ProfileEnabledToggleVisual(
         isActive = isActive,
         enabled = enabled,
+        activeColor = activeColor,
         modifier =
             modifier.toggleable(
                 value = isActive,
                 enabled = enabled,
                 role = Role.Switch,
-                interactionSource = interactionSource,
+                interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onValueChange = { onToggle() },
             ),
@@ -337,6 +358,7 @@ private fun ProfileEnabledToggle(
 private fun ProfileEnabledToggleVisual(
     isActive: Boolean,
     enabled: Boolean,
+    activeColor: Color,
     modifier: Modifier = Modifier,
 ) {
     val colorScheme = MiuixTheme.colorScheme
@@ -347,26 +369,13 @@ private fun ProfileEnabledToggleVisual(
         } else {
             Color(0xFFF7F7F7)
         }
-    val containerColor by animateColorAsState(
-        targetValue =
-            if (isActive) {
-                colorScheme.primary.copy(alpha = AppTheme.opacity.subtle)
-            } else {
-                inactiveContainer
-            },
-        animationSpec = tween(180),
-        label = "profileEnabledContainer",
+    val progress by animateFloatAsState(
+        targetValue = if (isActive) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.99f, stiffness = 438.6f),
+        label = "profileEnabledProgress",
     )
-    val contentColor by animateColorAsState(
-        targetValue =
-            if (isActive) {
-                colorScheme.primary
-            } else {
-                colorScheme.onSurfaceVariantSummary
-            },
-        animationSpec = tween(180),
-        label = "profileEnabledContent",
-    )
+    val fillColor = activeColor
+    val fillProgress = progress.coerceIn(0f, 1f)
 
     Box(
         modifier =
@@ -374,18 +383,43 @@ private fun ProfileEnabledToggleVisual(
                 .height(24.dp)
                 .widthIn(min = 64.dp)
                 .clip(CircleShape)
-                .background(containerColor)
+                .background(inactiveContainer)
+                .drawBehind {
+                    drawRoundRect(
+                        color = fillColor,
+                        size = Size(size.width * fillProgress, size.height),
+                        cornerRadius = CornerRadius(size.height / 2f),
+                    )
+                }
                 .alpha(if (enabled) 1f else 0.45f)
                 .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = if (isActive) strings.CurrentProfile else strings.NotEnabled,
-            fontSize = 12.sp,
-            fontWeight = FontWeight(600),
-            color = contentColor,
-            maxLines = 1,
-        )
+        AnimatedContent(
+            targetState = isActive,
+            contentAlignment = Alignment.Center,
+            transitionSpec = {
+                ContentTransform(
+                    targetContentEnter =
+                        fadeIn(tween(durationMillis = 180)) +
+                            slideInHorizontally(tween(durationMillis = 220)) { it / 3 },
+                    initialContentExit =
+                        fadeOut(tween(durationMillis = 120)) +
+                            slideOutHorizontally(tween(durationMillis = 180)) { -it / 3 },
+                    sizeTransform = SizeTransform(clip = false),
+                )
+            },
+            label = "profileEnabledLabel",
+        ) { active ->
+            Text(
+                text = if (active) strings.CurrentProfile else strings.NotEnabled,
+                fontSize = 12.sp,
+                fontWeight = FontWeight(600),
+                color =
+                    if (active) Color.White else colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -476,7 +510,6 @@ private fun ProfileActionsMenu(
                     iconSize = 18.dp,
                     iconGap = 15.dp,
                     enabled = actionsEnabled,
-                    selected = isActive,
                     onClick = {
                         onDismiss()
                         onToggleEnabled()

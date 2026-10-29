@@ -31,6 +31,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -40,7 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
@@ -265,7 +266,7 @@ internal fun NodeCard(
         onClick = onCardClick,
         modifier = modifier,
         paddingVertical = sizes.nodeCardPaddingVertical,
-    ) { _, selectionProgress ->
+    ) { selected, _ ->
         val presentation =
             remember(proxy.name, proxy.title) {
                 resolveProxyDisplayPresentation(name = proxy.name, title = proxy.title)
@@ -317,7 +318,7 @@ internal fun NodeCard(
             }
 
             NodeSelectionTag(
-                selectionProgress = selectionProgress,
+                isSelected = selected,
                 modifier = Modifier.align(Alignment.CenterVertically),
             )
         }
@@ -345,21 +346,28 @@ private fun LiveNodeLatencyChip(
 }
 
 @Composable
+internal fun nodeInactiveContainerColor(): Color =
+    if (MiuixTheme.colorScheme.background.luminance() < 0.5f) {
+        Color(0xFF131415)
+    } else {
+        Color(0xFFF7F7F7)
+    }
+
+@Composable
 internal fun NodeLargeIcon(
     modifier: Modifier = Modifier,
     countryCode: String?,
     showCountryFlag: Boolean,
     typeName: String,
 ) {
-    val opacity = AppTheme.opacity
     val sizes = AppTheme.sizes
-    val neutral = MiuixTheme.colorScheme.onSurface
+    val backgroundColor = nodeInactiveContainerColor()
     Box(
         modifier =
             modifier
                 .size(sizes.nodeLargeIconSize)
                 .clip(RoundedCornerShape(sizes.nodeLargeIconCornerRadius))
-                .background(neutral.copy(alpha = opacity.ambientLight + opacity.ambientShadow)),
+                .background(backgroundColor),
         contentAlignment = Alignment.Center,
     ) {
         if (showCountryFlag) {
@@ -443,14 +451,14 @@ private fun NodeLatencyChip(
 ) {
     val spacing = AppTheme.spacing
     val radii = AppTheme.radii
-    val opacity = AppTheme.opacity
     val sizes = AppTheme.sizes
+    val backgroundColor = nodeInactiveContainerColor()
 
     Row(
         modifier =
             Modifier
                 .clip(RoundedCornerShape(radii.full))
-                .background(color.copy(alpha = opacity.subtle))
+                .background(backgroundColor)
                 .let { modifier ->
                     if (onClick == null) {
                         modifier
@@ -491,41 +499,34 @@ private fun NodeLatencyChip(
 }
 
 @Composable
-private fun NodeSelectionTag(selectionProgress: Float, modifier: Modifier = Modifier) {
-    val colorScheme = MiuixTheme.colorScheme
-    val opacity = AppTheme.opacity
-    val cardColor = colorScheme.background
-    val contentColor =
-        lerp(colorScheme.onSurfaceVariantSummary, colorScheme.primary, selectionProgress)
-    val containerColor =
-        lerp(
-            cardColor,
-            lerp(
-                cardColor,
-                colorScheme.primary.copy(alpha = 1f),
-                opacity.subtle,
-            ),
-            selectionProgress,
-        )
-    val scale = 0.92f + 0.08f * selectionProgress
+private fun NodeSelectionTag(isSelected: Boolean, modifier: Modifier = Modifier) {
+    val scale = remember { Animatable(if (isSelected) 0.72f else 1f) }
 
-    Box(
+    LaunchedEffect(isSelected) {
+        if (isSelected) {
+            scale.snapTo(0.72f)
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec =
+                    keyframes {
+                        durationMillis = 260
+                        1.1f at 150 using FastOutSlowInEasing
+                    },
+            )
+        }
+    }
+    if (!isSelected) return
+
+    Icon(
+        imageVector = Yume.Tags,
+        contentDescription = null,
+        tint = MiuixTheme.colorScheme.primary,
         modifier =
             modifier
                 .size(UiDp.dp24)
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .clip(RoundedCornerShape(AppTheme.radii.full))
-                .background(containerColor),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Yume.Tags,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(UiDp.dp24 - AppTheme.spacing.space4),
-        )
-    }
+                    scaleX = scale.value
+                    scaleY = scale.value
+                },
+    )
 }

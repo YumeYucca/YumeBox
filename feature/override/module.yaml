@@ -24,4 +24,5 @@ dependencies:
   - $libs.koin.androidx.compose
   - $libs.timber
   - $libs.miuix.icons
+  - $libs.lucide.compose
   - $libs.reorderable

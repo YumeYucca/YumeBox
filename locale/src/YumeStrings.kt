@@ -186,13 +186,9 @@ public data class YumeStrings_AppSettings_Interface(
     public val PredictiveBackTitle: String,
     public val PredictiveBackRestartSummary: String,
     public val PredictiveBackProgressTitle: String,
-    public val ClassicHomeTitle: String,
     public val StatusBarSpacingTitle: String,
     public val SystemWallpaperTitle: String,
-    public val CustomIconTitle: String,
-    public val HomeQuoteTitle: String,
     public val HomeQuoteDefault: String,
-    public val EditHomeQuoteTitle: String,
     public val HomeWallpaperImportFailed: String,
 )
 
@@ -201,13 +197,9 @@ public data class YumeStrings_AppSettings_Privacy(
 )
 
 public data class YumeStrings_AppSettings_Appearance(
-    public val ThemeTitle: String,
     public val ThemeSummary: String,
     public val ColorSummary: String,
-    public val InterfaceTitle: String,
     public val InterfaceSummary: String,
-    public val HomeTitle: String,
-    public val HomeSummary: String,
     public val BehaviorSummary: String,
     public val PrivacySummary: String,
     public val ServiceSummary: String,
@@ -216,8 +208,6 @@ public data class YumeStrings_AppSettings_Appearance(
 )
 
 public data class YumeStrings_AppSettings_ServiceSection(
-    public val TrafficNotificationTitle: String,
-    public val ExitUiWhenBackgroundTitle: String,
     public val SuperIslandTitle: String,
     public val ShizukuTitle: String,
     public val ShizukuNotRunning: String,
@@ -1086,6 +1076,7 @@ public data class YumeStrings_Override_Card(
     public val Delete: String,
     public val EditButton: String,
     public val DeleteButton: String,
+    public val Rename: String,
     public val Apply: String,
     public val ApplyButton: String,
 )
@@ -1140,6 +1131,7 @@ public data class YumeStrings_Override_Dialog_Button(
 public data class YumeStrings_Override_Dialog(
     public val Create: YumeStrings_Override_Dialog_Create,
     public val Delete: YumeStrings_Override_Dialog_Delete,
+    public val Rename: String,
     public val Button: YumeStrings_Override_Dialog_Button,
 )
 
@@ -1282,6 +1274,8 @@ public data class YumeStrings_ProfilesPage_SettingsDialog(
     public val ChangeLink: String,
     public val CustomRouting: String,
     public val CustomRoutingSummary: String,
+    public val EnableCustomRouting: String,
+    public val OpenCustomRouting: String,
     public val NoDescription: String,
     public val EditProfile: String,
     public val OpenConfig: String,

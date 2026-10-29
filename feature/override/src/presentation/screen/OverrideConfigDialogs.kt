@@ -45,12 +45,12 @@ import com.github.yumeyucca.yumebox.common.util.formatBytes
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetCloseAction
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetConfirmAction
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
-import com.github.yumeyucca.yumebox.presentation.component.AppDialog
+import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldDialog
 import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldRow
 import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference
+import com.github.yumeyucca.yumebox.presentation.component.SegmentedTabRow
 import com.github.yumeyucca.yumebox.presentation.util.readDisplaySize
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.viewmodel.OverrideConfigViewModel
 import kotlinx.coroutines.launch
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
@@ -223,32 +223,34 @@ internal fun CreateConfigDialog(
                 selectedMode = inputMode,
                 onSelectedModeChange = { inputMode = it },
             )
-            if (inputMode == OverrideConfigInputMode.CreateNew) {
-                OverrideTypeSelector(
-                    selectedType = contentType,
-                    onSelectedTypeChange = { contentType = it },
-                )
-            }
             when (inputMode) {
                 OverrideConfigInputMode.CreateNew -> {
                     AppCard(applyHorizontalPadding = false) {
-                        AppTextFieldRow(
-                            label = YumeTxt.Override.Dialog.Create.Name,
-                            value = nameTextFieldValueState.value,
-                            onValueChange = { updatedTextFieldValue ->
-                                nameTextFieldValueState.value = updatedTextFieldValue
-                            },
-                            hint = YumeTxt.ProfilesPage.Input.Optional,
-                        )
+                        Column {
+                            OverrideTypeSelector(
+                                selectedType = contentType,
+                                onSelectedTypeChange = { contentType = it },
+                            )
+                            AppTextFieldRow(
+                                label = YumeTxt.Override.Dialog.Create.Name,
+                                value = nameTextFieldValueState.value,
+                                onValueChange = { updatedTextFieldValue ->
+                                    nameTextFieldValueState.value = updatedTextFieldValue
+                                },
+                                hint = YumeTxt.ProfilesPage.Input.Optional,
+                            )
+                        }
                     }
                 }
 
                 OverrideConfigInputMode.LocalFile -> {
-                    ImportOverrideFileContent(
-                        modifier = Modifier.fillMaxWidth(),
-                        fileSize = selectedImportFileSize,
-                        onPickFile = { importConfigLauncher.launch("*/*") },
-                    )
+                    AppCard(applyHorizontalPadding = false) {
+                        ImportOverrideFileContent(
+                            modifier = Modifier.fillMaxWidth(),
+                            fileSize = selectedImportFileSize,
+                            onPickFile = { importConfigLauncher.launch("*/*") },
+                        )
+                    }
                 }
 
                 OverrideConfigInputMode.NetworkUrl -> {
@@ -272,16 +274,14 @@ private fun OverrideInputModeSelector(
     val inputModeOptions = remember { OverrideConfigInputMode.entries.toList() }
     val selectedModeIndex = inputModeOptions.indexOf(selectedMode).coerceAtLeast(0)
 
-    AppCard(applyHorizontalPadding = false) {
-        GlassDropdownPreference(
-            title = YumeTxt.ProfilesPage.Type.Title,
-            items = inputModeOptions.map(OverrideConfigInputMode::label),
-            selectedIndex = selectedModeIndex,
-            onSelectedIndexChange = { index ->
-                inputModeOptions.getOrNull(index)?.let(onSelectedModeChange)
-            },
-        )
-    }
+    SegmentedTabRow(
+        tabs = inputModeOptions.map(OverrideConfigInputMode::label),
+        selectedTabIndex = selectedModeIndex,
+        onTabSelected = { index ->
+            inputModeOptions.getOrNull(index)?.let(onSelectedModeChange)
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
@@ -292,16 +292,14 @@ private fun OverrideTypeSelector(
     val contentTypeOptions = remember { OverrideContentType.entries.toList() }
     val selectedTypeIndex = contentTypeOptions.indexOf(selectedType).coerceAtLeast(0)
 
-    AppCard(applyHorizontalPadding = false) {
-        GlassDropdownPreference(
-            title = YumeTxt.Override.Dialog.Create.Type,
-            items = contentTypeOptions.map { it.label },
-            selectedIndex = selectedTypeIndex,
-            onSelectedIndexChange = { index ->
-                contentTypeOptions.getOrNull(index)?.let(onSelectedTypeChange)
-            },
-        )
-    }
+    GlassDropdownPreference(
+        title = YumeTxt.Override.Dialog.Create.Type,
+        items = contentTypeOptions.map { it.label },
+        selectedIndex = selectedTypeIndex,
+        onSelectedIndexChange = { index ->
+            contentTypeOptions.getOrNull(index)?.let(onSelectedTypeChange)
+        },
+    )
 }
 
 @Composable
@@ -310,27 +308,26 @@ private fun ImportOverrideFileContent(
     fileSize: Long,
     onPickFile: () -> Unit,
 ) {
-    AppCard(modifier = modifier, applyHorizontalPadding = false) {
-        ArrowPreference(
-            title = YumeTxt.ProfilesPage.Input.SelectFile,
-            // The right-hand text is the "already picked" signal — the file size once a file is
-            // chosen, the faint 可选 tag before that.
-            endActions = {
-                Text(
-                    text =
-                        if (fileSize > 0L) {
-                            formatBytes(fileSize)
-                        } else {
-                            YumeTxt.ProfilesPage.Input.Optional
-                        },
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    maxLines = 1,
-                )
-            },
-            onClick = onPickFile,
-        )
-    }
+    ArrowPreference(
+        title = YumeTxt.ProfilesPage.Input.SelectFile,
+        modifier = modifier,
+        // The right-hand text is the "already picked" signal — the file size once a file is
+        // chosen, the faint 可选 tag before that.
+        endActions = {
+            Text(
+                text =
+                    if (fileSize > 0L) {
+                        formatBytes(fileSize)
+                    } else {
+                        YumeTxt.ProfilesPage.Input.Optional
+                    },
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+            )
+        },
+        onClick = onPickFile,
+    )
 }
 
 @Composable
@@ -352,45 +349,29 @@ private fun ImportOverrideNetworkContent(
 }
 
 @Composable
-internal fun DeleteConfirmDialog(
-    show: MutableState<Boolean>,
+internal fun RenameConfigDialog(
+    show: Boolean,
     config: OverrideConfig?,
-    viewModel: OverrideConfigViewModel,
-    onConfirm: () -> Unit,
+    onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var isInUse by remember { mutableStateOf(false) }
+    var name by remember(show, config?.id) { mutableStateOf(config?.name.orEmpty()) }
 
-    LaunchedEffect(show.value, config?.id) {
-        isInUse = show.value && config != null && viewModel.isConfigInUse(config.id)
+    fun confirmRename() {
+        val trimmed = name.trim()
+        if (trimmed.isNotEmpty()) onConfirm(trimmed)
     }
 
-    val summary =
-        when {
-            config == null -> ""
-            isInUse -> YumeTxt.Override.Dialog.Delete.InUseMessage.format(config.name)
-            else -> YumeTxt.Override.Dialog.Delete.Message.format(config.name)
-        }
-
-    AppDialog(
-        show = show.value,
-        title = YumeTxt.Override.Dialog.Delete.Title,
-        summary = summary,
+    AppTextFieldDialog(
+        show = show,
+        title = YumeTxt.Override.Dialog.Rename,
+        value = name,
+        onValueChange = { name = it },
         onDismissRequest = onDismiss,
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(UiDp.dp12)) {
-            Button(modifier = Modifier.weight(1f), onClick = onDismiss) {
-                Text(YumeTxt.Override.Dialog.Button.Cancel)
-            }
-            Button(
-                modifier = Modifier.weight(1f),
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColorsPrimary(),
-            ) {
-                Text(text = YumeTxt.Override.Dialog.Button.Delete, color = colorScheme.onPrimary)
-            }
-        }
-    }
+        onConfirm = { confirmRename() },
+        singleLine = true,
+        onImeAction = { confirmRename() },
+    )
 }
 
 internal val OverrideContentType.label: String
