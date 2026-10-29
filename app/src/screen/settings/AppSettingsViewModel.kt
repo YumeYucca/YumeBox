@@ -32,6 +32,7 @@ import com.github.yumeyucca.yumebox.core.util.moeWallpaperFile
 import com.github.yumeyucca.yumebox.data.controller.AppSettingsController
 import com.github.yumeyucca.yumebox.data.model.AppColorTheme
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
+import com.github.yumeyucca.yumebox.data.model.NotificationLineContent
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
 import com.github.yumeyucca.yumebox.data.store.FeatureStore
@@ -65,6 +66,11 @@ class AppSettingsViewModel(
         settings.autoUpdateCurrentProfileOnStart
     val excludeFromRecents: Preference<Boolean> = settings.excludeFromRecents
     val showTrafficNotification: Preference<Boolean> = settings.showTrafficNotification
+    val notificationFirstLine: Preference<NotificationLineContent> = settings.notificationFirstLine
+    val notificationSecondLine: Preference<NotificationLineContent> =
+        settings.notificationSecondLine
+    val notificationFirstLineText: Preference<String> = settings.notificationFirstLineText
+    val notificationSecondLineText: Preference<String> = settings.notificationSecondLineText
     val bottomBarAutoHide: Preference<Boolean> = settings.bottomBarAutoHide
     val topBarBlurEnabled: Preference<Boolean> = settings.topBarBlurEnabled
     val classicHomeEnabled: Preference<Boolean> = settings.classicHomeEnabled
@@ -428,6 +434,16 @@ class AppSettingsViewModel(
     fun onExcludeFromRecentsChange(exclude: Boolean) = excludeFromRecents.set(exclude)
 
     fun onShowTrafficNotificationChange(show: Boolean) = showTrafficNotification.set(show)
+
+    fun onNotificationFirstLineChange(content: NotificationLineContent) =
+        notificationFirstLine.set(content)
+
+    fun onNotificationSecondLineChange(content: NotificationLineContent) =
+        notificationSecondLine.set(content)
+
+    fun onNotificationFirstLineTextChange(text: String) = notificationFirstLineText.set(text)
+
+    fun onNotificationSecondLineTextChange(text: String) = notificationSecondLineText.set(text)
 
     fun onSuperIslandEnabledChange(enabled: Boolean) = superIslandEnabled.set(enabled)
 

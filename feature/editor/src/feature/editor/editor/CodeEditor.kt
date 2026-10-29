@@ -24,16 +24,29 @@ package com.github.yumeyucca.yumebox.feature.editor.editor
 
 
 import android.util.TypedValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
 import com.github.yumeyucca.yumebox.feature.editor.language.TextMateInitializer
 import com.github.yumeyucca.yumebox.feature.editor.theme.EditorThemeManager
 import io.github.rosemoe.sora.event.ContentChangeEvent
+import io.github.rosemoe.sora.event.DragSelectStopEvent
+import io.github.rosemoe.sora.event.EditorFocusChangeEvent
+import io.github.rosemoe.sora.event.HandleStateChangeEvent
+import io.github.rosemoe.sora.event.ScrollEvent
+import io.github.rosemoe.sora.event.SelectionChangeEvent
+import io.github.rosemoe.sora.graphics.inlayHint.ColorInlayHintRenderer
+import io.github.rosemoe.sora.graphics.inlayHint.TextInlayHintRenderer
+import io.github.rosemoe.sora.lang.styling.color.ResolvableColor
 import io.github.rosemoe.sora.widget.CodeEditor
+import io.github.rosemoe.sora.widget.component.EditorTextActionWindow
+import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 import io.github.rosemoe.sora.widget.subscribeAlways
 import timber.log.Timber
 
@@ -44,10 +57,13 @@ private const val EDITOR_DEFAULT_TEXT_SIZE_SP = 14f
 fun CodeEditor(
     state: CodeEditorState,
     modifier: Modifier = Modifier,
+    fontSizeSp: Float = EDITOR_DEFAULT_TEXT_SIZE_SP,
+    onScroll: ((Int) -> Unit)? = null,
     onTextChange: ((String) -> Unit)? = null,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val editorRef = remember { mutableStateOf<CodeEditor?>(null) }
+    val selectionMenuController = remember { SelectionMenuController() }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -77,13 +93,16 @@ fun CodeEditor(
             }
             state.editor = null
             editorRef.value = null
+            selectionMenuController.clear()
         }
     }
 
     val editorThemeState = EditorThemeManager.rememberEditorTheme()
-    LaunchedEffect(editorThemeState.isDark) {
+    LaunchedEffect(editorRef.value, editorThemeState.isDark) {
         editorRef.value?.let { editor ->
             EditorThemeManager.updateTheme(editor, editorThemeState.isDark)
+            TextMateInitializer.setLanguage(editor, state.language)
+            selectionMenuController.dismiss()
         }
     }
 
@@ -94,39 +113,74 @@ fun CodeEditor(
         }
     }
 
-    AndroidView(
-        factory = { ctx ->
-            createCodeEditor(ctx, state, editorThemeState.isDark, onTextChange).also { editor ->
-                state.editor = editor
-                state.refreshHistoryState()
-                editorRef.value = editor
+    LaunchedEffect(fontSizeSp) {
+        editorRef.value?.setTextSize(fontSizeSp)
+    }
+
+    Box(modifier = modifier) {
+        AndroidView(
+            factory = { ctx ->
+                createCodeEditor(
+                    ctx,
+                    state,
+                    editorThemeState.isDark,
+                    fontSizeSp,
+                    onScroll,
+                    onTextChange,
+                    selectionMenuController::update,
+                ).also { editor ->
+                    state.editor = editor
+                    state.refreshHistoryState()
+                    editorRef.value = editor
+                }
+            },
+            modifier = Modifier.fillMaxSize(),
+            onRelease = { editor ->
+                try {
+                    editor.release()
+                } catch (error: Exception) { // fault barrier: best-effort Sora editor cleanup
+                    Timber.e(error, "Failed to release editor in onRelease")
+                }
+            },
+        )
+
+        selectionMenuController.state?.let { menuState ->
+            key(menuState) {
+                TextSelectionActionsMenu(
+                    state = menuState,
+                    show = selectionMenuController.isVisible,
+                    onDismiss = selectionMenuController::dismiss,
+                    onDismissFinished = selectionMenuController::finishDismiss,
+                    onAction = { action ->
+                        selectionMenuController.dismissForAction()
+                        menuState.editor.performSelectionAction(action)
+                    },
+                )
             }
-        },
-        modifier = modifier,
-        onRelease = { editor ->
-            try {
-                editor.release()
-            } catch (error: Exception) { // fault barrier: best-effort Sora editor cleanup
-                Timber.e(error, "Failed to release editor in onRelease")
-            }
-        },
-    )
+        }
+    }
 }
 
 private fun createCodeEditor(
     context: android.content.Context,
     state: CodeEditorState,
     isDark: Boolean,
+    fontSizeSp: Float,
+    onScroll: ((Int) -> Unit)?,
     onTextChange: ((String) -> Unit)?,
+    onSelectionMenuChange: (SelectionMenuState?) -> Unit,
 ): CodeEditor {
     TextMateInitializer.initialize(context)
 
-    return CodeEditor(context).apply {
+    TextMateInitializer.setTheme(isDark)
+
+    return IndentGuideCodeEditor(context).apply {
         isEditable = !state.readOnly
 
-        // Sora's default text size is quite large; pin a comfortable editor default (sp). Users can
-        // still pinch-to-zoom from here.
-        setTextSize(EDITOR_DEFAULT_TEXT_SIZE_SP)
+        // The editor has a fixed text size; font size changes go through the bottom bar.
+        setTextSize(fontSizeSp)
+        isScalable = false
+        setTabWidth(if (state.language == LanguageScope.Text) 4 else 2)
 
         val font = EditorFontManager.getEditorTypeface(context)
         typefaceText = font
@@ -139,21 +193,75 @@ private fun createCodeEditor(
                 context.resources.displayMetrics,
             )
         )
+        val dividerMargin =
+            TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                8f,
+                context.resources.displayMetrics,
+            )
+        setDividerMargin(dividerMargin, dividerMargin)
 
         setScrollBarEnabled(false)
+        getComponent(EditorTextActionWindow::class.java).isEnabled = false
+
+        setBlockLineEnabled(true)
+        setBlockLineWidth(1f)
+        setHighlightCurrentBlock(true)
+        setHighlightCurrentLine(true)
+        setHighlightBracketPair(true)
+        registerInlayHintRenderers(
+            TextInlayHintRenderer.DefaultInstance,
+            ColorInlayHintRenderer(
+                ResolvableColor { scheme ->
+                    scheme.getColor(EditorColorScheme.TEXT_NORMAL)
+                }
+            ),
+        )
 
         nonPrintablePaintingFlags = CodeEditor.FLAG_DRAW_LINE_SEPARATOR
 
         setText(state.content)
 
-        TextMateInitializer.setLanguage(this, state.language)
-
         EditorThemeManager.applyTheme(this)
+        TextMateInitializer.setLanguage(this, state.language)
         EditorThemeManager.updateTheme(this, isDark)
+        registerInlayHintProvider(ColorInlayHintProvider(this))
 
         subscribeAlways<ContentChangeEvent> {
             state.syncContentFromEditor()
             onTextChange?.invoke(state.content)
+            invalidateInlayHints()
+            onSelectionMenuChange(null)
+        }
+        subscribeAlways<ScrollEvent> { event ->
+            onScroll?.invoke(event.endY)
+            onSelectionMenuChange(null)
+        }
+        subscribeAlways<SelectionChangeEvent> { event ->
+            if (!event.isSelected || getEventHandler().isDragSelecting()) {
+                onSelectionMenuChange(null)
+            } else {
+                postInLifecycle {
+                    onSelectionMenuChange(buildSelectionMenuState(this))
+                }
+            }
+        }
+        subscribeAlways<DragSelectStopEvent> {
+            postInLifecycle {
+                onSelectionMenuChange(buildSelectionMenuState(this))
+            }
+        }
+        subscribeAlways<HandleStateChangeEvent> { event ->
+            if (event.isHeld) {
+                onSelectionMenuChange(null)
+            } else if (getCursor().isSelected()) {
+                postInLifecycle {
+                    onSelectionMenuChange(buildSelectionMenuState(this))
+                }
+            }
+        }
+        subscribeAlways<EditorFocusChangeEvent> { event ->
+            if (!event.isGainFocus) onSelectionMenuChange(null)
         }
 
         Timber.d("CodeEditor created: language=${state.language}, readOnly=${state.readOnly}")

@@ -30,6 +30,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
+import com.github.yumeyucca.yumebox.data.model.NotificationDisplaySettings
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.domain.model.resolvePrimaryNode
@@ -79,6 +80,7 @@ class ServiceNotificationManager(
     private var islandShown = false
     private var bypassAcquired = false
     private var lastFrame: NoticeFrame? = null
+    private val notificationTime = System.currentTimeMillis()
 
     fun createChannel() {
         legacyChannelIds.forEach(notificationManager::deleteNotificationChannel)
@@ -156,11 +158,21 @@ class ServiceNotificationManager(
     ): NotificationPresentation.Running {
         val core = CoreProcess.controller(service)
         val now = runCatching { core.queryTrafficNow() }.getOrDefault(0L)
+        val total = runCatching { core.queryTrafficTotal() }.getOrDefault(0L)
+        val displaySettings =
+            NotificationDisplaySettings(
+                firstLine = appSettings.notificationFirstLine.value,
+                secondLine = appSettings.notificationSecondLine.value,
+                firstLineText = appSettings.notificationFirstLineText.value,
+                secondLineText = appSettings.notificationSecondLineText.value,
+            )
         return NotificationPresentationFactory.createRunning(
             profileName = profileName,
             profile = profile,
             currentNode = resolveCurrentNode(core),
             trafficNow = now,
+            trafficTotal = total,
+            displaySettings = displaySettings,
         )
     }
 
@@ -255,7 +267,8 @@ class ServiceNotificationManager(
             .setContentIntent(contentIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setShowWhen(false)
+            .setWhen(notificationTime)
+            .setShowWhen(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()

@@ -191,6 +191,7 @@ fun MoeHomePage(
             ThemeMode.Auto -> systemDark
         }
     val contentSurface = if (isDarkHomeSurface) MiuixTheme.colorScheme.surface else Color.White
+    val currentIsDarkHomeSurface by rememberUpdatedState(isDarkHomeSurface)
     // Off matches the hero card's border inset; on applies the full dynamic status-bar inset.
     // Other routes keep the app-wide system-night-mode appearance.
     val view = LocalView.current
@@ -199,13 +200,13 @@ fun MoeHomePage(
     SideEffect {
         statusBarController.isAppearanceLightStatusBars =
             when {
-                !isActive -> !systemDark
+                !isActive -> !isDarkHomeSurface
                 statusBarSpacing -> !isDarkHomeSurface
                 else -> false
             }
     }
     DisposableEffect(Unit) {
-        onDispose { statusBarController.isAppearanceLightStatusBars = !systemDark }
+        onDispose { statusBarController.isAppearanceLightStatusBars = !currentIsDarkHomeSurface }
     }
     val handlePageChange = LocalHandlePageChange.current
     val rootNavigator = LocalNavigator.current

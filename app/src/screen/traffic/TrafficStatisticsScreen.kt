@@ -39,7 +39,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.graphics.drawable.toBitmap
 import com.github.yumeyucca.yumebox.common.util.formatBytes
-import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.data.controller.AppIdentityResolver
 import com.github.yumeyucca.yumebox.data.model.AppTrafficUsage
 import com.github.yumeyucca.yumebox.data.model.StatisticsTimeRange
@@ -55,12 +54,8 @@ import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.text.Collator
 
@@ -114,20 +109,6 @@ fun TrafficStatisticsScreen() {
             TopBar(
                 title = YumeTxt.TrafficStatistics.Title,
                 scrollBehavior = scrollBehavior,
-                actions = {
-                    IconButton(
-                        onClick = {
-                            viewModel.clearAllStatistics()
-                            context.toast(YumeTxt.TrafficStatistics.Action.ClearSuccess)
-                        }
-                    ) {
-                        Icon(
-                            imageVector = MiuixIcons.Delete,
-                            contentDescription = YumeTxt.TrafficStatistics.Action.Clear,
-                            tint = MiuixTheme.colorScheme.onSurface,
-                        )
-                    }
-                },
             )
         }
     ) { innerPadding ->

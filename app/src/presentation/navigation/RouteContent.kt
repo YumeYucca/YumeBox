@@ -50,7 +50,8 @@ import com.github.yumeyucca.yumebox.screen.traffic.TrafficStatisticsScreen
 fun RouteContent(route: Route, navigator: Navigator) {
     when (route) {
         Route.Settings -> SettingPager(mainInnerPadding = rememberStandalonePageMainPadding())
-        Route.AppSettings -> AppSettingsScreen()
+        Route.AppSettings -> AppSettingsScreen(navigator)
+        Route.NotificationSettings -> NotificationSettingsScreen()
         Route.NetworkSettings -> NetworkSettingsScreen(navigator)
         Route.VpnServiceOptions -> VpnServiceOptionsScreen()
         Route.TunServiceOptions -> TunServiceOptionsScreen()
@@ -81,4 +82,4 @@ fun RouteContent(route: Route, navigator: Navigator) {
 }
 
 val SettingsDetailRootRoutes: Set<Route> =
-    setOf(Route.AppSettings, Route.NetworkSettings, Route.Override, Route.MetaFeature, Route.Feature, Route.Extensions, Route.BackupRestore, Route.About)
+    setOf(Route.AppSettings, Route.NotificationSettings, Route.NetworkSettings, Route.Override, Route.MetaFeature, Route.Feature, Route.Extensions, Route.BackupRestore, Route.About)

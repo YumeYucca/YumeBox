@@ -40,7 +40,7 @@ object EditorThemeManager {
         return remember(isDark) {
             EditorThemeState(
                 isDark = isDark,
-                themeName = if (isDark) "dark-high-contrast" else "light",
+                themeName = if (isDark) "cursor-dark" else "cursor-light-colorblind",
             )
         }
     }
@@ -63,10 +63,12 @@ object EditorThemeManager {
             TextMateInitializer.setTheme(isDark)
 
             editor.colorScheme = TextMateColorScheme.create(ThemeRegistry.getInstance())
+            EditorColorSynchronizer.updateColors(editor, isDark)
         } catch (
             _: Exception
         ) { // fault barrier: TextMate/tm4e throws unspecified exceptions, fall back
             editor.colorScheme = EditorColorSynchronizer.createColorScheme(isDark)
+            EditorColorSynchronizer.updateColors(editor, isDark)
         }
     }
 }

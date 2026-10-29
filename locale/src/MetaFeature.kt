@@ -4,8 +4,8 @@ internal val ZhHansYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeString
     Title = "分流与规则",
     Section = YumeStrings_MetaFeature_Section(
         ConnectionAndTraffic = "连接、日志与规则",
-        StatisticsAndLogs = "流量与日志",
-        StatisticsAndLogsSummary = "查看应用流量统计和内核运行日志，便于了解流量去向并排查连接问题",
+        LogsAndConnections = "日志与连接",
+        LogsAndConnectionsSummary = "查看内核运行日志与当前连接，便于排查连接问题",
         Routing = "分流",
     ),
     GeoX = YumeStrings_MetaFeature_GeoX(
@@ -62,8 +62,8 @@ internal val ZhYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_Me
     Title = "分流與規則",
     Section = YumeStrings_MetaFeature_Section(
         ConnectionAndTraffic = "連線、日誌與規則",
-        StatisticsAndLogs = "流量與日誌",
-        StatisticsAndLogsSummary = "檢視應用流量統計與核心執行日誌，便於了解流量去向並排查連線問題",
+        LogsAndConnections = "日誌與連線",
+        LogsAndConnectionsSummary = "檢視核心執行日誌與目前連線，便於排查連線問題",
         Routing = "分流",
     ),
     GeoX = YumeStrings_MetaFeature_GeoX(
@@ -120,8 +120,8 @@ internal val EnYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_Me
     Title = "Routing & Rules",
     Section = YumeStrings_MetaFeature_Section(
         ConnectionAndTraffic = "Connections, logs, and rules",
-        StatisticsAndLogs = "Traffic & Logs",
-        StatisticsAndLogsSummary = "View app traffic statistics and kernel logs to understand usage and troubleshoot connections",
+        LogsAndConnections = "Logs & Connections",
+        LogsAndConnectionsSummary = "View kernel logs and current connections to troubleshoot connection issues",
         Routing = "Routing",
     ),
     GeoX = YumeStrings_MetaFeature_GeoX(
@@ -178,8 +178,8 @@ internal val JaYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_Me
     Title = "ルーティングとルール",
     Section = YumeStrings_MetaFeature_Section(
         ConnectionAndTraffic = "接続、ログ、ルール",
-        StatisticsAndLogs = "通信量とログ",
-        StatisticsAndLogsSummary = "アプリの通信量統計とカーネルログを確認し、通信の内訳や接続問題を把握できます",
+        LogsAndConnections = "ログと接続",
+        LogsAndConnectionsSummary = "カーネルログと現在の接続を確認し、接続の問題を調査できます",
         Routing = "ルーティング",
     ),
     GeoX = YumeStrings_MetaFeature_GeoX(
@@ -236,8 +236,8 @@ internal val RuYumeStrings_MetaFeature: YumeStrings_MetaFeature = YumeStrings_Me
     Title = "Маршрутизация и правила",
     Section = YumeStrings_MetaFeature_Section(
         ConnectionAndTraffic = "Соединения, журналы и правила",
-        StatisticsAndLogs = "Трафик и журналы",
-        StatisticsAndLogsSummary = "Просмотр статистики трафика приложений и журналов ядра для анализа использования и диагностики подключений",
+        LogsAndConnections = "Журналы и соединения",
+        LogsAndConnectionsSummary = "Просмотр журналов ядра и текущих соединений для диагностики подключений",
         Routing = "Маршрутизация",
     ),
     GeoX = YumeStrings_MetaFeature_GeoX(

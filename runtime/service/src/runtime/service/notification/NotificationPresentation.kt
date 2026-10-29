@@ -22,6 +22,9 @@ package com.github.yumeyucca.yumebox.runtime.service.notification
 
 import com.github.yumeyucca.yumebox.common.util.formatBytes
 import com.github.yumeyucca.yumebox.common.util.formatSpeed
+import com.github.yumeyucca.yumebox.data.model.NotificationDisplaySettings
+import com.github.yumeyucca.yumebox.data.model.NotificationLineValues
+import com.github.yumeyucca.yumebox.data.model.resolve
 import com.github.yumeyucca.yumebox.runtime.service.profile.Imported
 import java.time.Instant
 import java.time.ZoneId
@@ -56,13 +59,40 @@ internal object NotificationPresentationFactory {
         profile: Imported?,
         currentNode: String?,
         trafficNow: Long,
+        trafficTotal: Long = 0L,
+        displaySettings: NotificationDisplaySettings = NotificationDisplaySettings(),
     ): NotificationPresentation.Running {
-        val usageLine = buildUsageLine(profile)
+        val used = profile?.let { (it.upload + it.download).coerceAtLeast(0L) } ?: 0L
+        val total = profile?.total?.coerceAtLeast(0L) ?: 0L
+        val expire = profile?.expire?.takeIf { it > 0L }
         val node = currentNode ?: YumeTxt.Service.Notification.NoNode
+        val speedLine = buildSpeedLine(trafficNow)
+        val values =
+            NotificationLineValues(
+                profileName = profileName,
+                currentNode = node,
+                liveTraffic = speedLine,
+                usedTraffic = formatBytes(used),
+                sessionTraffic = buildSessionTrafficLine(trafficTotal),
+                totalTraffic = if (total > 0L) formatBytes(total) else "—",
+                remainingTraffic =
+                    if (total > 0L) formatBytes((total - used).coerceAtLeast(0L)) else "—",
+                subscriptionUsage = buildUsageLine(profile),
+                expiryDate = expire?.let(::expireDate) ?: "—",
+                status = YumeTxt.Service.Notification.Running,
+            )
+        val title =
+            displaySettings.firstLine
+                .resolve(values, displaySettings.firstLineText)
+                .ifBlank { profileName }
+        val content = displaySettings.secondLine.resolve(values, displaySettings.secondLineText)
         return NotificationPresentation.Running(
-            title = profileName,
-            content = usageLine,
-            expandedText = "$usageLine\n" + YumeTxt.Service.Notification.CurrentNode.format(node),
+            title = title,
+            content = content,
+            expandedText =
+                listOf(content, YumeTxt.Service.Notification.CurrentNode.format(node))
+                    .filter { it.isNotBlank() }
+                    .joinToString("\n"),
             compactTraffic = buildCompactTrafficLine(trafficNow),
             currentNode = currentNode,
         )
@@ -79,8 +109,7 @@ internal object NotificationPresentationFactory {
         )
 
     /**
-     * Values only, no labels, so the island can render it: `1.2 GB / 100 GB | 2026-08-31`. Falls back
-     * to the profile name when the profile carries no subscription information.
+     * Values only, no labels, so the island can render it: `1.2 GB / 100 GB | 2026-08-31`.
      */
     private fun buildUsageLine(profile: Imported?): String {
         val used = profile?.let { (it.upload + it.download).coerceAtLeast(0L) } ?: 0L
@@ -89,10 +118,12 @@ internal object NotificationPresentationFactory {
             when {
                 total > 0L -> "${formatBytes(used)} / ${formatBytes(total)}"
                 used > 0L -> formatBytes(used)
-                else -> profile?.name?.takeIf { it.isNotBlank() }.orEmpty()
+                else -> ""
             }
         val expire = profile?.expire?.takeIf { it > 0L }?.let { expireDate(it) }
-        return listOfNotNull(usage.takeIf { it.isNotEmpty() }, expire).joinToString(" | ")
+        return listOfNotNull(usage.takeIf { it.isNotEmpty() }, expire)
+            .joinToString(" | ")
+            .ifBlank { "—" }
     }
 
     private fun expireDate(expireAt: Long): String =
@@ -102,6 +133,23 @@ internal object NotificationPresentationFactory {
         val upNow = decodeTrafficHalf(trafficNow ushr 32)
         val downNow = decodeTrafficHalf(trafficNow and 0xFFFFFFFFL)
         return formatSpeed((upNow + downNow).coerceAtLeast(0L))
+    }
+
+    private fun buildSpeedLine(trafficNow: Long): String {
+        val upNow = decodeTrafficHalf(trafficNow ushr 32)
+        val downNow = decodeTrafficHalf(trafficNow and 0xFFFFFFFFL)
+        return YumeTxt.Service.Notification.SpeedLine.format(
+            formatSpeed(downNow),
+            formatSpeed(upNow),
+        )
+    }
+
+    private fun buildSessionTrafficLine(trafficTotal: Long): String {
+        val upTotal = decodeTrafficHalf(trafficTotal ushr 32)
+        val downTotal = decodeTrafficHalf(trafficTotal and 0xFFFFFFFFL)
+        return YumeTxt.Service.Notification.TotalTraffic.format(
+            formatBytes((upTotal + downTotal).coerceAtLeast(0L)),
+        )
     }
 
     private fun decodeTrafficHalf(encoded: Long): Long {

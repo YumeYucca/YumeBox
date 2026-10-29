@@ -23,7 +23,6 @@
 package com.github.yumeyucca.yumebox.screen.log
 
 import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumeyucca.yumebox.core.model.LogMessage
@@ -33,7 +32,6 @@ import com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
-import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicLong
@@ -196,26 +194,6 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
     }
-
-    suspend fun export(targetUri: Uri): Boolean =
-        withContext(Dispatchers.IO) {
-            val entries = filteredLogEntries.value
-            if (entries.isEmpty()) return@withContext false
-            try {
-                appContext.contentResolver.openOutputStream(targetUri)?.use { output ->
-                    entries.forEach { entry ->
-                        output.write(
-                            "[${entry.time}] [${entry.level.name}] ${entry.message}\n".toByteArray()
-                        )
-                    }
-                } ?: return@withContext false
-                true
-            } catch (_: IOException) {
-                false
-            } catch (_: SecurityException) {
-                false
-            }
-        }
 
     override fun onCleared() {
         connectJob?.cancel()

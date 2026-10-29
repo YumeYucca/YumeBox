@@ -24,7 +24,6 @@ package com.github.yumeyucca.yumebox.presentation.theme
 
 
 import android.app.Activity
-import android.content.res.Configuration
 import android.os.Build
 import android.view.WindowInsetsController
 import androidx.compose.runtime.Composable
@@ -33,7 +32,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val AndroidSystemUiEffect: @Composable () -> Unit = {
+private val AndroidSystemUiEffect: @Composable (isDark: Boolean) -> Unit = { isDark ->
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -44,13 +43,9 @@ private val AndroidSystemUiEffect: @Composable () -> Unit = {
                 window.isNavigationBarContrastEnforced = false
             }
 
-            val isDarkMode =
-                (view.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-                        Configuration.UI_MODE_NIGHT_YES
-
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val appearance =
-                    if (!isDarkMode) {
+                    if (!isDark) {
                         WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
                                 WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
                     } else {
@@ -63,8 +58,8 @@ private val AndroidSystemUiEffect: @Composable () -> Unit = {
                 )
             } else {
                 WindowCompat.getInsetsController(window, view).apply {
-                    isAppearanceLightStatusBars = !isDarkMode
-                    isAppearanceLightNavigationBars = !isDarkMode
+                    isAppearanceLightStatusBars = !isDark
+                    isAppearanceLightNavigationBars = !isDark
                 }
             }
         }
