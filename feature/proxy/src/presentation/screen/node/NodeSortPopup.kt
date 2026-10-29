@@ -63,8 +63,8 @@ import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.ArrowUpDown
+import io.github.yumeyucca.lucide.lucide.Columns2
 import io.github.yumeyucca.lucide.lucide.Gift
-import io.github.yumeyucca.lucide.lucide.Locate
 import io.github.yumeyucca.lucide.lucide.Search
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -180,7 +180,10 @@ internal fun NodeActionsMenu(
     show: Boolean,
     onDismiss: () -> Unit,
     sortMode: ProxySortMode,
-    onLocateCurrentProxy: (() -> Unit)? = null,
+    twoColumnNodes: Boolean = false,
+    onNodeColumnsSelected: ((Boolean) -> Unit)? = null,
+    groupTabsMode: Boolean = false,
+    onGroupTabsModeSelected: ((Boolean) -> Unit)? = null,
     onOpenRouting: (() -> Unit)? = null,
     searchVisible: Boolean = false,
     onToggleSearch: (() -> Unit)? = null,
@@ -192,22 +195,31 @@ internal fun NodeActionsMenu(
     val backdrop = LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current
     val popupVisible = remember { mutableStateOf(false) }
     val popupVisuals = GlassPopupDefaults.visuals()
-    var submenu by remember { mutableStateOf(false) }
-    var submenuPresent by remember { mutableStateOf(false) }
-    var submenuAnchor by remember { mutableStateOf(Rect.Zero) }
+    var sortSubmenu by remember { mutableStateOf(false) }
+    var layoutSubmenu by remember { mutableStateOf(false) }
+    var sortSubmenuPresent by remember { mutableStateOf(false) }
+    var layoutSubmenuPresent by remember { mutableStateOf(false) }
+    var sortSubmenuAnchor by remember { mutableStateOf(Rect.Zero) }
+    var layoutSubmenuAnchor by remember { mutableStateOf(Rect.Zero) }
     var menuWidth by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
     val arrowTurn = CascadingPopupDefaults.arrowRotation(LocalLayoutDirection.current)
-    val submenuArrow by animateFloatAsState(
-        targetValue = if (submenu) arrowTurn else 0f,
-        animationSpec = CascadingPopupDefaults.arrowSpring(submenu),
+    val sortSubmenuArrow by animateFloatAsState(
+        targetValue = if (sortSubmenu) arrowTurn else 0f,
+        animationSpec = CascadingPopupDefaults.arrowSpring(sortSubmenu),
         label = "nodeActionsSubmenuArrow",
+    )
+    val layoutSubmenuArrow by animateFloatAsState(
+        targetValue = if (layoutSubmenu) arrowTurn else 0f,
+        animationSpec = CascadingPopupDefaults.arrowSpring(layoutSubmenu),
+        label = "nodeActionsLayoutSubmenuArrow",
     )
     LaunchedEffect(show) {
         if (show) {
             popupVisible.value = true
         } else {
-            submenu = false
+            sortSubmenu = false
+            layoutSubmenu = false
         }
     }
     PopupLayout(
@@ -225,7 +237,8 @@ internal fun NodeActionsMenu(
             GlassTransformPopup(
                 show = expanded,
                 onDismissRequest = {
-                    submenu = false
+                    sortSubmenu = false
+                    layoutSubmenu = false
                     onDismiss()
                 },
                 anchor = anchor,
@@ -235,9 +248,15 @@ internal fun NodeActionsMenu(
                 anchorAlpha = 0f,
                 sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
                 visuals = popupVisuals,
-                stacked = submenu,
+                stacked = sortSubmenu || layoutSubmenu,
                 alignToPageEnd = true,
-                onDismissFinished = { if (!show) popupVisible.value = false },
+                onDismissFinished = {
+                    if (!show) {
+                        popupVisible.value = false
+                        sortSubmenuPresent = false
+                        layoutSubmenuPresent = false
+                    }
+                },
                 onMeasured = { menuWidth = with(density) { it.width.toDp() } },
             ) {
                 onOpenRouting?.let { openRouting ->
@@ -261,13 +280,20 @@ internal fun NodeActionsMenu(
                         },
                     )
                 }
-                onLocateCurrentProxy?.let { locateCurrentProxy ->
+                if (onNodeColumnsSelected != null) {
                     NodePopupItem(
-                        text = YumeTxt.Proxy.Action.Locate,
-                        icon = Lucide.Locate,
+                        text = YumeTxt.Proxy.Action.Layout,
+                        icon = Lucide.Columns2,
+                        showArrow = true,
+                        arrowRotation = {
+                            layoutSubmenuArrow * (1f - anchor.secondaryBackProgress)
+                        },
+                        modifier = Modifier.onGloballyPositioned {
+                            if (!layoutSubmenuPresent) layoutSubmenuAnchor = it.boundsInRoot()
+                        },
                         onClick = {
-                            locateCurrentProxy()
-                            onDismiss()
+                            layoutSubmenuPresent = true
+                            layoutSubmenu = true
                         },
                     )
                 }
@@ -275,25 +301,87 @@ internal fun NodeActionsMenu(
                     text = YumeTxt.Proxy.Action.Sort,
                     icon = Lucide.ArrowUpDown,
                     showArrow = true,
-                    arrowRotation = { submenuArrow * (1f - anchor.secondaryBackProgress) },
+                    arrowRotation = { sortSubmenuArrow * (1f - anchor.secondaryBackProgress) },
                     modifier = Modifier.onGloballyPositioned {
-                        if (!submenuPresent) submenuAnchor = it.boundsInRoot()
+                        if (!sortSubmenuPresent) sortSubmenuAnchor = it.boundsInRoot()
                     },
                     onClick = {
-                        submenuPresent = true
-                        submenu = true
+                        sortSubmenuPresent = true
+                        sortSubmenu = true
                     },
                 )
             }
             GlassSecondaryPopup(
-                show = expanded && submenu,
-                onDismissRequest = { submenu = false },
-                anchorBounds = submenuAnchor,
+                show = expanded && layoutSubmenu,
+                onDismissRequest = { layoutSubmenu = false },
+                anchorBounds = layoutSubmenuAnchor,
                 backdrop = backdrop,
                 materialAnchor = anchor,
                 sizing = GlassPopupSizing(minWidth = menuWidth, maxWidth = 188.dp),
                 visuals = popupVisuals,
-                onDismissFinished = { submenuPresent = false },
+                onDismissFinished = { layoutSubmenuPresent = false },
+            ) {
+                GlassPopupItem(
+                    text = YumeTxt.Proxy.Action.Layout,
+                    icon = Lucide.Columns2,
+                    iconSize = 18.dp,
+                    iconGap = 15.dp,
+                    showArrow = true,
+                    arrowRotation = {
+                        layoutSubmenuArrow * (1f - anchor.secondaryBackProgress)
+                    },
+                    onClick = { layoutSubmenu = false },
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(
+                        horizontal = GlassPopupDefaults.DividerPaddingHorizontal,
+                        vertical = GlassPopupDefaults.DividerPaddingVertical,
+                    ),
+                    thickness = GlassPopupDefaults.DividerThickness,
+                )
+                GlassPopupItem(
+                    text = YumeTxt.Proxy.DisplayMode.Single,
+                    selected = !twoColumnNodes,
+                    onClick = {
+                        onNodeColumnsSelected?.invoke(false)
+                        layoutSubmenu = false
+                    },
+                )
+                GlassPopupItem(
+                    text = YumeTxt.Proxy.DisplayMode.Double,
+                    selected = twoColumnNodes,
+                    onClick = {
+                        onNodeColumnsSelected?.invoke(true)
+                        layoutSubmenu = false
+                    },
+                )
+                if (onGroupTabsModeSelected != null) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(
+                            horizontal = GlassPopupDefaults.DividerPaddingHorizontal,
+                            vertical = GlassPopupDefaults.DividerPaddingVertical,
+                        ),
+                        thickness = GlassPopupDefaults.DividerThickness,
+                    )
+                    GlassPopupItem(
+                        text = YumeTxt.Proxy.Action.TabsMode,
+                        selected = groupTabsMode,
+                        onClick = {
+                            onGroupTabsModeSelected(!groupTabsMode)
+                            layoutSubmenu = false
+                        },
+                    )
+                }
+            }
+            GlassSecondaryPopup(
+                show = expanded && sortSubmenu,
+                onDismissRequest = { sortSubmenu = false },
+                anchorBounds = sortSubmenuAnchor,
+                backdrop = backdrop,
+                materialAnchor = anchor,
+                sizing = GlassPopupSizing(minWidth = menuWidth, maxWidth = 188.dp),
+                visuals = popupVisuals,
+                onDismissFinished = { sortSubmenuPresent = false },
             ) {
                 GlassPopupItem(
                     text = YumeTxt.Proxy.Action.Sort,
@@ -301,8 +389,10 @@ internal fun NodeActionsMenu(
                     iconSize = 18.dp,
                     iconGap = 15.dp,
                     showArrow = true,
-                    arrowRotation = { submenuArrow * (1f - anchor.secondaryBackProgress) },
-                    onClick = { submenu = false },
+                    arrowRotation = {
+                        sortSubmenuArrow * (1f - anchor.secondaryBackProgress)
+                    },
+                    onClick = { sortSubmenu = false },
                 )
                 HorizontalDivider(
                     modifier = Modifier.padding(
@@ -317,7 +407,7 @@ internal fun NodeActionsMenu(
                         selected = mode == sortMode,
                         onClick = {
                             if (mode != sortMode) onSortSelected(mode)
-                            submenu = false
+                            sortSubmenu = false
                         },
                     )
                 }

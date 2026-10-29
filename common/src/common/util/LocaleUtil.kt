@@ -25,7 +25,7 @@ import java.util.Locale
 object LocaleUtil {
     const val UNKNOWN_FLAG_CODE = "xx"
 
-    private const val FLAG_CDN_BASE_URL = "https://hatscripts.github.io/circle-flags/flags/"
+    private const val FLAG_BASE_URI = "circle-flag:///flags/"
     private const val UNKNOWN_FLAG_PATH = "other/earth.svg"
 
     @Volatile
@@ -37,21 +37,21 @@ object LocaleUtil {
 
     fun currentLocale(): Locale = override ?: Locale.getDefault()
 
-    fun unknownFlagUrl(baseUrl: String = FLAG_CDN_BASE_URL): String = "$baseUrl$UNKNOWN_FLAG_PATH"
+    fun unknownFlagUri(baseUri: String = FLAG_BASE_URI): String = "$baseUri$UNKNOWN_FLAG_PATH"
 
-    fun normalizeFlagUrl(
+    fun normalizeFlagUri(
         countryCode: String?,
-        baseUrl: String = FLAG_CDN_BASE_URL,
+        baseUri: String = FLAG_BASE_URI,
     ): String {
         val normalizedCode =
             countryCode
                 ?.trim()
                 ?.takeIf { it.isNotEmpty() && it.all(Char::isLetter) }
-                ?: return unknownFlagUrl(baseUrl)
+                ?: return unknownFlagUri(baseUri)
         if (normalizedCode.equals(UNKNOWN_FLAG_CODE, ignoreCase = true)) {
-            return unknownFlagUrl(baseUrl)
+            return unknownFlagUri(baseUri)
         }
         val code = normalizedCode.lowercase(Locale.ROOT)
-        return "$baseUrl$code.svg"
+        return "$baseUri$code.svg"
     }
 }

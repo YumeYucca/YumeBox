@@ -170,13 +170,13 @@ internal fun NodeSelectableCard(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     paddingVertical: Dp,
+    paddingHorizontal: Dp = UiDp.dp16,
+    cornerRadius: Dp = UiDp.dp24,
     content: @Composable BoxScope.(isSelected: Boolean, selectionProgress: Float) -> Unit,
 ) {
-    val radii = AppTheme.radii
-    val sizes = AppTheme.sizes
     val interactionSource = remember { MutableInteractionSource() }
     val hapticFeedback = LocalHapticFeedback.current
-    val shape = RoundedCornerShape(radii.radius24)
+    val shape = RoundedCornerShape(cornerRadius)
     val backgroundColor = MiuixTheme.colorScheme.background
     val selectionProgress by animateFloatAsState(
         targetValue = if (isSelected) 1f else 0f,
@@ -232,7 +232,7 @@ internal fun NodeSelectableCard(
                             it
                         }
                     }
-                    .padding(horizontal = sizes.nodeCardPaddingHorizontal, vertical = paddingVertical),
+                    .padding(horizontal = paddingHorizontal, vertical = paddingVertical),
         ) {
             content(isSelected, selectionProgress)
         }
@@ -241,7 +241,7 @@ internal fun NodeSelectableCard(
                 Modifier.matchParentSize().squircleBorder(
                     width = 1.5.dp,
                     color = selectionBorderColor,
-                    cornerRadius = radii.radius24,
+                    cornerRadius = cornerRadius,
                 ),
         )
     }
@@ -256,6 +256,7 @@ internal fun NodeCard(
     isDelayTesting: Boolean = false,
     modifier: Modifier = Modifier,
     showCountryFlag: Boolean = true,
+    compact: Boolean = false,
 ) {
     val spacing = AppTheme.spacing
     val sizes = AppTheme.sizes
@@ -266,61 +267,135 @@ internal fun NodeCard(
         onClick = onCardClick,
         modifier = modifier,
         paddingVertical = sizes.nodeCardPaddingVertical,
+        paddingHorizontal = if (compact) UiDp.dp12 else sizes.nodeCardPaddingHorizontal,
+        cornerRadius = if (compact) UiDp.dp20 else UiDp.dp24,
     ) { selected, _ ->
         val presentation =
             remember(proxy.name, proxy.title) {
                 resolveProxyDisplayPresentation(name = proxy.name, title = proxy.title)
             }
-        val tags = remember(proxy.name) { extractNodeTags(proxy.name) }
-        val typeLabel = remember(proxy.type) { displayName(proxy.type) }
-        val iconLabel = remember(proxy.type) { iconLabel(proxy.type) }
+        if (compact) {
+            NodeCompactCardContent(
+                proxy = proxy,
+                presentation = presentation,
+                isDelayTesting = isDelayTesting,
+                onTestClick = onTestClick,
+                showCountryFlag = showCountryFlag,
+            )
+        } else {
+            val tags = remember(proxy.name) { extractNodeTags(proxy.name) }
+            val typeLabel = remember(proxy.type) { displayName(proxy.type) }
+            val iconLabel = remember(proxy.type) { iconLabel(proxy.type) }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(sizes.nodeCardContentGap),
+            ) {
+                NodeLargeIcon(
+                    countryCode = presentation.countryCode,
+                    showCountryFlag = showCountryFlag,
+                    typeName = iconLabel,
+                )
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(sizes.nodeCardTitleGap),
+                ) {
+                    Text(
+                        text = presentation.displayName,
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(AppTheme.sizes.listItemVerticalMinimal),
+                        verticalArrangement = Arrangement.spacedBy(spacing.space4),
+                    ) {
+                        NodeTagChip(label = typeLabel)
+                        tags.keywords.forEach { keyword -> NodeTagChip(label = keyword) }
+                        tags.multiplier?.let { multiplier ->
+                            if (multiplier > 0f) NodeMultiplierChip(multiplier = multiplier)
+                        }
+                        LiveNodeLatencyChip(
+                            proxy = proxy,
+                            isDelayTesting = isDelayTesting,
+                            onTestClick = onTestClick,
+                        )
+                    }
+                }
+
+                NodeSelectionTag(
+                    isSelected = selected,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NodeCompactCardContent(
+    proxy: Proxy,
+    presentation: ProxyDisplayPresentation,
+    isDelayTesting: Boolean,
+    onTestClick: ((String) -> Unit)?,
+    showCountryFlag: Boolean,
+) {
+    val spacing = AppTheme.spacing
+    val iconLabel = remember(proxy.type) { iconLabel(proxy.type) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(spacing.space6)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(UiDp.dp6),
+        ) {
+            if (showCountryFlag) {
+                CountryFlagCircle(
+                    countryCode = presentation.countryCode,
+                    size = UiDp.dp20,
+                )
+            } else {
+                Text(
+                    text = iconLabel,
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
+            Text(
+                text = presentation.displayName,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(sizes.nodeCardContentGap),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            NodeLargeIcon(
-                countryCode = presentation.countryCode,
-                showCountryFlag = showCountryFlag,
-                typeName = iconLabel,
-            )
-
-            Column(
+            Text(
+                text = proxy.type,
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(sizes.nodeCardTitleGap),
-            ) {
-                Text(
-                    text = presentation.displayName,
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(AppTheme.sizes.listItemVerticalMinimal),
-                    verticalArrangement = Arrangement.spacedBy(spacing.space4),
-                ) {
-                    NodeTagChip(label = typeLabel)
-                    tags.keywords.forEach { keyword -> NodeTagChip(label = keyword) }
-                    tags.multiplier?.let { multiplier ->
-                        if (multiplier > 0f) NodeMultiplierChip(multiplier = multiplier)
-                    }
-                    LiveNodeLatencyChip(
-                        proxy = proxy,
-                        isDelayTesting = isDelayTesting,
-                        onTestClick = onTestClick,
-                    )
-                }
-            }
-
-            NodeSelectionTag(
-                isSelected = selected,
-                modifier = Modifier.align(Alignment.CenterVertically),
             )
+            Box(modifier = Modifier.padding(start = UiDp.dp8)) {
+                LiveNodeLatencyChip(
+                    proxy = proxy,
+                    isDelayTesting = isDelayTesting,
+                    onTestClick = onTestClick,
+                )
+            }
         }
     }
 }
@@ -331,10 +406,7 @@ private fun LiveNodeLatencyChip(
     isDelayTesting: Boolean,
     onTestClick: ((String) -> Unit)?,
 ) {
-    val delayProvider = LocalProxyDelayFlow.current
-    val delayFlow = remember(proxy.name, delayProvider) { delayProvider(proxy.name) }
-    val liveDelay by delayFlow.collectAsState()
-    val delayLabel = nodeLatencyLabel(liveDelay ?: proxy.delay)
+    val delayLabel = rememberNodeDelayLabel(proxy)
     delayLabel?.let { (delayText, delayColor) ->
         NodeLatencyChip(
             label = delayText,
@@ -343,6 +415,14 @@ private fun LiveNodeLatencyChip(
             onClick = onTestClick?.let { test -> { test(proxy.name) } },
         )
     }
+}
+
+@Composable
+private fun rememberNodeDelayLabel(proxy: Proxy): Pair<String, Color>? {
+    val delayProvider = LocalProxyDelayFlow.current
+    val delayFlow = remember(proxy.name, delayProvider) { delayProvider(proxy.name) }
+    val liveDelay by delayFlow.collectAsState()
+    return nodeLatencyLabel(liveDelay ?: proxy.delay)
 }
 
 @Composable

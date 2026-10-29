@@ -11,8 +11,9 @@ settings:
     versionName: "build-input"
     abiFilters: [arm64-v8a]
     resourcePackaging:
+      merges:
+        - META-INF/services/**
       excludes:
-        - META-INF/**
         - okhttp3/**
         - schema/**
         - assets/dexopt/**

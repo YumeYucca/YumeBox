@@ -1411,8 +1411,8 @@ public data class YumeStrings_Proxy_Action(
     public val Panel: String,
     public val Test: String,
     public val Sort: String,
-    public val Locate: String,
-    public val LocateCurrent: String,
+    public val Layout: String,
+    public val TabsMode: String,
     public val SearchNodes: String,
     public val More: String,
 )
@@ -1450,6 +1450,8 @@ public data class YumeStrings_Proxy_SortMode(
 )
 
 public data class YumeStrings_Proxy_DisplayMode(
+    public val Single: String,
+    public val Double: String,
     public val SingleDetailed: String,
     public val SingleSimple: String,
     public val DoubleDetailed: String,

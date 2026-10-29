@@ -36,11 +36,9 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.TargetedFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -228,11 +226,7 @@ private fun MainPagerHost(
             flingBehavior = pagerFlingBehavior,
             userScrollEnabled = true,
             overscrollEffect = null,
-            pageNestedScrollConnection =
-                PagerDefaults.pageNestedScrollConnection(
-                    state = mainPagerState.pagerState,
-                    orientation = Orientation.Horizontal,
-                ),
+            pageNestedScrollConnection = NoOpNestedScrollConnection,
         ) { page ->
             val destination =
                 when {

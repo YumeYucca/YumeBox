@@ -41,7 +41,6 @@ import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
-import com.github.yumeyucca.yumebox.presentation.component.PaneWidths
 import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumeyucca.yumebox.presentation.screen.node.GroupDelayRefreshIndicator
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeCard
@@ -83,31 +82,31 @@ internal fun NodeListPage(
     onTestDelay: () -> Unit,
     onTestProxyDelay: (String) -> Unit,
     onScrollDirectionChanged: (Boolean) -> Unit,
-    useAdaptiveGrid: Boolean = false,
+    twoColumnGrid: Boolean = false,
     gridState: LazyGridState? = null,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
     searchVisible: Boolean = false,
-    // 常驻 tab 覆盖层占住的顶部高度,列表初始留白让位。
     topOverlayInset: Dp = UiDp.dp0,
 ) {
     if (group == null) return
     val spacing = LocalSpacing.current
+    val testingNames by testingGroupNames.collectAsState()
     val visibleProxies = remember(group.proxies, searchQuery) { group.filterNodes(searchQuery) }
     val listItemKeys = remember(group.proxies) { group.proxies.map { it.name } }
-    val resolvedGridState = if (useAdaptiveGrid) gridState ?: rememberLazyGridState() else null
+    val resolvedGridState = if (twoColumnGrid) gridState ?: rememberLazyGridState() else null
     val revealCount =
         rememberRowReveal(
             itemCount = visibleProxies.size,
             replayKey = group.name,
-            listState = if (useAdaptiveGrid) null else listState,
+            listState = if (twoColumnGrid) null else listState,
             gridState = resolvedGridState,
         )
 
     GroupDelayTestListAnchor(
         listState = listState,
         itemKeys = listItemKeys,
-        sortByLatency = sortMode == ProxySortMode.BY_LATENCY && !useAdaptiveGrid,
+        sortByLatency = sortMode == ProxySortMode.BY_LATENCY && !twoColumnGrid,
         groupName = group.name,
         testingGroupNames = testingGroupNames,
     )
@@ -116,14 +115,14 @@ internal fun NodeListPage(
         PaddingValues(
             start = UiDp.dp12,
             end = UiDp.dp12,
-            // 有常驻 tab 带时内容紧贴带沿(带自身已含 4dp 上下留白);无带时保留原呼吸留白。
             top =
                 outerInnerPadding.calculateTopPadding() +
-                    if (topOverlayInset > UiDp.dp0) topOverlayInset else UiDp.dp20,
+                    (if (topOverlayInset > UiDp.dp0) topOverlayInset else UiDp.dp20) +
+                    (if (twoColumnGrid) UiDp.dp5 else UiDp.dp0),
             bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
         )
 
-    if (useAdaptiveGrid) {
+    if (twoColumnGrid) {
         val activeGridState = resolvedGridState ?: return
         val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
         var lastHiddenState by remember(activeGridState) { mutableStateOf(false) }
@@ -169,38 +168,33 @@ internal fun NodeListPage(
                 .nestedScroll(fabScrollObserver),
         ) {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = PaneWidths.NodeGridAdaptiveMin),
+                columns = GridCells.Fixed(2),
                 state = activeGridState,
                 contentPadding = contentPadding,
-                horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
-                verticalArrangement = Arrangement.spacedBy(UiDp.dp10),
-                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
+                verticalArrangement = Arrangement.spacedBy(UiDp.dp8),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
             ) {
-                // 搜索框常驻槽位:展开/收起走 AnimatedVisibility 高度过渡,而不是硬切。
-                item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
-                    AnimatedVisibility(
-                        visible = searchVisible,
-                        enter =
-                            expandVertically(
-                                tween(durationMillis = 280, easing = AnimationSpecs.Legacy)
-                            ) + fadeIn(tween(durationMillis = 160, easing = AnimationSpecs.Legacy)),
-                        exit =
-                            shrinkVertically(
-                                tween(durationMillis = 240, easing = AnimationSpecs.Legacy)
-                            ) + fadeOut(tween(durationMillis = 120, easing = AnimationSpecs.Legacy)),
-                    ) {
-                        NodeSearchToolbar(
+                if (searchVisible) {
+                    item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
+                        NodeSearchSlot(
+                            visible = true,
                             query = searchQuery,
                             onQueryChange = onSearchQueryChange,
                         )
                     }
                 }
-                item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
-                    GroupDelayRefreshIndicator(
-                        groupName = group.name,
-                        testingGroupNames = testingGroupNames,
-                        progress = delayTestProgress,
-                    )
+                if (group.name in testingNames) {
+                    item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
+                        NodeRefreshSlot(
+                            groupName = group.name,
+                            testingGroupNames = testingGroupNames,
+                            progress = delayTestProgress,
+                        )
+                    }
                 }
                 itemsIndexed(items = visibleProxies, key = { _, proxy -> proxy.name }) { index, proxy ->
                     NodeCard(
@@ -216,6 +210,7 @@ internal fun NodeListPage(
                         onTestClick = onTestProxyDelay,
                         isDelayTesting = testingProxyNames.contains(proxy.name),
                         showCountryFlag = true,
+                        compact = true,
                         modifier = Modifier.rowReveal(rememberRowShown(index, revealCount)).fillMaxWidth(),
                     )
                 }
@@ -234,25 +229,14 @@ internal fun NodeListPage(
     ) {
         // 搜索框常驻槽位:展开/收起走 AnimatedVisibility 高度过渡,而不是硬切。
         item(key = "__node_search__") {
-            AnimatedVisibility(
+            NodeSearchSlot(
                 visible = searchVisible,
-                enter =
-                    expandVertically(
-                        tween(durationMillis = 280, easing = AnimationSpecs.Legacy)
-                    ) + fadeIn(tween(durationMillis = 160, easing = AnimationSpecs.Legacy)),
-                exit =
-                    shrinkVertically(
-                        tween(durationMillis = 240, easing = AnimationSpecs.Legacy)
-                    ) + fadeOut(tween(durationMillis = 120, easing = AnimationSpecs.Legacy)),
-            ) {
-                NodeSearchToolbar(
-                    query = searchQuery,
-                    onQueryChange = onSearchQueryChange,
-                )
-            }
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange,
+            )
         }
         item(key = "__refresh_indicator__") {
-            GroupDelayRefreshIndicator(
+            NodeRefreshSlot(
                 groupName = group.name,
                 testingGroupNames = testingGroupNames,
                 progress = delayTestProgress,
@@ -275,6 +259,43 @@ internal fun NodeListPage(
             revealCount = revealCount,
         )
     }
+}
+
+@Composable
+private fun NodeSearchSlot(
+    visible: Boolean,
+    query: String,
+    onQueryChange: (String) -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter =
+            expandVertically(
+                tween(durationMillis = 280, easing = AnimationSpecs.Legacy)
+            ) + fadeIn(tween(durationMillis = 160, easing = AnimationSpecs.Legacy)),
+        exit =
+            shrinkVertically(
+                tween(durationMillis = 240, easing = AnimationSpecs.Legacy)
+            ) + fadeOut(tween(durationMillis = 120, easing = AnimationSpecs.Legacy)),
+    ) {
+        NodeSearchToolbar(
+            query = query,
+            onQueryChange = onQueryChange,
+        )
+    }
+}
+
+@Composable
+private fun NodeRefreshSlot(
+    groupName: String,
+    testingGroupNames: StateFlow<Set<String>>,
+    progress: StateFlow<ProxyDelayTestProgress?>,
+) {
+    GroupDelayRefreshIndicator(
+        groupName = groupName,
+        testingGroupNames = testingGroupNames,
+        progress = progress,
+    )
 }
 
 @Composable

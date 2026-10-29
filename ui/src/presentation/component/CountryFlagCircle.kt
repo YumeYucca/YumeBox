@@ -47,13 +47,18 @@ import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 @Composable
 fun CountryFlagCircle(countryCode: String?, modifier: Modifier = Modifier, size: Dp = UiDp.dp18) {
     val semanticColors = AppTheme.colors
-    val flagUrl = remember(countryCode) { LocaleUtil.normalizeFlagUrl(countryCode) }
+    val flagUri = remember(countryCode) { LocaleUtil.normalizeFlagUri(countryCode) }
     val flagLabel =
         remember(countryCode) {
             countryCode?.trim()?.ifEmpty { null } ?: LocaleUtil.UNKNOWN_FLAG_CODE
         }
     val context = LocalContext.current
-    val request = remember(context, flagUrl) { ImageRequest(context, flagUrl) }
+    val request =
+        remember(context, flagUri) {
+            ImageRequest(context, flagUri) {
+                addComponents(CircleFlagFetcher.components)
+            }
+        }
 
     Box(
         modifier =

@@ -33,10 +33,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.core.model.isProxyGroup
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
@@ -134,8 +132,9 @@ fun ProxyPager(
             }
         }
     var proxyListTabIndex by rememberSaveable { mutableStateOf(0) }
-    // 常驻 tab 覆盖带占位:顶部 20dp 呼吸 + tab 42dp + 底部 4dp 留白 = 66dp;无 tab 时为 0。
-    val proxyListTabBandInset = if (proxyListTabs.isNotEmpty()) 66.dp else 0.dp
+    var twoColumnNodes by rememberSaveable(inSplitShell) { mutableStateOf(inSplitShell) }
+    // Group-tab mode replaces the category/group drill-down with one swipeable group strip.
+    var groupTabsMode by rememberSaveable(inSplitShell) { mutableStateOf(false) }
     val displayedProxyGroups =
         when {
             proxyListTabs.isEmpty() -> proxyGroups
@@ -154,10 +153,23 @@ fun ProxyPager(
     val selectedGroupName = groupSelection.selectedGroupName
     val displayGroup = groupSelection.displayGroup
     val selectedNodeGroup = groupSelection.selectedGroup ?: displayGroup
+    val visibleProxyGroups = if (groupTabsMode) proxyGroups else displayedProxyGroups
+    val tabbedPagerState =
+        if (groupTabsMode && visibleProxyGroups.isNotEmpty()) {
+            key(proxyListTabIndex) {
+                rememberProxyGroupPagerState(
+                    groups = visibleProxyGroups,
+                    selectedGroupName = selectedGroupName,
+                    onGroupSelected = groupSelection.selectGroup,
+                )
+            }
+        } else {
+            null
+        }
     // 节点列表页里点 tab(含重按当前 tab)= 切换过滤并回到分组列表。
     val selectProxyListTab: (Int) -> Unit = { index ->
         proxyListTabIndex = index
-        if (selectedGroupName != null) {
+        if (!groupTabsMode && selectedGroupName != null) {
             groupSelection.clearSelection()
         }
     }
@@ -181,6 +193,14 @@ fun ProxyPager(
     val groupListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val nodeListState =
         rememberSaveable(selectedGroupName, saver = LazyListState.Saver) { LazyListState() }
+    val nodeGridState =
+        rememberSaveable(selectedGroupName, saver = LazyGridState.Saver) { LazyGridState() }
+    val groupTabListStates = remember { mutableStateMapOf<String, LazyListState>() }
+    val groupTabGridStates = remember { mutableStateMapOf<String, LazyGridState>() }
+    val activeGroupTabName = tabbedPagerState?.currentPage?.let(visibleProxyGroups::getOrNull)?.name
+    val activeGroupTabListState = activeGroupTabName?.let(groupTabListStates::get)
+    val activeGroupTabGridState = activeGroupTabName?.let(groupTabGridStates::get)
+    val tabCollapseState = rememberProxyTabScrollState()
     LaunchedEffect(isActive, inSplitShell) {
         if (!isActive && !inSplitShell) {
             nodeSearchQuery = ""
@@ -196,29 +216,14 @@ fun ProxyPager(
         }
     // 顶栏测速按钮:统一测全部节点(分组页/节点页不再区分)。
     val testAllNodes = remember(proxyViewModel) { { proxyViewModel.testDelay() } }
-    // 节点条目前置了搜索框槽位 + 刷新指示器共 2 个列表项(常驻 tab 不在列表内)。
-    val nodeListItemOffset = 2
-    val locateCurrentProxy =
-        remember(coroutineScope, displayGroup, nodeListState, selectedGroupName, nodeListItemOffset) {
-            if (selectedGroupName == null) {
-                null
-            } else {
-                displayGroup
-                    ?.takeIf { group -> group.name == selectedGroupName }
-                    ?.let { group ->
-                        fun() {
-                            val proxyIndex =
-                                group.proxies.indexOfFirst { proxy -> proxy.name == group.now }
-                            if (proxyIndex < 0) return
-                            coroutineScope.launch {
-                                nodeListState.animateLocateToItem(proxyIndex + nodeListItemOffset)
-                            }
-                        }
-                    }
-            }
-        }
 
-    BackHandler(enabled = isActive && !inSplitShell && selectedGroupName != null) {
+    BackHandler(
+        enabled =
+            isActive &&
+                !inSplitShell &&
+                selectedGroupName != null &&
+                !groupTabsMode
+    ) {
         groupSelection.clearSelection()
     }
 
@@ -239,7 +244,20 @@ fun ProxyPager(
                     onOpenRouting = onOpenRouting,
                     onOpenSettings = onOpenSettings,
                     onTestAllNodes = testAllNodes,
-                    onLocateCurrentProxy = locateCurrentProxy,
+                    twoColumnNodes = twoColumnNodes,
+                    onNodeColumnsSelected =
+                        if (!inSplitShell) {
+                            { twoColumnNodes = it }
+                        } else {
+                            null
+                        },
+                    groupTabsMode = groupTabsMode,
+                    onGroupTabsModeSelected =
+                        if (!inSplitShell) {
+                            { groupTabsMode = it }
+                        } else {
+                            null
+                        },
                     sortMode = sortMode,
                     onSortSelected = proxyViewModel::setSortMode,
                     searchVisible = nodeSearchVisible,
@@ -247,46 +265,114 @@ fun ProxyPager(
                 )
             },
             contentOverlay = { scaffoldPadding ->
-                // Outside GlassScaffold's body recording; never sample a recorded ancestor.
-                if (proxyListTabs.isNotEmpty()) {
-                    val density = LocalDensity.current
-                    val tabRestTopPx =
-                        with(density) { (scaffoldPadding.calculateTopPadding() + UiDp.dp20).toPx() }
-                    val tabZonePx = with(density) { UiDp.dp46.toPx() }
-                    val activeListState = if (selectedGroupName != null) nodeListState else groupListState
-                    val tabScrollPx by remember(activeListState, tabRestTopPx) {
+                val tabs = if (groupTabsMode) visibleProxyGroups.map { it.name } else proxyListTabs
+                val selectedTabIndex = tabbedPagerState?.currentPage ?: proxyListTabIndex
+                val activeListState =
+                    when {
+                        groupTabsMode -> activeGroupTabListState
+                        selectedGroupName != null -> nodeListState
+                        else -> groupListState
+                    }
+                val activeGridState =
+                    when {
+                        groupTabsMode -> activeGroupTabGridState
+                        selectedGroupName != null -> nodeGridState
+                        else -> null
+                    }
+                val activeIsAtTop by
+                    remember(activeListState, activeGridState, twoColumnNodes) {
                         derivedStateOf {
-                            if (activeListState.firstVisibleItemIndex == 0) {
-                                activeListState.firstVisibleItemScrollOffset.toFloat()
-                            } else {
-                                tabRestTopPx + tabZonePx
-                            }
+                            val stateAtTop =
+                                if (twoColumnNodes) {
+                                    activeGridState?.let {
+                                        it.firstVisibleItemIndex == 0 &&
+                                            it.firstVisibleItemScrollOffset == 0
+                                    } ?: true
+                                } else {
+                                    activeListState?.let {
+                                        it.firstVisibleItemIndex == 0 &&
+                                            it.firstVisibleItemScrollOffset == 0
+                                    } ?: true
+                                }
+                            stateAtTop
                         }
                     }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer { translationY = tabRestTopPx - tabScrollPx }
-                            .background(MiuixTheme.colorScheme.surface)
-                            .padding(bottom = UiDp.dp4)
-                            .padding(horizontal = UiDp.dp12),
-                    ) {
-                        SegmentedTabRow(
-                            tabs = proxyListTabs,
-                            selectedTabIndex = proxyListTabIndex,
-                            onTabSelected = selectProxyListTab,
-                            tabHeight = UiDp.dp42,
-                            backdrop = LocalTopBarBackdrop.current,
-                        )
-                    }
+                LaunchedEffect(activeListState, activeGridState) {
+                    tabCollapseState.syncContent(activeIsAtTop)
+                }
+                LaunchedEffect(activeIsAtTop) {
+                    if (activeIsAtTop) tabCollapseState.resetToTop()
+                }
+                if (tabs.isNotEmpty()) {
+                    ProxyCollapsingTabs(
+                        tabs = tabs,
+                        selectedTabIndex = selectedTabIndex,
+                        onTabSelected = { index ->
+                            if (groupTabsMode) {
+                                tabbedPagerState?.let { state ->
+                                    coroutineScope.launch { state.animateScrollToPage(index) }
+                                }
+                            } else {
+                                selectProxyListTab(index)
+                            }
+                        },
+                        topPadding = scaffoldPadding.calculateTopPadding() + UiDp.dp20,
+                        collapseState = tabCollapseState,
+                        scrollable = groupTabsMode,
+                    )
                 }
             },
         ) { scaffoldPadding ->
             Box(
                 modifier =
-                    Modifier.fillMaxSize()
+                    Modifier
+                        .fillMaxSize()
+                        .nestedScroll(tabCollapseState.nestedScrollConnection)
             ) {
-                if (inSplitShell) {
+                if (groupTabsMode && tabbedPagerState != null) {
+                    ProxyGroupTabPager(
+                        groups = visibleProxyGroups,
+                        pagerState = tabbedPagerState,
+                    ) { pageGroup ->
+                        val pageListState =
+                            rememberSaveable(pageGroup.name, saver = LazyListState.Saver) {
+                                LazyListState()
+                            }
+                        val pageGridState =
+                            rememberSaveable(pageGroup.name, saver = LazyGridState.Saver) {
+                                LazyGridState()
+                            }
+                        LaunchedEffect(pageGroup.name, pageListState, pageGridState) {
+                            groupTabListStates[pageGroup.name] = pageListState
+                            groupTabGridStates[pageGroup.name] = pageGridState
+                        }
+                        NodeListPage(
+                            group = pageGroup,
+                            sortMode = sortMode,
+                            testingGroupNames = proxyViewModel.testingGroupNames,
+                            testingProxyNames = testingProxyNames,
+                            delayTestProgress = proxyViewModel.delayTestProgress,
+                            mainInnerPadding = mainInnerPadding,
+                            outerInnerPadding = scaffoldPadding,
+                            scrollBehavior = groupScrollBehavior,
+                            listState = pageListState,
+                            onSelectProxy = { groupName, proxyName ->
+                                proxyViewModel.selectProxy(groupName, proxyName)
+                            },
+                            onTestDelay = {
+                                proxyViewModel.testDelay(pageGroup.name)
+                            },
+                            onTestProxyDelay = proxyViewModel::testProxyDelay,
+                            onScrollDirectionChanged = {},
+                            twoColumnGrid = twoColumnNodes,
+                            gridState = pageGridState,
+                            searchQuery = nodeSearchQuery,
+                            onSearchQueryChange = { nodeSearchQuery = it },
+                            searchVisible = nodeSearchVisible,
+                            topOverlayInset = ProxyTabBandInset,
+                        )
+                    }
+                } else if (inSplitShell) {
                     if (proxyGroups.isNotEmpty()) {
                     ProxyContent(
                         proxyGroups = displayedProxyGroups,
@@ -297,7 +383,7 @@ fun ProxyPager(
                         onGroupClick = groupSelection.selectGroup,
                         onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
                         listState = groupListState,
-                        topOverlayInset = proxyListTabBandInset,
+                        topOverlayInset = if (proxyListTabs.isEmpty()) UiDp.dp0 else ProxyTabBandInset,
                     )
                     }
                 } else {
@@ -384,7 +470,8 @@ fun ProxyPager(
                                 onGroupClick = groupSelection.selectGroup,
                                 onGroupTest = { group -> proxyViewModel.testDelay(group.name) },
                                 listState = groupListState,
-                                topOverlayInset = proxyListTabBandInset,
+                                topOverlayInset =
+                                    if (proxyListTabs.isEmpty()) UiDp.dp0 else ProxyTabBandInset,
                             )
                         }
                     } else {
@@ -411,11 +498,13 @@ fun ProxyPager(
                                 onTestDelay = requestSelectedGroupDelayTest,
                                 onTestProxyDelay = proxyViewModel::testProxyDelay,
                                 onScrollDirectionChanged = {},
-                                useAdaptiveGrid = false,
+                                twoColumnGrid = twoColumnNodes,
+                                gridState = nodeGridState,
                                 searchQuery = nodeSearchQuery,
                                 onSearchQueryChange = { nodeSearchQuery = it },
                                 searchVisible = nodeSearchVisible,
-                                topOverlayInset = proxyListTabBandInset,
+                                topOverlayInset =
+                                    if (proxyListTabs.isEmpty()) UiDp.dp0 else ProxyTabBandInset,
                             )
                         }
                     }
@@ -436,7 +525,6 @@ private fun ProxyContent(
     onGroupTest: (ProxyGroupInfo) -> Unit,
     testingGroupNames: StateFlow<Set<String>>,
     listState: LazyListState,
-    // 常驻 tab 覆盖层占住的顶部高度,列表初始留白让位。
     topOverlayInset: Dp = UiDp.dp0,
 ) {
     val testingNames by testingGroupNames.collectAsState()
@@ -451,7 +539,6 @@ private fun ProxyContent(
             PaddingValues(
                 start = UiDp.dp12,
                 end = UiDp.dp12,
-                // 有常驻 tab 带时内容紧贴带沿(带自身已含 4dp 上下留白);无带时保留原呼吸留白。
                 top =
                     innerPadding.calculateTopPadding() +
                         if (topOverlayInset > UiDp.dp0) topOverlayInset else UiDp.dp14,
@@ -497,6 +584,8 @@ internal fun ProxyShellNodeDetailContent(
     val displayGroup = groupSelection.displayGroup
     val currentGroup = groupSelection.selectedGroup ?: displayGroup ?: proxyGroups.firstOrNull()
     var nodeSearchQuery by rememberSaveable(selectedGroupName) { mutableStateOf("") }
+    var twoColumnNodes by rememberSaveable { mutableStateOf(true) }
+    var groupTabsMode by rememberSaveable { mutableStateOf(false) }
     val nodeSearchVisible = screen.nodeSearchVisible
     // "更多"弹窗里的搜索开关;关闭时清空查询,避免隐藏的过滤条件继续生效。
     val toggleNodeSearch = {
@@ -525,9 +614,45 @@ internal fun ProxyShellNodeDetailContent(
     }
 
     val activeGroupName = selectedGroupName ?: currentGroup?.name
+    val groupTabPagerState =
+        if (groupTabsMode && proxyGroups.isNotEmpty()) {
+            rememberProxyGroupPagerState(
+                groups = proxyGroups,
+                selectedGroupName = selectedGroupName,
+                onGroupSelected = groupSelection.selectGroup,
+            )
+        } else {
+            null
+        }
+    val groupTabListStates = remember { mutableStateMapOf<String, LazyListState>() }
+    val groupTabGridStates = remember { mutableStateMapOf<String, LazyGridState>() }
+    val activeGroupTabName = groupTabPagerState?.currentPage?.let(proxyGroups::getOrNull)?.name
+    val activeGroupTabListState = activeGroupTabName?.let(groupTabListStates::get)
+    val activeGroupTabGridState = activeGroupTabName?.let(groupTabGridStates::get)
+    val tabCollapseState = rememberProxyTabScrollState()
+    val activeIsAtTop by
+        remember(activeGroupTabListState, activeGroupTabGridState, twoColumnNodes) {
+            derivedStateOf {
+                if (twoColumnNodes) {
+                    activeGroupTabGridState?.let {
+                        it.firstVisibleItemIndex == 0 && it.firstVisibleItemScrollOffset == 0
+                    } ?: true
+                } else {
+                    activeGroupTabListState?.let {
+                        it.firstVisibleItemIndex == 0 && it.firstVisibleItemScrollOffset == 0
+                    } ?: true
+                }
+            }
+        }
+    LaunchedEffect(activeGroupTabListState, activeGroupTabGridState) {
+        tabCollapseState.syncContent(activeIsAtTop)
+    }
+    LaunchedEffect(activeIsAtTop) {
+        if (activeIsAtTop) tabCollapseState.resetToTop()
+    }
 
     AnimatedContent(
-        targetState = activeGroupName,
+        targetState = if (groupTabsMode) null else activeGroupName,
         modifier = Modifier.fillMaxSize(),
         transitionSpec = {
             val fromIndex =
@@ -540,7 +665,9 @@ internal fun ProxyShellNodeDetailContent(
     ) { groupName ->
         val pageGroup =
             groupName?.let { name -> proxyGroups.firstOrNull { it.name == name } } ?: currentGroup
-        // Adaptive grid owns the real scroll surface on the shell right pane.
+        // The selected layout owns the real scroll surface on the shell right pane.
+        val nodeListState =
+            rememberSaveable(groupName, saver = LazyListState.Saver) { LazyListState() }
         val nodeGridState =
             rememberSaveable(groupName, saver = LazyGridState.Saver) { LazyGridState() }
         val requestSelectedGroupDelayTest =
@@ -550,46 +677,93 @@ internal fun ProxyShellNodeDetailContent(
                     proxyViewModel.testDelay(targetGroupName)
                 }
             }
-        val locateCurrentProxy =
-            remember(coroutineScope, pageGroup, nodeGridState, groupName) {
-                if (groupName == null || pageGroup == null) {
-                    null
-                } else {
-                    pageGroup
-                        .takeIf { group -> group.name == groupName }
-                        ?.let { group ->
-                            fun() {
-                                val proxyIndex =
-                                    group.proxies.indexOfFirst { proxy -> proxy.name == group.now }
-                                if (proxyIndex < 0) return
-                                coroutineScope.launch {
-                                    // 搜索框槽位 + 刷新指示器 = 2 个前置项。
-                                    nodeGridState.animateLocateToItem(proxyIndex + 2)
-                                }
-                            }
-                        }
-                }
-            }
         ProvideProxyDelayFlows(proxyViewModel) {
             GlassScaffold(
                 topBar = {
                     ProxyTopBar(
-                        title = pageGroup?.name ?: YumeTxt.Proxy.Title,
+                        title = YumeTxt.Proxy.Title,
                         scrollBehavior = scrollBehavior,
                         showBack = false,
                         onBack = {},
                         onOpenRouting = onOpenRouting,
                         onOpenSettings = onOpenSettings,
                         onTestAllNodes = testAllNodes,
-                        onLocateCurrentProxy = locateCurrentProxy,
+                        twoColumnNodes = twoColumnNodes,
+                        onNodeColumnsSelected = { twoColumnNodes = it },
+                        groupTabsMode = groupTabsMode,
+                        onGroupTabsModeSelected = { groupTabsMode = it },
                         sortMode = sortMode,
                         onSortSelected = proxyViewModel::setSortMode,
                         searchVisible = nodeSearchVisible,
                         onToggleSearch = if (pageGroup != null) toggleNodeSearch else null,
                     )
-                }
+                },
+                contentOverlay = { scaffoldPadding ->
+                    if (groupTabsMode && groupTabPagerState != null) {
+                        val tabs = remember(proxyGroups) { proxyGroups.map { it.name } }
+                        ProxyCollapsingTabs(
+                            tabs = tabs,
+                            selectedTabIndex = groupTabPagerState.currentPage,
+                            onTabSelected = { index ->
+                                coroutineScope.launch { groupTabPagerState.animateScrollToPage(index) }
+                            },
+                            topPadding = scaffoldPadding.calculateTopPadding() + UiDp.dp20,
+                            collapseState = tabCollapseState,
+                            scrollable = true,
+                        )
+                    }
+                },
             ) { scaffoldPadding ->
-                if (pageGroup != null) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .nestedScroll(tabCollapseState.nestedScrollConnection)
+                ) {
+                if (groupTabsMode && groupTabPagerState != null) {
+                    ProxyGroupTabPager(
+                        groups = proxyGroups,
+                        pagerState = groupTabPagerState,
+                    ) { pageGroup ->
+                        val pageListState =
+                            rememberSaveable(pageGroup.name, saver = LazyListState.Saver) {
+                                LazyListState()
+                            }
+                        val pageGridState =
+                            rememberSaveable(pageGroup.name, saver = LazyGridState.Saver) {
+                                LazyGridState()
+                            }
+                        LaunchedEffect(pageGroup.name, pageListState, pageGridState) {
+                            groupTabListStates[pageGroup.name] = pageListState
+                            groupTabGridStates[pageGroup.name] = pageGridState
+                        }
+                        NodeListPage(
+                            group = pageGroup,
+                            sortMode = sortMode,
+                            testingGroupNames = proxyViewModel.testingGroupNames,
+                            testingProxyNames = testingProxyNames,
+                            delayTestProgress = proxyViewModel.delayTestProgress,
+                            mainInnerPadding = mainInnerPadding,
+                            outerInnerPadding = scaffoldPadding,
+                            scrollBehavior = scrollBehavior,
+                            listState = pageListState,
+                            gridState = pageGridState,
+                            onSelectProxy = { selectedGroup, proxyName ->
+                                proxyViewModel.selectProxy(selectedGroup, proxyName)
+                            },
+                            onTestDelay = {
+                                proxyViewModel.testDelay(pageGroup.name)
+                            },
+                            onTestProxyDelay = proxyViewModel::testProxyDelay,
+                            onScrollDirectionChanged = {},
+                            twoColumnGrid = twoColumnNodes,
+                            searchQuery = nodeSearchQuery,
+                            onSearchQueryChange = { nodeSearchQuery = it },
+                            searchVisible = nodeSearchVisible,
+                            topOverlayInset = ProxyTabBandInset,
+                        )
+                    }
+                } else if (pageGroup != null) {
                     NodeListPage(
                         group = pageGroup,
                         sortMode = sortMode,
@@ -599,7 +773,7 @@ internal fun ProxyShellNodeDetailContent(
                         mainInnerPadding = mainInnerPadding,
                         outerInnerPadding = scaffoldPadding,
                         scrollBehavior = scrollBehavior,
-                        listState = remember { LazyListState() },
+                        listState = nodeListState,
                         gridState = nodeGridState,
                         onSelectProxy = { selectedGroup, proxyName ->
                             proxyViewModel.selectProxy(selectedGroup, proxyName)
@@ -607,11 +781,12 @@ internal fun ProxyShellNodeDetailContent(
                         onTestDelay = requestSelectedGroupDelayTest,
                         onTestProxyDelay = proxyViewModel::testProxyDelay,
                         onScrollDirectionChanged = {},
-                        useAdaptiveGrid = true,
+                        twoColumnGrid = twoColumnNodes,
                         searchQuery = nodeSearchQuery,
                         onSearchQueryChange = { nodeSearchQuery = it },
                         searchVisible = nodeSearchVisible,
                     )
+                }
                 }
             }
         }
@@ -628,8 +803,10 @@ private fun ProxyTopBar(
     onOpenSettings: (() -> Unit)? = null,
     // 测试全部节点;顶栏 chrome 在分组页/节点页不再区分,统一为这一个胶囊。
     onTestAllNodes: () -> Unit,
-    // 仅在选中节点组(节点页)时非空 → "更多"弹窗里出现"定位当前节点"。
-    onLocateCurrentProxy: (() -> Unit)? = null,
+    twoColumnNodes: Boolean = false,
+    onNodeColumnsSelected: ((Boolean) -> Unit)? = null,
+    groupTabsMode: Boolean = false,
+    onGroupTabsModeSelected: ((Boolean) -> Unit)? = null,
     // 节点页搜索栏开关;非空 → "更多"弹窗里出现"搜索节点"勾选项。
     searchVisible: Boolean = false,
     onToggleSearch: (() -> Unit)? = null,
@@ -702,7 +879,10 @@ private fun ProxyTopBar(
                                 onDismiss = { showActionsMenu = false },
                                 sortMode = sortMode,
                                 onOpenRouting = onOpenRouting,
-                                onLocateCurrentProxy = onLocateCurrentProxy,
+                                twoColumnNodes = twoColumnNodes,
+                                onNodeColumnsSelected = onNodeColumnsSelected,
+                                groupTabsMode = groupTabsMode,
+                                onGroupTabsModeSelected = onGroupTabsModeSelected,
                                 searchVisible = searchVisible,
                                 onToggleSearch = onToggleSearch,
                                 onSortSelected = onSortSelected,

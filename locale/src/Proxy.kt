@@ -1,7 +1,7 @@
 package com.github.yumeyucca.yumebox.core.locale
 
 internal val ZhHansYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
-    Title = "节点",
+    Title = "代理",
     Mode = YumeStrings_Proxy_Mode(
         Direct = "直连",
     ),
@@ -13,8 +13,8 @@ internal val ZhHansYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         Panel = "面板",
         Test = "测试",
         Sort = "排序",
-        Locate = "定位",
-        LocateCurrent = "定位当前节点",
+        Layout = "布局",
+        TabsMode = "标签页模式",
         SearchNodes = "搜索节点",
         More = "更多",
     ),
@@ -46,6 +46,8 @@ internal val ZhHansYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         ByLatency = "按延迟排序",
     ),
     DisplayMode = YumeStrings_Proxy_DisplayMode(
+        Single = "单列",
+        Double = "双列",
         SingleDetailed = "单列详细",
         SingleSimple = "单列简洁",
         DoubleDetailed = "双列详细",
@@ -54,7 +56,7 @@ internal val ZhHansYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
 )
 
 internal val ZhYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
-    Title = "節點",
+    Title = "代理",
     Mode = YumeStrings_Proxy_Mode(
         Direct = "直連",
     ),
@@ -66,8 +68,8 @@ internal val ZhYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         Panel = "面板",
         Test = "測試",
         Sort = "排序",
-        Locate = "定位",
-        LocateCurrent = "定位目前節點",
+        Layout = "佈局",
+        TabsMode = "標籤頁模式",
         SearchNodes = "搜尋節點",
         More = "更多",
     ),
@@ -99,6 +101,8 @@ internal val ZhYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         ByLatency = "依延遲排序",
     ),
     DisplayMode = YumeStrings_Proxy_DisplayMode(
+        Single = "單欄",
+        Double = "雙欄",
         SingleDetailed = "單欄詳細",
         SingleSimple = "單欄簡潔",
         DoubleDetailed = "雙欄詳細",
@@ -107,7 +111,7 @@ internal val ZhYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
 )
 
 internal val EnYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
-    Title = "Nodes",
+    Title = "Proxy",
     Mode = YumeStrings_Proxy_Mode(
         Direct = "Direct",
     ),
@@ -119,8 +123,8 @@ internal val EnYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         Panel = "Panel",
         Test = "Test",
         Sort = "Sort",
-        Locate = "Locate",
-        LocateCurrent = "Locate current proxy",
+        Layout = "Layout",
+        TabsMode = "Tab mode",
         SearchNodes = "Search nodes",
         More = "More",
     ),
@@ -152,6 +156,8 @@ internal val EnYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         ByLatency = "By Latency",
     ),
     DisplayMode = YumeStrings_Proxy_DisplayMode(
+        Single = "Single Column",
+        Double = "Two Columns",
         SingleDetailed = "Single Detailed",
         SingleSimple = "Single Simple",
         DoubleDetailed = "Double Detailed",
@@ -160,7 +166,7 @@ internal val EnYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
 )
 
 internal val JaYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
-    Title = "ノード",
+    Title = "プロキシ",
     Mode = YumeStrings_Proxy_Mode(
         Direct = "ダイレクト",
     ),
@@ -172,8 +178,8 @@ internal val JaYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         Panel = "パネル",
         Test = "テスト",
         Sort = "並び替え",
-        Locate = "表示",
-        LocateCurrent = "現在のノードを表示",
+        Layout = "レイアウト",
+        TabsMode = "タブモード",
         SearchNodes = "ノードを検索",
         More = "その他",
     ),
@@ -205,6 +211,8 @@ internal val JaYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         ByLatency = "遅延順",
     ),
     DisplayMode = YumeStrings_Proxy_DisplayMode(
+        Single = "1列",
+        Double = "2列",
         SingleDetailed = "1列・詳細",
         SingleSimple = "1列・簡易",
         DoubleDetailed = "2列・詳細",
@@ -213,7 +221,7 @@ internal val JaYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
 )
 
 internal val RuYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
-    Title = "Узлы",
+    Title = "Прокси",
     Mode = YumeStrings_Proxy_Mode(
         Direct = "Напрямую",
     ),
@@ -225,8 +233,8 @@ internal val RuYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         Panel = "Панель",
         Test = "Тест",
         Sort = "Сортировка",
-        Locate = "Найти",
-        LocateCurrent = "Найти текущий узел",
+        Layout = "Макет",
+        TabsMode = "Режим вкладок",
         SearchNodes = "Поиск узлов",
         More = "Ещё",
     ),
@@ -258,6 +266,8 @@ internal val RuYumeStrings_Proxy: YumeStrings_Proxy = YumeStrings_Proxy(
         ByLatency = "По задержке",
     ),
     DisplayMode = YumeStrings_Proxy_DisplayMode(
+        Single = "1 колонка",
+        Double = "2 колонки",
         SingleDetailed = "1 колонка, подробно",
         SingleSimple = "1 колонка, кратко",
         DoubleDetailed = "2 колонки, подробно",

@@ -47,7 +47,8 @@ class MiuixPopupIntegrationTest {
         assertTrue(host.contains("var expanded by remember { mutableStateOf(false) }"))
         assertTrue(host.contains("LaunchedEffect(show) { expanded = show }"))
         assertTrue(host.contains("show = expanded,"), "The library must observe false -> true to animate opening")
-        assertTrue(host.contains("show = expanded && submenu,"))
+        assertTrue(host.contains("show = expanded && layoutSubmenu,"))
+        assertTrue(host.contains("show = expanded && sortSubmenu,"))
         assertTrue(host.contains("backdrop = backdrop,"))
         assertTrue(menu.contains("val popupVisuals = GlassPopupDefaults.visuals()"))
     }
