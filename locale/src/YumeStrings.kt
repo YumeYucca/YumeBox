@@ -847,6 +847,8 @@ public data class YumeStrings_NetworkSettings_Section(
 public data class YumeStrings_NetworkSettings_Advanced(
     public val DisableOverrideTitle: String,
     public val DisableOverrideSummary: String,
+    public val ServiceOptionsSummary: String,
+    public val OverrideSectionTitle: String,
 )
 
 public data class YumeStrings_NetworkSettings_RunMode(
@@ -875,6 +877,12 @@ public data class YumeStrings_NetworkSettings_EbpfOptions(
 
 public data class YumeStrings_NetworkSettings_TunOptions(
     public val Title: String,
+    public val InterfaceSectionTitle: String,
+    public val InterfaceSectionSummary: String,
+    public val ProtocolSectionTitle: String,
+    public val ProtocolSectionSummary: String,
+    public val RoutingSectionTitle: String,
+    public val RoutingSectionSummary: String,
     public val IfNameTitle: String,
     public val MtuTitle: String,
     public val StackTitle: String,
@@ -893,6 +901,7 @@ public data class YumeStrings_NetworkSettings_TunOptions(
 
 public data class YumeStrings_NetworkSettings_Kernel(
     public val ActiveTitle: String,
+    public val SectionSummary: String,
     public val BundledAlpha: String,
     public val RefreshTitle: String,
     public val DownloadTitle: String,
