@@ -92,10 +92,13 @@ def get_caption(files):
 
     if hashes:
         lines.extend(["", "<b>SHA-256</b>"])
-        for variant in ("builtin", "external"):
-            digest = hashes.get(variant)
-            if digest:
-                lines.append(f"<code>{variant}</code> · <code>{digest}</code>")
+        parts = [
+            f"<code>{variant}</code> · <code>{hashes[variant]}</code>"
+            for variant in ("builtin", "external")
+            if hashes.get(variant)
+        ]
+        if parts:
+            lines.append(" ｜ ".join(parts))
 
     lines.extend(
         [
