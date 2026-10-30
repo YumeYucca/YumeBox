@@ -156,10 +156,10 @@ private fun AdvancedOptionsSection(
     disableAllOverride: Boolean,
     navigator: Navigator,
 ) {
-    Title(YumeTxt.NetworkSettings.Section.Advanced)
+    Title(YumeTxt.NetworkSettings.Section.VpnOptions)
     AppCard {
         PreferenceArrowItem(
-            title = YumeTxt.NetworkSettings.Section.VpnOptions,
+            title = runMode.title,
             // Each mode's service config lives behind its own page.
             onClick = {
                 when (runMode) {
@@ -169,6 +169,11 @@ private fun AdvancedOptionsSection(
                 }
             },
         )
+    }
+    SectionSummary(YumeTxt.NetworkSettings.Advanced.ServiceOptionsSummary)
+
+    Title(YumeTxt.NetworkSettings.Advanced.OverrideSectionTitle)
+    AppCard {
         PreferenceSwitchItem(
             title = YumeTxt.NetworkSettings.Advanced.DisableOverrideTitle,
             checked = disableAllOverride,
@@ -212,6 +217,7 @@ private fun KernelSection(
             onClick = onRequestRefresh,
         )
     }
+    SectionSummary(YumeTxt.NetworkSettings.Kernel.SectionSummary)
 }
 
 /** Label of a run mode inside the mode dropdown. */

@@ -23,17 +23,25 @@
 package com.github.yumeyucca.yumebox.screen.settings
 
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import com.github.yumeyucca.yumebox.core.model.TunDnsMode
 import com.github.yumeyucca.yumebox.data.model.TunStack
 import com.github.yumeyucca.yumebox.presentation.component.*
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * Root Tun "service config" sub-page. Root provisions the virtual network interface and routing.
@@ -53,20 +61,33 @@ fun TunServiceOptionsScreen() {
     val enableIPv6 = screen.enableIPv6
 
     ServiceOptionsPage(YumeTxt.NetworkSettings.TunOptions.Title) {
-    item {
-        Title(YumeTxt.NetworkSettings.RunMode.TunTitle)
-        AppCard {
-            TunInterfaceFields(ifName = ifName, mtu = mtu, viewModel = viewModel)
-            TunProtocolFields(stack = stack, dnsMode = dnsMode, viewModel = viewModel)
-            TunRoutingSwitches(
-                autoRoute = autoRoute,
-                strictRoute = strictRoute,
-                autoRedirect = autoRedirect,
-                enableIPv6 = enableIPv6,
-                viewModel = viewModel,
-            )
+        item {
+            Title(YumeTxt.NetworkSettings.TunOptions.InterfaceSectionTitle)
+            AppCard {
+                TunInterfaceFields(ifName = ifName, mtu = mtu, viewModel = viewModel)
+            }
+            SectionSummary(YumeTxt.NetworkSettings.TunOptions.InterfaceSectionSummary)
         }
-    }
+        item {
+            Title(YumeTxt.NetworkSettings.TunOptions.ProtocolSectionTitle)
+            AppCard {
+                TunProtocolFields(stack = stack, dnsMode = dnsMode, viewModel = viewModel)
+            }
+            SectionSummary(YumeTxt.NetworkSettings.TunOptions.ProtocolSectionSummary)
+        }
+        item {
+            Title(YumeTxt.NetworkSettings.TunOptions.RoutingSectionTitle)
+            AppCard {
+                TunRoutingSwitches(
+                    autoRoute = autoRoute,
+                    strictRoute = strictRoute,
+                    autoRedirect = autoRedirect,
+                    enableIPv6 = enableIPv6,
+                    viewModel = viewModel,
+                )
+            }
+            SectionSummary(YumeTxt.NetworkSettings.TunOptions.RoutingSectionSummary)
+        }
     }
 }
 
@@ -165,7 +186,20 @@ internal fun TextInputArrowItem(
 
     PreferenceArrowItem(
         title = title,
-        summary = value,
+        endActions = {
+            Text(
+                text = value,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MiuixTheme.textStyles.body2,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = UiDp.dp12),
+            )
+        },
         onClick = {
             field = TextFieldValue(value, TextRange(value.length))
             showDialog.value = true

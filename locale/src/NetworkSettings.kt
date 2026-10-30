@@ -11,6 +11,8 @@ internal val ZhHansYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = Yu
     Advanced = YumeStrings_NetworkSettings_Advanced(
         DisableOverrideTitle = "禁用所有覆写",
         DisableOverrideSummary = "开启后直接运行原配置（含 Tun、eBPF 参数），不再应用任何覆写",
+        ServiceOptionsSummary = "当前运行模式对应的服务参数",
+        OverrideSectionTitle = "覆写",
     ),
     RunMode = YumeStrings_NetworkSettings_RunMode(
         SectionTitle = "运行模式",
@@ -35,6 +37,12 @@ internal val ZhHansYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = Yu
     ),
     TunOptions = YumeStrings_NetworkSettings_TunOptions(
         Title = "Tun 配置",
+        InterfaceSectionTitle = "网卡",
+        InterfaceSectionSummary = "虚拟网卡名称与 MTU",
+        ProtocolSectionTitle = "协议",
+        ProtocolSectionSummary = "协议栈与 DNS 处理方式",
+        RoutingSectionTitle = "路由",
+        RoutingSectionSummary = "自动路由、严格路由、重定向与 IPv6",
         IfNameTitle = "虚拟网卡",
         MtuTitle = "MTU",
         StackTitle = "协议栈",
@@ -52,6 +60,7 @@ internal val ZhHansYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = Yu
     ),
     Kernel = YumeStrings_NetworkSettings_Kernel(
         ActiveTitle = "当前内核",
+        SectionSummary = "切换当前运行内核，或获取并下载远程内核",
         BundledAlpha = "Builtin",
         RefreshTitle = "获取最新内核",
         DownloadTitle = "远程内核",
@@ -124,6 +133,8 @@ internal val ZhYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     Advanced = YumeStrings_NetworkSettings_Advanced(
         DisableOverrideTitle = "停用所有覆寫",
         DisableOverrideSummary = "開啟後直接執行原設定（含 Tun、eBPF 參數），不再套用任何覆寫",
+        ServiceOptionsSummary = "目前執行模式對應的服務參數",
+        OverrideSectionTitle = "覆寫",
     ),
     RunMode = YumeStrings_NetworkSettings_RunMode(
         SectionTitle = "執行模式",
@@ -148,6 +159,12 @@ internal val ZhYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     ),
     TunOptions = YumeStrings_NetworkSettings_TunOptions(
         Title = "Tun 設定",
+        InterfaceSectionTitle = "網卡",
+        InterfaceSectionSummary = "虛擬網卡名稱與 MTU",
+        ProtocolSectionTitle = "協定",
+        ProtocolSectionSummary = "協定堆疊與 DNS 處理方式",
+        RoutingSectionTitle = "路由",
+        RoutingSectionSummary = "自動路由、嚴格路由、重新導向與 IPv6",
         IfNameTitle = "虛擬網卡",
         MtuTitle = "MTU",
         StackTitle = "協定堆疊",
@@ -165,6 +182,7 @@ internal val ZhYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     ),
     Kernel = YumeStrings_NetworkSettings_Kernel(
         ActiveTitle = "目前核心",
+        SectionSummary = "切換目前執行核心，或取得並下載遠端核心",
         BundledAlpha = "Builtin",
         RefreshTitle = "取得最新核心",
         DownloadTitle = "遠端核心",
@@ -237,6 +255,8 @@ internal val EnYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     Advanced = YumeStrings_NetworkSettings_Advanced(
         DisableOverrideTitle = "Disable All Overrides",
         DisableOverrideSummary = "Runs the original config as-is, Tun/eBPF parameters included, no overrides applied",
+        ServiceOptionsSummary = "Service parameters for the current run mode",
+        OverrideSectionTitle = "Overrides",
     ),
     RunMode = YumeStrings_NetworkSettings_RunMode(
         SectionTitle = "Run Mode",
@@ -261,6 +281,12 @@ internal val EnYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     ),
     TunOptions = YumeStrings_NetworkSettings_TunOptions(
         Title = "Tun Options",
+        InterfaceSectionTitle = "Interface",
+        InterfaceSectionSummary = "Virtual interface name and MTU",
+        ProtocolSectionTitle = "Protocol",
+        ProtocolSectionSummary = "Network stack and DNS handling",
+        RoutingSectionTitle = "Routing",
+        RoutingSectionSummary = "Auto route, strict route, redirect and IPv6",
         IfNameTitle = "Virtual NIC",
         MtuTitle = "MTU",
         StackTitle = "Network Stack",
@@ -278,6 +304,7 @@ internal val EnYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     ),
     Kernel = YumeStrings_NetworkSettings_Kernel(
         ActiveTitle = "Active kernel",
+        SectionSummary = "Switch the active kernel, or fetch and download remote kernels",
         BundledAlpha = "Builtin",
         RefreshTitle = "Get latest kernels",
         DownloadTitle = "Remote kernels",
@@ -350,6 +377,8 @@ internal val JaYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     Advanced = YumeStrings_NetworkSettings_Advanced(
         DisableOverrideTitle = "すべての上書きを無効化",
         DisableOverrideSummary = "有効にすると元の設定をそのまま実行します（Tun・eBPF 込み、オーバーライドなし）",
+        ServiceOptionsSummary = "現在の実行モードに対応するサービス設定",
+        OverrideSectionTitle = "上書き",
     ),
     RunMode = YumeStrings_NetworkSettings_RunMode(
         SectionTitle = "実行モード",
@@ -374,6 +403,12 @@ internal val JaYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     ),
     TunOptions = YumeStrings_NetworkSettings_TunOptions(
         Title = "Tun 設定",
+        InterfaceSectionTitle = "インターフェース",
+        InterfaceSectionSummary = "仮想インターフェース名と MTU",
+        ProtocolSectionTitle = "プロトコル",
+        ProtocolSectionSummary = "プロトコルスタックと DNS の処理",
+        RoutingSectionTitle = "ルーティング",
+        RoutingSectionSummary = "自動ルート、厳格ルート、リダイレクト、IPv6",
         IfNameTitle = "仮想 NIC",
         MtuTitle = "MTU",
         StackTitle = "ネットワークスタック",
@@ -391,6 +426,7 @@ internal val JaYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     ),
     Kernel = YumeStrings_NetworkSettings_Kernel(
         ActiveTitle = "使用中のカーネル",
+        SectionSummary = "現在のカーネルを切り替え、リモートカーネルを取得・ダウンロードします",
         BundledAlpha = "Builtin",
         RefreshTitle = "最新カーネルを取得",
         DownloadTitle = "リモートカーネル",
@@ -463,6 +499,8 @@ internal val RuYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     Advanced = YumeStrings_NetworkSettings_Advanced(
         DisableOverrideTitle = "Отключить все переопределения",
         DisableOverrideSummary = "Запускает исходный конфиг как есть, включая Tun и eBPF, без переопределений",
+        ServiceOptionsSummary = "Параметры службы для текущего режима работы",
+        OverrideSectionTitle = "Переопределения",
     ),
     RunMode = YumeStrings_NetworkSettings_RunMode(
         SectionTitle = "Режим работы",
@@ -487,6 +525,12 @@ internal val RuYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     ),
     TunOptions = YumeStrings_NetworkSettings_TunOptions(
         Title = "Параметры Tun",
+        InterfaceSectionTitle = "Интерфейс",
+        InterfaceSectionSummary = "Имя виртуального интерфейса и MTU",
+        ProtocolSectionTitle = "Протокол",
+        ProtocolSectionSummary = "Стек протоколов и обработка DNS",
+        RoutingSectionTitle = "Маршрутизация",
+        RoutingSectionSummary = "Автомаршрут, строгий маршрут, перенаправление и IPv6",
         IfNameTitle = "Виртуальный NIC",
         MtuTitle = "MTU",
         StackTitle = "Сетевой стек",
@@ -504,6 +548,7 @@ internal val RuYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
     ),
     Kernel = YumeStrings_NetworkSettings_Kernel(
         ActiveTitle = "Активное ядро",
+        SectionSummary = "Переключение активного ядра, получение и загрузка удалённых ядер",
         BundledAlpha = "Builtin",
         RefreshTitle = "Получить последние ядра",
         DownloadTitle = "Удалённые ядра",
