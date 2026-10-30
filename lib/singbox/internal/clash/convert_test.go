@@ -257,3 +257,54 @@ func pretty(t *testing.T, encoded []byte) string {
 	}
 	return buffer.String()
 }
+
+func TestLogicalRulesBecomeSingBoxLogicalRules(t *testing.T) {
+	profile := `
+proxies:
+  - { name: n, type: trojan, server: n.example.com, port: 443, password: p }
+proxy-groups:
+  - { name: g, type: select, proxies: [n, DIRECT] }
+rules:
+  - AND,((DOMAIN-SUFFIX,google.com),(NETWORK,TCP)),g
+  - OR,((DOMAIN,a.example.com),(DST-PORT,443)),DIRECT
+  - NOT,((DOMAIN-SUFFIX,cn)),g
+  - MATCH,g
+`
+	result, err := clash.Convert([]byte(profile), clash.Options{})
+	if err != nil {
+		t.Fatalf("convert: %v", err)
+	}
+	modes := map[string]bool{}
+	notInverted := false
+	for _, entry := range result.Options["route"].(map[string]any)["rules"].([]any) {
+		rule := entry.(map[string]any)
+		if rule["invert"] == true && rule["domain_suffix"] != nil {
+			// sing-box has no "not" logical mode; NOT becomes an inverted matcher.
+			notInverted = true
+		}
+		if rule["type"] != "logical" {
+			continue
+		}
+		mode, _ := rule["mode"].(string)
+		modes[mode] = true
+		clauses, _ := rule["rules"].([]any)
+		if len(clauses) != 2 {
+			t.Errorf("mode %s: expected two clauses, got %d", mode, len(clauses))
+		}
+		if rule["outbound"] == nil {
+			t.Errorf("mode %s: logical rule lost its target", mode)
+		}
+	}
+	for _, want := range []string{"and", "or"} {
+		if !modes[want] {
+			t.Fatalf("missing logical mode %q, got %v", want, modes)
+		}
+	}
+	if !notInverted {
+		t.Fatal("NOT rule must become an inverted matcher")
+	}
+	encoded, _ := json.Marshal(result.Options)
+	if err := core.Check("", encoded); err != nil {
+		t.Fatalf("sing-box rejected the converted logical rules: %v", err)
+	}
+}

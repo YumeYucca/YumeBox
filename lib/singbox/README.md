@@ -28,6 +28,9 @@
 cd lib/singbox
 go run -tags "with_clash_api with_gvisor" ./cmd/check testdata-spike.json
 # testdata-spike.json is a valid sing-box config
+
+# 完整测试（带 utls/quic，否则真实配置里的 REALITY 与 Hysteria2 出站无法构建）
+go test -tags "with_clash_api with_gvisor with_utls with_quic" ./...
 ```
 
 `cmd/check` 走的是 Android 核心里同一条代码路径（`include.Context` → `option.Options` 解码 → `box.New`），而且**接受 Clash YAML**（自动转换后再校验），所以它就是转换器的合并门禁。
@@ -41,6 +44,7 @@ Rust 编译器不动：它继续输出 Clash YAML，只有最后一公里在这�
 - 协议：ss（含 obfs/v2ray-plugin）、vmess（ws/grpc/tls）、vless（含 reality）、trojan、hysteria2、tuic、socks5、http
 - 组：`select` → selector，`url-test` → urltest；`fallback` / `load-balance` 降级为 urltest 并**明确告警**
 - 规则：DOMAIN / DOMAIN-SUFFIX / DOMAIN-KEYWORD / IP-CIDR / SRC-IP-CIDR / DST-PORT / SRC-PORT / PROCESS-NAME / PROCESS-PATH / NETWORK / GEOIP / GEOSITE / RULE-SET / MATCH；端口支持 `80/443` 与 `1000-2000`
+- 逻辑规则：`AND`/`OR` → sing-box logical rule；`NOT` → `invert: true`（sing-box 没有 not 模式）
 - GEOIP/GEOSITE 自动生成指向 `sing-geoip`/`sing-geosite` 的 `route.rule_set`
 - DNS：udp/tls/https/quic，DoH/DoT 自动挂 `domain_resolver` 引导；**没有 dns 块时注入 223.5.5.5 / 119.29.29.29**（否则 Android 上退回 `[::1]:53`，全部域名出站失败）
 - 模式切换：自动生成 `clash_mode: Global/Direct` 两条规则（Global 指向第一个 selector）
@@ -63,6 +67,10 @@ ANDROID_NDK_HOME=/path/to/ndk scripts/singbox/build-core.sh arm64
 ```
 
 CI 上手动跑：Actions → **Build sing-box core (spike)** → Run workflow。产物是未压缩的 `.so`，可直接 `llvm-readelf -d` 看依赖、`nm -D` 看 `SingboxMain` 是否导出。
+
+## 真实配置回归夹具
+
+`testdata/real-world-singbox.json` 是一份生产环境的 sing-box 配置（脱敏后：89 个出站、17 个 remote binary rule_set、fakeip DNS、嵌套逻辑规则）。`internal/core/payload_test.go` 用它做 JSON 直通回归——引擎版本一升级，先拿它撞一遍 `box.New`。
 
 ## 真机验证 TUN fd —— 已用 C 方案跑通
 

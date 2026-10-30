@@ -1,0 +1,2350 @@
+{
+  "log": {
+    "disabled": false,
+    "level": "info",
+    "output": "",
+    "timestamp": true
+  },
+  "experimental": {
+    "clash_api": {
+      "external_controller": "203.0.113.1:20123",
+      "external_ui": "ui",
+      "secret": "",
+      "default_mode": "rule",
+      "external_ui_download_url": "https://gh.iknn.eu.org/https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip",
+      "external_ui_download_detour": "direct",
+      "access_control_allow_origin": [
+        "http://203.0.113.1",
+        "http://localhost",
+        "https://yacd.metacubex.one",
+        "https://d.metacubex.one",
+        "https://board.zash.run.place"
+      ]
+    },
+    "cache_file": {
+      "enabled": true,
+      "path": "cache.db",
+      "store_fakeip": true
+    }
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "local",
+        "tag": "local"
+      },
+      {
+        "type": "https",
+        "tag": "DIRECT-DNS",
+        "server": "node.example.com",
+        "domain_resolver": "local",
+        "detour": "🎯 中国直连"
+      },
+      {
+        "type": "https",
+        "tag": "PROXY-DNS",
+        "server": "node.example.com",
+        "domain_resolver": "local",
+        "detour": "手动选择"
+      },
+      {
+        "type": "fakeip",
+        "tag": "FAKEIP-DNS",
+        "inet4_range": "203.0.113.1/15"
+      }
+    ],
+    "rules": [
+      {
+        "query_type": [
+          "AAAA"
+        ],
+        "action": "reject"
+      },
+      {
+        "clash_mode": "direct",
+        "server": "node.example.com"
+      },
+      {
+        "clash_mode": "global",
+        "server": "node.example.com"
+      },
+      {
+        "rule_set": [
+          "geosite-cn",
+          "geoip-cn",
+          "geosite-private"
+        ],
+        "server": "node.example.com"
+      },
+      {
+        "query_type": [
+          "A"
+        ],
+        "server": "node.example.com",
+        "rewrite_ttl": 1
+      }
+    ],
+    "disable_cache": true,
+    "disable_expire": true,
+    "independent_cache": true,
+    "final": "PROXY-DNS",
+    "strategy": "prefer_ipv4"
+  },
+  "inbounds": [
+    {
+      "tag": "tun-in",
+      "type": "tun",
+      "address": [
+        "203.0.113.1/30"
+      ],
+      "mtu": 9000,
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "system",
+      "platform": {
+        "http_proxy": {
+          "enabled": true,
+          "server": "node.example.com",
+          "server_port": 2080
+        }
+      }
+    },
+    {
+      "tag": "mixed-in",
+      "type": "mixed",
+      "listen": "203.0.113.1",
+      "listen_port": 2080
+    }
+  ],
+  "outbounds": [
+    {
+      "tag": "🇨🇳 全局直连",
+      "type": "direct"
+    },
+    {
+      "tag": "🚫 拒绝连接",
+      "type": "socks",
+      "server": "node.example.com",
+      "server_port": 1024,
+      "version": "5",
+      "username": "redacted",
+      "password": "redacted",
+      "network": "udp",
+      "udp_over_tcp": false,
+      "domain_resolver": "local"
+    },
+    {
+      "tag": "百度免流选择",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "outbounds": [
+        "江苏电信1",
+        "江苏电信2",
+        "北京电信1",
+        "北京电信2",
+        "北京电信3",
+        "🇨🇳 全局直连",
+        "百度自动选择"
+      ],
+      "default": "百度自动选择"
+    },
+    {
+      "tag": "百度自动选择",
+      "type": "urltest",
+      "outbounds": [
+        "江苏电信1",
+        "江苏电信2",
+        "北京电信1",
+        "北京电信2",
+        "北京电信3"
+      ],
+      "url": "http://www.baidu.com/favicon.ico",
+      "interval": "3m",
+      "tolerance": 50
+    },
+    {
+      "type": "http",
+      "tag": "江苏电信1",
+      "server": "node.example.com",
+      "server_port": 443,
+      "headers": {
+        "Host": "203.0.113.1:443",
+        "X-T5-Auth": "683556433"
+      }
+    },
+    {
+      "type": "http",
+      "tag": "江苏电信2",
+      "server": "node.example.com",
+      "server_port": 443,
+      "headers": {
+        "Host": "203.0.113.1:443",
+        "X-T5-Auth": "683556433"
+      }
+    },
+    {
+      "type": "http",
+      "tag": "北京电信1",
+      "server": "node.example.com",
+      "server_port": 443,
+      "headers": {
+        "Host": "203.0.113.1:443",
+        "X-T5-Auth": "683556433"
+      }
+    },
+    {
+      "type": "http",
+      "tag": "北京电信2",
+      "server": "node.example.com",
+      "server_port": 443,
+      "headers": {
+        "Host": "203.0.113.1:443",
+        "X-T5-Auth": "683556433"
+      }
+    },
+    {
+      "type": "http",
+      "tag": "北京电信3",
+      "server": "node.example.com",
+      "server_port": 443,
+      "headers": {
+        "Host": "203.0.113.1:443",
+        "X-T5-Auth": "683556433"
+      }
+    },
+    {
+      "tag": "🇨🇳 国内自动",
+      "type": "urltest",
+      "outbounds": [
+        "[国内] ml 🇨🇳 上海市 电信-54321"
+      ],
+      "url": "http://www.msftconnecttest.com/connecttest.txt",
+      "interval": "3m",
+      "tolerance": 50
+    },
+    {
+      "tag": "国内手动",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "outbounds": [
+        "🇨🇳 国内自动",
+        "[国内] ml 🇨🇳 上海市 电信-54321"
+      ],
+      "default": "🇨🇳 国内自动"
+    },
+    {
+      "tag": "国内 UDP",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "outbounds": [
+        "国内手动"
+      ],
+      "default": "国内手动"
+    },
+    {
+      "tag": "手动选择",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "outbounds": [
+        "自动选择",
+        "🇨🇳台湾高速01|BGP|流媒体",
+        "🇬🇧英国伦敦01|CTCU|0.1x",
+        "🇬🇧英国伦敦01|流媒体|0.1x",
+        "🇬🇧英国伦敦02|CTCU|0.1x",
+        "🇬🇧英国伦敦02|流媒体|0.1x",
+        "🇭🇰香港专线01|BGP|流媒体",
+        "🇭🇰香港专线02|BGP|流媒体",
+        "🇭🇰香港专线03|BGP|流媒体",
+        "🇭🇰香港专线04|BGP|流媒体",
+        "🇭🇰香港高速01|BGP|CMCU",
+        "🇭🇰香港高速02|BGP|CMCU",
+        "🇭🇰香港高速03|BGP|CMCU",
+        "🇭🇰香港高速04|BGP|CMCU",
+        "🇭🇰香港高速05|BGP|CMCU",
+        "🇯🇵日本专线01|BGP|流媒体",
+        "🇯🇵日本专线02|BGP|流媒体",
+        "🇯🇵日本专线03|BGP|流媒体",
+        "🇯🇵日本专线04|BGP|流媒体",
+        "🇯🇵日本东京01号-0.1倍",
+        "🇯🇵日本东京02号-0.1倍",
+        "🇯🇵日本东京03号-0.1倍",
+        "🇯🇵日本高速01|BGP|CUCM",
+        "🇯🇵日本高速01|CTCU|0.5x",
+        "🇯🇵日本高速02|BGP|CUCM",
+        "🇯🇵日本高速02|CTCU|0.5x",
+        "🇯🇵日本高速03|BGP|CUCM",
+        "🇯🇵日本高速04|BGP|CUCM",
+        "🇯🇵日本高速05|BGP|CUCM",
+        "🇯🇵日本高速06|BGP|CTCU",
+        "🇯🇵日本高速07|BGP|CTCU",
+        "🇯🇵日本高速08|BGP|CTCU",
+        "🇯🇵日本高速09|BGP|CTCU",
+        "🇸🇬新加坡专线01|BGP|流媒体",
+        "🇸🇬新加坡专线02|BGP|流媒体",
+        "🇸🇬新加坡专线03|BGP|流媒体",
+        "🇸🇬新加坡专线04|BGP|流媒体",
+        "🇸🇬新加坡高速01|BGP|CTCUCM",
+        "🇸🇬新加坡高速02|BGP|CTCUCM",
+        "🇸🇬新加坡高速03|BGP|CTCUCM",
+        "🇸🇬新加坡高速04|BGP|CTCUCM",
+        "🇸🇬新加坡高速05|BGP|CTCUCM",
+        "🇸🇬新加坡高速06|BGP|CTCU",
+        "🇸🇬新加坡高速07|BGP|CTCU",
+        "🇸🇬新加坡高速08|BGP|CTCU",
+        "🇺🇸美国01|流媒体|0.1x",
+        "🇺🇸美国02|流媒体|0.1x",
+        "🇺🇸美国03|流媒体|0.1x",
+        "🇺🇸美国04|流媒体|0.1x",
+        "🇺🇸美国05|流媒体|0.1x",
+        "🇺🇸美国洛杉矶01|流媒体|0.01x",
+        "🇺🇸美国洛杉矶01号-0.1倍",
+        "🇺🇸美国洛杉矶02|流媒体|0.01x",
+        "🇺🇸美国洛杉矶02号-0.1倍",
+        "🇺🇸美国洛杉矶03号-0.1倍",
+        "🇺🇸美国洛杉矶1号-0.1倍",
+        "🇺🇸美国洛杉矶2号-0.1倍",
+        "🇺🇸美国洛杉矶3号-0.1倍",
+        "🇺🇸美国高速01|CTCU|0.1x",
+        "🇺🇸美国高速02|CTCU|0.1x",
+        "🇺🇸美国高速03|CTCU|0.1x",
+        "🇺🇸美国高速04|CTCU|0.1x",
+        "🇺🇸美国高速05|CTCU|0.1x"
+      ],
+      "default": "自动选择"
+    },
+    {
+      "tag": "自动选择",
+      "type": "urltest",
+      "outbounds": [
+        "🇨🇳台湾高速01|BGP|流媒体",
+        "🇬🇧英国伦敦01|CTCU|0.1x",
+        "🇬🇧英国伦敦01|流媒体|0.1x",
+        "🇬🇧英国伦敦02|CTCU|0.1x",
+        "🇬🇧英国伦敦02|流媒体|0.1x",
+        "🇭🇰香港专线01|BGP|流媒体",
+        "🇭🇰香港专线02|BGP|流媒体",
+        "🇭🇰香港专线03|BGP|流媒体",
+        "🇭🇰香港专线04|BGP|流媒体",
+        "🇭🇰香港高速01|BGP|CMCU",
+        "🇭🇰香港高速02|BGP|CMCU",
+        "🇭🇰香港高速03|BGP|CMCU",
+        "🇭🇰香港高速04|BGP|CMCU",
+        "🇭🇰香港高速05|BGP|CMCU",
+        "🇯🇵日本专线01|BGP|流媒体",
+        "🇯🇵日本专线02|BGP|流媒体",
+        "🇯🇵日本专线03|BGP|流媒体",
+        "🇯🇵日本专线04|BGP|流媒体",
+        "🇯🇵日本东京01号-0.1倍",
+        "🇯🇵日本东京02号-0.1倍",
+        "🇯🇵日本东京03号-0.1倍",
+        "🇯🇵日本高速01|BGP|CUCM",
+        "🇯🇵日本高速01|CTCU|0.5x",
+        "🇯🇵日本高速02|BGP|CUCM",
+        "🇯🇵日本高速02|CTCU|0.5x",
+        "🇯🇵日本高速03|BGP|CUCM",
+        "🇯🇵日本高速04|BGP|CUCM",
+        "🇯🇵日本高速05|BGP|CUCM",
+        "🇯🇵日本高速06|BGP|CTCU",
+        "🇯🇵日本高速07|BGP|CTCU",
+        "🇯🇵日本高速08|BGP|CTCU",
+        "🇯🇵日本高速09|BGP|CTCU",
+        "🇸🇬新加坡专线01|BGP|流媒体",
+        "🇸🇬新加坡专线02|BGP|流媒体",
+        "🇸🇬新加坡专线03|BGP|流媒体",
+        "🇸🇬新加坡专线04|BGP|流媒体",
+        "🇸🇬新加坡高速01|BGP|CTCUCM",
+        "🇸🇬新加坡高速02|BGP|CTCUCM",
+        "🇸🇬新加坡高速03|BGP|CTCUCM",
+        "🇸🇬新加坡高速04|BGP|CTCUCM",
+        "🇸🇬新加坡高速05|BGP|CTCUCM",
+        "🇸🇬新加坡高速06|BGP|CTCU",
+        "🇸🇬新加坡高速07|BGP|CTCU",
+        "🇸🇬新加坡高速08|BGP|CTCU",
+        "🇺🇸美国01|流媒体|0.1x",
+        "🇺🇸美国02|流媒体|0.1x",
+        "🇺🇸美国03|流媒体|0.1x",
+        "🇺🇸美国04|流媒体|0.1x",
+        "🇺🇸美国05|流媒体|0.1x",
+        "🇺🇸美国洛杉矶01|流媒体|0.01x",
+        "🇺🇸美国洛杉矶01号-0.1倍",
+        "🇺🇸美国洛杉矶02|流媒体|0.01x",
+        "🇺🇸美国洛杉矶02号-0.1倍",
+        "🇺🇸美国洛杉矶03号-0.1倍",
+        "🇺🇸美国洛杉矶1号-0.1倍",
+        "🇺🇸美国洛杉矶2号-0.1倍",
+        "🇺🇸美国洛杉矶3号-0.1倍",
+        "🇺🇸美国高速01|CTCU|0.1x",
+        "🇺🇸美国高速02|CTCU|0.1x",
+        "🇺🇸美国高速03|CTCU|0.1x",
+        "🇺🇸美国高速04|CTCU|0.1x",
+        "🇺🇸美国高速05|CTCU|0.1x"
+      ],
+      "url": "http://www.msftconnecttest.com/connecttest.txt",
+      "interval": "10m",
+      "tolerance": 50
+    },
+    {
+      "tag": "🤖 AI",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "outbounds": [
+        "自动选择",
+        "🇨🇳台湾高速01|BGP|流媒体",
+        "🇬🇧英国伦敦01|CTCU|0.1x",
+        "🇬🇧英国伦敦01|流媒体|0.1x",
+        "🇬🇧英国伦敦02|CTCU|0.1x",
+        "🇬🇧英国伦敦02|流媒体|0.1x",
+        "🇭🇰香港专线01|BGP|流媒体",
+        "🇭🇰香港专线02|BGP|流媒体",
+        "🇭🇰香港专线03|BGP|流媒体",
+        "🇭🇰香港专线04|BGP|流媒体",
+        "🇭🇰香港高速01|BGP|CMCU",
+        "🇭🇰香港高速02|BGP|CMCU",
+        "🇭🇰香港高速03|BGP|CMCU",
+        "🇭🇰香港高速04|BGP|CMCU",
+        "🇭🇰香港高速05|BGP|CMCU",
+        "🇯🇵日本专线01|BGP|流媒体",
+        "🇯🇵日本专线02|BGP|流媒体",
+        "🇯🇵日本专线03|BGP|流媒体",
+        "🇯🇵日本专线04|BGP|流媒体",
+        "🇯🇵日本东京01号-0.1倍",
+        "🇯🇵日本东京02号-0.1倍",
+        "🇯🇵日本东京03号-0.1倍",
+        "🇯🇵日本高速01|BGP|CUCM",
+        "🇯🇵日本高速01|CTCU|0.5x",
+        "🇯🇵日本高速02|BGP|CUCM",
+        "🇯🇵日本高速02|CTCU|0.5x",
+        "🇯🇵日本高速03|BGP|CUCM",
+        "🇯🇵日本高速04|BGP|CUCM",
+        "🇯🇵日本高速05|BGP|CUCM",
+        "🇯🇵日本高速06|BGP|CTCU",
+        "🇯🇵日本高速07|BGP|CTCU",
+        "🇯🇵日本高速08|BGP|CTCU",
+        "🇯🇵日本高速09|BGP|CTCU",
+        "🇸🇬新加坡专线01|BGP|流媒体",
+        "🇸🇬新加坡专线02|BGP|流媒体",
+        "🇸🇬新加坡专线03|BGP|流媒体",
+        "🇸🇬新加坡专线04|BGP|流媒体",
+        "🇸🇬新加坡高速01|BGP|CTCUCM",
+        "🇸🇬新加坡高速02|BGP|CTCUCM",
+        "🇸🇬新加坡高速03|BGP|CTCUCM",
+        "🇸🇬新加坡高速04|BGP|CTCUCM",
+        "🇸🇬新加坡高速05|BGP|CTCUCM",
+        "🇸🇬新加坡高速06|BGP|CTCU",
+        "🇸🇬新加坡高速07|BGP|CTCU",
+        "🇸🇬新加坡高速08|BGP|CTCU",
+        "🇺🇸美国01|流媒体|0.1x",
+        "🇺🇸美国02|流媒体|0.1x",
+        "🇺🇸美国03|流媒体|0.1x",
+        "🇺🇸美国04|流媒体|0.1x",
+        "🇺🇸美国05|流媒体|0.1x",
+        "🇺🇸美国洛杉矶01|流媒体|0.01x",
+        "🇺🇸美国洛杉矶01号-0.1倍",
+        "🇺🇸美国洛杉矶02|流媒体|0.01x",
+        "🇺🇸美国洛杉矶02号-0.1倍",
+        "🇺🇸美国洛杉矶03号-0.1倍",
+        "🇺🇸美国洛杉矶1号-0.1倍",
+        "🇺🇸美国洛杉矶2号-0.1倍",
+        "🇺🇸美国洛杉矶3号-0.1倍",
+        "🇺🇸美国高速01|CTCU|0.1x",
+        "🇺🇸美国高速02|CTCU|0.1x",
+        "🇺🇸美国高速03|CTCU|0.1x",
+        "🇺🇸美国高速04|CTCU|0.1x",
+        "🇺🇸美国高速05|CTCU|0.1x"
+      ],
+      "default": "自动选择"
+    },
+    {
+      "tag": "📲 TELEGRAM",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "outbounds": [
+        "自动选择",
+        "🇨🇳台湾高速01|BGP|流媒体",
+        "🇬🇧英国伦敦01|CTCU|0.1x",
+        "🇬🇧英国伦敦01|流媒体|0.1x",
+        "🇬🇧英国伦敦02|CTCU|0.1x",
+        "🇬🇧英国伦敦02|流媒体|0.1x",
+        "🇭🇰香港专线01|BGP|流媒体",
+        "🇭🇰香港专线02|BGP|流媒体",
+        "🇭🇰香港专线03|BGP|流媒体",
+        "🇭🇰香港专线04|BGP|流媒体",
+        "🇭🇰香港高速01|BGP|CMCU",
+        "🇭🇰香港高速02|BGP|CMCU",
+        "🇭🇰香港高速03|BGP|CMCU",
+        "🇭🇰香港高速04|BGP|CMCU",
+        "🇭🇰香港高速05|BGP|CMCU",
+        "🇯🇵日本专线01|BGP|流媒体",
+        "🇯🇵日本专线02|BGP|流媒体",
+        "🇯🇵日本专线03|BGP|流媒体",
+        "🇯🇵日本专线04|BGP|流媒体",
+        "🇯🇵日本东京01号-0.1倍",
+        "🇯🇵日本东京02号-0.1倍",
+        "🇯🇵日本东京03号-0.1倍",
+        "🇯🇵日本高速01|BGP|CUCM",
+        "🇯🇵日本高速01|CTCU|0.5x",
+        "🇯🇵日本高速02|BGP|CUCM",
+        "🇯🇵日本高速02|CTCU|0.5x",
+        "🇯🇵日本高速03|BGP|CUCM",
+        "🇯🇵日本高速04|BGP|CUCM",
+        "🇯🇵日本高速05|BGP|CUCM",
+        "🇯🇵日本高速06|BGP|CTCU",
+        "🇯🇵日本高速07|BGP|CTCU",
+        "🇯🇵日本高速08|BGP|CTCU",
+        "🇯🇵日本高速09|BGP|CTCU",
+        "🇸🇬新加坡专线01|BGP|流媒体",
+        "🇸🇬新加坡专线02|BGP|流媒体",
+        "🇸🇬新加坡专线03|BGP|流媒体",
+        "🇸🇬新加坡专线04|BGP|流媒体",
+        "🇸🇬新加坡高速01|BGP|CTCUCM",
+        "🇸🇬新加坡高速02|BGP|CTCUCM",
+        "🇸🇬新加坡高速03|BGP|CTCUCM",
+        "🇸🇬新加坡高速04|BGP|CTCUCM",
+        "🇸🇬新加坡高速05|BGP|CTCUCM",
+        "🇸🇬新加坡高速06|BGP|CTCU",
+        "🇸🇬新加坡高速07|BGP|CTCU",
+        "🇸🇬新加坡高速08|BGP|CTCU",
+        "🇺🇸美国01|流媒体|0.1x",
+        "🇺🇸美国02|流媒体|0.1x",
+        "🇺🇸美国03|流媒体|0.1x",
+        "🇺🇸美国04|流媒体|0.1x",
+        "🇺🇸美国05|流媒体|0.1x",
+        "🇺🇸美国洛杉矶01|流媒体|0.01x",
+        "🇺🇸美国洛杉矶01号-0.1倍",
+        "🇺🇸美国洛杉矶02|流媒体|0.01x",
+        "🇺🇸美国洛杉矶02号-0.1倍",
+        "🇺🇸美国洛杉矶03号-0.1倍",
+        "🇺🇸美国洛杉矶1号-0.1倍",
+        "🇺🇸美国洛杉矶2号-0.1倍",
+        "🇺🇸美国洛杉矶3号-0.1倍",
+        "🇺🇸美国高速01|CTCU|0.1x",
+        "🇺🇸美国高速02|CTCU|0.1x",
+        "🇺🇸美国高速03|CTCU|0.1x",
+        "🇺🇸美国高速04|CTCU|0.1x",
+        "🇺🇸美国高速05|CTCU|0.1x"
+      ],
+      "default": "自动选择"
+    },
+    {
+      "tag": "🎥 TIKTOK",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "outbounds": [
+        "自动选择",
+        "🇨🇳台湾高速01|BGP|流媒体",
+        "🇬🇧英国伦敦01|CTCU|0.1x",
+        "🇬🇧英国伦敦01|流媒体|0.1x",
+        "🇬🇧英国伦敦02|CTCU|0.1x",
+        "🇬🇧英国伦敦02|流媒体|0.1x",
+        "🇭🇰香港专线01|BGP|流媒体",
+        "🇭🇰香港专线02|BGP|流媒体",
+        "🇭🇰香港专线03|BGP|流媒体",
+        "🇭🇰香港专线04|BGP|流媒体",
+        "🇭🇰香港高速01|BGP|CMCU",
+        "🇭🇰香港高速02|BGP|CMCU",
+        "🇭🇰香港高速03|BGP|CMCU",
+        "🇭🇰香港高速04|BGP|CMCU",
+        "🇭🇰香港高速05|BGP|CMCU",
+        "🇯🇵日本专线01|BGP|流媒体",
+        "🇯🇵日本专线02|BGP|流媒体",
+        "🇯🇵日本专线03|BGP|流媒体",
+        "🇯🇵日本专线04|BGP|流媒体",
+        "🇯🇵日本东京01号-0.1倍",
+        "🇯🇵日本东京02号-0.1倍",
+        "🇯🇵日本东京03号-0.1倍",
+        "🇯🇵日本高速01|BGP|CUCM",
+        "🇯🇵日本高速01|CTCU|0.5x",
+        "🇯🇵日本高速02|BGP|CUCM",
+        "🇯🇵日本高速02|CTCU|0.5x",
+        "🇯🇵日本高速03|BGP|CUCM",
+        "🇯🇵日本高速04|BGP|CUCM",
+        "🇯🇵日本高速05|BGP|CUCM",
+        "🇯🇵日本高速06|BGP|CTCU",
+        "🇯🇵日本高速07|BGP|CTCU",
+        "🇯🇵日本高速08|BGP|CTCU",
+        "🇯🇵日本高速09|BGP|CTCU",
+        "🇸🇬新加坡专线01|BGP|流媒体",
+        "🇸🇬新加坡专线02|BGP|流媒体",
+        "🇸🇬新加坡专线03|BGP|流媒体",
+        "🇸🇬新加坡专线04|BGP|流媒体",
+        "🇸🇬新加坡高速01|BGP|CTCUCM",
+        "🇸🇬新加坡高速02|BGP|CTCUCM",
+        "🇸🇬新加坡高速03|BGP|CTCUCM",
+        "🇸🇬新加坡高速04|BGP|CTCUCM",
+        "🇸🇬新加坡高速05|BGP|CTCUCM",
+        "🇸🇬新加坡高速06|BGP|CTCU",
+        "🇸🇬新加坡高速07|BGP|CTCU",
+        "🇸🇬新加坡高速08|BGP|CTCU",
+        "🇺🇸美国01|流媒体|0.1x",
+        "🇺🇸美国02|流媒体|0.1x",
+        "🇺🇸美国03|流媒体|0.1x",
+        "🇺🇸美国04|流媒体|0.1x",
+        "🇺🇸美国05|流媒体|0.1x",
+        "🇺🇸美国洛杉矶01|流媒体|0.01x",
+        "🇺🇸美国洛杉矶01号-0.1倍",
+        "🇺🇸美国洛杉矶02|流媒体|0.01x",
+        "🇺🇸美国洛杉矶02号-0.1倍",
+        "🇺🇸美国洛杉矶03号-0.1倍",
+        "🇺🇸美国洛杉矶1号-0.1倍",
+        "🇺🇸美国洛杉矶2号-0.1倍",
+        "🇺🇸美国洛杉矶3号-0.1倍",
+        "🇺🇸美国高速01|CTCU|0.1x",
+        "🇺🇸美国高速02|CTCU|0.1x",
+        "🇺🇸美国高速03|CTCU|0.1x",
+        "🇺🇸美国高速04|CTCU|0.1x",
+        "🇺🇸美国高速05|CTCU|0.1x"
+      ],
+      "default": "自动选择"
+    },
+    {
+      "tag": "📺 YOUTUBE",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "outbounds": [
+        "自动选择",
+        "🇨🇳台湾高速01|BGP|流媒体",
+        "🇬🇧英国伦敦01|CTCU|0.1x",
+        "🇬🇧英国伦敦01|流媒体|0.1x",
+        "🇬🇧英国伦敦02|CTCU|0.1x",
+        "🇬🇧英国伦敦02|流媒体|0.1x",
+        "🇭🇰香港专线01|BGP|流媒体",
+        "🇭🇰香港专线02|BGP|流媒体",
+        "🇭🇰香港专线03|BGP|流媒体",
+        "🇭🇰香港专线04|BGP|流媒体",
+        "🇭🇰香港高速01|BGP|CMCU",
+        "🇭🇰香港高速02|BGP|CMCU",
+        "🇭🇰香港高速03|BGP|CMCU",
+        "🇭🇰香港高速04|BGP|CMCU",
+        "🇭🇰香港高速05|BGP|CMCU",
+        "🇯🇵日本专线01|BGP|流媒体",
+        "🇯🇵日本专线02|BGP|流媒体",
+        "🇯🇵日本专线03|BGP|流媒体",
+        "🇯🇵日本专线04|BGP|流媒体",
+        "🇯🇵日本东京01号-0.1倍",
+        "🇯🇵日本东京02号-0.1倍",
+        "🇯🇵日本东京03号-0.1倍",
+        "🇯🇵日本高速01|BGP|CUCM",
+        "🇯🇵日本高速01|CTCU|0.5x",
+        "🇯🇵日本高速02|BGP|CUCM",
+        "🇯🇵日本高速02|CTCU|0.5x",
+        "🇯🇵日本高速03|BGP|CUCM",
+        "🇯🇵日本高速04|BGP|CUCM",
+        "🇯🇵日本高速05|BGP|CUCM",
+        "🇯🇵日本高速06|BGP|CTCU",
+        "🇯🇵日本高速07|BGP|CTCU",
+        "🇯🇵日本高速08|BGP|CTCU",
+        "🇯🇵日本高速09|BGP|CTCU",
+        "🇸🇬新加坡专线01|BGP|流媒体",
+        "🇸🇬新加坡专线02|BGP|流媒体",
+        "🇸🇬新加坡专线03|BGP|流媒体",
+        "🇸🇬新加坡专线04|BGP|流媒体",
+        "🇸🇬新加坡高速01|BGP|CTCUCM",
+        "🇸🇬新加坡高速02|BGP|CTCUCM",
+        "🇸🇬新加坡高速03|BGP|CTCUCM",
+        "🇸🇬新加坡高速04|BGP|CTCUCM",
+        "🇸🇬新加坡高速05|BGP|CTCUCM",
+        "🇸🇬新加坡高速06|BGP|CTCU",
+        "🇸🇬新加坡高速07|BGP|CTCU",
+        "🇸🇬新加坡高速08|BGP|CTCU",
+        "🇺🇸美国01|流媒体|0.1x",
+        "🇺🇸美国02|流媒体|0.1x",
+        "🇺🇸美国03|流媒体|0.1x",
+        "🇺🇸美国04|流媒体|0.1x",
+        "🇺🇸美国05|流媒体|0.1x",
+        "🇺🇸美国洛杉矶01|流媒体|0.01x",
+        "🇺🇸美国洛杉矶01号-0.1倍",
+        "🇺🇸美国洛杉矶02|流媒体|0.01x",
+        "🇺🇸美国洛杉矶02号-0.1倍",
+        "🇺🇸美国洛杉矶03号-0.1倍",
+        "🇺🇸美国洛杉矶1号-0.1倍",
+        "🇺🇸美国洛杉矶2号-0.1倍",
+        "🇺🇸美国洛杉矶3号-0.1倍",
+        "🇺🇸美国高速01|CTCU|0.1x",
+        "🇺🇸美国高速02|CTCU|0.1x",
+        "🇺🇸美国高速03|CTCU|0.1x",
+        "🇺🇸美国高速04|CTCU|0.1x",
+        "🇺🇸美国高速05|CTCU|0.1x"
+      ],
+      "default": "自动选择"
+    },
+    {
+      "tag": "🔍 GOOGLE",
+      "type": "selector",
+      "outbounds": [
+        "手动选择"
+      ],
+      "default": "手动选择"
+    },
+    {
+      "tag": "🎯 中国直连",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "outbounds": [
+        "百度免流选择",
+        "国内手动",
+        "🇨🇳 全局直连"
+      ],
+      "default": "百度免流选择"
+    },
+    {
+      "tag": "🔈 广告拦截",
+      "type": "selector",
+      "outbounds": [
+        "🚫 拒绝连接",
+        "🎯 中国直连",
+        "手动选择"
+      ],
+      "default": "🚫 拒绝连接"
+    },
+    {
+      "tag": "💧 泄漏拦截",
+      "type": "selector",
+      "outbounds": [
+        "🚫 拒绝连接",
+        "🎯 中国直连",
+        "手动选择"
+      ],
+      "default": "🚫 拒绝连接"
+    },
+    {
+      "tag": "🔎 HTTPDNS",
+      "type": "selector",
+      "outbounds": [
+        "🚫 拒绝连接",
+        "🎯 中国直连",
+        "手动选择"
+      ],
+      "default": "🚫 拒绝连接"
+    },
+    {
+      "tag": "GLOBAL",
+      "type": "selector",
+      "outbounds": [
+        "🎯 中国直连",
+        "手动选择"
+      ],
+      "default": "手动选择"
+    },
+    {
+      "tag": "[国内] ml 🇨🇳 上海市 电信-54321",
+      "type": "vmess",
+      "server": "node.example.com",
+      "server_port": 54321,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "security": "auto",
+      "alter_id": 0,
+      "transport": {
+        "type": "http",
+        "headers": {},
+        "path": "/",
+        "host": "t7z.cupid.iqiyi.com"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "剩余流量：856.93 GB",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "jp1-lx.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "jp1-lx.7770006.xyz"
+        },
+        "path": "/liangxin/data/jp"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "套餐到期：长期有效",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "jp1-lx.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "jp1-lx.7770006.xyz"
+        },
+        "path": "/liangxin/data/jp"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇨🇳台湾高速01|BGP|流媒体",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "download-porter.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇬🇧英国伦敦01|CTCU|0.1x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "gb-lx.777096.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "gb-lx.777096.xyz"
+        },
+        "path": "/liangxin/gb1"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇬🇧英国伦敦01|流媒体|0.1x",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "bilibili-gb.biliimg.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇬🇧英国伦敦02|CTCU|0.1x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "download-porter.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇬🇧英国伦敦02|流媒体|0.1x",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "bilibili-gb.biliimg.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇭🇰香港专线01|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 443,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "download-porter.hoyoverse.com",
+        "insecure": true
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇭🇰香港专线02|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 443,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.hoyoverse.com",
+        "insecure": true
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇭🇰香港专线03|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 443,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.apple.com",
+        "insecure": true
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇭🇰香港专线04|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 443,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": true
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇭🇰香港高速01|BGP|CMCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "fastcdn.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇭🇰香港高速02|BGP|CMCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "fastcdn.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇭🇰香港高速03|BGP|CMCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.lamer.com.hk",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇭🇰香港高速04|BGP|CMCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.lamer.com.hk",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇭🇰香港高速05|BGP|CMCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "fastcdn.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本专线01|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "bilibili-jp.biliimg.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本专线02|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "bilibili-jp2.biliimg.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本专线03|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "bilibili-jp3.biliimg.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本专线04|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "bilibili-jp4.biliimg.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本东京01号-0.1倍",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "d2-jp2.djwstlsweb.top",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "d2-jp2.djwstlsweb.top"
+        },
+        "path": "/djjc/jp2"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本东京02号-0.1倍",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "d2-jp2.djwstlsweb.top",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "d2-jp2.djwstlsweb.top"
+        },
+        "path": "/djjc/jp2"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本东京03号-0.1倍",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "d2-jp2.djwstlsweb.top",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "d2-jp2.djwstlsweb.top"
+        },
+        "path": "/djjc/jp2"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速01|BGP|CUCM",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "download-porter.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速01|CTCU|0.5x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "jp1-lx.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "jp1-lx.7770006.xyz"
+        },
+        "path": "/liangxin/data/jp"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速02|BGP|CUCM",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "download-porter.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速02|CTCU|0.5x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "jp2-lx.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "jp2-lx.7770006.xyz"
+        },
+        "path": "/liangxin/data"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速03|BGP|CUCM",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "download-porter.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速04|BGP|CUCM",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "download-porter.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速05|BGP|CUCM",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "download-porter.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速06|BGP|CTCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "jp3-lx.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "jp3-lx.7770006.xyz"
+        },
+        "path": "/liangxin/dash/jp"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速07|BGP|CTCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "jp3-lx.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "jp3-lx.7770006.xyz"
+        },
+        "path": "/liangxin/dash/jp"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速08|BGP|CTCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "jp4-lx.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "jp4-lx.7770006.xyz"
+        },
+        "path": "/liangxin/download/jp"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇯🇵日本高速09|BGP|CTCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "jp4-lx.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "jp4-lx.7770006.xyz"
+        },
+        "path": "/liangxin/download/jp"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡专线01|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡专线02|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡专线03|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡专线04|BGP|流媒体",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡高速01|BGP|CTCUCM",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "fastcdn.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡高速02|BGP|CTCUCM",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡高速03|BGP|CTCUCM",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡高速04|BGP|CTCUCM",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.lamer.com.hk",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡高速05|BGP|CTCUCM",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "download-porter.hoyoverse.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡高速06|BGP|CTCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "lx-sg1.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "lx-sg1.7770006.xyz"
+        },
+        "path": "/liangxin/sg1"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡高速07|BGP|CTCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "lx-sg1.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "lx-sg1.7770006.xyz"
+        },
+        "path": "/liangxin/sg1"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇸🇬新加坡高速08|BGP|CTCU",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "lx-sg1.7770006.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "lx-sg1.7770006.xyz"
+        },
+        "path": "/liangxin/sg1"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国01|流媒体|0.1x",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 443,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": true
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国02|流媒体|0.1x",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 443,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": true
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国03|流媒体|0.1x",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 443,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": true
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国04|流媒体|0.1x",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 443,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": true
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国05|流媒体|0.1x",
+      "type": "hysteria2",
+      "server": "node.example.com",
+      "server_port": 60000,
+      "password": "redacted",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.apple.com",
+        "insecure": true
+      },
+      "server_ports": [
+        "60000:65530"
+      ],
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国洛杉矶01|流媒体|0.01x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国洛杉矶01号-0.1倍",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "d2-us1.djwstlsweb.top",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "d2-us1.djwstlsweb.top"
+        },
+        "path": "/djjc/us1"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国洛杉矶02|流媒体|0.01x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "iosapps.itunes.apple.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国洛杉矶02号-0.1倍",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "d2-us1.djwstlsweb.top",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "d2-us1.djwstlsweb.top"
+        },
+        "path": "/djjc/us1"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国洛杉矶03号-0.1倍",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "d2-us1.djwstlsweb.top",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "d2-us1.djwstlsweb.top"
+        },
+        "path": "/djjc/us1"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国洛杉矶1号-0.1倍",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "cdn-dynmedia-1.microsoft.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "safari"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国洛杉矶2号-0.1倍",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "cdn-dynmedia-1.microsoft.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "ios"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国洛杉矶3号-0.1倍",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "cdn-dynmedia-1.microsoft.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "lmKU13MAZb2rqBx7z2Ut6zeWA-F8PXYeuA4iF6wyspE",
+          "short_id": "0123456789abcdef"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "edge"
+        }
+      },
+      "flow": "xtls-rprx-vision",
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国高速01|CTCU|0.1x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "lx-us1.777096.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "lx-us1.777096.xyz"
+        },
+        "path": "/liangxin/us"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国高速02|CTCU|0.1x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "lx-us2.777096.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "lx-us2.777096.xyz"
+        },
+        "path": "/liangxin/us"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国高速03|CTCU|0.1x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "lx-us3.777096.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "lx-us3.777096.xyz"
+        },
+        "path": "/liangxin/us"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国高速04|CTCU|0.1x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "lx-us4.777096.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "lx-us4.777096.xyz"
+        },
+        "path": "/liangxin/us"
+      },
+      "detour": "百度免流选择"
+    },
+    {
+      "tag": "🇺🇸美国高速05|CTCU|0.1x",
+      "type": "vless",
+      "server": "node.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-4000-8000-000000000000",
+      "tls": {
+        "enabled": true,
+        "server_name": "lx-us5.777096.xyz",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "lx-us5.777096.xyz"
+        },
+        "path": "/liangxin/us"
+      },
+      "detour": "百度免流选择"
+    }
+  ],
+  "route": {
+    "auto_detect_interface": true,
+    "default_domain_resolver": "local",
+    "final": "手动选择",
+    "rules": [
+      {
+        "action": "sniff"
+      },
+      {
+        "rule_set": "taobao",
+        "outbound": "百度免流选择"
+      },
+      {
+        "network": "udp",
+        "port": 53,
+        "action": "hijack-dns"
+      },
+      {
+        "rule_set": [
+          "geoip-cn",
+          "geosite-cn",
+          "geosite-private"
+        ],
+        "network": "udp",
+        "outbound": "国内 UDP"
+      },
+      {
+        "network": "udp",
+        "action": "reject"
+      },
+      {
+        "network": "udp",
+        "port": 443,
+        "action": "reject"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
+      },
+      {
+        "domain_suffix": "taobao.com",
+        "outbound": "江苏电信2"
+      },
+      {
+        "ip_is_private": true,
+        "outbound": "🚫 拒绝连接"
+      },
+      {
+        "clash_mode": "direct",
+        "outbound": "🎯 中国直连"
+      },
+      {
+        "clash_mode": "global",
+        "outbound": "GLOBAL"
+      },
+      {
+        "domain": [
+          "cdn.jsdmirror.com"
+        ],
+        "outbound": "🎯 中国直连"
+      },
+      {
+        "rule_set": "geosite-category-ads-all",
+        "action": "reject"
+      },
+      {
+        "type": "logical",
+        "mode": "or",
+        "rules": [
+          {
+            "port": 3478
+          },
+          {
+            "network": "tcp",
+            "port": 5349
+          },
+          {
+            "network": "udp",
+            "port": [
+              5350,
+              5351,
+              19302
+            ]
+          },
+          {
+            "rule_set": "STUN"
+          }
+        ],
+        "outbound": "💧 泄漏拦截"
+      },
+      {
+        "rule_set": "BlockHttpDNS",
+        "outbound": "🔎 HTTPDNS"
+      },
+      {
+        "rule_set": [
+          "geoip-google",
+          "geosite-google",
+          "geosite-instagram",
+          "geosite-threads"
+        ],
+        "outbound": "🔍 GOOGLE"
+      },
+      {
+        "rule_set": "geosite-ai",
+        "outbound": "🤖 AI"
+      },
+      {
+        "rule_set": "geosite-youtube",
+        "outbound": "📺 YOUTUBE"
+      },
+      {
+        "rule_set": "geosite-tiktok",
+        "outbound": "🎥 TIKTOK"
+      },
+      {
+        "rule_set": [
+          "geoip-telegram",
+          "geosite-telegram"
+        ],
+        "outbound": "📲 TELEGRAM"
+      },
+      {
+        "rule_set": [
+          "geoip-cn",
+          "geosite-cn",
+          "geosite-private"
+        ],
+        "network": "udp",
+        "port_range": [
+          "443:443",
+          "10000:65535"
+        ],
+        "action": "reject",
+        "method": "drop"
+      },
+      {
+        "rule_set": [
+          "geoip-cn",
+          "geosite-cn",
+          "geosite-private"
+        ],
+        "outbound": "🎯 中国直连"
+      }
+    ],
+    "rule_set": [
+      {
+        "tag": "taobao",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/gtihub-cell/sing-boxmm/main/1.11.x/taobao.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geosite-private",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/private.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geosite-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/cn.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geosite-category-ads-all",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/category-ads-all.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geosite-ai",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/category-ai-!cn.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geosite-youtube",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/youtube.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geosite-google",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/google.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geosite-telegram",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/telegram.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geosite-tiktok",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/tiktok.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geoip-private",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/private.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geoip-google",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geoip/google.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geoip-telegram",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geoip/telegram.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geosite-instagram",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geosite/instagram.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geosite-threads",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geosite/threads.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "geoip-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geoip/cn.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "STUN",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/senshinya/singbox_ruleset/main/rule/STUN/STUN.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "tag": "BlockHttpDNS",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh.iknn.eu.org/https://raw.githubusercontent.com/senshinya/singbox_ruleset/main/rule/BlockHttpDNS/BlockHttpDNS.srs",
+        "download_detour": "自动选择"
+      }
+    ]
+  }
+}

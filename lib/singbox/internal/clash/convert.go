@@ -516,72 +516,43 @@ func (c *converter) convertRoute(raw any, dnsTag string) (map[string]any, error)
 		}
 
 		target := c.resolveMember(parts[len(parts)-1])
-		payload := strings.Join(parts[1:len(parts)-1], ",")
-		// Options such as no-resolve are not route fields in sing-box; they are close enough to
-		// "do not resolve" that ignoring them is safe, but the profile should know.
-		for _, part := range strings.Split(payload, ",") {
-			switch strings.ToLower(strings.TrimSpace(part)) {
-			case "no-resolve", "src":
-				payload = strings.Replace(payload, part, "", 1)
-				c.warnf("rule option %q on %q has no sing-box equivalent; ignored", part, kind)
-			}
-		}
-		payload = strings.Trim(payload, ",")
+		payload := c.stripRuleOptions(kind, strings.Join(parts[1:len(parts)-1], ","))
 
-		rule := map[string]any{"outbound": target}
-		switch kind {
-		case "DOMAIN":
-			rule["domain"] = []string{payload}
-		case "DOMAIN-SUFFIX":
-			rule["domain_suffix"] = []string{strings.TrimPrefix(payload, ".")}
-		case "DOMAIN-KEYWORD":
-			rule["domain_keyword"] = []string{payload}
-		case "IP-CIDR", "IP-CIDR6":
-			rule["ip_cidr"] = []string{payload}
-		case "SRC-IP-CIDR":
-			rule["source_ip_cidr"] = []string{payload}
-		case "DST-PORT":
-			ports, ranges := splitPorts(payload)
-			if len(ports) > 0 {
-				rule["port"] = ports
-			}
-			if len(ranges) > 0 {
-				rule["port_range"] = ranges
-			}
-		case "SRC-PORT":
-			ports, ranges := splitPorts(payload)
-			if len(ports) > 0 {
-				rule["source_port"] = ports
-			}
-			if len(ranges) > 0 {
-				rule["source_port_range"] = ranges
-			}
-		case "PROCESS-NAME":
-			// Android reports the package name; Clash profiles usually carry the executable name,
-			// so both forms are emitted.
-			rule["process_name"] = []string{payload}
-		case "NETWORK":
-			rule["network"] = []string{strings.ToLower(payload)}
-		case "GEOSITE":
-			set := c.geoSiteSet(payload)
-			rule["rule_set"] = []string{set}
-		case "GEOIP":
-			set := c.geoIPSet(payload)
-			rule["rule_set"] = []string{set}
-		case "RULE-SET":
-			if set, ok := c.ruleProviderSet(payload); ok {
-				rule["rule_set"] = []string{set}
-			} else {
-				c.warnf("rule-set %q was dropped: only sing-box rule-set sources are supported", payload)
+		// Logical rules wrap other clauses: AND,((DOMAIN,a),(NETWORK,TCP)),PROXY
+		if kind == "AND" || kind == "OR" || kind == "NOT" {
+			if kind == "NOT" {
+				// sing-box has no "not" logical mode; it inverts a single matcher instead.
+				matchers, ok := c.parseLogical(payload)
+				if !ok || len(matchers) != 1 {
+					c.warnf("NOT rule %q needs exactly one clause and was dropped", line)
+					continue
+				}
+				matcher := matchers[0].(map[string]any)
+				matcher["invert"] = true
+				matcher["outbound"] = target
+				rules = append(rules, matcher)
 				continue
 			}
-		case "PROCESS-PATH":
-			rule["process_path"] = []string{payload}
-		default:
-			c.warnf("rule type %q is not supported by sing-box and was dropped: %q", kind, line)
+			matchers, ok := c.parseLogical(payload)
+			if !ok {
+				c.warnf("logical rule %q could not be parsed and was dropped", line)
+				continue
+			}
+			rules = append(rules, map[string]any{
+				"type":     "logical",
+				"mode":     strings.ToLower(kind),
+				"rules":    matchers,
+				"outbound": target,
+			})
 			continue
 		}
-		rules = append(rules, rule)
+
+		matcher, ok := c.atomMatcher(kind, payload, line)
+		if !ok {
+			continue
+		}
+		matcher["outbound"] = target
+		rules = append(rules, matcher)
 	}
 
 	route := map[string]any{
@@ -605,6 +576,138 @@ func (c *converter) convertRoute(raw any, dnsTag string) (map[string]any, error)
 		c.implicit["direct"] = true
 	}
 	return route, nil
+}
+
+// stripRuleOptions drops Clash per-rule options that sing-box does not accept as route fields.
+func (c *converter) stripRuleOptions(kind string, payload string) string {
+	for _, part := range strings.Split(payload, ",") {
+		switch strings.ToLower(strings.TrimSpace(part)) {
+		case "no-resolve", "src":
+			payload = strings.Replace(payload, part, "", 1)
+			c.warnf("rule option %q on %q has no sing-box equivalent; ignored", part, kind)
+		}
+	}
+	return strings.Trim(strings.TrimSpace(payload), ",")
+}
+
+// atomMatcher maps one Clash rule clause onto sing-box matcher fields. It reports false for a
+// clause it cannot express, after warning, so the caller can drop just that rule.
+func (c *converter) atomMatcher(kind string, payload string, line string) (map[string]any, bool) {
+	matcher := map[string]any{}
+	switch kind {
+	case "DOMAIN":
+		matcher["domain"] = []string{payload}
+	case "DOMAIN-SUFFIX":
+		matcher["domain_suffix"] = []string{strings.TrimPrefix(payload, ".")}
+	case "DOMAIN-KEYWORD":
+		matcher["domain_keyword"] = []string{payload}
+	case "IP-CIDR", "IP-CIDR6":
+		matcher["ip_cidr"] = []string{payload}
+	case "SRC-IP-CIDR":
+		matcher["source_ip_cidr"] = []string{payload}
+	case "DST-PORT":
+		ports, ranges := splitPorts(payload)
+		if len(ports) > 0 {
+			matcher["port"] = ports
+		}
+		if len(ranges) > 0 {
+			matcher["port_range"] = ranges
+		}
+	case "SRC-PORT":
+		ports, ranges := splitPorts(payload)
+		if len(ports) > 0 {
+			matcher["source_port"] = ports
+		}
+		if len(ranges) > 0 {
+			matcher["source_port_range"] = ranges
+		}
+	case "PROCESS-NAME":
+		// Android reports the package name; Clash profiles usually carry the executable name, so
+		// both spellings are emitted by the caller when it can.
+		matcher["process_name"] = []string{payload}
+	case "PROCESS-PATH":
+		matcher["process_path"] = []string{payload}
+	case "NETWORK":
+		matcher["network"] = []string{strings.ToLower(payload)}
+	case "GEOSITE":
+		matcher["rule_set"] = []string{c.geoSiteSet(payload)}
+	case "GEOIP":
+		matcher["rule_set"] = []string{c.geoIPSet(payload)}
+	case "RULE-SET":
+		set, ok := c.ruleProviderSet(payload)
+		if !ok {
+			c.warnf("rule-set %q was dropped: only sing-box rule-set sources are supported", payload)
+			return nil, false
+		}
+		matcher["rule_set"] = []string{set}
+	default:
+		c.warnf("rule type %q is not supported by sing-box and was dropped: %q", kind, line)
+		return nil, false
+	}
+	return matcher, true
+}
+
+// parseLogical reads Clash's grouped form, ((DOMAIN,a),(NETWORK,TCP)), into sing-box logical rule
+// matchers. One level of nesting covers what profiles actually ship; deeper nesting is reported
+// rather than silently flattened.
+func (c *converter) parseLogical(payload string) ([]any, bool) {
+	// Clash wraps the whole clause list in one extra pair of parentheses:
+	// AND,((DOMAIN,a),(NETWORK,TCP)),PROXY — drop that outer layer before splitting.
+	trimmed := strings.TrimSpace(payload)
+	if strings.HasPrefix(trimmed, "(") && strings.HasSuffix(trimmed, ")") {
+		trimmed = strings.TrimSpace(trimmed[1 : len(trimmed)-1])
+	}
+	groups := splitGroups(trimmed)
+	if len(groups) == 0 {
+		return nil, false
+	}
+	matchers := make([]any, 0, len(groups))
+	for _, group := range groups {
+		parts := strings.Split(group, ",")
+		for index := range parts {
+			parts[index] = strings.TrimSpace(parts[index])
+		}
+		if len(parts) < 2 {
+			return nil, false
+		}
+		inner := strings.ToUpper(parts[0])
+		if inner == "AND" || inner == "OR" || inner == "NOT" {
+			c.warnf("nested logical rules are not supported yet; clause %q was dropped", group)
+			return nil, false
+		}
+		matcher, ok := c.atomMatcher(inner, strings.Join(parts[1:], ","), group)
+		if !ok {
+			return nil, false
+		}
+		matchers = append(matchers, matcher)
+	}
+	return matchers, true
+}
+
+// splitGroups returns the contents of each top-level (...) group in a logical rule payload.
+func splitGroups(payload string) []string {
+	var groups []string
+	depth := 0
+	start := -1
+	for index, char := range payload {
+		switch char {
+		case '(':
+			depth++
+			if depth == 1 {
+				start = index + 1
+			}
+		case ')':
+			if depth == 0 {
+				continue
+			}
+			depth--
+			if depth == 0 && start >= 0 {
+				groups = append(groups, strings.TrimSpace(payload[start:index]))
+				start = -1
+			}
+		}
+	}
+	return groups
 }
 
 // globalModeTarget picks the first selectable group (or failing that, the first real proxy), since
