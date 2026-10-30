@@ -53,11 +53,13 @@ object NativeLibraryManager {
     private val LIBRARY_SHA256_BY_VERSION =
         mapOf(
             "5.0.9" to "126d1569d60c2f20605188001f236d91ba4c9cf7d35a8f02b57d69e47fe4b39d",
+            "6.0.2" to "3cfccfd554223a7755471637ee0acb96b00292e36ae6bdfe14fe9c60118b7e3a",
         )
 
     private val ARCHIVE_SHA256_BY_VERSION =
         mapOf(
             "5.0.9" to "31d7606fe3dd9135930a6a9519d90394abd219e535796cee3d5c8747812c6d35",
+            "6.0.2" to "35e9ed78e395d98de002f711cfa382c929cadb699c179a763f1001bc3da06776",
         )
 
     init {
