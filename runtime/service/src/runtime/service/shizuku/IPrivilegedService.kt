@@ -26,6 +26,11 @@ interface IPrivilegedService : IInterface {
         override fun asBinder(): IBinder = this
 
         override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
+            // Shizuku asks a non-daemon user service to exit when its last client is gone.
+            if (code == TRANSACTION_DESTROY) {
+                System.exit(0)
+                return true
+            }
             if (code == INTERFACE_TRANSACTION) {
                 reply?.writeString(DESCRIPTOR)
                 return true
@@ -47,6 +52,8 @@ interface IPrivilegedService : IInterface {
             private const val DESCRIPTOR =
                 "com.github.yumeyucca.yumebox.runtime.service.shizuku.IPrivilegedService"
             private const val TRANSACTION_SET_PACKAGE_NETWORKING_ENABLED = FIRST_CALL_TRANSACTION
+            /** ShizukuApiConstants.USER_SERVICE_TRANSACTION_destroy. */
+            private const val TRANSACTION_DESTROY = 16_777_115
 
             fun asInterface(binder: IBinder?): IPrivilegedService? {
                 if (binder == null) return null

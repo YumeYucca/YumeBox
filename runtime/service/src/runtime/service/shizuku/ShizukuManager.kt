@@ -45,7 +45,7 @@ object ShizukuManager {
     private const val XMSF_PACKAGE = "com.xiaomi.xmsf"
     private const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
     private const val PERMISSION_REQUEST_CODE = 1001
-    private const val USER_SERVICE_VERSION = 1
+    private const val USER_SERVICE_VERSION = 2
     private const val BIND_TIMEOUT_SECONDS = 3L
 
     /**
@@ -65,7 +65,9 @@ object ShizukuManager {
     // Written by the service connection callback, read from the traffic updater's thread.
     @Volatile private var privilegedService: IPrivilegedService? = null
     @Volatile private var serviceConnected = false
+    @Volatile private var awaitingService = false
     @Volatile private var bindLatch = CountDownLatch(1)
+    @Volatile private var userServiceArgs: Shizuku.UserServiceArgs? = null
     private val bypassMutex = Mutex()
 
     /** Live sessions holding the bypass. The firewall flips only at 0 and 1. */
@@ -80,6 +82,7 @@ object ShizukuManager {
                 name: ComponentName?,
                 binder: IBinder?,
             ) {
+                if (!awaitingService) return
                 if (binder != null && binder.pingBinder()) {
                     privilegedService = IPrivilegedService.Stub.asInterface(binder)
                     serviceConnected = true
@@ -102,9 +105,34 @@ object ShizukuManager {
 
     /** Drops the cached binder and releases a waiting caller instead of letting it time out. */
     private fun resetBinding() {
+        awaitingService = false
         privilegedService = null
         serviceConnected = false
         bindLatch.countDown()
+    }
+
+    private fun resolveUserServiceArgs(context: Context): Shizuku.UserServiceArgs =
+        userServiceArgs ?: synchronized(this) {
+            userServiceArgs ?: Shizuku
+                .UserServiceArgs(
+                    ComponentName(context.applicationContext.packageName, userServiceClass),
+                ).daemon(false)
+                .processNameSuffix("privileged")
+                .debuggable(false)
+                .version(USER_SERVICE_VERSION)
+                .also { userServiceArgs = it }
+        }
+
+    /** Removes the user service record and lets its process exit instead of keeping it cached. */
+    private fun releasePrivilegedService() {
+        val args = userServiceArgs ?: return
+        awaitingService = false
+        // The remove=true branch does not clear the client-side connection, so drop it first.
+        runCatching { Shizuku.unbindUserService(args, serviceConnection, false) }
+            .onFailure { error -> Log.w(TAG, "Unable to detach the Shizuku user service", error) }
+        runCatching { Shizuku.unbindUserService(args, serviceConnection, true) }
+            .onFailure { error -> Log.w(TAG, "Unable to unbind the Shizuku user service", error) }
+        resetBinding()
     }
 
     fun isAvailable(): Boolean = isRunning() && hasPermission()
@@ -211,35 +239,36 @@ object ShizukuManager {
                 .getOrNull()
                 ?: return false
 
-        getPrivilegedService(context)?.let { service ->
-            return runCatching { service.setPackageNetworkingEnabled(xmsfUid, !blocked) }
-                .onFailure { error -> Log.w(TAG, "User service call failed", error) }
-                .getOrDefault(false)
-        }
+        val service = getPrivilegedService(context)
+        try {
+            if (service != null) {
+                return runCatching { service.setPackageNetworkingEnabled(xmsfUid, !blocked) }
+                    .onFailure { error -> Log.w(TAG, "User service call failed", error) }
+                    .getOrDefault(false)
+            }
 
-        // Fallback when the user service cannot be bound: drive the connectivity service directly
-        // through the Shizuku binder, which runs with the same privileged identity.
-        val connectivity = SystemServiceHelper.getSystemService("connectivity") ?: return false
-        return OemDenyFirewall.setPackageDenied(
-            connectivity = ShizukuBinderWrapper(connectivity),
-            uid = xmsfUid,
-            denied = blocked,
-        )
+            // Fallback when the user service cannot be bound: drive the connectivity service
+            // directly through the Shizuku binder, which runs with the same privileged identity.
+            val connectivity = SystemServiceHelper.getSystemService("connectivity") ?: return false
+            return OemDenyFirewall.setPackageDenied(
+                connectivity = ShizukuBinderWrapper(connectivity),
+                uid = xmsfUid,
+                denied = blocked,
+            )
+        } finally {
+            // The firewall rule lives in the connectivity service; the user service is only
+            // needed for this call, so do not leave a privileged process behind.
+            releasePrivilegedService()
+        }
     }
 
     private fun getPrivilegedService(context: Context): IPrivilegedService? {
         privilegedService?.takeIf { serviceConnected }?.let { return it }
 
         return runCatching {
+            awaitingService = true
             bindLatch = CountDownLatch(1)
-            val args =
-                Shizuku
-                    .UserServiceArgs(
-                        ComponentName(context.packageName, userServiceClass),
-                    ).daemon(false)
-                    .processNameSuffix("privileged")
-                    .debuggable(false)
-                    .version(USER_SERVICE_VERSION)
+            val args = resolveUserServiceArgs(context)
             Shizuku.bindUserService(args, serviceConnection)
             if (bindLatch.await(BIND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 privilegedService
