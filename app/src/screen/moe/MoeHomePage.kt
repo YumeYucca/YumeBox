@@ -70,7 +70,6 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import com.github.yumeyucca.yumebox.presentation.component.openRoute
 
 // The moe home backs its translucent cards with paper white in light mode; the themed surface
 // reads as grey next to the wallpaper.
@@ -188,7 +187,8 @@ fun MoeHomePage(
     // (replacing the detail pane inside the tablet shell).
     val openSettingsPage: () -> Unit =
         remember(rootNavigator, detailNavigator) {
-            { rootNavigator.openRoute(Route.Settings, detailNavigator) }
+            val targetNavigator = detailNavigator ?: rootNavigator
+            { targetNavigator.push(Route.Settings) }
         }
     val quoteText = moe.moeHomeQuote.ifBlank { YumeTxt.AppSettings.Interface.HomeQuoteDefault }
     val animatedSidebarToggleProgress by

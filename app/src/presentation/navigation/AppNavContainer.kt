@@ -21,17 +21,29 @@
 package com.github.yumeyucca.yumebox.presentation.navigation
 
 import androidx.compose.animation.core.tween
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
-import com.arkivanov.decompose.extensions.compose.stack.animation.*
+import com.arkivanov.decompose.childContext
+import com.arkivanov.decompose.extensions.compose.stack.animation.StackAnimation
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.plus
 import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.androidPredictiveBackAnimatableV1
 import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
-import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.extensions.compose.stack.animation.scale
+import com.arkivanov.decompose.extensions.compose.stack.animation.slide
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.essenty.backhandler.BackHandler
+import com.github.yumeyucca.yumebox.MainActivity
 import com.github.yumeyucca.yumebox.presentation.component.BottomBarDestination
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
+import com.github.yumeyucca.yumebox.presentation.component.rememberWindowLayoutMode
 
 internal fun <C : Any, T : Any> yumeStackAnimation(): StackAnimation<C, T> =
     stackAnimation(fade(tween(300)) + slide(tween(400)) + scale(tween(500)))
@@ -48,62 +60,89 @@ private fun <T : Any> yumeAnimation(
         selector = { event, _, _ -> androidPredictiveBackAnimatableV1(event) },
     )
 
+/** Owns every app navigation stack and all commands sent to them. */
 class AppNavigationComponent(
     val componentContext: ComponentContext,
     val predictiveBackEnabledAtLaunch: Boolean,
 ) {
-    // The bottom pager is nested in Route.Main, so keep its semantic destination outside the
-    // screen composition while another Activity or a child route is on top.
     private val mainDestinationState = mutableStateOf(BottomBarDestination.Home)
 
-    val navigator = Navigator(listOf(Route.Main))
-    // The pane always has a root route: it is composed from a stack, so an empty stack would leave
-    // the pane blank and drop a later detail route. About is that resting content. It lives here, not
-    // in [MainScreen], because the screen is recreated by every root push and by config changes, which
-    // used to reset the pane under the user while the pager page survived.
-    val detailNavigator = Navigator(listOf(PaneRestingRoute))
-    internal val childStack: Value<ChildStack<Any, Route>> =
-        navigator.routeStack(componentContext, handleBackButton = true)
-    internal val routeStack = RouteStack(navigator, childStack)
+    val navigator = Navigator()
+    val detailNavigator = Navigator()
+
+    internal val routeStack =
+        RouteStack(
+            navigator = navigator,
+            value =
+                navigator.routeStack(
+                    componentContext = componentContext.childContext("RootNavigation"),
+                    initialRoute = Route.Main,
+                    handleBackButton = true,
+                ),
+        )
+    internal val detailStack =
+        RouteStack(
+            navigator = detailNavigator,
+            value =
+                detailNavigator.routeStack(
+                    componentContext = componentContext.childContext("DetailNavigation"),
+                    initialRoute = PaneRestingRoute,
+                    handleBackButton = false,
+                ),
+        )
+
+    internal val mainDestination: BottomBarDestination
+        get() = mainDestinationState.value
 
     internal fun updateMainDestination(destination: BottomBarDestination) {
         mainDestinationState.value = destination
     }
 
-    internal val mainDestination: BottomBarDestination
-        get() = mainDestinationState.value
+    fun navigateBack() {
+        navigator.pop()
+    }
+
+    fun handleDeepLink(link: DeepLink, inDetailPane: Boolean) {
+        when (link) {
+            is DeepLink.Page -> updateMainDestination(link.destination)
+            is DeepLink.Screen ->
+                (if (inDetailPane) detailNavigator else navigator).push(link.route)
+        }
+    }
 }
 
 @Composable
 fun AppNavContainer(component: AppNavigationComponent) {
-    val componentContext = component.componentContext
-    val navigator = component.navigator
     val predictiveBackEnabled = component.predictiveBackEnabledAtLaunch
-    val commitBack: () -> Unit = remember(navigator) { { navigator.pop() } }
-    val animation: StackAnimation<Any, Route> = remember(component) {
+    val commitBack = remember(component) { component::navigateBack }
+    val animation: StackAnimation<Any, RouteChild> = remember(component) {
         if (predictiveBackEnabled) {
-            yumeAnimation(componentContext.backHandler, commitBack)
+            yumeAnimation(component.componentContext.backHandler, commitBack)
         } else {
             yumeStackAnimation()
         }
     }
-    // Provided above the stack so every route (root page or split-shell pane) reads the pager's
-    // persisted page from one place instead of the host threading it through. The config-preview slot
-    // is deliberately NOT provided here: [RouteStackHost] gives each stack its own.
-    // A bound reference is a new object per call, which would make an @Immutable argument unstable.
+
+    // Deep links belong to the retained navigation component, not to Route.Main's composition.
+    // They therefore work even when a child route is currently covering the main pager.
+    val usesSplitShell = rememberWindowLayoutMode().usesSplitShell
+    val pendingDeepLink by MainActivity.pendingDeepLink.collectAsState()
+    LaunchedEffect(pendingDeepLink, usesSplitShell) {
+        val pending = pendingDeepLink ?: return@LaunchedEffect
+        component.handleDeepLink(pending, inDetailPane = usesSplitShell)
+        MainActivity.clearPendingDeepLink(pending)
+    }
+
     val onDestinationSettled = remember(component) { component::updateMainDestination }
-    // Stable for the life of the component: the page travels as a lambda that is read once, so a tab
-    // settle no longer invalidates every [LocalMainRouteArgs] reader.
     val mainRouteArgs = remember(component) {
         MainRouteArgs(
-            initialDestination = { component.mainDestination },
+            destination = { component.mainDestination },
             onDestinationSettled = onDestinationSettled,
-            detailNavigator = component.detailNavigator,
+            rootStack = component.routeStack,
+            detailStack = component.detailStack,
         )
     }
-    CompositionLocalProvider(
-        LocalMainRouteArgs provides mainRouteArgs,
-    ) {
+    CompositionLocalProvider(LocalMainRouteArgs provides mainRouteArgs) {
         RouteStackHost(stack = component.routeStack, animation = animation)
     }
 }
