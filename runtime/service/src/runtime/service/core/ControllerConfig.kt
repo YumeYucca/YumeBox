@@ -38,7 +38,7 @@ internal fun newControllerSecret(): String = UUID.randomUUID().toString().replac
 internal fun patchControllerSecret(yaml: String, secret: String = newControllerSecret()): ControllerConfig {
     val line = "secret: \"$secret\""
     val lines = yaml.lineSequence().toMutableList()
-    val index = lines.indexOfFirst { it.trimStart().startsWith("secret:") }
+    val index = lines.indexOfFirst { it.startsWith("secret:") }
     if (index >= 0) {
         lines[index] = line
     } else {
