@@ -72,6 +72,12 @@ fun generateBuildInfo(@Input requestFile: Path, @Input catalogFile: Path, @Input
     val javet = Regex("(?m)^javetNodeAndroid\\s*=\\s*\"([^\"]+)\"").find(catalogFile.toFile().readText())?.groupValues?.get(1)
         ?: error("Missing Javet version in catalog")
     val output = sourceDir.toFile().apply { mkdirs() }.resolve("BuildInfo.kt")
+    val updateChannel =
+        when (request.getProperty("update.channel").orEmpty()) {
+            "pre" -> "nightly"
+            "stable" -> "stable"
+            else -> ""
+        }
     output.writeText(buildString {
         appendLine("package $namespace")
         appendLine("object BuildInfo {")
@@ -80,6 +86,8 @@ fun generateBuildInfo(@Input requestFile: Path, @Input catalogFile: Path, @Input
         appendLine("    const val VERSION_NAME: String = ${kotlinString(plan.versionName)}")
         appendLine("    const val BASE_VERSION: String = ${kotlinString(request.getProperty("project.version.name"))}")
         appendLine("    const val JAVET_VERSION: String = ${kotlinString(javet)}")
+        appendLine("    const val UPDATE_CHANNEL: String = ${kotlinString(updateChannel)}")
+        appendLine("    const val UPDATE_BASE_URL: String = ${kotlinString(request.getProperty("update.baseUrl", ""))}")
         listOf("CORE_BRANCH", "CORE_COMMIT", "CORE_VERSION", "CORE_GIT_VERSION").forEach { key ->
             appendLine("    const val $key: String = ${kotlinString(request.getProperty(key, "unknown"))}")
         }

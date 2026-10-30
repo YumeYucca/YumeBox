@@ -89,13 +89,14 @@ jobs:
     uses: ./.github/workflows/reusable-prepare-publish.yml
     with:
       channel: stable
-      module: app
       artifact_prefix: YumeBox
       release_tag: ${{ inputs.release_tag }}
       meta_asset_name: YumeBox-stable-meta.json
       raw_apk_artifact_name: apk-raw-stable-app
       publish_artifact_name: publish-stable-app
       apk_name_tail: ${{ needs.build-apk-stable-app.outputs.apk_name_tail }}
+      publish_meta_artifact_name: publish-meta-stable-app
+      update_public_base_url: ${{ vars.R2_PUBLIC_BASE_URL }}
     secrets: inherit
 
   publish-release-stable:
@@ -111,9 +112,23 @@ jobs:
       recreate_release: false
     secrets: inherit
 
+  publish-r2-stable:
+    name: R2 (Stable)
+    needs:
+      - prepare-publish-stable-app
+      - publish-release-stable
+    uses: ./.github/workflows/reusable-publish-r2.yml
+    with:
+      channel: stable
+      apk_artifact_name: ${{ needs.prepare-publish-stable-app.outputs.default_apk_name }}
+      meta_artifact_name: publish-meta-stable-app
+    secrets: inherit
+
   cleanup-artifacts:
     name: Cleanup
-    needs: publish-release-stable
+    needs:
+      - publish-release-stable
+      - publish-r2-stable
     permissions:
       actions: write
     uses: ./.github/workflows/reusable-cleanup-artifacts.yml

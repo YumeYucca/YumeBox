@@ -22,8 +22,11 @@
 package com.github.yumeyucca.yumebox.screen.moe
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -40,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,8 +51,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumeyucca.yumebox.presentation.icon.Yume
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Repeat
+import io.github.yumeyucca.lucide.Lucide
+import io.github.yumeyucca.lucide.lucide.PencilSparkles
+import io.github.yumeyucca.lucide.lucide.Rss
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.isDarkTheme
@@ -153,6 +158,8 @@ internal fun MoeSidebarContent(
 }
 
 private const val MOE_LAUNCH_TEXT_SLIDE_DURATION = 280
+private const val MOE_UPDATE_BUTTON_ENTER_DURATION = 320
+private const val MOE_UPDATE_BUTTON_EXIT_DURATION = 220
 
 private data class MoeLaunchLabel(val text: String, val order: Int)
 
@@ -165,13 +172,20 @@ internal fun MoeLaunchControls(
     modifier: Modifier = Modifier,
     onSettingsClick: () -> Unit,
     onLaunchClick: () -> Unit,
+    hasUpdate: Boolean,
+    onUpdateClick: () -> Unit,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MoeUi.Button.controlGap),
     ) {
-        MoeLaunchConfigButton(surfaceColor = surfaceColor, onClick = onSettingsClick)
+        MoeCircleActionButton(
+            surfaceColor = surfaceColor,
+            icon = Lucide.PencilSparkles,
+            contentDescription = YumeTxt.Home.Settings.Title,
+            onClick = onSettingsClick,
+        )
         MoeLaunchButton(
             controlState = controlState,
             enabled = enabled,
@@ -180,6 +194,37 @@ internal fun MoeLaunchControls(
             modifier = Modifier.weight(1f),
             onClick = onLaunchClick,
         )
+        AnimatedVisibility(
+            visible = hasUpdate && controlState.canInteract,
+            enter =
+                fadeIn(
+                    animationSpec =
+                        tween(MOE_UPDATE_BUTTON_ENTER_DURATION, easing = AnimationSpecs.EmphasizedDecelerate),
+                ) +
+                    expandHorizontally(
+                        expandFrom = Alignment.End,
+                        animationSpec =
+                            tween(MOE_UPDATE_BUTTON_ENTER_DURATION, easing = AnimationSpecs.EmphasizedDecelerate),
+                    ),
+            exit =
+                fadeOut(
+                    animationSpec =
+                        tween(MOE_UPDATE_BUTTON_EXIT_DURATION, easing = AnimationSpecs.EmphasizedAccelerate),
+                ) +
+                    shrinkHorizontally(
+                        shrinkTowards = Alignment.End,
+                        animationSpec =
+                            tween(MOE_UPDATE_BUTTON_EXIT_DURATION, easing = AnimationSpecs.EmphasizedAccelerate),
+                    ),
+            label = "moe_update_button_visibility",
+        ) {
+            MoeCircleActionButton(
+                surfaceColor = surfaceColor,
+                icon = Lucide.Rss,
+                contentDescription = YumeTxt.Home.Update.IconDescription,
+                onClick = onUpdateClick,
+            )
+        }
     }
 }
 
@@ -191,7 +236,12 @@ private fun moeLaunchButtonBorderColor(): Color {
 }
 
 @Composable
-private fun MoeLaunchConfigButton(surfaceColor: Color, onClick: () -> Unit) {
+private fun MoeCircleActionButton(
+    surfaceColor: Color,
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val pressScale by
@@ -232,8 +282,8 @@ private fun MoeLaunchConfigButton(surfaceColor: Color, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Yume.Repeat,
-            contentDescription = null,
+            imageVector = icon,
+            contentDescription = contentDescription,
             tint = contentColor,
             modifier = Modifier.size(MoeUi.Button.iconSize),
         )

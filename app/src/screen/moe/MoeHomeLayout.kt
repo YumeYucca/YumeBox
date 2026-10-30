@@ -71,6 +71,7 @@ internal data class MoeHomeLayoutState(
     val controlState: HomeProxyControlState,
     val canLaunch: Boolean,
     val isRemoteController: Boolean,
+    val hasUpdate: Boolean,
 )
 
 internal class MoeHomeActions(
@@ -78,6 +79,7 @@ internal class MoeHomeActions(
     val pickWallpaper: () -> Unit,
     val openSettings: () -> Unit,
     val toggleProxy: () -> Unit,
+    val openUpdate: () -> Unit,
 )
 
 /** Which home layout to compose; the window layout mode decides once, at the call site. */
@@ -369,6 +371,8 @@ private fun MoeHomeCopySection(
                 modifier = Modifier.fillMaxWidth(),
                 onSettingsClick = actions.openSettings,
                 onLaunchClick = actions.toggleProxy,
+                hasUpdate = state.hasUpdate,
+                onUpdateClick = actions.openUpdate,
             )
         }
     }

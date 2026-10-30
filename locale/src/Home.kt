@@ -50,6 +50,13 @@ internal val ZhHansYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         AddTitle = "设置系统壁纸",
         AddDescription = "开启开关并完成权限申请，让首页使用当前系统壁纸",
     ),
+    Update = YumeStrings_Home_Update(
+        Title = "发现新版本 %s",
+        Action = "更新",
+        Later = "稍后",
+        IconDescription = "发现新版本",
+        NoNotes = "暂无更新说明",
+    ),
 )
 
 internal val ZhYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
@@ -101,6 +108,13 @@ internal val ZhYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         SwipeDescription = "橫向滑動首頁，切換代理、設定檔和設定頁面",
         AddTitle = "設定系統桌布",
         AddDescription = "開啟開關並完成權限申請，讓首頁使用目前的系統桌布",
+    ),
+    Update = YumeStrings_Home_Update(
+        Title = "發現新版本 %s",
+        Action = "更新",
+        Later = "稍後",
+        IconDescription = "發現新版本",
+        NoNotes = "暫無更新說明",
     ),
 )
 
@@ -154,6 +168,13 @@ internal val EnYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         AddTitle = "Set System Wallpaper",
         AddDescription = "Enable the switch and grant access to use your current system wallpaper",
     ),
+    Update = YumeStrings_Home_Update(
+        Title = "Update available: %s",
+        Action = "Update",
+        Later = "Later",
+        IconDescription = "Update available",
+        NoNotes = "No release notes",
+    ),
 )
 
 internal val JaYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
@@ -206,6 +227,13 @@ internal val JaYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         AddTitle = "システム壁紙を設定",
         AddDescription = "スイッチをオンにして権限を許可すると、現在のシステム壁紙を使用できます",
     ),
+    Update = YumeStrings_Home_Update(
+        Title = "新しいバージョンがあります: %s",
+        Action = "更新",
+        Later = "後で",
+        IconDescription = "新しいバージョンがあります",
+        NoNotes = "更新内容はありません",
+    ),
 )
 
 internal val RuYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
@@ -257,6 +285,13 @@ internal val RuYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         SwipeDescription = "Смахивайте по главному экрану, чтобы перейти к прокси, профилям и настройкам",
         AddTitle = "Установить системные обои",
         AddDescription = "Включите переключатель и предоставьте доступ для использования текущих системных обоев",
+    ),
+    Update = YumeStrings_Home_Update(
+        Title = "Доступно обновление: %s",
+        Action = "Обновить",
+        Later = "Позже",
+        IconDescription = "Доступно обновление",
+        NoNotes = "Описание обновления отсутствует",
     ),
 )
 

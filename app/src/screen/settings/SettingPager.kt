@@ -92,7 +92,7 @@ private fun SettingsMasterList(
                         listOf(
                             {
                                 SettingsListItem(
-                                    title = YumeTxt.Settings.UiSettings.AppAppearance,
+                                    title = YumeTxt.Settings.UiSettings.AppSettingsEntry,
                                     onClick = { onOpen(Route.AppSettings) },
                                     icon = Yume.Palette,
                                 )

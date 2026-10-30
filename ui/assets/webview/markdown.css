@@ -1,0 +1,165 @@
+/*
+ * Adapted from KernelSU's manager markdown styles
+ * (https://github.com/tiann/KernelSU, GPL-3.0).
+ * Kept small and variable-driven so YumeBox's Miuix colors can drive it.
+ */
+
+:root {
+    --fg: #1b1b1f;
+    --fg-muted: #6a6d7c;
+    --link: #0b57d0;
+    --code-bg: rgba(127, 127, 127, 0.12);
+    --border: rgba(127, 127, 127, 0.28);
+    --table-alt: rgba(127, 127, 127, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+}
+
+body {
+    color: var(--fg);
+    font-family: -apple-system, "Noto Sans", sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    overflow-wrap: break-word;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+}
+
+.markdown-body {
+    padding: 0;
+}
+
+.markdown-body > :first-child {
+    margin-top: 0;
+}
+
+.markdown-body > :last-child {
+    margin-bottom: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin: 1.2em 0 0.55em;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+h1 { font-size: 1.5em; }
+h2 { font-size: 1.3em; }
+h3 { font-size: 1.15em; }
+h4 { font-size: 1.05em; }
+h5,
+h6 { font-size: 1em; }
+
+p {
+    margin: 0 0 0.8em;
+}
+
+a {
+    color: var(--link);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+strong {
+    font-weight: 600;
+}
+
+ul,
+ol {
+    margin: 0 0 0.8em;
+    padding-left: 1.6em;
+}
+
+li + li {
+    margin-top: 0.25em;
+}
+
+li > p {
+    margin: 0;
+}
+
+blockquote {
+    margin: 0 0 0.8em;
+    padding: 0.2em 0 0.2em 1em;
+    color: var(--fg-muted);
+    border-left: 3px solid var(--border);
+}
+
+code {
+    padding: 0.15em 0.35em;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 0.9em;
+    background: var(--code-bg);
+    border-radius: 4px;
+}
+
+pre {
+    margin: 0 0 0.8em;
+    padding: 0.8em;
+    overflow-x: auto;
+    background: var(--code-bg);
+    border-radius: 8px;
+}
+
+pre code {
+    padding: 0;
+    background: transparent;
+}
+
+table {
+    display: block;
+    max-width: 100%;
+    margin: 0 0 0.8em;
+    overflow-x: auto;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 0.4em 0.7em;
+    border: 1px solid var(--border);
+}
+
+thead {
+    background: var(--table-alt);
+}
+
+tbody tr:nth-child(2n) {
+    background: var(--table-alt);
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+hr {
+    margin: 1em 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+}
+
+.task-list-item {
+    list-style: none;
+}
+
+.task-list-item input {
+    margin: 0 0.4em 0.2em -1.2em;
+}

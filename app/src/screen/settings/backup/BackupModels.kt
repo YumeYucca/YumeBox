@@ -86,6 +86,7 @@ data class AppSettingsBackup(
     val moeSidebarExpanded: Boolean = true,
     val pageScale: Float = 1.0f,
     val customUserAgent: String = "",
+    val autoCheckUpdate: Boolean = true,
 )
 
 @Serializable

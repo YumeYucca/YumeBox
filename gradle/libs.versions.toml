@@ -35,6 +35,7 @@ shizuku = "13.1.5"
 animation = "1.12.1"
 room = "2.8.5"
 smaliDexlib2 = "3.0.10"
+commonmark = "0.30.0"
 
 [libraries]
 mmkv = { module = "com.tencent:mmkv", version.ref = "mmkv64" }
@@ -118,4 +119,9 @@ androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 lucide-compose = { module = "io.github.YumeYucca:lucide-compose", version = "1.0.0-SNAPSHOT" }
+commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
+commonmark-ext-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables", version.ref = "commonmark" }
+commonmark-ext-gfm-strikethrough = { module = "org.commonmark:commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
+commonmark-ext-autolink = { module = "org.commonmark:commonmark-ext-autolink", version.ref = "commonmark" }
+commonmark-ext-task-list-items = { module = "org.commonmark:commonmark-ext-task-list-items", version.ref = "commonmark" }
 

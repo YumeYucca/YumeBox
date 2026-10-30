@@ -85,7 +85,7 @@ internal val ZhHansYumeStrings_AppSettings: YumeStrings_AppSettings = YumeString
         PrivacySummary = "隐藏最近任务中的应用卡片以保护隐私",
         ServiceSummary = "管理后台运行和系统服务",
         NavigationSummary = "设置预测返回手势及其动画幅度",
-        NetworkSummary = "设置应用网络请求使用的用户代理",
+        NetworkSummary = "设置自动更新检查与网络请求使用的用户代理",
     ),
     Privacy = YumeStrings_AppSettings_Privacy(
         HideFromRecentsTitle = "隐藏后台卡片",
@@ -103,8 +103,8 @@ internal val ZhHansYumeStrings_AppSettings: YumeStrings_AppSettings = YumeString
         BatteryOptimizationAlreadyDisabled = "电池优化已关闭",
     ),
     Network = YumeStrings_AppSettings_Network(
-        CustomUserAgentTitle = "自定义 User-Agent",
-        CustomUserAgentSummaryDefault = "未设置，使用默认值",
+        AutoCheckUpdateTitle = "自动检查更新",
+        UserAgentTitle = "User-Agent",
     ),
     WarningDialog = YumeStrings_AppSettings_WarningDialog(
         Title = "警告",
@@ -202,7 +202,7 @@ internal val ZhYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
         PrivacySummary = "隱藏最近任務中的應用卡片以保護隱私",
         ServiceSummary = "管理背景執行和系統服務",
         NavigationSummary = "設定預測返回手勢及其動畫幅度",
-        NetworkSummary = "設定應用網路請求使用的使用者代理",
+        NetworkSummary = "設定自動更新檢查與網路請求使用的使用者代理",
     ),
     Privacy = YumeStrings_AppSettings_Privacy(
         HideFromRecentsTitle = "隱藏最近工作卡片",
@@ -220,8 +220,8 @@ internal val ZhYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
         BatteryOptimizationAlreadyDisabled = "電池最佳化已關閉",
     ),
     Network = YumeStrings_AppSettings_Network(
-        CustomUserAgentTitle = "自訂 User-Agent",
-        CustomUserAgentSummaryDefault = "未設定，使用預設值",
+        AutoCheckUpdateTitle = "自動檢查更新",
+        UserAgentTitle = "User-Agent",
     ),
     WarningDialog = YumeStrings_AppSettings_WarningDialog(
         Title = "警告",
@@ -319,7 +319,7 @@ internal val EnYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
         PrivacySummary = "Hide the app card in Recents to protect your privacy",
         ServiceSummary = "Manage background activity and system services",
         NavigationSummary = "Customize predictive back gestures and their animation distance",
-        NetworkSummary = "Set the user agent used by the app's network requests",
+        NetworkSummary = "Configure update checks and the user agent used by network requests",
     ),
     Privacy = YumeStrings_AppSettings_Privacy(
         HideFromRecentsTitle = "Hide Recents Card",
@@ -337,8 +337,8 @@ internal val EnYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
         BatteryOptimizationAlreadyDisabled = "Battery optimization is already disabled",
     ),
     Network = YumeStrings_AppSettings_Network(
-        CustomUserAgentTitle = "Custom User-Agent",
-        CustomUserAgentSummaryDefault = "Not set, using default",
+        AutoCheckUpdateTitle = "Automatically check for updates",
+        UserAgentTitle = "User-Agent",
     ),
     WarningDialog = YumeStrings_AppSettings_WarningDialog(
         Title = "Warning",
@@ -436,7 +436,7 @@ internal val JaYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
         PrivacySummary = "履歴のアプリカードを非表示にしてプライバシーを保護します",
         ServiceSummary = "バックグラウンド動作とシステムサービスを管理します",
         NavigationSummary = "予測型の戻るジェスチャーとアニメーションの幅を設定します",
-        NetworkSummary = "アプリのネットワーク通信で使用するユーザーエージェントを設定します",
+        NetworkSummary = "自動更新の確認とネットワーク通信で使用する User-Agent を設定します",
     ),
     Privacy = YumeStrings_AppSettings_Privacy(
         HideFromRecentsTitle = "履歴カードを隠す",
@@ -454,8 +454,8 @@ internal val JaYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
         BatteryOptimizationAlreadyDisabled = "バッテリー最適化は既に無効です",
     ),
     Network = YumeStrings_AppSettings_Network(
-        CustomUserAgentTitle = "カスタム User-Agent",
-        CustomUserAgentSummaryDefault = "未設定、既定値を使用",
+        AutoCheckUpdateTitle = "自動的に更新を確認",
+        UserAgentTitle = "User-Agent",
     ),
     WarningDialog = YumeStrings_AppSettings_WarningDialog(
         Title = "警告",
@@ -553,7 +553,7 @@ internal val RuYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
         PrivacySummary = "Скрывайте карточку приложения в недавних для защиты конфиденциальности",
         ServiceSummary = "Управляйте фоновой работой и системными службами",
         NavigationSummary = "Настройте жест предиктивного возврата и амплитуду анимации",
-        NetworkSummary = "Задайте пользовательский агент для сетевых запросов приложения",
+        NetworkSummary = "Настройка проверки обновлений и User-Agent для сетевых запросов",
     ),
     Privacy = YumeStrings_AppSettings_Privacy(
         HideFromRecentsTitle = "Скрыть карточку в недавних",
@@ -571,8 +571,8 @@ internal val RuYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
         BatteryOptimizationAlreadyDisabled = "Оптимизация батареи уже отключена",
     ),
     Network = YumeStrings_AppSettings_Network(
-        CustomUserAgentTitle = "Свой User-Agent",
-        CustomUserAgentSummaryDefault = "Не задан, используется значение по умолчанию",
+        AutoCheckUpdateTitle = "Автоматически проверять обновления",
+        UserAgentTitle = "User-Agent",
     ),
     WarningDialog = YumeStrings_AppSettings_WarningDialog(
         Title = "Предупреждение",
