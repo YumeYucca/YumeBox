@@ -39,8 +39,8 @@ internal class RuntimeCoreOps(private val connect: suspend () -> Unit = {}) {
 
     suspend fun queryConnections(): ConnectionSnapshot = api().queryConnections()
 
-    suspend fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> =
-        api().queryAllProxyGroups(excludeNotSelectable)
+    suspend fun queryAllProxyGroups(): List<ProxyGroup> =
+        api().queryAllProxyGroups()
 
     suspend fun queryProxyGroup(name: String, sort: ProxySort): ProxyGroup =
         api().queryProxyGroup(name, sort)

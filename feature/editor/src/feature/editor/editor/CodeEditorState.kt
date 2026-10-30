@@ -22,20 +22,19 @@
 
 package com.github.yumeyucca.yumebox.feature.editor.editor
 
-
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.github.yumeyucca.yumebox.feature.editor.format.CodeFormatter
-import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import io.github.rosemoe.sora.widget.CodeEditor
+
+/** The one default text size for every editor surface: preview, fullscreen and the dialog. */
+internal const val DefaultEditorFontSizeSp = 14f
 
 class CodeEditorState(
     initialContent: String = "",
     val language: LanguageScope = LanguageScope.Yaml,
-    val readOnly: Boolean = false,
-    val showLineNumbers: Boolean = true,
-    val wordWrap: Boolean = false,
 ) {
     var editor: CodeEditor? by mutableStateOf(null)
         internal set
@@ -48,14 +47,6 @@ class CodeEditorState(
 
     var isModified: Boolean by mutableStateOf(false)
         private set
-
-    fun updateContent(newContent: String) {
-        if (content != newContent) {
-            content = newContent
-            isModified = true
-            editor?.setText(newContent)
-        }
-    }
 
     fun loadContent(newContent: String) {
         if (content != newContent) {
@@ -105,6 +96,7 @@ class CodeEditorState(
             content = formatted
             editor?.setText(formatted)
             isModified = true
+            refreshHistoryState()
             true
         } else {
             false

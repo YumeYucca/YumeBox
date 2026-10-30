@@ -21,12 +21,7 @@
 
 package com.github.yumeyucca.yumebox.feature.editor.screen
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,12 +36,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.feature.editor.component.EditorExitGuard
+import com.github.yumeyucca.yumebox.feature.editor.component.editorBodyInsets
 import com.github.yumeyucca.yumebox.feature.editor.editor.CodeEditor
+import com.github.yumeyucca.yumebox.feature.editor.editor.DefaultEditorFontSizeSp
 import com.github.yumeyucca.yumebox.feature.editor.editor.rememberConfiguredCodeEditorState
 import com.github.yumeyucca.yumebox.feature.editor.format.CodeFormatter
-import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
-import com.github.yumeyucca.yumebox.presentation.component.AppDialog
-import com.github.yumeyucca.yumebox.presentation.component.DialogButtonRow
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import com.github.yumeyucca.yumebox.presentation.component.GlassTopAction
 import com.github.yumeyucca.yumebox.presentation.component.GlassTopActionDefaults
@@ -56,13 +52,13 @@ import com.github.yumeyucca.yumebox.presentation.component.SmallTopBar
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Check
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ListChevronsUpDown
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.glass.glassPopupAnchor
-import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
 import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -81,9 +77,8 @@ fun ConfigPreviewScreen(
     val actionsAnchor = rememberGlassPopupAnchor()
 
     var isSaving by remember { mutableStateOf(false) }
-    var showDiscardDialog by remember { mutableStateOf(false) }
     var showActions by remember { mutableStateOf(false) }
-    var fontSizeSp by rememberSaveable { mutableFloatStateOf(DEFAULT_EDITOR_FONT_SIZE_SP) }
+    var fontSizeSp by rememberSaveable { mutableFloatStateOf(DefaultEditorFontSizeSp) }
 
     val formattedContent =
         remember(initialContent, language) {
@@ -98,36 +93,27 @@ fun ConfigPreviewScreen(
         rememberConfiguredCodeEditorState(
             initialContent = formattedContent,
             language = language,
-            readOnly = false,
         )
 
-    fun hasUnsavedChanges(): Boolean =
-        editorState.isModified ||
-            editorState.editor?.text?.toString()?.let { it != formattedContent } == true
-
-    BackHandler {
-        if (hasUnsavedChanges()) {
-            showDiscardDialog = true
-        } else {
-            navigator.navigateUp()
-        }
-    }
-
     val saveContent: () -> Unit = {
-        if (!isSaving && onSave != null) {
+        val save = onSave
+        if (!isSaving && save != null) {
+            isSaving = true
             coroutineScope.launch {
-                val save = onSave
-                isSaving = true
-                val content = editorState.editor?.text?.toString() ?: editorState.content
-                runCatching { save(content) }
-                    .onSuccess {
-                        editorState.resetModified()
-                        navigator.navigateUp()
-                    }
-                    .onFailure {
-                        context.toast(it.message ?: YumeTxt.Editor.Message.SaveFailed)
-                    }
-                isSaving = false
+                try {
+                    runCatching { save(editorState.content) }
+                        .onSuccess {
+                            editorState.resetModified()
+                            navigator.navigateUp()
+                        }
+                        .onFailure { error ->
+                            // Leaving the screen cancels this scope; that is not a save failure.
+                            if (error is CancellationException) throw error
+                            context.toast(error.message ?: YumeTxt.Editor.Message.SaveFailed)
+                        }
+                } finally {
+                    isSaving = false
+                }
             }
         }
     }
@@ -150,74 +136,61 @@ fun ConfigPreviewScreen(
                                         if (onSave != null && !isSaving) {
                                             Color.Unspecified
                                         } else {
-                                            MiuixTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                                            MiuixTheme.colorScheme.onSurface.copy(
+                                                alpha = AppTheme.opacity.muted,
+                                            )
                                         },
                                 ),
                                 GlassTopAction(
                                     icon = Yume.ListChevronsUpDown,
                                     contentDescription = YumeTxt.Proxy.Action.More,
                                     onClick = { showActions = true },
-                                    modifier =
-                                        Modifier.glassPopupAnchor(
-                                            anchor = actionsAnchor,
-                                            cornerRadius = GlassTopActionDefaults.IconSize / 2,
-                                            floating = true,
-                                        ),
-                                    iconModifier =
-                                        Modifier.glassPopupAnchorContent(actionsAnchor),
-                                ),
-                            ),
-                        popupAnchor = actionsAnchor,
-                        backdrop = backdrop,
-                        actionOverlay = { index ->
-                            if (index == 1) {
-                                EditorActionsMenu(
-                                    show = showActions,
-                                    onDismiss = { showActions = false },
                                     anchor = actionsAnchor,
-                                    anchorContent = {
-                                        Icon(
-                                            imageVector = Yume.ListChevronsUpDown,
-                                            contentDescription = null,
-                                            modifier =
-                                                Modifier.size(
-                                                    GlassTopActionDefaults.IconSize
-                                                ),
-                                            tint = MiuixTheme.colorScheme.onSurface,
+                                    popup = {
+                                        EditorActionsMenu(
+                                            show = showActions,
+                                            onDismiss = { showActions = false },
+                                            anchor = actionsAnchor,
+                                            anchorContent = {
+                                                Icon(
+                                                    imageVector = Yume.ListChevronsUpDown,
+                                                    contentDescription = null,
+                                                    modifier =
+                                                        Modifier.size(
+                                                            GlassTopActionDefaults.IconSize
+                                                        ),
+                                                    tint = MiuixTheme.colorScheme.onSurface,
+                                                )
+                                            },
+                                            canUndo = editorState.canUndo(),
+                                            canRedo = editorState.canRedo(),
+                                            fontSizeSp = fontSizeSp,
+                                            onUndo = { editorState.undo() },
+                                            onRedo = { editorState.redo() },
+                                            onFormat = {
+                                                if (editorState.format()) {
+                                                    context.toast(
+                                                        YumeTxt.Editor.Message.FormatSuccess
+                                                    )
+                                                } else {
+                                                    context.toast(
+                                                        YumeTxt.Editor.Message.FormatSkipped
+                                                    )
+                                                }
+                                            },
+                                            onFontSizeSelected = { fontSizeSp = it },
                                         )
                                     },
-                                    canUndo = editorState.canUndo(),
-                                    canRedo = editorState.canRedo(),
-                                    fontSizeSp = fontSizeSp,
-                                    onUndo = { editorState.undo() },
-                                    onRedo = { editorState.redo() },
-                                    onFormat = {
-                                        if (editorState.format()) {
-                                            context.toast(
-                                                YumeTxt.Editor.Message.FormatSuccess
-                                            )
-                                        } else {
-                                            context.toast(
-                                                YumeTxt.Editor.Message.FormatSkipped
-                                            )
-                                        }
-                                    },
-                                    onFontSizeSelected = { fontSizeSp = it },
-                                )
-                            }
-                        },
+                                ),
+                            ),
+                        backdrop = backdrop,
                     )
                 },
             )
         },
     ) { paddingValues ->
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .consumeWindowInsets(paddingValues)
-                    .imePadding(),
+            modifier = Modifier.editorBodyInsets(paddingValues),
         ) {
             CodeEditor(
                 state = editorState,
@@ -228,35 +201,20 @@ fun ConfigPreviewScreen(
                 },
             )
             EditorSymbolBar(
-                onInsert = { text ->
+                onSymbol = { action ->
                     editorState.editor?.let { editor ->
-                        if (text == "\t") {
-                            editor.indentOrCommitTab()
-                        } else {
-                            editor.insertText(text, 1)
+                        when (action) {
+                            EditorSymbolAction.Indent -> editor.indentOrCommitTab()
+                            is EditorSymbolAction.Insert -> editor.insertText(action.text, 1)
                         }
                     }
                 },
             )
         }
 
-        AppDialog(
-            show = showDiscardDialog,
-            title = YumeTxt.Editor.Discard.Title,
-            summary = YumeTxt.Editor.Discard.Summary,
-            onDismissRequest = { showDiscardDialog = false },
-        ) {
-            DialogButtonRow(
-                onCancel = { showDiscardDialog = false },
-                onConfirm = {
-                    showDiscardDialog = false
-                    navigator.navigateUp()
-                },
-                cancelText = YumeTxt.Component.Button.Cancel,
-                confirmText = YumeTxt.Editor.Discard.Confirm,
-            )
-        }
+        EditorExitGuard(
+            hasUnsavedChanges = editorState.isModified,
+            onNavigateUp = navigator::navigateUp,
+        )
     }
 }
-
-private const val DEFAULT_EDITOR_FONT_SIZE_SP = 14f

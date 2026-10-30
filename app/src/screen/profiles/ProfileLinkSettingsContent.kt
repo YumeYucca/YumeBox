@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
@@ -73,13 +72,14 @@ private fun LinkOpenModeSection(mode: LinkOpenMode, onChange: (LinkOpenMode) -> 
         PreferenceEnumItem(
             title = YumeTxt.ProfilesPage.LinkSettings.OpenMode,
             currentValue = mode,
-            items =
-                listOf(
-                    YumeTxt.ProfilesPage.LinkSettings.OpenModeInApp,
-                    YumeTxt.ProfilesPage.LinkSettings.OpenModeExternal,
-                ),
             values = listOf(LinkOpenMode.IN_APP, LinkOpenMode.EXTERNAL_BROWSER),
             onValueChange = onChange,
+            label = { openMode ->
+                when (openMode) {
+                    LinkOpenMode.IN_APP -> YumeTxt.ProfilesPage.LinkSettings.OpenModeInApp
+                    LinkOpenMode.EXTERNAL_BROWSER -> YumeTxt.ProfilesPage.LinkSettings.OpenModeExternal
+                }
+            },
         )
     }
 }
@@ -97,9 +97,9 @@ private fun DefaultLinkSection(
             title = YumeTxt.ProfilesPage.LinkSettings.DefaultLink,
             summary = YumeTxt.ProfilesPage.LinkSettings.DefaultLinkSummary,
             currentValue = links.firstOrNull { it.id == defaultLinkId }?.id ?: links.first().id,
-            items = links.map { it.name },
             values = links.map { it.id },
             onValueChange = onChange,
+            label = { id -> links.firstOrNull { it.id == id }?.name ?: id },
         )
     }
 }

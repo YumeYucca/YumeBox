@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -93,29 +94,25 @@ object FloatingSheetHeaderDefaults {
 fun BoxScope.FloatingSheetHeader(
     title: String,
     sheetColor: Color,
-    modifier: Modifier = Modifier,
     backdrop: LayerBackdrop? = null,
-    showTopFade: Boolean = true,
     startAction: (@Composable () -> Unit)? = null,
     endAction: (@Composable () -> Unit)? = null,
 ) {
     // Reuse the sheet content's own recording when the host provides one; otherwise fall back to
     // the sheet surface so the action chrome still has a material to sample.
-    val fallbackBackdrop = rememberLayerBackdrop { drawRect(sheetColor) }
+    val fallbackBackdrop = key(sheetColor) { rememberLayerBackdrop { drawRect(sheetColor) } }
     val headerBackdrop = backdrop ?: fallbackBackdrop
     CompositionLocalProvider(LocalSheetHeaderBackdrop provides headerBackdrop) {
-        if (showTopFade) {
-            Box(
-                modifier =
-                    modifier
-                        .fillMaxWidth()
-                        .height(FloatingSheetHeaderDefaults.Height)
-                        .offset(y = -FloatingSheetHeaderDefaults.ChromeAboveContent)
-                        .zIndex(1f)
-                        .then(if (backdrop == null) Modifier.layerBackdrop(fallbackBackdrop) else Modifier)
-                        .background(GlassTopAppBarDefaults.bandBrush(sheetColor)),
-            )
-        }
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(FloatingSheetHeaderDefaults.Height)
+                    .offset(y = -FloatingSheetHeaderDefaults.ChromeAboveContent)
+                    .zIndex(1f)
+                    .then(if (backdrop == null) Modifier.layerBackdrop(fallbackBackdrop) else Modifier)
+                    .background(GlassTopAppBarDefaults.bandBrush(sheetColor)),
+        )
         Box(
             modifier =
                 Modifier
@@ -172,13 +169,11 @@ fun SheetHeaderIconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
     enabled: Boolean = true,
     tint: Color = Color.Unspecified,
     iconModifier: Modifier = Modifier,
 ) {
-    // A disabled action keeps its chrome but stops accepting taps; the glass button has no enabled
-    // flag of its own.
+    // A disabled action keeps its chrome and only loses the tap sink and icon contrast.
     val performClick: () -> Unit = if (enabled) onClick else NoOpClick
     GlassTopIconButton(
         action =
@@ -195,10 +190,6 @@ fun SheetHeaderIconButton(
                 tint = tint,
             ),
         backdrop = LocalSheetHeaderBackdrop.current,
-        // Same chrome as the page top bar's glass circles (and the config top-right pill): the app's
-        // own glassPanel recipe with its always-drawn bloom stroke, instead of the library
-        // GlassIconButton variant whose rim only reads once content scrolls underneath.
-        keepSurface = true,
     )
 }
 

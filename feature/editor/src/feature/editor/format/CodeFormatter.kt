@@ -22,7 +22,7 @@
 
 package com.github.yumeyucca.yumebox.feature.editor.format
 
-import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -48,15 +48,45 @@ object CodeFormatter {
             null
         }
 
-    @Suppress("TooGenericExceptionCaught")
-    private fun formatYaml(content: String): String? =
-        try {
-            content.lines().map { it.trimEnd() }.joinToString("\n").replace(Regex("\n{3,}"), "\n\n")
-        } catch (
-            _:
-            Exception
-        ) { // fault barrier: formatter must return null instead of crashing the
-            // editor
-            null
+    /** `key: |` / `key: >-` and friends: everything indented below it is content, not layout. */
+    private val BlockScalarHeader = Regex("^\\s*[^#\\s][^#]*:\\s*[|>][-+0-9]*\\s*(#.*)?$")
+
+    /**
+     * Whitespace-only tidying: trailing blanks and stacked empty lines, nothing structural.
+     *
+     * There is no YAML pretty-printer in this module on purpose — re-emitting a user's config
+     * through a parser would drop comments and anchors, and the preview screen formats JSON
+     * only. The name says "format" because that is what the menu action is called.
+     *
+     * A block scalar body is copied byte for byte: its trailing spaces and blank lines are the
+     * value, so tidying them would rewrite the user's content.
+     */
+    private fun formatYaml(content: String): String? {
+        val tidied = ArrayList<String>()
+        var blockIndent = -1
+        var blankRun = 0
+
+        for (line in content.lines()) {
+            val indent = line.indexOfFirst { !it.isWhitespace() }
+            if (blockIndent >= 0) {
+                if (line.isBlank() || indent > blockIndent) {
+                    tidied += line
+                    blankRun = 0
+                    continue
+                }
+                blockIndent = -1
+            }
+            if (line.isBlank()) {
+                blankRun++
+                if (blankRun > 1) continue
+                tidied += ""
+                continue
+            }
+            blankRun = 0
+            tidied += line.trimEnd()
+            if (BlockScalarHeader.matches(line)) blockIndent = maxOf(indent, 0)
         }
+
+        return tidied.joinToString("\n")
+    }
 }

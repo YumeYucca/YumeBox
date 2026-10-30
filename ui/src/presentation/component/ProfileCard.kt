@@ -22,32 +22,7 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
-import android.annotation.SuppressLint
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,79 +31,39 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.progressBarRangeInfo
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.common.util.ByteFormatter
-import com.github.yumeyucca.yumebox.presentation.icon.Yume
-import com.github.yumeyucca.yumebox.presentation.icon.yume.CircleFadingArrowUp
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Delete
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Edit
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Share
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
-import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.horizontalPadding
 import com.github.yumeyucca.yumebox.presentation.util.*
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import io.github.yumeyucca.lucide.Lucide
-import io.github.yumeyucca.lucide.lucide.CalendarCheck2
-import io.github.yumeyucca.lucide.lucide.FileBracesCorner
-import io.github.yumeyucca.lucide.lucide.FileSymlink
-import io.github.yumeyucca.lucide.lucide.Link
-import io.github.yumeyucca.lucide.lucide.ToggleRight
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.glass.*
-import top.yukonga.miuix.kmp.layout.CascadingPopupDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
 import kotlinx.coroutines.delay
-import kotlin.math.PI
-import kotlin.math.sin
 
 /**
  * 订阅卡片。
  *
  * 交互约定:点右上角开关 = 启停该配置;点卡片其余位置 = 弹出操作列表(启用 / 编辑 / 覆写 / 更新 / 分享 / 删除)。
  * 卡片本身只保留「名称 + 启用开关 + 流量 + 到期 + 波形进度」,更新时间等次要信息不再上卡。
+ *
+ * 动作由调用方决定:[onAction] 收到用户选中的菜单项,[canOverride] 决定菜单是否提供「覆写」行;
+ * 卡片自己不判断业务,也不认识任何具体跳转。
  */
 @Composable
 fun ProfileCard(
     profile: Profile,
-    isDownloading: Boolean = false,
-    onShareFile: (Profile) -> Unit,
-    onShareLink: (Profile) -> Unit,
-    onUpdate: (Profile) -> Unit,
-    onDelete: (Profile) -> Unit,
-    onEdit: (Profile) -> Unit,
+    onAction: (Profile, ProfileAction) -> Unit,
     onToggleEnabled: (Profile, Boolean) -> Unit,
-    onOverrideSettings: ((Profile) -> Unit)? = null,
-    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier,
+    isDownloading: Boolean = false,
+    canOverride: Boolean = false,
 ) {
     val spacing = AppTheme.spacing
     val colorScheme = MiuixTheme.colorScheme
@@ -139,15 +74,15 @@ fun ProfileCard(
     var pendingActive by remember(profile.uuid) { mutableStateOf<Boolean?>(null) }
     val isActive = pendingActive ?: profile.active
     LaunchedEffect(profile.active, pendingActive) {
-        if (pendingActive == profile.active) {
-            // Let a burst of refresh emissions settle before handing the pill back to the list.
-            delay(1000)
-            if (pendingActive == profile.active) pendingActive = null
-        }
-    }
-    LaunchedEffect(pendingActive) {
         val pending = pendingActive ?: return@LaunchedEffect
-        delay(4000)
+        // Let a burst of refresh emissions settle before handing the pill back to the list.
+        delay(
+            if (pending == profile.active) {
+                ProfileToggleSettleMillis
+            } else {
+                ProfileToggleTimeoutMillis
+            },
+        )
         if (pendingActive == pending) pendingActive = null
     }
     val toggleEnabled = {
@@ -171,9 +106,16 @@ fun ProfileCard(
         }
 
     // 弹窗只在被打开的那张卡上挂载:关闭动画跑完(onDismissFinished)再卸载,列表里其余卡片不常驻弹窗。
-    var actionsOpen by remember(profile.uuid) { mutableStateOf(false) }
-    var actionsMounted by remember(profile.uuid) { mutableStateOf(false) }
-    var pendingToggleAfterDismiss by remember(profile.uuid) { mutableStateOf(false) }
+    var actionsPhase by
+        remember(profile.uuid) { mutableStateOf<ProfileActionsPhase>(ProfileActionsPhase.Hidden) }
+    val beginActionsCollapse: (toggleWhenSettled: Boolean) -> Unit = { toggleWhenSettled ->
+        val collapsing = actionsPhase as? ProfileActionsPhase.Collapsing
+        actionsPhase =
+            ProfileActionsPhase.Collapsing(
+                // 菜单项先收起弹窗再回写开关,两次回调没有固定顺序,这里按「或」合并请求。
+                toggleWhenSettled = toggleWhenSettled || collapsing?.toggleWhenSettled == true,
+            )
+    }
     val actionsMenuAnchor = rememberGlassPopupAnchor()
 
     AppCard(
@@ -192,10 +134,7 @@ fun ProfileCard(
                 bottom = spacing.space12,
             ),
         onClick = {
-            if (!isDownloading) {
-                actionsMounted = true
-                actionsOpen = true
-            }
+            if (!isDownloading) actionsPhase = ProfileActionsPhase.Open
         },
     ) {
         // 标题 + 右上角启用开关(独立点击,不触发卡片弹窗)。
@@ -229,94 +168,31 @@ fun ProfileCard(
             )
         }
 
-        // 剩余流量 + 到期徽章。
-        Row(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .padding(top = spacing.space6, start = spacing.space2, end = spacing.space2),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (traffic != null) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(spacing.space4),
-                ) {
-                    Text(
-                        text = traffic.remainingNumber,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight(800),
-                        letterSpacing = (-0.8).sp,
-                        color =
-                            if (traffic.lowTraffic) warnColor else colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFeatureSettings = "tnum"),
-                        modifier = Modifier.alignByBaseline(),
-                    )
-                    Text(
-                        text = YumeTxt.Component.ProfileCard.RemainingOfTotal.format(traffic.totalText),
-                        fontSize = 13.sp,
-                        color = colorScheme.onSurfaceVariantSummary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFeatureSettings = "tnum"),
-                        modifier = Modifier.alignByBaseline(),
-                    )
-                }
-            } else {
-                Text(
-                    text = fallbackInfoText,
-                    fontSize = 14.sp,
-                    color = colorScheme.onSurfaceVariantSummary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            if (expiry != null) {
-                ProfileExpiryBadge(expiry = expiry)
-            }
-        }
-
-        // 波形进度保留卡片内边距,不再贴住底边。
-        if (traffic != null) {
-            TrafficWaveProgress(
-                ratio = traffic.ratio,
-                warn = traffic.lowTraffic,
-                modifier =
-                    Modifier.fillMaxWidth().padding(
-                        top = spacing.space12,
-                        start = spacing.space2,
-                        end = spacing.space2,
-                    ),
-            )
-        }
+        ProfileTrafficSummary(
+            traffic = traffic,
+            expiry = expiry,
+            fallbackInfoText = fallbackInfoText,
+        )
     }
 
-    if (actionsMounted) {
+    if (actionsPhase !is ProfileActionsPhase.Hidden) {
         ProfileActionsMenu(
-            show = actionsOpen,
-            isActive = isActive,
-            isDownloading = isDownloading,
-            canUpdate = profile.shouldShowUpdateButton(),
-            onDismiss = { actionsOpen = false },
+            show = actionsPhase is ProfileActionsPhase.Open,
+            availability =
+                ProfileActionsAvailability(
+                    isActive = isActive,
+                    isDownloading = isDownloading,
+                    canUpdate = profile.type == Profile.Type.Url,
+                ),
+            canOverride = canOverride,
+            onDismiss = { beginActionsCollapse(false) },
             onDismissFinished = {
-                actionsMounted = false
-                if (pendingToggleAfterDismiss) {
-                    pendingToggleAfterDismiss = false
-                    toggleEnabled()
-                }
+                val settled = actionsPhase as? ProfileActionsPhase.Collapsing
+                actionsPhase = ProfileActionsPhase.Hidden
+                if (settled?.toggleWhenSettled == true) toggleEnabled()
             },
-            onToggleEnabled = { pendingToggleAfterDismiss = true },
-            onEdit = { onEdit(profile) },
-            onOverrideSettings =
-                onOverrideSettings?.let { callback -> { callback(profile) } },
-            onUpdate = { onUpdate(profile) },
-            onShareFile = { onShareFile(profile) },
-            onShareLink = { onShareLink(profile) },
-            onDelete = { onDelete(profile) },
+            onToggleRequest = { beginActionsCollapse(true) },
+            onAction = { action -> onAction(profile, action) },
             anchor = actionsMenuAnchor,
             anchorContent = {
                 ProfileEnabledToggleVisual(
@@ -329,470 +205,106 @@ fun ProfileCard(
     }
 }
 
-/** 右上角启用开关:组件内部照搬 Miuix Switch 的轨道颜色动画。 */
-@Composable
-private fun ProfileEnabledToggle(
-    isActive: Boolean,
-    enabled: Boolean,
-    activeColor: Color,
-    onToggle: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    ProfileEnabledToggleVisual(
-        isActive = isActive,
-        enabled = enabled,
-        activeColor = activeColor,
-        modifier =
-            modifier.toggleable(
-                value = isActive,
-                enabled = enabled,
-                role = Role.Switch,
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onValueChange = { onToggle() },
-            ),
-    )
+/**
+ * 卡片操作弹窗的生命周期。
+ *
+ * 弹窗必须一直挂载到收起动画结束([Collapsing]),否则弹窗会在关闭动画中途被移出组合。
+ * [Collapsing.toggleWhenSettled] 记录「收起后还要回写开关」:菜单里的开关项先收起弹窗再回调,
+ * 开关动画必须等这次收起结束,否则药丸会在仍在收起的弹窗里抢先动起来。
+ */
+private sealed interface ProfileActionsPhase {
+    object Hidden : ProfileActionsPhase
+
+    object Open : ProfileActionsPhase
+
+    data class Collapsing(val toggleWhenSettled: Boolean) : ProfileActionsPhase
 }
 
+/**
+ * 开关乐观态的保留时长。
+ *
+ * 点击开关后本地先按目标态渲染,避免列表刷新把「当前配置」闪回「未启用」:
+ * - [ProfileToggleSettleMillis]:列表已经回填了同一状态,再等一小段以吞掉连续多次刷新;
+ * - [ProfileToggleTimeoutMillis]:列表迟迟没有回写(失败 / 离线),到点也放弃乐观态,
+ *   让药丸回到列表的真实状态,而不是永久停在用户点选的位置。
+ */
+private const val ProfileToggleSettleMillis = 1_000L
+private const val ProfileToggleTimeoutMillis = 4_000L
+
+/**
+ * 剩余流量、到期徽章与波形进度:卡片下半部分只负责排版,数据与配色由调用方给定。
+ */
 @Composable
-private fun ProfileEnabledToggleVisual(
-    isActive: Boolean,
-    enabled: Boolean,
-    activeColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    val colorScheme = MiuixTheme.colorScheme
-    val strings = YumeTxt.Component.ProfileCard
-    val inactiveContainer =
-        if (colorScheme.background.luminance() < 0.5f) {
-            Color(0xFF131415)
-        } else {
-            Color(0xFFF7F7F7)
-        }
-    val progress by animateFloatAsState(
-        targetValue = if (isActive) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.99f, stiffness = 438.6f),
-        label = "profileEnabledProgress",
-    )
-    val fillColor = activeColor
-    val fillProgress = progress.coerceIn(0f, 1f)
-
-    Box(
-        modifier =
-            modifier
-                .height(24.dp)
-                .widthIn(min = 64.dp)
-                .clip(CircleShape)
-                .background(inactiveContainer)
-                .drawBehind {
-                    drawRoundRect(
-                        color = fillColor,
-                        size = Size(size.width * fillProgress, size.height),
-                        cornerRadius = CornerRadius(size.height / 2f),
-                    )
-                }
-                .alpha(if (enabled) 1f else 0.45f)
-                .padding(horizontal = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        AnimatedContent(
-            targetState = isActive,
-            contentAlignment = Alignment.Center,
-            transitionSpec = {
-                ContentTransform(
-                    targetContentEnter =
-                        fadeIn(tween(durationMillis = 180)) +
-                            slideInHorizontally(tween(durationMillis = 220)) { it / 3 },
-                    initialContentExit =
-                        fadeOut(tween(durationMillis = 120)) +
-                            slideOutHorizontally(tween(durationMillis = 180)) { -it / 3 },
-                    sizeTransform = SizeTransform(clip = false),
-                )
-            },
-            label = "profileEnabledLabel",
-        ) { active ->
-            Text(
-                text = if (active) strings.CurrentProfile else strings.NotEnabled,
-                fontSize = 12.sp,
-                fontWeight = FontWeight(600),
-                color =
-                    if (active) Color.White else colorScheme.onSurfaceVariantSummary,
-                maxLines = 1,
-            )
-        }
-    }
-}
-
-/** 卡片操作弹窗:节点页右上角同款的玻璃展开菜单。 */
-@Composable
-private fun ProfileActionsMenu(
-    show: Boolean,
-    isActive: Boolean,
-    isDownloading: Boolean,
-    canUpdate: Boolean,
-    onDismiss: () -> Unit,
-    onDismissFinished: () -> Unit,
-    onToggleEnabled: () -> Unit,
-    onEdit: () -> Unit,
-    onOverrideSettings: (() -> Unit)?,
-    onUpdate: () -> Unit,
-    onShareFile: () -> Unit,
-    onShareLink: () -> Unit,
-    onDelete: () -> Unit,
-    anchor: GlassPopupAnchor,
-    anchorContent: @Composable () -> Unit,
-) {
-    val strings = YumeTxt.Component.ProfileCard
-    // PopupLayout relocates this content; capture the page backdrop before leaving its provider.
-    val backdrop = LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current
-    val popupVisible = remember { mutableStateOf(false) }
-    val popupVisuals = GlassPopupDefaults.visuals()
-    val density = LocalDensity.current
-    val arrowTurn = CascadingPopupDefaults.arrowRotation(LocalLayoutDirection.current)
-
-    var shareExpanded by remember { mutableStateOf(false) }
-    var sharePresent by remember { mutableStateOf(false) }
-    var shareAnchor by remember { mutableStateOf(Rect.Zero) }
-    var menuWidth by remember { mutableStateOf(0.dp) }
-    val shareArrow by animateFloatAsState(
-        targetValue = if (shareExpanded) arrowTurn else 0f,
-        animationSpec = CascadingPopupDefaults.arrowSpring(shareExpanded),
-        label = "profileShareArrow",
-    )
-
-    LaunchedEffect(show) {
-        if (show) {
-            popupVisible.value = true
-        } else {
-            shareExpanded = false
-        }
-    }
-
-    val actionsEnabled = !isDownloading
-
-    PopupLayout(
-        visible = popupVisible,
-        enterTransition = EnterTransition.None,
-        exitTransition = ExitTransition.None,
-        enableWindowDim = false,
-        enableBackHandler = false,
-    ) {
-        Box(Modifier.fillMaxSize()) {
-            // Compose the component closed first, just like the persistent upstream sample.
-            // The outer host otherwise creates it with show=true and skips its entering transition.
-            var expanded by remember { mutableStateOf(false) }
-            LaunchedEffect(show) { expanded = show }
-            GlassTransformPopup(
-                show = expanded,
-                onDismissRequest = {
-                    shareExpanded = false
-                    onDismiss()
-                },
-                anchor = anchor,
-                backdrop = backdrop,
-                anchorContent = anchorContent,
-                anchorAlpha = 0f,
-                sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
-                visuals = popupVisuals,
-                stacked = shareExpanded,
-                alignToPageEnd = true,
-                onMeasured = { menuWidth = with(density) { it.width.toDp() } },
-                onDismissFinished = {
-                    if (!show) {
-                        popupVisible.value = false
-                        onDismissFinished()
-                    }
-                },
-            ) {
-                GlassPopupItem(
-                    text = if (isActive) strings.Disable else strings.Enable,
-                    icon = Lucide.ToggleRight,
-                    iconSize = 18.dp,
-                    iconGap = 15.dp,
-                    enabled = actionsEnabled,
-                    onClick = {
-                        onDismiss()
-                        onToggleEnabled()
-                    },
-                )
-                GlassPopupItem(
-                    text = strings.Edit,
-                    icon = Yume.Edit,
-                    iconSize = 18.dp,
-                    iconGap = 15.dp,
-                    enabled = actionsEnabled,
-                    onClick = {
-                        onDismiss()
-                        onEdit()
-                    },
-                )
-                val overrideAction = onOverrideSettings
-                if (overrideAction != null) {
-                    GlassPopupItem(
-                        text = YumeTxt.ProfilesPage.SettingsDialog.SectionOverride,
-                        icon = Lucide.FileBracesCorner,
-                        iconSize = 18.dp,
-                        iconGap = 15.dp,
-                        enabled = actionsEnabled,
-                        onClick = {
-                            onDismiss()
-                            overrideAction()
-                        },
-                    )
-                }
-                if (canUpdate) {
-                    GlassPopupItem(
-                        text = strings.Update,
-                        icon = Yume.CircleFadingArrowUp,
-                        iconSize = 18.dp,
-                        iconGap = 15.dp,
-                        enabled = actionsEnabled,
-                        onClick = {
-                            onDismiss()
-                            onUpdate()
-                        },
-                    )
-                }
-                GlassPopupItem(
-                    text = strings.Share,
-                    icon = Yume.Share,
-                    iconSize = 18.dp,
-                    iconGap = 15.dp,
-                    enabled = actionsEnabled,
-                    showArrow = true,
-                    arrowRotation = { shareArrow * (1f - anchor.secondaryBackProgress) },
-                    modifier =
-                        Modifier.onGloballyPositioned {
-                            if (!sharePresent) shareAnchor = it.boundsInRoot()
-                        },
-                    onClick = {
-                        sharePresent = true
-                        shareExpanded = true
-                    },
-                )
-                GlassPopupItem(
-                    text = strings.Delete,
-                    icon = Yume.Delete,
-                    iconSize = 18.dp,
-                    iconGap = 15.dp,
-                    enabled = actionsEnabled,
-                    contentColor = AppTheme.colors.status.destructive,
-                    onClick = {
-                        onDismiss()
-                        onDelete()
-                    },
-                )
-            }
-            GlassSecondaryPopup(
-                show = expanded && shareExpanded,
-                onDismissRequest = { shareExpanded = false },
-                anchorBounds = shareAnchor,
-                backdrop = backdrop,
-                materialAnchor = anchor,
-                sizing = GlassPopupSizing(minWidth = menuWidth, maxWidth = 188.dp),
-                visuals = popupVisuals,
-                onDismissFinished = { sharePresent = false },
-            ) {
-                GlassPopupItem(
-                    text = strings.Share,
-                    icon = Yume.Share,
-                    iconSize = 18.dp,
-                    iconGap = 15.dp,
-                    showArrow = true,
-                    arrowRotation = { shareArrow * (1f - anchor.secondaryBackProgress) },
-                    onClick = { shareExpanded = false },
-                )
-                HorizontalDivider(
-                    modifier =
-                        Modifier.padding(
-                            horizontal = GlassPopupDefaults.DividerPaddingHorizontal,
-                            vertical = GlassPopupDefaults.DividerPaddingVertical,
-                        ),
-                    thickness = GlassPopupDefaults.DividerThickness,
-                )
-                GlassPopupItem(
-                    text = strings.ShareFile,
-                    icon = Lucide.FileSymlink,
-                    iconSize = 18.dp,
-                    iconGap = 15.dp,
-                    enabled = actionsEnabled,
-                    onClick = {
-                        shareExpanded = false
-                        onDismiss()
-                        onShareFile()
-                    },
-                )
-                GlassPopupItem(
-                    text = strings.ShareLink,
-                    icon = Lucide.Link,
-                    iconSize = 18.dp,
-                    iconGap = 15.dp,
-                    enabled = actionsEnabled && canUpdate,
-                    onClick = {
-                        shareExpanded = false
-                        onDismiss()
-                        onShareLink()
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProfileExpiryBadge(
-    expiry: ProfileExpiryPreview,
-    modifier: Modifier = Modifier,
+private fun ProfileTrafficSummary(
+    traffic: ProfileTrafficPreview?,
+    expiry: ProfileExpiryPreview?,
+    fallbackInfoText: String,
 ) {
     val spacing = AppTheme.spacing
-    val opacity = AppTheme.opacity
     val colorScheme = MiuixTheme.colorScheme
     val warnColor = AppTheme.colors.moe.pingWarning
-
-    val headline = formatExpiryHeadline(expiry.daysLeft)
-
-    Column(
-        modifier = modifier.padding(start = spacing.space8),
-        horizontalAlignment = Alignment.End,
-    ) {
-        Text(
-            text = headline,
-            fontSize = 12.sp,
-            fontWeight = FontWeight(700),
-            color = if (expiry.warning) warnColor else colorScheme.onSurface,
-            maxLines = 1,
-        )
-        val dateColor =
-            if (expiry.warning) {
-                warnColor.copy(alpha = opacity.mediumStrong)
-            } else {
-                colorScheme.onSurfaceVariantSummary
-            }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(spacing.space2),
-        ) {
-            Icon(
-                imageVector = Lucide.CalendarCheck2,
-                contentDescription = null,
-                tint = dateColor,
-                modifier = Modifier.size(10.dp),
-            )
-            Text(
-                text = expiry.dateText,
-                fontSize = 10.sp,
-                color = dateColor,
-                maxLines = 1,
-                style = TextStyle(fontFeatureSettings = "tnum"),
-            )
-        }
-    }
-}
-
-// 约 10 年及以上视为永久。
-private const val EXPIRY_PERMANENT_DAYS = 3650L
-
-// 到期倒计时按量级换算单位:天 → 个月 → 年 → 永久,避免"3649 天后到期"这种长数值。
-private fun formatExpiryHeadline(daysLeft: Long): String {
-    val strings = YumeTxt.Component.ProfileCard
-    return when {
-        daysLeft < 0L -> strings.ExpiredShort
-        daysLeft == 0L -> strings.ExpireTodayShort
-        daysLeft >= EXPIRY_PERMANENT_DAYS -> strings.ExpireInPermanent
-        daysLeft < 60L -> strings.ExpireInDays.format(daysLeft.toInt())
-        daysLeft < 365L -> strings.ExpireInMonths.format((daysLeft / 30L).toInt())
-        else -> strings.ExpireInYears.format((daysLeft / 365L).toInt())
-    }
-}
-
-@Composable
-private fun TrafficWaveProgress(
-    ratio: Float,
-    warn: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val colorScheme = MiuixTheme.colorScheme
-    val opacity = AppTheme.opacity
-
-    val waveColor = if (warn) AppTheme.colors.moe.pingWarning else colorScheme.primary
-    val trackColor = colorScheme.onSurface.copy(alpha = opacity.subtleStrong)
-    val animatedRatio by animateFloatAsState(
-        targetValue = ratio.coerceIn(0f, 1f),
-        animationSpec = WavyProgressIndicatorDefaults.ProgressAnimationSpec,
-        label = "profileTrafficRatio",
-    )
-    // Phase crawls forward one wavelength per cycle so the wave is visibly alive; both ends
-    // taper back to the centerline so the start and the head stay clean at any phase.
-    val phase by rememberInfiniteTransition(label = "waveCrawl").animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(durationMillis = 2000, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart,
-            ),
-        label = "waveCrawlPhase",
-    )
-
-    Canvas(
+    // 剩余流量 + 到期徽章。
+    Row(
         modifier =
-            modifier
-                .height(UiDp.dp12)
-                .semantics {
-                    progressBarRangeInfo =
-                        ProgressBarRangeInfo(current = animatedRatio, range = 0f..1f)
-                },
+            Modifier.fillMaxWidth()
+                .padding(top = spacing.space6, start = spacing.space2, end = spacing.space2),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        val strokePx = UiDp.dp4.toPx()
-        val gapPx = UiDp.dp8.toPx()
-        val wavelengthPx = UiDp.dp20.toPx()
-        val centerY = size.height / 2f
-        val amplitude = (size.height - strokePx) / 2f * 0.9f
-        val headX = ((size.width - gapPx) * animatedRatio).coerceAtLeast(0f)
-
-        if (headX > strokePx) {
-            val taperLength = (wavelengthPx * 0.6f).coerceAtMost(headX / 2f)
-            // Pixel-step sampling: a dp-sized step collapses a 20dp wavelength into a handful of
-            // segments and the polyline reads as jagged crests. 2px keeps the sine smooth.
-            val stepPx = 2f
-            val steps = maxOf(8, (headX / stepPx).toInt())
-            val halfPi = (PI / 2).toFloat()
-            val twoPi = (PI * 2).toFloat()
-            val path = Path()
-            for (i in 0..steps) {
-                val x = headX * i / steps
-                val startTaper = sin((x / taperLength).coerceIn(0f, 1f) * halfPi)
-                val headTaper =
-                    sin(((headX - x) / taperLength).coerceIn(0f, 1f) * halfPi)
-                val y =
-                    centerY -
-                            amplitude *
-                                    startTaper *
-                                    headTaper *
-                                    sin(twoPi * (x / wavelengthPx - phase))
-                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        if (traffic != null) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(spacing.space4),
+            ) {
+                Text(
+                    text = traffic.remainingNumber,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight(800),
+                    letterSpacing = (-0.8).sp,
+                    color =
+                        if (traffic.lowTraffic) warnColor else colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(fontFeatureSettings = "tnum"),
+                    modifier = Modifier.alignByBaseline(),
+                )
+                Text(
+                    text = YumeTxt.Component.ProfileCard.RemainingOfTotal.format(traffic.totalText),
+                    fontSize = 13.sp,
+                    color = colorScheme.onSurfaceVariantSummary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(fontFeatureSettings = "tnum"),
+                    modifier = Modifier.alignByBaseline(),
+                )
             }
-            drawPath(
-                path = path,
-                color = waveColor,
-                style =
-                    Stroke(
-                        width = strokePx,
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round,
-                    ),
+        } else {
+            Text(
+                text = fallbackInfoText,
+                fontSize = 14.sp,
+                color = colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
         }
 
-        val trackStart = headX + gapPx
-        if (trackStart < size.width - strokePx / 2f) {
-            drawLine(
-                color = trackColor,
-                start = Offset(trackStart, centerY),
-                end = Offset(size.width, centerY),
-                strokeWidth = strokePx,
-                cap = StrokeCap.Round,
-            )
+        if (expiry != null) {
+            ProfileExpiryBadge(expiry = expiry)
         }
+    }
+
+    // 波形进度保留卡片内边距,不再贴住底边。
+    if (traffic != null) {
+        TrafficWaveProgress(
+            ratio = traffic.ratio,
+            warn = traffic.lowTraffic,
+            modifier =
+                Modifier.fillMaxWidth().padding(
+                    top = spacing.space12,
+                    start = spacing.space2,
+                    end = spacing.space2,
+                ),
+        )
     }
 }

@@ -48,6 +48,7 @@ import com.github.yumeyucca.yumebox.data.model.PROXY_SHEET_HEIGHT_FRACTION_DEFAU
 import com.github.yumeyucca.yumebox.presentation.component.SheetHeaderIconButton
 import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeader
 import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeaderDefaults
+import com.github.yumeyucca.yumebox.presentation.component.rememberSurfaceBackdrop
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Check
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Close
@@ -63,7 +64,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.glass.GlassBottomSheet
 import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 
 /**
  * 拖拽排序配置的底部 sheet(参考系统"自定义排序"弹窗):每行一张卡片,名称在左,
@@ -81,14 +81,7 @@ internal fun ProfilesSortSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetColor = MiuixTheme.colorScheme.surface
-    // 玻璃钮采样「sheet 底色 + 列表」:没有底色时静止状态下背后是空的,只有列表滚过才透出玻璃与描边。
-    val sheetContentBackdrop =
-        key(sheetColor) {
-            rememberLayerBackdrop {
-                drawRect(sheetColor)
-                drawContent()
-            }
-        }
+    val sheetContentBackdrop = rememberSurfaceBackdrop(containerColor = sheetColor)
     // 草稿序:拖动途中只在本地重排预览,保存时整份提交一次。show/profiles 变化即重置草稿
     // (丢弃后重开、外部刷新、自己提交后都回到已提交序),拖动途中二者不变、草稿得以保留。
     var currentDraft by remember(show, profiles) { mutableStateOf(profiles) }
@@ -186,8 +179,8 @@ private fun ProfilesSortList(
         verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
         overscrollEffect = null,
     ) {
-        items(items = draftProfiles, key = { it.uuid.toString() }) { profile ->
-            ReorderableItem(reorderState, key = profile.uuid.toString()) { _ ->
+        items(items = draftProfiles, key = { it.uuid }) { profile ->
+            ReorderableItem(reorderState, key = profile.uuid) { _ ->
                 // 设置页偏好行同款(BasicComponent,默认 56dp 最小行高 + 16dp 内边距 + miuix 原生排版),
                 // 行高压到 53dp;圆角在原生 16dp 基础上加到 20dp(仍小于 AppCard 全局 24dp,不会胶囊化)。
                 Card(cornerRadius = 20.dp) {

@@ -8,76 +8,75 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
-import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
+import com.github.yumeyucca.yumebox.presentation.theme.glassSurfaceBackdrop
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.glass.GlassDropdownPreference as MiuixGlassDropdownPreference
-import top.yukonga.miuix.kmp.glass.GlassPopupDefaults
-import top.yukonga.miuix.kmp.glass.GlassPopupSizing
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 
 /**
- * Leading-icon metrics of the node-actions popup rows: an 18dp glyph, then a 15dp gap to the
- * label. Both popup paths below use them so this list lines up with that menu.
+ * One option in [GlassDropdownPreference].
+ *
+ * The option carries the [value] it stands for, so the row selects a model instead of an index and
+ * no call site has to translate its own enum through `indexOf`/`getOrNull` first.
  */
-private val OptionIconSize: Dp = 18.dp
-private val OptionIconGap: Dp = 15.dp
+data class GlassDropdownOption<T>(
+    val value: T,
+    val label: String,
+    val icon: ImageVector? = null,
+    val enabled: Boolean = true,
+)
 
 /**
  * Uses the upstream popup only with a clean page recording; preserves the old window otherwise.
  *
- * @param icons Optional leading icon per item, aligned with [items] by index.
- * @param itemEnabled Optional per-item enabled state, aligned with [items] by index. A disabled
- *   item is greyed out and ignores taps while the row itself stays usable.
+ * @param options Options in display order. A disabled option is greyed out and ignores taps while
+ *   the row itself stays usable.
+ * @param selected The option whose value matches this shows as selected; a value that no option
+ *   carries leaves every row unselected rather than pointing at the wrong one.
  */
 @Composable
-fun GlassDropdownPreference(
-    items: List<String>,
-    selectedIndex: Int,
+fun <T> GlassDropdownPreference(
+    options: List<GlassDropdownOption<T>>,
+    selected: T?,
     title: String,
-    onSelectedIndexChange: (Int) -> Unit,
+    onSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
     summary: String? = null,
     enabled: Boolean = true,
-    showValue: Boolean = true,
     maxHeight: Dp? = null,
-    icons: List<ImageVector>? = null,
-    itemEnabled: List<Boolean>? = null,
 ) {
-    val backdrop = LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current
+    val backdrop = glassSurfaceBackdrop()
+    val selectedIndex = options.indexOfFirst { it.value == selected }
+    // An empty dropdown has nothing to offer, so it reads as unavailable in both branches.
+    val rowEnabled = enabled && options.isNotEmpty()
     if (backdrop != null && isRuntimeShaderSupported()) {
         MiuixGlassDropdownPreference(
-            items = items,
-            icons = icons,
-            itemEnabled = itemEnabled,
-            itemIconSize = OptionIconSize,
-            itemIconGap = OptionIconGap,
+            items = options.map { it.label },
+            icons = options.map { it.icon },
+            itemEnabled = options.map { it.enabled },
+            itemIconSize = GlassPopupMenuDefaults.ItemIconSize,
+            itemIconGap = GlassPopupMenuDefaults.ItemIconGap,
             selectedIndex = selectedIndex,
             title = title,
             summary = summary,
             backdrop = backdrop,
             modifier = modifier,
-            enabled = enabled,
-            showValue = showValue,
-            sizing =
-                GlassPopupSizing(
-                    minWidth = 188.dp,
-                    maxWidth = 188.dp,
-                    maxHeight = maxHeight ?: GlassPopupDefaults.MaxHeight,
-                ),
-            onSelectedIndexChange = onSelectedIndexChange,
+            enabled = rowEnabled,
+            sizing = maxHeight?.let { GlassPopupMenuSizing.copy(maxHeight = it) } ?: GlassPopupMenuSizing,
+            onSelectedIndexChange = { index ->
+                options.getOrNull(index)?.let { onSelected(it.value) }
+            },
         )
     } else {
         val entry =
             DropdownEntry(
                 items =
-                    items.mapIndexed { index, text ->
+                    options.mapIndexed { index, option ->
                         val optionIcon: (@Composable (Modifier) -> Unit)? =
-                            icons?.getOrNull(index)?.let { icon ->
+                            option.icon?.let { icon ->
                                 // The window popup hands over a 26dp icon cell with its own
                                 // trailing padding, which would make the gap differ from the
                                 // glass list; lay the glyph out here instead.
@@ -87,17 +86,17 @@ fun GlassDropdownPreference(
                                         contentDescription = null,
                                         modifier =
                                             Modifier
-                                                .padding(end = OptionIconGap)
-                                                .size(OptionIconSize),
+                                                .padding(end = GlassPopupMenuDefaults.ItemIconGap)
+                                                .size(GlassPopupMenuDefaults.ItemIconSize),
                                     )
                                 }
                             }
                         DropdownItem(
-                            text = text,
-                            enabled = itemEnabled?.getOrNull(index) ?: true,
+                            text = option.label,
+                            enabled = option.enabled,
                             selected = index == selectedIndex,
                             icon = optionIcon,
-                            onClick = { onSelectedIndexChange(index) },
+                            onClick = { onSelected(option.value) },
                         )
                     },
             )
@@ -106,8 +105,7 @@ fun GlassDropdownPreference(
             title = title,
             summary = summary,
             modifier = modifier,
-            enabled = enabled && items.isNotEmpty(),
-            showValue = showValue,
+            enabled = rowEnabled,
             maxHeight = maxHeight,
         )
     }

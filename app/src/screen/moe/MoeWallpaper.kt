@@ -13,7 +13,6 @@
 
 package com.github.yumeyucca.yumebox.screen.moe
 
-
 import android.annotation.SuppressLint
 import android.app.WallpaperManager
 import android.content.Context
@@ -32,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -46,6 +44,8 @@ import com.github.panpf.sketch.resize.Scale
 import com.github.panpf.sketch.util.Size
 import com.github.yumeyucca.yumebox.R
 import com.github.yumeyucca.yumebox.presentation.component.calculateWallpaperViewportLayout
+import com.github.yumeyucca.yumebox.presentation.theme.isDarkSurface
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -58,11 +58,11 @@ internal val LocalWallpaperRefreshKey = compositionLocalOf { 0 }
 @Composable
 internal fun MoeWallpaperBackground(
     wallpaperUri: String,
+    modifier: Modifier = Modifier,
     wallpaperZoom: Float = 1f,
     wallpaperBiasX: Float = 0f,
     wallpaperBiasY: Float = 0f,
     qualityMode: MoeWallpaperQualityMode = MoeWallpaperQualityMode.Foreground,
-    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -159,6 +159,11 @@ private suspend fun readImageBounds(context: Context, model: String): Pair<Int, 
                     ?.let { it.outWidth to it.outHeight }
             }
         }
+            .onFailure { error ->
+                // A cancelled draw is not an unreadable image: propagating keeps the caller's
+                // coroutine cancelled instead of handing it a "no intrinsic size" fallback.
+                if (error is CancellationException) throw error
+            }
             .getOrNull()
     }
 
@@ -200,6 +205,7 @@ internal fun rememberMoeWallpaperAccentColor(
     val useSystemWallpaper = LocalUseSystemWallpaper.current
     val wallpaperRefreshKey = LocalWallpaperRefreshKey.current
     val accentKey = listOf(wallpaperUri, useSystemWallpaper, wallpaperRefreshKey, surface, fallback)
+    val surfaceIsDark = isDarkSurface(surface)
     val accent by
         produceState(fallback, accentKey) {
             value =
@@ -209,7 +215,7 @@ internal fun rememberMoeWallpaperAccentColor(
                             if (useSystemWallpaper) copySystemWallpaper(context) else wallpaperUri
                         val model = resolveWallpaperModel(context, sourceUri)
                         decodeWallpaperAccentSample(context, model)
-                            ?.let { bitmap -> wallpaperAccentColor(bitmap, surface, fallback) }
+                            ?.let { bitmap -> wallpaperAccentColor(bitmap, surfaceIsDark, fallback) }
                             ?: fallback
                     }.getOrDefault(fallback)
                 }
@@ -245,7 +251,7 @@ private fun openWallpaperStream(context: Context, model: String): InputStream? {
     return direct ?: bundled()
 }
 
-private fun wallpaperAccentColor(bitmap: Bitmap, surface: Color, fallback: Color): Color {
+private fun wallpaperAccentColor(bitmap: Bitmap, surfaceIsDark: Boolean, fallback: Color): Color {
     val pixels = IntArray(bitmap.width * bitmap.height)
     bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
     var sumR = 0.0
@@ -277,10 +283,9 @@ private fun wallpaperAccentColor(bitmap: Bitmap, surface: Color, fallback: Color
         hsv,
     )
     if (hsv[1] < 0.10f) return fallback
-    val isDarkSurface = surface.luminance() < 0.5f
     hsv[1] = hsv[1].coerceIn(0.42f, 0.88f)
     hsv[2] =
-        if (isDarkSurface) {
+        if (surfaceIsDark) {
             hsv[2].coerceIn(0.66f, 0.94f)
         } else {
             hsv[2].coerceIn(0.32f, 0.58f)

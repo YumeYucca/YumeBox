@@ -22,19 +22,20 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.github.yumeyucca.yumebox.presentation.component.*
-import com.github.yumeyucca.yumebox.presentation.icon.ShellIcons
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ArrowDownUp
+import com.github.yumeyucca.yumebox.presentation.icon.yume.BadgePlus
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
@@ -46,102 +47,29 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-internal fun ProfilesPageHost(
+internal fun ProfilesPageContent(
     mainInnerPadding: PaddingValues,
     profiles: List<Profile>,
     state: ProfilesDialogState,
     profilesViewModel: ProfilesViewModel,
     homeViewModel: HomeViewModel,
     isRunning: Boolean,
-    @Suppress("UNUSED_PARAMETER") windowLayoutMode: WindowLayoutMode = WindowLayoutMode.Compact,
-    sheetHost: @Composable () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val navigator = LocalNavigator.current
-
-    ProfilesPageContent(
-        mainInnerPadding = mainInnerPadding,
-        profiles = profiles,
-        isDownloading = state.isDownloading,
-        sortCommitCount = state.sortCommitCount.value,
-        onAddProfile = {
-            state.profileToEdit = null
-            state.showAdd.value = true
-        },
-        onOpenSortSheet = { state.showSortSheet.value = true },
-        onReorderProfiles = { from, to -> profilesViewModel.reorderProfiles(from, to) },
-        onShareFile = { profile ->
-            if (!state.isDownloading) {
-                shareProfileFileDirectly(profile)
-            }
-        },
-        onShareLink = { profile ->
-            if (!state.isDownloading) {
-                shareProfileLinkDirectly(profile)
-            }
-        },
-        onUpdateProfile = { profile ->
-            if (!state.isDownloading) {
-                state.isDownloading = true
-                scope.launch {
-                    profilesViewModel.updateProfile(profile.uuid)
-                    state.isDownloading = false
-                }
-            }
-        },
-        onDeleteProfile = { profile ->
-            if (!state.isDownloading) {
-                state.deleteTarget = profile
-                state.showDelete = true
-            }
-        },
-        onEditProfile = { profile ->
-            if (!state.isDownloading) {
-                // Editing goes straight to the full 编辑配置 page; the old options dialog is gone.
-                navigator.push(Route.ProfileEdit(profile.uuid.toString()))
-            }
-        },
-        onOverrideSettings = { profile ->
-            if (!state.isDownloading) {
-                navigator.push(Route.ProfileOverride(profile.uuid.toString()))
-            }
-        },
-        onToggleProfile = { profile, active ->
-            if (!state.isDownloading) {
-                scope.launch {
-                    if (!active && profile.active && isRunning) {
-                        homeViewModel.stopProxy()
-                    }
-                    profilesViewModel.setProfileActive(profile.uuid, active)
-                }
-            }
-        },
-        sheetHost = sheetHost,
-    )
-}
-
-@Composable
-internal fun ProfilesPageContent(
-    mainInnerPadding: PaddingValues,
-    profiles: List<Profile>,
-    isDownloading: Boolean,
-    sortCommitCount: Int = 0,
-    onAddProfile: () -> Unit,
-    onOpenSortSheet: () -> Unit,
-    onReorderProfiles: (Int, Int) -> Unit,
-    onShareFile: (Profile) -> Unit,
-    onShareLink: (Profile) -> Unit,
-    onUpdateProfile: (Profile) -> Unit,
-    onDeleteProfile: (Profile) -> Unit,
-    onEditProfile: (Profile) -> Unit,
-    onOverrideSettings: (Profile) -> Unit,
-    onToggleProfile: (Profile, Boolean) -> Unit,
-    sheetHost: @Composable () -> Unit = {},
-) {
     val scrollBehavior = MiuixScrollBehavior()
+    val downloadProgress by profilesViewModel.downloadProgress.collectAsState()
+    val isBusy = downloadProgress != null
+    val addProfile = { state.addRequest = AddProfileRequest() }
+    // List actions are ignored while an import or update is in flight. Read live at click time, not
+    // captured, so a click that lands after the download finished still goes through.
+    val ifIdle: (() -> Unit) -> Unit = { action ->
+        if (profilesViewModel.downloadProgress.value == null) action()
+    }
 
     GlassScaffold(
         topBar = {
@@ -154,14 +82,14 @@ internal fun ProfilesPageContent(
                         actions =
                             listOf(
                                 GlassTopAction(
-                                    icon = ShellIcons.AddProfile,
+                                    icon = Yume.BadgePlus,
                                     contentDescription = YumeTxt.ProfilesPage.Action.AddProfile,
-                                    onClick = onAddProfile,
+                                    onClick = addProfile,
                                 ),
                                 GlassTopAction(
                                     icon = Yume.ArrowDownUp,
                                     contentDescription = YumeTxt.ProfilesPage.Action.Sort,
-                                    onClick = onOpenSortSheet,
+                                    onClick = { state.showSortSheet = true },
                                 ),
                             ),
                         backdrop = LocalTopBarBackdrop.current,
@@ -172,28 +100,60 @@ internal fun ProfilesPageContent(
     ) { innerPadding ->
         Box(Modifier.fillMaxSize()) {
             if (profiles.isEmpty()) {
-                ProfileEmptyAddGuide(onClick = onAddProfile)
+                ProfileEmptyAddGuide(onClick = addProfile)
             } else {
                 ProfilesList(
                     profiles = profiles,
                     mainInnerPadding = mainInnerPadding,
                     innerPadding = innerPadding,
                     scrollBehavior = scrollBehavior,
-                    isDownloading = isDownloading,
-                    sortCommitCount = sortCommitCount,
-                    onReorderProfiles = onReorderProfiles,
-                    onShareFile = onShareFile,
-                    onShareLink = onShareLink,
-                    onUpdateProfile = onUpdateProfile,
-                    onDeleteProfile = onDeleteProfile,
-                    onEditProfile = onEditProfile,
-                    onOverrideSettings = onOverrideSettings,
-                    onToggleProfile = onToggleProfile,
+                    isDownloading = isBusy,
+                    sortCommitCount = state.sortCommitCount,
+                    onReorderProfiles = profilesViewModel::reorderProfiles,
+                    onAction = { profile, action ->
+                        ifIdle {
+                            when (action) {
+                                // Editing goes straight to the full 编辑配置 page; the old options dialog is gone.
+                                ProfileAction.Edit ->
+                                    navigator.push(Route.ProfileEdit(profile.uuid.toString()))
+
+                                ProfileAction.OverrideSettings ->
+                                    navigator.push(Route.ProfileOverride(profile.uuid.toString()))
+
+                                // The view model owns the in-flight window: it raises download
+                                // progress before its first IPC and clears it when the import ends.
+                                ProfileAction.Update -> profilesViewModel.updateProfile(profile.uuid)
+
+                                ProfileAction.ShareFile -> shareProfileFile(profile)
+
+                                ProfileAction.ShareLink -> shareProfileLink(profile)
+
+                                ProfileAction.Delete -> {
+                                    state.deleteTarget = profile
+                                    state.showDelete = true
+                                }
+                            }
+                        }
+                    },
+                    onToggleProfile = { profile, active ->
+                        ifIdle {
+                            scope.launch {
+                                if (!active && profile.active && isRunning) {
+                                    homeViewModel.stopProxy()
+                                }
+                                profilesViewModel.setProfileActive(profile.uuid, active)
+                            }
+                        }
+                    },
                 )
             }
             // Sheet composition is hosted here; dual-pane renders overlays in the left-pane root
             // Scaffold.
-            sheetHost()
+            ProfilesDialogHost(
+                state = state,
+                profiles = profiles,
+                profilesViewModel = profilesViewModel,
+            )
         }
     }
 }
@@ -205,14 +165,9 @@ private fun ProfilesList(
     innerPadding: PaddingValues,
     scrollBehavior: ScrollBehavior,
     isDownloading: Boolean,
-    sortCommitCount: Int = 0,
+    sortCommitCount: Int,
     onReorderProfiles: (Int, Int) -> Unit,
-    onShareFile: (Profile) -> Unit,
-    onShareLink: (Profile) -> Unit,
-    onUpdateProfile: (Profile) -> Unit,
-    onDeleteProfile: (Profile) -> Unit,
-    onEditProfile: (Profile) -> Unit,
-    onOverrideSettings: (Profile) -> Unit,
+    onAction: (Profile, ProfileAction) -> Unit,
     onToggleProfile: (Profile, Boolean) -> Unit,
 ) {
     val listState = rememberLazyListState()
@@ -220,8 +175,9 @@ private fun ProfilesList(
         rememberReorderableLazyListState(listState) { from, to ->
             onReorderProfiles(from.index, to.index)
         }
-    // 排序弹窗应用后整份顺序变了:带 key 的 LazyColumn 会跟着原首个可见项挪到新位置,
-    // 看起来像自动滚到底。这里提交后动画回顶(不是瞬跳),保持与打开弹窗时一致的顶部视图。
+    // Applying the sort changes the whole order, and a keyed LazyColumn keeps the previously
+    // first visible item in place, which reads as "it scrolled to the bottom". Animate back to the
+    // top after the commit (not a jump) so the view returns to what the sheet covered.
     LaunchedEffect(sortCommitCount) {
         if (sortCommitCount > 0) listState.animateScrollToItem(0)
     }
@@ -237,13 +193,9 @@ private fun ProfilesList(
                     profile = profile,
                     isDownloading = isDownloading,
                     modifier = Modifier.longPressDraggableHandle(),
-                    onShareFile = { onShareFile(it) },
-                    onShareLink = { onShareLink(it) },
-                    onUpdate = { onUpdateProfile(it) },
-                    onDelete = { onDeleteProfile(it) },
-                    onEdit = { onEditProfile(it) },
-                    onOverrideSettings = { onOverrideSettings(it) },
-                    onToggleEnabled = { profile, active -> onToggleProfile(profile, active) },
+                    canOverride = true,
+                    onAction = onAction,
+                    onToggleEnabled = onToggleProfile,
                 )
             }
         }
@@ -264,18 +216,18 @@ private fun ProfileEmptyAddGuide(onClick: () -> Unit) {
         Spacer(modifier = Modifier.height(spacing.space16))
         AppCard(
             modifier = Modifier.wrapContentWidth(),
-            cornerRadius = 100,
+            cornerRadius = AppTheme.radii.full,
             insideMargin = PaddingValues(horizontal = spacing.space16, vertical = spacing.space10),
             colors =
-                top.yukonga.miuix.kmp.basic.CardDefaults.defaultColors(
-                    color = primary.copy(alpha = 0.10f),
+                CardDefaults.defaultColors(
+                    color = primary.copy(alpha = AppTheme.opacity.subtle),
                     contentColor = primary,
                 ),
             onClick = onClick,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = ShellIcons.AddProfile,
+                    imageVector = Yume.BadgePlus,
                     contentDescription = YumeTxt.ProfilesPage.Action.AddProfile,
                     tint = primary,
                     modifier = Modifier.size(UiDp.dp20),

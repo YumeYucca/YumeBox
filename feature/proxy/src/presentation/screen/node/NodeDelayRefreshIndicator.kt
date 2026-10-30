@@ -49,14 +49,13 @@ import kotlin.math.roundToInt
 @Composable
 internal fun GroupDelayRefreshIndicator(
     groupName: String,
-    testingGroupNames: StateFlow<Set<String>>,
+    testingGroupNames: Set<String>,
     progress: StateFlow<ProxyDelayTestProgress?>,
     modifier: Modifier = Modifier,
     textStyle: TextStyle = MiuixTheme.textStyles.subtitle,
 ) {
-    val testing by testingGroupNames.collectAsState()
     NodeDelayRefreshIndicator(
-        visible = groupName in testing,
+        visible = groupName in testingGroupNames,
         progress = progress,
         modifier = modifier,
         textStyle = textStyle,

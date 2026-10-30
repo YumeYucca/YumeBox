@@ -21,6 +21,7 @@ package com.github.yumeyucca.yumebox.data.store
 
 import android.content.Context
 import com.github.yumeyucca.yumebox.data.model.BuiltInOverrideCatalog
+import com.github.yumeyucca.yumebox.data.model.OverrideContentType
 import timber.log.Timber
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -41,7 +42,7 @@ class BuiltInOverrideFileStore(
                 val assetHash = sha256(assetBytes)
                 val target =
                     configsDir.resolve("${definition.id}.${definition.contentType.extension}")
-                extensions
+                OverrideContentType.knownExtensions
                     .filterNot { it == definition.contentType.extension }
                     .forEach { extension ->
                         configsDir.resolve("${definition.id}.$extension").delete()
@@ -67,7 +68,6 @@ class BuiltInOverrideFileStore(
 
     private companion object {
         private val lock = Any()
-        private val extensions = listOf("yaml", "yml", "js")
 
         private fun sha256(bytes: ByteArray): ByteArray =
             MessageDigest.getInstance("SHA-256").digest(bytes)

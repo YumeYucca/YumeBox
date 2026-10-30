@@ -22,12 +22,12 @@
 
 package com.github.yumeyucca.yumebox.runtime.service.profile
 
+import com.github.yumeyucca.yumebox.core.util.PersistedJson
 import com.github.yumeyucca.yumebox.runtime.api.UUIDSerializer
 import com.tencent.mmkv.MMKV
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.Json
 import java.util.*
 
 object ProfileStore {
@@ -36,20 +36,16 @@ object ProfileStore {
 
     private val mmkv by lazy { MMKV.mmkvWithID("profiles", MMKV.MULTI_PROCESS_MODE) }
 
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-    }
 
     fun saveImported(list: List<Imported>) {
-        val jsonString = json.encodeToString(ListSerializer(Imported.serializer()), list)
+        val jsonString = PersistedJson.encodeToString(ListSerializer(Imported.serializer()), list)
         mmkv.encode(IMPORTED_KEY, jsonString)
     }
 
     fun loadImported(): List<Imported> {
         val jsonString = mmkv.decodeString(IMPORTED_KEY) ?: return emptyList()
         return try {
-            json.decodeFromString(ListSerializer(Imported.serializer()), jsonString)
+            PersistedJson.decodeFromString(ListSerializer(Imported.serializer()), jsonString)
         } catch (error: SerializationException) {
             emptyList()
         } catch (error: IllegalArgumentException) {
@@ -58,14 +54,14 @@ object ProfileStore {
     }
 
     fun saveProfileOrder(order: List<UUID>) {
-        val jsonString = json.encodeToString(ListSerializer(UUIDSerializer()), order)
+        val jsonString = PersistedJson.encodeToString(ListSerializer(UUIDSerializer()), order)
         mmkv.encode(PROFILE_ORDER_KEY, jsonString)
     }
 
     fun loadProfileOrder(): List<UUID> {
         val jsonString = mmkv.decodeString(PROFILE_ORDER_KEY) ?: return emptyList()
         return try {
-            json.decodeFromString(ListSerializer(UUIDSerializer()), jsonString)
+            PersistedJson.decodeFromString(ListSerializer(UUIDSerializer()), jsonString)
         } catch (error: SerializationException) {
             emptyList()
         } catch (error: IllegalArgumentException) {

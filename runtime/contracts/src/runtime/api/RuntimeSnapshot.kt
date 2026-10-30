@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.runtime.api
 
-
 import com.github.yumeyucca.yumebox.core.model.RunMode
 import kotlinx.serialization.Serializable
 
@@ -50,6 +49,10 @@ enum class RuntimePhase {
 
     val running: Boolean
         get() = this == Running
+
+    /** Coming up or serving. Excludes [Stopping], which is still tearing down — see [isActiveOrStopping]. */
+    val active: Boolean
+        get() = this == Starting || this == Running
 
     val isActiveOrStopping: Boolean
         get() = this == Starting || this == Running || this == Stopping

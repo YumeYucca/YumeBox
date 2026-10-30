@@ -32,12 +32,15 @@ data class SubStoreServiceRequest(
     val allowLan: Boolean = false,
 )
 
-data class SubStoreServiceSnapshot(
-    val isRunning: Boolean = false,
-    val isStarting: Boolean = false,
-) {
+/** Lifecycle of the Sub-Store service; [Starting] covers the window before the engine reports up. */
+enum class SubStoreServiceLifecycle {
+    Stopped,
+    Starting,
+    Running,
+    ;
+
     val isActive: Boolean
-        get() = isRunning || isStarting
+        get() = this != Stopped
 }
 
 object SubStoreServiceController {
@@ -48,11 +51,11 @@ object SubStoreServiceController {
     private const val EXTRA_BACKEND_PORT = "backendPort"
     private const val EXTRA_ALLOW_LAN = "allowLan"
 
-    private val _snapshot = MutableStateFlow(SubStoreServiceSnapshot())
-    val snapshot: StateFlow<SubStoreServiceSnapshot> = _snapshot.asStateFlow()
+    private val _lifecycle = MutableStateFlow(SubStoreServiceLifecycle.Stopped)
+    val lifecycle: StateFlow<SubStoreServiceLifecycle> = _lifecycle.asStateFlow()
 
     fun startService(context: Context, request: SubStoreServiceRequest) {
-        _snapshot.value = SubStoreServiceSnapshot(isRunning = false, isStarting = true)
+        _lifecycle.value = SubStoreServiceLifecycle.Starting
         val intent =
             Intent(context, SubStoreService::class.java).apply {
                 putExtra(EXTRA_FRONTEND_PORT, request.frontendPort)
@@ -61,13 +64,13 @@ object SubStoreServiceController {
             }
         runCatching { context.startService(intent) }
             .onFailure {
-                _snapshot.value = SubStoreServiceSnapshot()
+                _lifecycle.value = SubStoreServiceLifecycle.Stopped
                 throw it
             }
     }
 
     fun stopService(context: Context) {
-        _snapshot.value = SubStoreServiceSnapshot()
+        _lifecycle.value = SubStoreServiceLifecycle.Stopped
         context.stopService(Intent(context, SubStoreService::class.java))
     }
 
@@ -83,10 +86,10 @@ object SubStoreServiceController {
         )
 
     internal fun markRunning() {
-        _snapshot.value = SubStoreServiceSnapshot(isRunning = true, isStarting = false)
+        _lifecycle.value = SubStoreServiceLifecycle.Running
     }
 
     internal fun markStopped() {
-        _snapshot.value = SubStoreServiceSnapshot()
+        _lifecycle.value = SubStoreServiceLifecycle.Stopped
     }
 }

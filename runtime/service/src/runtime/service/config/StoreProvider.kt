@@ -21,14 +21,6 @@
 package com.github.yumeyucca.yumebox.runtime.service.config
 
 interface StoreProvider {
-    fun getInt(key: String, defaultValue: Int): Int
-
-    fun setInt(key: String, value: Int)
-
-    fun getLong(key: String, defaultValue: Long): Long
-
-    fun setLong(key: String, value: Long)
-
     fun getString(key: String, defaultValue: String): String
 
     fun setString(key: String, value: String)
@@ -40,8 +32,4 @@ interface StoreProvider {
     fun getBoolean(key: String, defaultValue: Boolean): Boolean
 
     fun setBoolean(key: String, value: Boolean)
-
-    fun remove(key: String)
-
-    fun clear()
 }

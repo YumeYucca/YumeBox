@@ -55,7 +55,6 @@ import java.util.*
 object RuntimeLog {
 
     enum class Level(val symbol: Char) {
-        Debug('D'),
         Info('I'),
         Warn('W'),
         Error('E'),
@@ -88,8 +87,6 @@ object RuntimeLog {
     /** Stable event families shown after the level. */
     enum class Type(val tag: String) {
         Launcher("LAUNCHER"),
-        Service("SERVICE"),
-        Spec("SPEC"),
         Session("SESSION"),
         Reload("RELOAD"),
         Verify("VERIFY"),
@@ -102,9 +99,6 @@ object RuntimeLog {
         private val context: Context,
         val source: Source,
     ) {
-        fun d(type: Type, message: String) =
-            RuntimeLog.write(context, Level.Debug, source, type, message)
-
         fun i(type: Type, message: String) =
             RuntimeLog.write(context, Level.Info, source, type, message)
 

@@ -71,7 +71,6 @@ fun <T : Parcelable> List<T>.writeToParcelSlice(parcel: Parcel, flags: Int) {
 
 fun <T : Parcelable> Parcelable.Creator<T>.createListFromParcelSlice(
     parcel: Parcel,
-    @Suppress("UNUSED_PARAMETER") flags: Int,
     chunk: Int,
 ): List<T> {
     val total = parcel.readInt()

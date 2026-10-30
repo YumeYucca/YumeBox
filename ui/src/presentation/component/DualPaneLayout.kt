@@ -49,9 +49,6 @@ fun DualPaneLayout(
     minLeftWidth: Dp = 280.dp,
     maxLeftWidth: Dp = 420.dp,
     minRightWidth: Dp = 320.dp,
-    showDivider: Boolean = true,
-    dividerDraggable: Boolean = true,
-    dividerHitWidth: Dp = 16.dp,
     onLeftFractionChange: ((Float) -> Unit)? = null,
 ) {
     // Ratio of free width. Survives window resize so both panes scale together, and survives
@@ -65,7 +62,7 @@ fun DualPaneLayout(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val containerWidthPx = with(density) { maxWidth.toPx().coerceAtLeast(1f) }
-        val dividerPx = with(density) { dividerHitWidth.toPx().takeIf { showDivider } ?: 0f }
+        val dividerPx = with(density) { DividerHitWidth.toPx() }
         val freeWidthPx = (containerWidthPx - dividerPx).coerceAtLeast(1f)
 
         val rawMinLeftPx = with(density) { minLeftWidth.toPx() }
@@ -85,7 +82,7 @@ fun DualPaneLayout(
 
         val desiredLeftPx = (leftRatio * freeWidthPx).coerceIn(minBoundPx, maxBoundPx)
         val leftWidthDp = with(density) { desiredLeftPx.toDp() }
-        val canDrag = dividerDraggable && maxBoundPx > minBoundPx + 0.5f
+        val canDrag = maxBoundPx > minBoundPx + 0.5f
 
         val dragState = rememberDraggableState { deltaPx ->
             if (!canDrag) return@rememberDraggableState
@@ -102,32 +99,31 @@ fun DualPaneLayout(
                 left()
             }
 
-            if (showDivider) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxHeight()
+                        .width(DividerHitWidth)
+                        .then(
+                            if (canDrag) {
+                                Modifier.draggable(
+                                    state = dragState,
+                                    orientation = Orientation.Horizontal,
+                                )
+                            } else {
+                                Modifier
+                            }
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
                 Box(
-                    modifier =
-                        Modifier
-                            .fillMaxHeight()
-                            .width(dividerHitWidth)
-                            .then(
-                                if (canDrag) {
-                                    Modifier.draggable(
-                                        state = dragState,
-                                        orientation = Orientation.Horizontal,
-                                    )
-                                } else {
-                                    Modifier
-                                }
-                            ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxHeight()
-                            .width(1.dp)
-                            .background(MiuixTheme.colorScheme.outline.copy(alpha = 0.55f))
-                    )
-                }
+                    Modifier
+                        .fillMaxHeight()
+                        .width(1.dp)
+                        .background(MiuixTheme.colorScheme.outline.copy(alpha = 0.55f))
+                )
             }
+
 
             Box(Modifier
                 .weight(1f)
@@ -137,3 +133,6 @@ fun DualPaneLayout(
         }
     }
 }
+
+/** Grab area of the divider: wide enough to hit comfortably, narrow enough not to steal taps. */
+private val DividerHitWidth = 16.dp

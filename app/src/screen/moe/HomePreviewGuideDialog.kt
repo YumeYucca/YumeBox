@@ -60,12 +60,12 @@ internal fun HomePreviewGuideDialog(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    var page by remember { mutableIntStateOf(0) }
+    var page by remember { mutableStateOf(GuidePage.Preview) }
     var accessGranted by remember { mutableStateOf(SystemWallpaperAccess.isGranted(context)) }
     LaunchedEffect(show) {
-        if (show) page = 0
+        if (show) page = GuidePage.Preview
     }
-    DisposableEffect(lifecycleOwner, page) {
+    DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 accessGranted = SystemWallpaperAccess.isGranted(context)
@@ -81,21 +81,9 @@ internal fun HomePreviewGuideDialog(
     WindowDialog(
         show = show,
         modifier = Modifier,
-        title =
-            when (page) {
-                0 -> YumeTxt.Home.PreviewGuide.Title
-                1 -> YumeTxt.Home.PreviewGuide.WallpaperTitle
-                2 -> YumeTxt.Home.PreviewGuide.SwipeTitle
-                else -> YumeTxt.Home.PreviewGuide.AddTitle
-            },
+        title = page.text.title,
         titleColor = DialogDefaults.titleColor(),
-        summary =
-            when (page) {
-                0 -> YumeTxt.Home.PreviewGuide.Description
-                1 -> YumeTxt.Home.PreviewGuide.WallpaperDescription
-                2 -> YumeTxt.Home.PreviewGuide.SwipeDescription
-                else -> YumeTxt.Home.PreviewGuide.AddDescription
-            },
+        summary = page.text.summary,
         summaryColor = DialogDefaults.summaryColor(),
         backgroundColor = DialogDefaults.backgroundColor(),
         enableWindowDim = true,
@@ -116,7 +104,7 @@ internal fun HomePreviewGuideDialog(
                 AnimatedContent(
                     targetState = page,
                     transitionSpec = {
-                        val forward = targetState > initialState
+                        val forward = targetState.ordinal > initialState.ordinal
                         (slideInHorizontally(tween(320)) { w -> if (forward) w else -w } +
                                 fadeIn(tween(220))) togetherWith
                                 (slideOutHorizontally(tween(320)) { w -> if (forward) -w else w } +
@@ -130,37 +118,38 @@ internal fun HomePreviewGuideDialog(
                         contentAlignment = Alignment.Center,
                     ) {
                         when (p) {
-                            0 -> MoeHomeSkeletonMockup(demo = HomeMockupDemo.StartButton)
-                            1 -> MoeHomeSkeletonMockup(demo = HomeMockupDemo.Wallpaper)
-                            2 -> HomeToNodeSwipeMockup()
-                            else -> MoeHomeSkeletonMockup(
-                                demo = HomeMockupDemo.StartButton,
-                                animateLaunch = false,
-                                markWallpaper = true,
-                            )
+                            GuidePage.Preview -> MoeHomeSkeletonMockup(demo = HomeMockupDemo.StartButton)
+                            GuidePage.Wallpaper -> MoeHomeSkeletonMockup(demo = HomeMockupDemo.Wallpaper)
+                            GuidePage.Swipe -> HomeToNodeSwipeMockup()
+                            GuidePage.Add ->
+                                MoeHomeSkeletonMockup(
+                                    demo = HomeMockupDemo.StartButton,
+                                    animateLaunch = false,
+                                    markWallpaper = true,
+                                )
                         }
                     }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    repeat(4) { i ->
+                    GuidePage.entries.forEach { entry ->
                         Box(
                             modifier =
                                 Modifier
                                     .size(7.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        if (i == page) colorScheme.primary
+                                        if (entry == page) colorScheme.primary
                                         else colorScheme.onSurface.copy(alpha = opacity.muted)
                                     )
                         )
                     }
                 }
 
-                if (page < 3) {
-                    GuideButton(
+                if (page != GuidePage.Add) {
+                    TextButton(
                         text = YumeTxt.Home.PreviewGuide.Next,
-                        onClick = { page += 1 },
+                        onClick = { page = GuidePage.entries[page.ordinal + 1] },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
@@ -169,7 +158,7 @@ internal fun HomePreviewGuideDialog(
                             checked = useSystemWallpaper,
                             onCheckedChange = onUseSystemWallpaperChange,
                         )
-                        GuideButton(
+                        TextButton(
                             text = YumeTxt.Home.PreviewGuide.Start,
                             onClick = { if (accessGranted) onDismissRequest() },
                             enabled = accessGranted,
@@ -182,12 +171,37 @@ internal fun HomePreviewGuideDialog(
     )
 }
 
-@Composable
-private fun GuideButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    TextButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled)
+/** The four panels of the guided tour; the order is the paging order. */
+private enum class GuidePage {
+    Preview,
+    Wallpaper,
+    Swipe,
+    Add,
+    ;
+
+    val text: GuidePageText
+        get() = when (this) {
+            Preview ->
+                GuidePageText(
+                    YumeTxt.Home.PreviewGuide.Title,
+                    YumeTxt.Home.PreviewGuide.Description,
+                )
+            Wallpaper ->
+                GuidePageText(
+                    YumeTxt.Home.PreviewGuide.WallpaperTitle,
+                    YumeTxt.Home.PreviewGuide.WallpaperDescription,
+                )
+            Swipe ->
+                GuidePageText(
+                    YumeTxt.Home.PreviewGuide.SwipeTitle,
+                    YumeTxt.Home.PreviewGuide.SwipeDescription,
+                )
+            Add ->
+                GuidePageText(
+                    YumeTxt.Home.PreviewGuide.AddTitle,
+                    YumeTxt.Home.PreviewGuide.AddDescription,
+                )
+        }
 }
+
+private data class GuidePageText(val title: String, val summary: String)

@@ -69,12 +69,7 @@ class TrafficStatisticsViewModel(private val trafficStatisticsStore: TrafficStat
     ): TrafficStatisticsUiState {
         val totalUpload = topApps.sumOf(AppTrafficUsage::totalUpload)
         val totalDownload = topApps.sumOf(AppTrafficUsage::totalDownload)
-        val summary =
-            DailyTrafficSummary(
-                dateMillis = range.days.toLong(),
-                totalUpload = totalUpload,
-                totalDownload = totalDownload,
-            )
+        val summary = TrafficTotals(totalUpload = totalUpload, totalDownload = totalDownload)
         val bars =
             when (range) {
                 StatisticsTimeRange.TODAY -> buildTodayBars(hourlyTotals)
@@ -97,16 +92,9 @@ class TrafficStatisticsViewModel(private val trafficStatisticsStore: TrafficStat
     }
 
     private fun mergeSystemTraffic(apps: List<AppTrafficUsage>): List<AppTrafficUsage> {
-        val systemApps = apps.filter {
-            it.appKey == AppIdentityResolver.UNKNOWN_APP_KEY ||
-                    it.appKey == TrafficStatisticsBuckets.UNATTRIBUTED_APP_KEY
-        }
+        val (systemApps, regularApps) = apps.partition { it.isSystemTraffic() }
         if (systemApps.isEmpty()) return apps
 
-        val regularApps = apps.filterNot {
-            it.appKey == AppIdentityResolver.UNKNOWN_APP_KEY ||
-                    it.appKey == TrafficStatisticsBuckets.UNATTRIBUTED_APP_KEY
-        }
         val systemTraffic =
             AppTrafficUsage(
                 appKey = TrafficStatisticsBuckets.UNATTRIBUTED_APP_KEY,
@@ -118,6 +106,10 @@ class TrafficStatisticsViewModel(private val trafficStatisticsStore: TrafficStat
             )
         return regularApps + systemTraffic
     }
+
+    private fun AppTrafficUsage.isSystemTraffic(): Boolean =
+        appKey == AppIdentityResolver.UNKNOWN_APP_KEY ||
+            appKey == TrafficStatisticsBuckets.UNATTRIBUTED_APP_KEY
 
     private fun buildTodayBars(hourlyTotals: List<HourlyTrafficSummary>): List<BarChartItem> {
         val totalsByHour = hourlyTotals.associateBy { it.hourStartMillis }
@@ -181,8 +173,24 @@ class TrafficStatisticsViewModel(private val trafficStatisticsStore: TrafficStat
 
 data class TrafficStatisticsUiState(
     val selectedTimeRange: StatisticsTimeRange = StatisticsTimeRange.TODAY,
-    val summary: DailyTrafficSummary = DailyTrafficSummary.empty,
+    val summary: TrafficTotals = TrafficTotals.empty,
     val topApps: List<AppTrafficUsage> = emptyList(),
     val chartBars: List<BarChartItem> = emptyList(),
     val chartAverage: Long = 0L,
 )
+
+/**
+ * Transfer totals of the selected [StatisticsTimeRange]. The range is the period, so this type
+ * carries no timestamp at all: a millis-named field must never hold a day count.
+ */
+data class TrafficTotals(
+    val totalUpload: Long = 0L,
+    val totalDownload: Long = 0L,
+) {
+    val total: Long
+        get() = totalUpload + totalDownload
+
+    companion object {
+        val empty = TrafficTotals()
+    }
+}

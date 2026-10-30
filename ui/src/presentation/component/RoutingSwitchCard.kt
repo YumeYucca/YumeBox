@@ -57,7 +57,6 @@ fun <T> RoutingSwitchCard(
     iconSize: Dp = UiDp.dp40,
     contentPadding: PaddingValues = PaddingValues(horizontal = UiDp.dp16, vertical = UiDp.dp12),
     applyHorizontalPadding: Boolean = true,
-    titleContent: @Composable (String) -> Unit = { Title(it) },
 ) {
     val spacing = AppTheme.spacing
 
@@ -73,7 +72,7 @@ fun <T> RoutingSwitchCard(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(spacing.space6),
     ) {
-        titleContent(title)
+        Title(title)
         itemChunks.forEach { chunk ->
             AppCard(applyHorizontalPadding = applyHorizontalPadding) {
                 Column(modifier = Modifier.fillMaxWidth()) {

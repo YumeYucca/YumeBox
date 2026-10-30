@@ -31,28 +31,21 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.Velocity
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
-import com.github.yumeyucca.yumebox.domain.model.isSelectable
 import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumeyucca.yumebox.presentation.screen.node.GroupDelayRefreshIndicator
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeCard
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSearchToolbar
+import com.github.yumeyucca.yumebox.presentation.screen.node.nodeClickHandler
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGridItems
-import com.github.yumeyucca.yumebox.presentation.theme.LocalSpacing
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.KeepLazyListTopAnchorOnReorder
-import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
-import kotlinx.coroutines.flow.StateFlow
-import top.yukonga.miuix.kmp.basic.ScrollBehavior
 
 private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
     val normalizedQuery = query.trim()
@@ -64,34 +57,46 @@ private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
     }
 }
 
+/**
+ * 一页节点列表。宿主只决定取值([ProxyNodePageState]),这里只负责把这一页画出来,
+ * 所以不需要把 13 个取值再展开成 17 个参数。
+ */
 @Composable
-internal fun NodeListPage(
-    group: ProxyGroupInfo?,
-    sortMode: ProxySortMode,
-    testingGroupNames: StateFlow<Set<String>>,
-    testingProxyNames: Set<String>,
-    delayTestProgress: StateFlow<ProxyDelayTestProgress?>,
-    mainInnerPadding: PaddingValues,
-    outerInnerPadding: PaddingValues,
-    scrollBehavior: ScrollBehavior,
-    listState: LazyListState,
-    onSelectProxy: (groupName: String, proxyName: String) -> Unit,
+internal fun ProxyNodePage(
+    page: ProxyNodePageState,
+    proxyViewModel: ProxyViewModel,
+    onSearchQueryChange: (String) -> Unit,
     onTestDelay: () -> Unit,
-    onTestProxyDelay: (String) -> Unit,
-    onScrollDirectionChanged: (Boolean) -> Unit,
-    twoColumnGrid: Boolean = false,
-    gridState: LazyGridState? = null,
-    searchQuery: String = "",
-    onSearchQueryChange: (String) -> Unit = {},
-    searchVisible: Boolean = false,
-    topOverlayInset: Dp = UiDp.dp0,
 ) {
-    if (group == null) return
-    val spacing = LocalSpacing.current
-    val testingNames by testingGroupNames.collectAsState()
+    val group = page.group ?: return
+    val sortMode = page.sortMode
+    val testingGroupNames = page.testingGroupNames
+    val testingProxyNames = page.testingProxyNames
+    val twoColumnGrid = page.twoColumnNodes
+    val gridState = page.gridState
+    val searchQuery = page.searchQuery
+    val searchVisible = page.searchVisible
+    val outerInnerPadding = page.outerInnerPadding
+    val mainInnerPadding = page.mainInnerPadding
+    val scrollBehavior = page.scrollBehavior
+    val listState = page.listState
+    val topOverlayInset = page.topOverlayInset
+    val delayTestProgress = proxyViewModel.delayTestProgress
+    val onTestProxyDelay = proxyViewModel::testProxyDelay
+    val onSelectProxy: (groupName: String, proxyName: String) -> Unit = proxyViewModel::selectProxy
+    val spacing = AppTheme.spacing
     val visibleProxies = remember(group.proxies, searchQuery) { group.filterNodes(searchQuery) }
     val listItemKeys = remember(group.proxies) { group.proxies.map { it.name } }
     val resolvedGridState = if (twoColumnGrid) gridState ?: rememberLazyGridState() else null
+    // 可选中分组点击即选中;不可选中的分组(自动选择/负载均衡)没有可选目标,点击改测速。
+    val nodeClick =
+        remember(group, onSelectProxy, onTestDelay) {
+            nodeClickHandler(
+                group = group,
+                onSelectProxy = { proxyName -> onSelectProxy(group.name, proxyName) },
+                onTestDelay = onTestDelay,
+            )
+        }
 
     GroupDelayTestListAnchor(
         listState = listState,
@@ -114,96 +119,46 @@ internal fun NodeListPage(
 
     if (twoColumnGrid) {
         val activeGridState = resolvedGridState ?: return
-        val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
-        var lastHiddenState by remember(activeGridState) { mutableStateOf(false) }
-        val fabScrollObserver =
-            remember(activeGridState) {
-                object : NestedScrollConnection {
-                    override fun onPreScroll(
-                        available: Offset,
-                        source: NestedScrollSource,
-                    ): Offset {
-                        val hiddenState =
-                            when {
-                                available.y < -1f -> true
-                                available.y > 1f -> false
-                                else -> return Offset.Zero
-                            }
-                        if (hiddenState != lastHiddenState) {
-                            lastHiddenState = hiddenState
-                            latestScrollDirectionCallback(hiddenState)
-                        }
-                        return Offset.Zero
-                    }
-
-                    override suspend fun onPostFling(
-                        consumed: Velocity,
-                        available: Velocity,
-                    ): Velocity {
-                        if (consumed.y > 1f || available.y > 1f) {
-                            latestScrollDirectionCallback(false)
-                            lastHiddenState = false
-                        }
-                        return Velocity.Zero
-                    }
-                }
-            }
-        LaunchedEffect(activeGridState) {
-            latestScrollDirectionCallback(false)
-            lastHiddenState = false
-        }
-        Box(
-            Modifier
-                .fillMaxSize()
-                .nestedScroll(fabScrollObserver),
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            state = activeGridState,
+            contentPadding = contentPadding,
+            horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
+            verticalArrangement = Arrangement.spacedBy(UiDp.dp8),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection),
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                state = activeGridState,
-                contentPadding = contentPadding,
-                horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
-                verticalArrangement = Arrangement.spacedBy(UiDp.dp8),
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .nestedScroll(scrollBehavior.nestedScrollConnection),
-            ) {
-                if (searchVisible) {
-                    item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
-                        NodeSearchSlot(
-                            visible = true,
-                            query = searchQuery,
-                            onQueryChange = onSearchQueryChange,
-                        )
-                    }
-                }
-                if (group.name in testingNames) {
-                    item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
-                        NodeRefreshSlot(
-                            groupName = group.name,
-                            testingGroupNames = testingGroupNames,
-                            progress = delayTestProgress,
-                        )
-                    }
-                }
-                itemsIndexed(items = visibleProxies, key = { _, proxy -> proxy.name }) { _, proxy ->
-                    NodeCard(
-                        proxy = proxy,
-                        isSelected = proxy.name == group.now,
-                        onClick = { proxyName ->
-                            if (group.isSelectable) {
-                                onSelectProxy(group.name, proxyName)
-                            } else {
-                                onTestDelay()
-                            }
-                        },
-                        onTestClick = onTestProxyDelay,
-                        isDelayTesting = testingProxyNames.contains(proxy.name),
-                        showCountryFlag = true,
-                        compact = true,
-                        modifier = Modifier.fillMaxWidth(),
+            if (searchVisible) {
+                item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
+                    NodeSearchSlot(
+                        visible = true,
+                        query = searchQuery,
+                        onQueryChange = onSearchQueryChange,
                     )
                 }
+            }
+            if (group.name in testingGroupNames) {
+                item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
+                    GroupDelayRefreshIndicator(
+                        groupName = group.name,
+                        testingGroupNames = testingGroupNames,
+                        progress = delayTestProgress,
+                    )
+                }
+            }
+            itemsIndexed(items = visibleProxies, key = { _, proxy -> proxy.name }) { _, proxy ->
+                NodeCard(
+                    proxy = proxy,
+                    isSelected = proxy.name == group.now,
+                    onClick = nodeClick,
+                    onTestClick = onTestProxyDelay,
+                    isDelayTesting = testingProxyNames.contains(proxy.name),
+                    showCountryFlag = true,
+                    compact = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
         return
@@ -213,8 +168,6 @@ internal fun NodeListPage(
         lazyListState = listState,
         scrollBehavior = scrollBehavior,
         innerPadding = outerInnerPadding,
-        enableGlobalScroll = true,
-        onScrollDirectionChanged = onScrollDirectionChanged,
         contentPadding = contentPadding,
     ) {
         // 搜索框常驻槽位:展开/收起走 AnimatedVisibility 高度过渡,而不是硬切。
@@ -226,7 +179,7 @@ internal fun NodeListPage(
             )
         }
         item(key = "__refresh_indicator__") {
-            NodeRefreshSlot(
+            GroupDelayRefreshIndicator(
                 groupName = group.name,
                 testingGroupNames = testingGroupNames,
                 progress = delayTestProgress,
@@ -235,13 +188,7 @@ internal fun NodeListPage(
         nodeGridItems(
             proxies = visibleProxies,
             selectedProxyName = group.now,
-            onProxyClick = { proxyName ->
-                if (group.isSelectable) {
-                    onSelectProxy(group.name, proxyName)
-                } else {
-                    onTestDelay()
-                }
-            },
+            onProxyClick = nodeClick,
             onProxyTest = onTestProxyDelay,
             testingProxyNames = testingProxyNames,
             outerHorizontalPadding = UiDp.dp0,
@@ -275,31 +222,17 @@ private fun NodeSearchSlot(
 }
 
 @Composable
-private fun NodeRefreshSlot(
-    groupName: String,
-    testingGroupNames: StateFlow<Set<String>>,
-    progress: StateFlow<ProxyDelayTestProgress?>,
-) {
-    GroupDelayRefreshIndicator(
-        groupName = groupName,
-        testingGroupNames = testingGroupNames,
-        progress = progress,
-    )
-}
-
-@Composable
 private fun GroupDelayTestListAnchor(
     listState: LazyListState,
     itemKeys: List<String>,
     sortByLatency: Boolean,
     groupName: String,
-    testingGroupNames: StateFlow<Set<String>>,
+    testingGroupNames: Set<String>,
 ) {
-    val testing by testingGroupNames.collectAsState()
     KeepLazyListTopAnchorOnReorder(
         listState = listState,
         itemKeys = itemKeys,
-        enabled = sortByLatency && groupName !in testing,
+        enabled = sortByLatency && groupName !in testingGroupNames,
         scrollToTopOnEnabled = true,
     )
 }

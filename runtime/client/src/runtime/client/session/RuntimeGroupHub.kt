@@ -304,7 +304,7 @@ internal class RuntimeGroupHub(
     }
 
     private suspend fun queryGroups(): List<ProxyGroupInfo> =
-        coreOps.queryAllProxyGroups(excludeNotSelectable = false).map(groupStore::toInfo)
+        coreOps.queryAllProxyGroups().map(groupStore::toInfo)
 
     private suspend fun currentDelayTestContext(): DelayTestContext? {
         val epoch = currentEpoch()

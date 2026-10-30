@@ -9,13 +9,13 @@
  * Copyright (c) YumeYucca 2025 - Present
  */
 
-@file:Suppress("DuplicatedCode", "FunctionName")
+@file:Suppress("FunctionName")
 
 package com.github.yumeyucca.yumebox.screen.moe
 
-
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -23,9 +23,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,8 +52,10 @@ internal data class MoeHomeLayoutState(
     val wallpaperBiasX: Float,
     val wallpaperBiasY: Float,
     val statusBarTop: Dp,
-    val pageProgress: Float,
-    val sidebarProgress: Float,
+    // Pager progress is read where it is drawn, not here: it changes on every scroll frame, and a
+    // plain Float in this state would recompose the whole home layout as the pager moves.
+    val pageProgress: State<Float>,
+    val sidebarProgress: State<Float>,
     val sidebarToggleProgress: Float,
     val duration: MoeDurationPair,
     val batteryPercent: Int?,
@@ -70,7 +71,6 @@ internal data class MoeHomeLayoutState(
     val controlState: HomeProxyControlState,
     val canLaunch: Boolean,
     val isRemoteController: Boolean,
-    val usesTabletLayout: Boolean = false,
 )
 
 internal class MoeHomeActions(
@@ -80,13 +80,25 @@ internal class MoeHomeActions(
     val toggleProxy: () -> Unit,
 )
 
+/** Which home layout to compose; the window layout mode decides once, at the call site. */
+internal enum class MoeHomeLayoutMode {
+    Phone,
+    Tablet,
+}
+
+/** Where the hero card sits and how big it is; both layouts share the one derived value. */
+internal data class MoeHeroGeometry(val top: Dp, val height: Dp, val radius: Dp)
+
+private fun moeHeroGeometry(statusBarTop: Dp, maxHeight: Dp, deviceCorner: Dp): MoeHeroGeometry =
+    MoeHeroGeometry(
+        top = statusBarTop,
+        height = (maxHeight - statusBarTop).coerceAtLeast(UiDp.dp0) * MoeUi.Hero.heightFraction,
+        radius = MoeUi.Shape.heroCornerRadius(deviceCorner),
+    )
+
 @Composable
 context(actions: MoeHomeActions)
-internal fun MoeHomeLayout(state: MoeHomeLayoutState) {
-    val density = LocalDensity.current
-    // Dedicated layer backdrop so the sidebar glass blurs only the wallpaper layer, not the
-    // content panel.
-    val sidebarBackdrop = rememberLayerBackdrop { drawContent() }
+internal fun MoeHomeLayout(state: MoeHomeLayoutState, layout: MoeHomeLayoutMode) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val greetingColor =
             rememberMoeWallpaperAccentColor(
@@ -94,78 +106,87 @@ internal fun MoeHomeLayout(state: MoeHomeLayoutState) {
                 surface = state.contentSurface,
                 fallback = MiuixTheme.colorScheme.primary,
             )
-        if (state.usesTabletLayout) {
-            MoeTabletHomeLayout(
-                state = state,
-                maxWidth = maxWidth,
+        // Read the device corner once and floor it once: the panel, its decoration and the hero
+        // card all inherit the same radius, so a device that reports a flat corner cannot leave
+        // any of them square.
+        val deviceCorner = MoeUi.Shape.panelCorner(getRoundedCorner())
+        val hero =
+            moeHeroGeometry(
+                statusBarTop = state.statusBarTop,
                 maxHeight = maxHeight,
-                greetingColor = greetingColor,
+                deviceCorner = deviceCorner,
             )
-            return@BoxWithConstraints
+        when (layout) {
+            MoeHomeLayoutMode.Phone ->
+                MoePhoneHomeLayout(state, greetingColor, maxWidth, maxHeight, hero, deviceCorner)
+            MoeHomeLayoutMode.Tablet ->
+                MoeTabletHomeLayout(state, greetingColor, maxWidth, maxHeight, hero)
         }
-        val sidebarWidth = maxWidth * MoeUi.Sidebar.fraction
-        val contentStart = (sidebarWidth - MoeUi.Sidebar.contentOverlap).coerceAtLeast(UiDp.dp0)
-        // Devices with tiny/no system corners still need a readable panel radius; keep real
-        // screen corners only when they already clear the 16dp threshold.
-        val systemCorner = getRoundedCorner()
-        val screenCorner = if (systemCorner < UiDp.dp16) UiDp.dp24 else systemCorner
-        val sidebarDecorationWidth = maxOf(sidebarWidth, contentStart + screenCorner)
-        val page = state.pageProgress.coerceIn(0f, 1f)
-        val sidebar = state.sidebarProgress.coerceIn(0f, 1f) * state.sidebarToggleProgress
-        val sidebarWidthVisible = lerpDp(MoeUi.Sidebar.collapsedVisibleWidth, contentStart, sidebar)
-        val heroRadius = MoeUi.Shape.heroCornerRadius(screenCorner)
-        val heroTop = state.statusBarTop
-        val heroHeight =
-            (maxHeight - heroTop).coerceAtLeast(UiDp.dp0) * MoeUi.Hero.heightFraction
-        // Glass blur needs a RuntimeShader (API 33+); miuix falls back to a solid surface without
-        // one. Skip the effect entirely while the rail is fully collapsed.
-        val blurReady by
-        remember(sidebar) {
-            derivedStateOf { sidebar > 0.03f }
-        }
-        MoeWallpaperBackground(
-            wallpaperUri = state.wallpaperUri,
-            wallpaperZoom = state.wallpaperZoom,
-            wallpaperBiasX = state.wallpaperBiasX,
-            wallpaperBiasY = state.wallpaperBiasY,
-            qualityMode = MoeWallpaperQualityMode.BackgroundBlur,
-            modifier = Modifier
-                .matchParentSize()
-                .layerBackdrop(sidebarBackdrop),
-        )
-        MoeSidebarDecoration(
-            backdrop = sidebarBackdrop,
-            blurEnabled = blurReady,
-            blurProgress = sidebar,
-            modifier =
-                Modifier
-                    .align(Alignment.CenterStart)
-                    .width(sidebarDecorationWidth)
-                    .fillMaxHeight()
-                    .graphicsLayer {
-                        translationX = with(density) { lerpDp((-56).dp, UiDp.dp0, sidebar).toPx() }
-                        alpha = lerpFloat(0.78f, 1f, sidebar) * page
-                    },
-        ) {
-            MoeSidebarContent(
-                topValue = state.duration.top,
-                bottomValue = state.duration.bottom,
-                batteryPercent = state.batteryPercent,
-                icons = state.sidebarIcons,
-                visibleWidth = sidebarWidthVisible,
-            )
-        }
-        MoeHomePanel(
-            state = state,
-            greetingColor = greetingColor,
-            contentStart = contentStart,
-            heroTop = heroTop,
-            heroHeight = heroHeight,
-            heroRadius = heroRadius,
-            sidebar = sidebar,
-            screenCorner = screenCorner,
+    }
+}
+
+@Composable
+context(actions: MoeHomeActions)
+private fun BoxScope.MoePhoneHomeLayout(
+    state: MoeHomeLayoutState,
+    greetingColor: Color,
+    maxWidth: Dp,
+    maxHeight: Dp,
+    hero: MoeHeroGeometry,
+    screenCorner: Dp,
+) {
+    val density = LocalDensity.current
+    // Dedicated layer backdrop so the sidebar glass blurs only the wallpaper layer, not the
+    // content panel.
+    val sidebarBackdrop = rememberLayerBackdrop { drawContent() }
+    val sidebarWidth = maxWidth * MoeUi.Sidebar.fraction
+    val contentStart = (sidebarWidth - MoeUi.Sidebar.contentOverlap).coerceAtLeast(UiDp.dp0)
+    val sidebarDecorationWidth = maxOf(sidebarWidth, contentStart + screenCorner)
+    val sidebar = state.sidebarProgress.value.coerceIn(0f, 1f) * state.sidebarToggleProgress
+    val sidebarWidthVisible = lerpDp(MoeUi.Sidebar.collapsedVisibleWidth, contentStart, sidebar)
+    // Glass blur needs a RuntimeShader (API 33+); miuix falls back to a solid surface without
+    // one. Skip the effect entirely while the rail is fully collapsed.
+    val blurEnabled = sidebar > 0.03f
+    MoeWallpaperBackground(
+        wallpaperUri = state.wallpaperUri,
+        wallpaperZoom = state.wallpaperZoom,
+        wallpaperBiasX = state.wallpaperBiasX,
+        wallpaperBiasY = state.wallpaperBiasY,
+        qualityMode = MoeWallpaperQualityMode.BackgroundBlur,
+        modifier = Modifier
+            .matchParentSize()
+            .layerBackdrop(sidebarBackdrop),
+    )
+    MoeSidebarDecoration(
+        backdrop = sidebarBackdrop,
+        blurEnabled = blurEnabled,
+        blurProgress = sidebar,
+        modifier =
+            Modifier
+                .align(Alignment.CenterStart)
+                .width(sidebarDecorationWidth)
+                .fillMaxHeight()
+                .graphicsLayer {
+                    translationX = with(density) { lerpDp((-56).dp, UiDp.dp0, sidebar).toPx() }
+                    alpha = lerpFloat(0.78f, 1f, sidebar) * state.pageProgress.value.coerceIn(0f, 1f)
+                },
+    ) {
+        MoeSidebarContent(
+            topValue = state.duration.top,
+            bottomValue = state.duration.bottom,
+            batteryPercent = state.batteryPercent,
+            icons = state.sidebarIcons,
+            visibleWidth = sidebarWidthVisible,
         )
     }
+    MoeHomePanel(
+        state = state,
+        greetingColor = greetingColor,
+        contentStart = contentStart,
+        hero = hero,
+        sidebar = sidebar,
+        screenCorner = screenCorner,
+    )
 }
 
 @Composable
@@ -174,142 +195,161 @@ private fun MoeHomePanel(
     state: MoeHomeLayoutState,
     greetingColor: Color,
     contentStart: Dp,
-    heroTop: Dp,
-    heroHeight: Dp,
-    heroRadius: Dp,
+    hero: MoeHeroGeometry,
     sidebar: Float,
     screenCorner: Dp,
 ) {
     val corner = lerpDp(UiDp.dp0, screenCorner, sidebar)
-    val heroScale =
-        if (state.pageProgress >= 0.999f) 1f
-        else
-            lerpFloat(
-                1f,
-                0.965f,
-                FastOutSlowInEasing.transform(1f - state.pageProgress.coerceIn(0f, 1f)),
-            )
     Box(
-        Modifier
-            .fillMaxSize()
-            .padding(start = lerpDp(UiDp.dp0, contentStart, sidebar))
-            .background(
-                color = state.contentSurface,
-                shape =
-                    RoundedCornerShape(
-                        topStart = corner,
-                        bottomStart = corner,
-                    ),
-            )
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(start = lerpDp(UiDp.dp0, contentStart, sidebar))
+                .background(
+                    color = state.contentSurface,
+                    shape =
+                        RoundedCornerShape(
+                            topStart = corner,
+                            bottomStart = corner,
+                        ),
+                ),
     ) {
-        MoeHero(state, heroScale, heroTop, heroHeight, heroRadius)
-        MoeHomeCopy(state, greetingColor, heroTop, heroHeight, heroRadius)
+        MoeHeroCard(
+            state = state,
+            geometry = hero,
+            modifier = Modifier.align(Alignment.TopStart),
+            onDoubleTap = actions.toggleSidebar,
+        )
+        MoeHomeCopySection(
+            state = state,
+            greetingColor = greetingColor,
+            modifier = Modifier.align(Alignment.TopStart).fillMaxWidth(),
+            topPadding = hero.top + hero.height + MoeUi.Hero.belowHeroTopGap,
+        )
     }
 }
 
+/**
+ * Hero card shell shared by both layouts: [MoeHeroOverlay] owns wallpaper, scrim and runtime info;
+ * this only owns the card frame, its gestures and the page-turn transform.
+ */
 @Composable
 context(actions: MoeHomeActions)
-private fun BoxScope.MoeHero(
+private fun MoeHeroCard(
     state: MoeHomeLayoutState,
-    scale: Float,
-    heroTop: Dp,
-    heroHeight: Dp,
-    heroRadius: Dp,
+    geometry: MoeHeroGeometry,
+    modifier: Modifier = Modifier,
+    onDoubleTap: (() -> Unit)? = null,
+    headerContent: @Composable BoxScope.() -> Unit = {},
 ) {
-    val toggleSidebar by rememberUpdatedState(actions.toggleSidebar)
     val pickWallpaper by rememberUpdatedState(actions.pickWallpaper)
+    val doubleTap = rememberUpdatedState(onDoubleTap)
     Box(
-        Modifier
-            .align(Alignment.TopStart)
+        modifier
             .fillMaxWidth()
             .padding(
                 start = MoeUi.Hero.containerHorizontalInset,
                 end = MoeUi.Hero.containerHorizontalInset,
-                top = heroTop,
+                top = geometry.top,
             )
-            .height(heroHeight)
+            .height(geometry.height)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onDoubleTap = { toggleSidebar() },
+                    onDoubleTap = { doubleTap.value?.invoke() },
                     onLongPress = { pickWallpaper() },
                 )
             }
             .graphicsLayer {
                 transformOrigin = TransformOrigin(0.5f, 0f)
+                // At rest the eased term is exactly 0, so the hero sits at scale 1 without a
+                // special case. Derived here rather than in the caller so a page turn only
+                // re-runs this layer block instead of recomposing the card.
+                val pageTurn =
+                    FastOutSlowInEasing.transform(1f - state.pageProgress.value.coerceIn(0f, 1f))
+                val scale = lerpFloat(1f, MoeUi.Hero.pageTurnScale, pageTurn)
                 scaleX = scale
                 scaleY = scale
             }
-            .squircleClip(heroRadius)
+            .squircleClip(geometry.radius),
     ) {
-        MoeWallpaperBackground(
-            wallpaperUri = state.wallpaperUri,
-            wallpaperZoom = state.wallpaperZoom,
-            wallpaperBiasX = state.wallpaperBiasX,
-            wallpaperBiasY = state.wallpaperBiasY,
-            qualityMode = MoeWallpaperQualityMode.Foreground,
-            modifier = Modifier.matchParentSize(),
-        )
-        Box(
+        MoeHeroOverlay(state, headerContent)
+    }
+}
+
+@Composable
+private fun BoxScope.MoeHeroOverlay(
+    state: MoeHomeLayoutState,
+    headerContent: @Composable BoxScope.() -> Unit = {},
+) {
+    MoeWallpaperBackground(
+        wallpaperUri = state.wallpaperUri,
+        wallpaperZoom = state.wallpaperZoom,
+        wallpaperBiasX = state.wallpaperBiasX,
+        wallpaperBiasY = state.wallpaperBiasY,
+        qualityMode = MoeWallpaperQualityMode.Foreground,
+        modifier = Modifier.matchParentSize(),
+    )
+    Box(
+        Modifier
+            .matchParentSize()
+            .background(
+                Brush.verticalGradient(
+                    // Fully opaque from 0.92 so the rounded corner band never lets the
+                    // wallpaper bleed through as a colored line (issue #151 item 6); the
+                    // longer fade avoids the hard mid-way cut (item 5).
+                    0f to Color.Transparent,
+                    0.52f to Color.Transparent,
+                    0.82f to state.contentSurface.copy(alpha = 0.88f),
+                    0.92f to state.contentSurface,
+                    1f to state.contentSurface,
+                )
+            )
+    )
+    headerContent()
+    AnimatedVisibility(
+        visible = state.isRunning,
+        modifier =
             Modifier
-                .matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        // Fully opaque from 0.92 so the rounded corner band never lets the
-                        // wallpaper bleed through as a colored line (issue #151 item 6); the
-                        // longer fade avoids the hard mid-way cut (item 5).
-                        0f to Color.Transparent,
-                        0.52f to Color.Transparent,
-                        0.82f to state.contentSurface.copy(alpha = 0.88f),
-                        0.92f to state.contentSurface,
-                        1f to state.contentSurface,
-                    )
-                )
-        )
-        AnimatedVisibility(
-            visible = state.isRunning,
-            modifier =
-                Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .padding(
-                        start = MoeUi.Hero.contentHorizontalInset,
-                        end = MoeUi.Hero.contentHorizontalInset,
-                        bottom = MoeUi.Hero.trafficBottomInset,
-                    ),
-            enter = fadeIn() + slideInVertically { it / 3 },
-            exit = fadeOut() + slideOutVertically { it / 3 },
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(MoeUi.Hero.runtimeInfoTopGap)) {
-                MoeTrafficStrip(state.traffic.download, state.traffic.upload)
-                MoeHomeInfoPanel(
-                    serverName = state.selectedServerName.takeIf { state.isRunning },
-                    serverPing = state.selectedServerPing.takeIf { state.isRunning },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(
+                    start = MoeUi.Hero.contentHorizontalInset,
+                    end = MoeUi.Hero.contentHorizontalInset,
+                    bottom = MoeUi.Hero.trafficBottomInset,
+                ),
+        enter = fadeIn() + slideInVertically { it / 3 },
+        exit = fadeOut() + slideOutVertically { it / 3 },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(MoeUi.Hero.runtimeInfoTopGap)) {
+            MoeTrafficStrip(state.traffic.download, state.traffic.upload)
+            MoeHomeInfoPanel(
+                serverName = state.selectedServerName.takeIf { state.isRunning },
+                serverPing = state.selectedServerPing.takeIf { state.isRunning },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
 
 @Composable
 context(actions: MoeHomeActions)
-private fun BoxScope.MoeHomeCopy(
+private fun MoeHomeCopySection(
     state: MoeHomeLayoutState,
     greetingColor: Color,
-    heroTop: Dp,
-    heroHeight: Dp,
-    heroRadius: Dp,
+    modifier: Modifier,
+    topPadding: Dp,
+    bottomPadding: Dp = UiDp.dp0,
 ) {
+    val horizontalPadding =
+        MoeUi.Hero.containerHorizontalInset + MoeUi.Hero.contentHorizontalInset
     Column(
         modifier =
-            Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth()
-                .padding(
-                    start = MoeUi.Hero.containerHorizontalInset + MoeUi.Hero.contentHorizontalInset,
-                    end = MoeUi.Hero.containerHorizontalInset + MoeUi.Hero.contentHorizontalInset,
-                    top = heroTop + heroHeight + MoeUi.Hero.belowHeroTopGap,
-                ),
+            modifier.padding(
+                start = horizontalPadding,
+                end = horizontalPadding,
+                top = topPadding,
+                bottom = bottomPadding,
+            ),
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(MoeUi.Hero.belowHeroContentGap),
     ) {
@@ -334,84 +374,77 @@ private fun BoxScope.MoeHomeCopy(
     }
 }
 
+/** A pane too short for the hero and the copy block to share the height scrolls as one column. */
+private enum class MoeTabletFlow {
+    Scrolling,
+    Filling,
+}
+
+// Keep the Moe panel readable on ultra-wide screens without a right-side config pane.
+private val TabletPanelMaxWidth = UiDp.dp560
+
+// Below this height the pane can no longer pin the hero above a weighted copy block.
+private val TabletShortWindow = UiDp.dp560
+
+private fun moeTabletPanelModifier(
+    flow: MoeTabletFlow,
+    horizontalGutter: Dp,
+    scrollState: ScrollState,
+): Modifier =
+    when (flow) {
+        MoeTabletFlow.Scrolling ->
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = horizontalGutter)
+                .verticalScroll(scrollState)
+        MoeTabletFlow.Filling ->
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(horizontal = horizontalGutter)
+    }
+
+private fun ColumnScope.moeTabletCopyModifier(flow: MoeTabletFlow): Modifier =
+    when (flow) {
+        MoeTabletFlow.Scrolling -> Modifier.fillMaxWidth()
+        MoeTabletFlow.Filling -> Modifier.fillMaxWidth().weight(1f, fill = true)
+    }
+
 @Composable
 context(actions: MoeHomeActions)
 private fun MoeTabletHomeLayout(
     state: MoeHomeLayoutState,
+    greetingColor: Color,
     maxWidth: Dp,
     maxHeight: Dp,
-    greetingColor: Color,
+    hero: MoeHeroGeometry,
 ) {
-    val pickWallpaper by rememberUpdatedState(actions.pickWallpaper)
-    val shortHeight = maxHeight < UiDp.dp560
-    // Keep the Moe panel readable on ultra-wide screens without a right-side config pane.
-    val contentMaxWidth = minOf(maxWidth, UiDp.dp560)
+    val contentMaxWidth = minOf(maxWidth, TabletPanelMaxWidth)
     // Phone-landscape panes are barely wider than the content itself; a floor keeps the launch
     // controls clear of the divider and screen edges instead of pressing against them.
     val horizontalGutter = ((maxWidth - contentMaxWidth) / 2f).coerceIn(UiDp.dp16, maxWidth / 2f)
-    val heroHeightFraction = MoeUi.Hero.heightFraction
-    val heroRadius = MoeUi.Shape.heroCornerRadius(getRoundedCorner())
-    val heroTop = state.statusBarTop
-    val heroHeight = (maxHeight - heroTop).coerceAtLeast(UiDp.dp0) * heroHeightFraction
+    val flow =
+        if (maxHeight < TabletShortWindow) MoeTabletFlow.Scrolling else MoeTabletFlow.Filling
+    val scrollState = rememberScrollState()
 
-    Box(Modifier
-        .fillMaxSize()
-        .background(state.contentSurface)) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .then(if (shortHeight) Modifier else Modifier.fillMaxHeight())
-                    .padding(horizontal = horizontalGutter)
-                    .then(
-                        if (shortHeight) {
-                            Modifier.verticalScroll(rememberScrollState())
-                        } else {
-                            Modifier
-                        }
-                    )
-        ) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = MoeUi.Hero.containerHorizontalInset,
-                        end = MoeUi.Hero.containerHorizontalInset,
-                        top = heroTop,
-                    )
-                    .height(heroHeight)
-                    .pointerInput(Unit) {
-                        detectTapGestures(onLongPress = { pickWallpaper() })
-                    }
-                    .squircleClip(heroRadius)
-            ) {
-                MoeWallpaperBackground(
-                    wallpaperUri = state.wallpaperUri,
-                    wallpaperZoom = state.wallpaperZoom,
-                    wallpaperBiasX = state.wallpaperBiasX,
-                    wallpaperBiasY = state.wallpaperBiasY,
-                    qualityMode = MoeWallpaperQualityMode.Foreground,
-                    modifier = Modifier.matchParentSize(),
-                )
-                Box(
-                    Modifier
-                        .matchParentSize()
-                        .background(
-                            Brush.verticalGradient(
-                                0f to Color.Transparent,
-                                0.52f to Color.Transparent,
-                                0.82f to state.contentSurface.copy(alpha = 0.88f),
-                                0.92f to state.contentSurface,
-                                1f to state.contentSurface,
-                            )
-                        )
-                )
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(state.contentSurface),
+    ) {
+        Column(moeTabletPanelModifier(flow, horizontalGutter, scrollState)) {
+            MoeHeroCard(state = state, geometry = hero) {
                 Row(
                     modifier =
                         Modifier
                             .align(Alignment.TopStart)
                             .fillMaxWidth()
-                            .padding(start = MoeUi.Hero.contentHorizontalInset, end = MoeUi.Hero.contentHorizontalInset, top = UiDp.dp14),
+                            .padding(
+                                start = MoeUi.Hero.contentHorizontalInset,
+                                end = MoeUi.Hero.contentHorizontalInset,
+                                top = UiDp.dp14,
+                            ),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -428,72 +461,15 @@ private fun MoeTabletHomeLayout(
                         )
                     }
                 }
-                Box(
-                    modifier =
-                        Modifier
-                            .align(Alignment.BottomStart)
-                            .fillMaxWidth()
-                            .padding(
-                                start = MoeUi.Hero.contentHorizontalInset,
-                                end = MoeUi.Hero.contentHorizontalInset,
-                                bottom = MoeUi.Hero.trafficBottomInset,
-                            )
-                ) {
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = state.isRunning,
-                        enter = fadeIn() + slideInVertically { it / 3 },
-                        exit = fadeOut() + slideOutVertically { it / 3 },
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(MoeUi.Hero.runtimeInfoTopGap)
-                        ) {
-                            MoeTrafficStrip(state.traffic.download, state.traffic.upload)
-                            MoeHomeInfoPanel(
-                                serverName = state.selectedServerName.takeIf { state.isRunning },
-                                serverPing = state.selectedServerPing.takeIf { state.isRunning },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                }
             }
 
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .then(if (shortHeight) Modifier else Modifier.weight(1f, fill = true))
-                        .padding(
-                            start =
-                                MoeUi.Hero.containerHorizontalInset +
-                                        MoeUi.Hero.contentHorizontalInset,
-                            end =
-                                MoeUi.Hero.containerHorizontalInset +
-                                        MoeUi.Hero.contentHorizontalInset,
-                            top = MoeUi.Hero.belowHeroTopGap,
-                            bottom = UiDp.dp12,
-                        ),
-                verticalArrangement = Arrangement.spacedBy(MoeUi.Hero.belowHeroContentGap),
-            ) {
-                MoeHomeCopyBlock(
-                    nowMillis = state.now,
-                    quoteText = state.quote,
-                    quoteAuthor = state.quoteAuthor,
-                    greetingColor = greetingColor,
-                    color = MiuixTheme.colorScheme.onBackground,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    MoeLaunchControls(
-                        controlState = state.controlState,
-                        enabled = state.canLaunch && state.controlState.canInteract,
-                        isRemoteController = state.isRemoteController,
-                        surfaceColor = state.contentSurface,
-                        modifier = Modifier.fillMaxWidth(),
-                        onSettingsClick = actions.openSettings,
-                        onLaunchClick = actions.toggleProxy,
-                    )
-                }
-            }
+            MoeHomeCopySection(
+                state = state,
+                greetingColor = greetingColor,
+                modifier = moeTabletCopyModifier(flow),
+                topPadding = MoeUi.Hero.belowHeroTopGap,
+                bottomPadding = UiDp.dp12,
+            )
         }
     }
 }

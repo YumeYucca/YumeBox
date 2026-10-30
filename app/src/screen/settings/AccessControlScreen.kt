@@ -22,8 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,22 +31,21 @@ import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.AccessControlImportStrategy
 import com.github.yumeyucca.yumebox.data.model.AccessControlMode
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
+import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownOption
 import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference
 import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
+import com.github.yumeyucca.yumebox.presentation.component.PreferenceArrowItem
 import com.github.yumeyucca.yumebox.presentation.component.PreferenceEnumItem
-import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
+import com.github.yumeyucca.yumebox.presentation.component.PreferenceSwitchItem
+import com.github.yumeyucca.yumebox.presentation.component.StandalonePageList
 import com.github.yumeyucca.yumebox.presentation.component.SectionSummary
 import com.github.yumeyucca.yumebox.presentation.component.Title
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
-import com.github.yumeyucca.yumebox.presentation.component.combinePaddingValues
-import com.github.yumeyucca.yumebox.presentation.component.rememberStandalonePageMainPadding
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 
 /** Access-control home: enabled switch, mode selector, app list and clipboard import/export. */
 @Composable
@@ -61,23 +58,12 @@ fun AccessControlScreen(navigator: Navigator) {
     val accessControlMode = screen.accessControlMode
     val context = LocalContext.current
 
-    val permissionLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission(),
-            onResult = { isGranted ->
-                if (isGranted) {
-                    accessControlViewModel.onPermissionResult()
-                }
-            },
-        )
-
     LaunchedEffect(accessControlViewModel) { accessControlViewModel.refreshSelection() }
 
-    LaunchedEffect(accessControlState.needsMiuiPermission) {
-        if (accessControlState.needsMiuiPermission) {
-            permissionLauncher.launch("com.android.permission.GET_INSTALLED_APPS")
-        }
-    }
+    InstalledAppsPermissionRequest(
+        needsPermission = accessControlState.needsMiuiPermission,
+        onGranted = accessControlViewModel::onPermissionResult,
+    )
 
     GlassScaffold(
         topBar = {
@@ -87,15 +73,15 @@ fun AccessControlScreen(navigator: Navigator) {
             )
         }
     ) { innerPadding ->
-        val mainLikePadding = rememberStandalonePageMainPadding()
-        ScreenLazyColumn(
+
+        StandalonePageList(
             scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
+            scaffoldPadding = innerPadding,
         ) {
             item {
                 Title(YumeTxt.AccessControl.Settings.Title)
                 AppCard {
-                    SwitchPreference(
+                    PreferenceSwitchItem(
                         title = YumeTxt.AccessControl.Settings.Enabled,
                         checked = accessControlMode != AccessControlMode.ALLOW_ALL,
                         onCheckedChange = { enabled ->
@@ -108,21 +94,25 @@ fun AccessControlScreen(navigator: Navigator) {
                     PreferenceEnumItem(
                         title = YumeTxt.AccessControl.Settings.ModeTitle,
                         currentValue = accessControlMode,
-                        items =
-                            listOf(
-                                YumeTxt.NetworkSettings.ProxyOptions.AllowAll,
-                                YumeTxt.NetworkSettings.ProxyOptions.AllowSelected,
-                                YumeTxt.NetworkSettings.ProxyOptions.RejectSelected,
-                            ),
                         values = AccessControlMode.entries,
                         onValueChange = viewModel::onAccessControlModeChange,
+                        label = { mode ->
+                            when (mode) {
+                                AccessControlMode.ALLOW_ALL ->
+                                    YumeTxt.NetworkSettings.ProxyOptions.AllowAll
+                                AccessControlMode.ALLOW_SPECIFIC ->
+                                    YumeTxt.NetworkSettings.ProxyOptions.AllowSelected
+                                AccessControlMode.DENY_SPECIFIC ->
+                                    YumeTxt.NetworkSettings.ProxyOptions.RejectSelected
+                            }
+                        },
                     )
                 }
             }
             item {
                 Title(YumeTxt.AccessControl.AppList.ScreenTitle)
                 AppCard {
-                    ArrowPreference(
+                    PreferenceArrowItem(
                         title = YumeTxt.AccessControl.AppList.ScreenTitle,
                         onClick = { navigator.push(Route.AccessControlAppList) },
                     )
@@ -131,11 +121,11 @@ fun AccessControlScreen(navigator: Navigator) {
             item {
                 Title(YumeTxt.AccessControl.Settings.ImportExport)
                 AppCard {
-                    ArrowPreference(
+                    PreferenceArrowItem(
                         title = YumeTxt.AccessControl.Settings.Export,
                         onClick = { exportAccessControlPackages(context, accessControlViewModel) },
                     )
-                    ArrowPreference(
+                    PreferenceArrowItem(
                         title = YumeTxt.AccessControl.Settings.Import,
                         onClick = { importAccessControlPackages(context, accessControlViewModel) },
                     )
@@ -146,22 +136,23 @@ fun AccessControlScreen(navigator: Navigator) {
                 Title(YumeTxt.AccessControl.Settings.ImportStrategy)
                 AppCard {
                     GlassDropdownPreference(
-                        items =
-                            listOf(
-                                YumeTxt.AccessControl.Settings.ImportMerge,
-                                YumeTxt.AccessControl.Settings.ImportOverwrite,
-                            ),
-                        selectedIndex = accessControlState.importStrategy.ordinal,
+                        options =
+                            AccessControlImportStrategy.entries.map { strategy ->
+                                GlassDropdownOption(strategy, importStrategyLabel(strategy))
+                            },
+                        selected = accessControlState.importStrategy,
                         title = YumeTxt.Feature.BackupRestore.RestoreStrategyTitle,
                         maxHeight = UiDp.dp200,
-                        onSelectedIndexChange = { index ->
-                            AccessControlImportStrategy.entries.getOrNull(index)?.let(
-                                accessControlViewModel::onImportStrategyChange
-                            )
-                        },
+                        onSelected = accessControlViewModel::onImportStrategyChange,
                     )
                 }
             }
         }
     }
 }
+
+private fun importStrategyLabel(strategy: AccessControlImportStrategy): String =
+    when (strategy) {
+        AccessControlImportStrategy.MERGE -> YumeTxt.AccessControl.Settings.ImportMerge
+        AccessControlImportStrategy.OVERWRITE -> YumeTxt.AccessControl.Settings.ImportOverwrite
+    }

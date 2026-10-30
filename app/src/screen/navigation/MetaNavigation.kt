@@ -22,26 +22,30 @@
 
 package com.github.yumeyucca.yumebox.screen.navigation
 
-
 import androidx.compose.runtime.Composable
-import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.feature.meta.presentation.screen.CustomRoutingScreen
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
-import com.github.yumeyucca.yumebox.presentation.util.OverrideEditorStore
+import com.github.yumeyucca.yumebox.presentation.navigation.LocalConfigPreviewSlot
+import com.github.yumeyucca.yumebox.presentation.navigation.ConfigPreviewRequest
 
 @Composable
 fun CustomRoutingRoute(navigator: Navigator) {
+    val configPreviewSlot = LocalConfigPreviewSlot.current
     CustomRoutingScreen(
         onNavigateBack = { navigator.pop() },
         onOpenYamlEditor = { title, content, onSave ->
-            OverrideEditorStore.setupConfigPreview(
-                title = title,
-                content = content,
-                language = LanguageScope.Yaml,
-                callback = onSave,
-            )
-            navigator.push(Route.OverrideConfigPreview)
+            val previewId =
+                configPreviewSlot.put(
+                    ConfigPreviewRequest(
+                        title = title,
+                        content = content,
+                        language = LanguageScope.Yaml,
+                        onSave = onSave,
+                    )
+                )
+            navigator.push(Route.OverrideConfigPreview(previewId))
         },
     )
 }

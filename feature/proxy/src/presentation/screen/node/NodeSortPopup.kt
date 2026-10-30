@@ -4,7 +4,7 @@
  * YumeBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * License.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -22,398 +22,212 @@
 
 package com.github.yumeyucca.yumebox.presentation.screen.node
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
-import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
-import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
+import com.github.yumeyucca.yumebox.presentation.component.GlassMenuDivider
+import com.github.yumeyucca.yumebox.presentation.component.GlassMenuItem
+import com.github.yumeyucca.yumebox.presentation.component.GlassPopupHost
+import com.github.yumeyucca.yumebox.presentation.component.GlassPopupSubmenuItem
+import com.github.yumeyucca.yumebox.presentation.component.GlassSubmenuPageHeader
+import com.github.yumeyucca.yumebox.presentation.component.GlassTopActionAnchorIcon
+import com.github.yumeyucca.yumebox.presentation.component.rememberGlassSubmenuState
+import com.github.yumeyucca.yumebox.presentation.icon.Yume
+import com.github.yumeyucca.yumebox.presentation.icon.yume.ListChevronsUpDown
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.ArrowUpDown
 import io.github.yumeyucca.lucide.lucide.Columns2
 import io.github.yumeyucca.lucide.lucide.Gift
 import io.github.yumeyucca.lucide.lucide.Search
-import top.yukonga.miuix.kmp.basic.HorizontalDivider
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
-import top.yukonga.miuix.kmp.glass.GlassPopupDefaults
-import top.yukonga.miuix.kmp.glass.GlassPopupItem
-import top.yukonga.miuix.kmp.glass.GlassPopupSizing
-import top.yukonga.miuix.kmp.glass.GlassSecondaryPopup
-import top.yukonga.miuix.kmp.glass.GlassTransformPopup
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.ArrowRight
-import top.yukonga.miuix.kmp.icon.basic.Check
-import top.yukonga.miuix.kmp.layout.CascadingPopupDefaults
-import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
 
 internal val NodeSortModes =
     listOf(ProxySortMode.DEFAULT, ProxySortMode.BY_NAME, ProxySortMode.BY_LATENCY)
 
-@Composable
-private fun NodePopupItem(
-    text: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    selected: Boolean = false,
-    showArrow: Boolean = false,
-    arrowRotation: () -> Float = { 0f },
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val pressedColor = GlassPopupDefaults.itemPressedColor()
-    val pressFill by animateColorAsState(
-        targetValue = if (pressed) pressedColor else Color.Transparent,
-        label = "nodePopupItemPress",
-    )
-    val textColor =
-        if (selected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurfaceContainer
+/**
+ * Everything the "more" menu can offer, as one value.
+ *
+ * A capability that is absent never renders, and each capability carries its own state together
+ * with the callback that changes it, so a caller cannot half-provide one action (the old shape had
+ * two nullable callbacks driving a single row, which could disagree) and the menu never repeats
+ * `?.invoke`. Row order and labels stay owned by [NodeActionsMenu], not by the caller.
+ */
+@Immutable
+internal data class NodeMenuActions(
+    val sortMode: ProxySortMode,
+    val onSortSelected: (ProxySortMode) -> Unit,
+    /** Layout page; empty for the split shell's left pane, which has no node list. */
+    val layout: NodeLayoutActions? = null,
+    /** Entry that opens the providers/routing page. */
+    val routing: (() -> Unit)? = null,
+    /** Search toggle row; empty on pages that cannot search nodes. */
+    val search: NodeSearchActions? = null,
+)
 
-    Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .heightIn(min = GlassPopupDefaults.ItemMinHeight)
-                .padding(horizontal = GlassPopupDefaults.ItemPressInset)
-                .drawBehind {
-                    drawRoundRect(
-                        color = pressFill,
-                        cornerRadius = CornerRadius(GlassPopupDefaults.ItemPressRadius.toPx()),
-                    )
-                }
-                .selectable(
-                    selected = selected,
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                )
-                .padding(
-                    horizontal =
-                        GlassPopupDefaults.ItemPaddingHorizontal - GlassPopupDefaults.ItemPressInset,
-                    vertical = GlassPopupDefaults.ItemPaddingVertical,
-                ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier =
-                Modifier
-                    .padding(end = 15.dp)
-                    .size(18.dp),
-            tint = MiuixTheme.colorScheme.onSurfaceContainer,
-        )
-        Text(
-            text = text,
-            modifier = Modifier.weight(1f),
-            fontSize = MiuixTheme.textStyles.body1.fontSize,
-            fontWeight = FontWeight.Medium,
-            color = textColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (selected) {
-            Icon(
-                imageVector = MiuixIcons.Basic.Check,
-                contentDescription = null,
-                modifier =
-                    Modifier
-                        .padding(start = GlassPopupDefaults.ItemIconGap)
-                        .size(GlassPopupDefaults.ItemTickSize),
-                tint = MiuixTheme.colorScheme.primary,
-            )
-        }
-        if (showArrow) {
-            Icon(
-                imageVector = MiuixIcons.Basic.ArrowRight,
-                contentDescription = null,
-                modifier =
-                    Modifier
-                        .padding(start = GlassPopupDefaults.ItemIconGap)
-                        .size(GlassPopupDefaults.ItemArrowSize)
-                        .graphicsLayer { rotationZ = arrowRotation() },
-                tint = MiuixTheme.colorScheme.onSurfaceContainerVariant,
-            )
-        }
-    }
+@Immutable
+internal data class NodeLayoutActions(
+    val twoColumnNodes: Boolean,
+    val onTwoColumnNodesChange: (Boolean) -> Unit,
+    val groupTabsMode: Boolean,
+    val onGroupTabsModeChange: (Boolean) -> Unit,
+)
+
+@Immutable
+internal data class NodeSearchActions(
+    val visible: Boolean,
+    val onToggle: () -> Unit,
+)
+
+/**
+ * 二级页只有两个,页面自己带图标和标题取值,菜单里不再写两份并行的 when。
+ * 标题用 lambda 求值:语言是运行时可切换的,YumeTxt 的 val 都是 getter,
+ * 在枚举初始化时取值会把当时的语言固化下来。
+ */
+private enum class NodeSubmenu(
+    val icon: ImageVector,
+    val label: () -> String,
+) {
+    Layout(icon = Lucide.Columns2, label = { YumeTxt.Proxy.Action.Layout }),
+    Sort(icon = Lucide.ArrowUpDown, label = { YumeTxt.Proxy.Action.Sort }),
 }
 
 @Composable
 internal fun NodeActionsMenu(
     show: Boolean,
     onDismiss: () -> Unit,
-    sortMode: ProxySortMode,
-    twoColumnNodes: Boolean = false,
-    onNodeColumnsSelected: ((Boolean) -> Unit)? = null,
-    groupTabsMode: Boolean = false,
-    onGroupTabsModeSelected: ((Boolean) -> Unit)? = null,
-    onOpenRouting: (() -> Unit)? = null,
-    searchVisible: Boolean = false,
-    onToggleSearch: (() -> Unit)? = null,
-    onSortSelected: (ProxySortMode) -> Unit,
+    actions: NodeMenuActions,
     anchor: GlassPopupAnchor,
-    anchorContent: @Composable () -> Unit,
+    anchorContent: @Composable () -> Unit = { GlassTopActionAnchorIcon(Yume.ListChevronsUpDown) },
 ) {
-    // PopupLayout relocates this content; capture the page backdrop before leaving its provider.
-    val backdrop = LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current
-    val popupVisible = remember { mutableStateOf(false) }
-    val popupVisuals = GlassPopupDefaults.visuals()
-    var sortSubmenu by remember { mutableStateOf(false) }
-    var layoutSubmenu by remember { mutableStateOf(false) }
-    var sortSubmenuPresent by remember { mutableStateOf(false) }
-    var layoutSubmenuPresent by remember { mutableStateOf(false) }
-    var sortSubmenuAnchor by remember { mutableStateOf(Rect.Zero) }
-    var layoutSubmenuAnchor by remember { mutableStateOf(Rect.Zero) }
-    var menuWidth by remember { mutableStateOf(0.dp) }
-    val density = LocalDensity.current
-    val arrowTurn = CascadingPopupDefaults.arrowRotation(LocalLayoutDirection.current)
-    val sortSubmenuArrow by animateFloatAsState(
-        targetValue = if (sortSubmenu) arrowTurn else 0f,
-        animationSpec = CascadingPopupDefaults.arrowSpring(sortSubmenu),
-        label = "nodeActionsSubmenuArrow",
-    )
-    val layoutSubmenuArrow by animateFloatAsState(
-        targetValue = if (layoutSubmenu) arrowTurn else 0f,
-        animationSpec = CascadingPopupDefaults.arrowSpring(layoutSubmenu),
-        label = "nodeActionsLayoutSubmenuArrow",
-    )
-    LaunchedEffect(show) {
-        if (show) {
-            popupVisible.value = true
-        } else {
-            sortSubmenu = false
-            layoutSubmenu = false
-        }
-    }
-    PopupLayout(
-        visible = popupVisible,
-        enterTransition = EnterTransition.None,
-        exitTransition = ExitTransition.None,
-        enableWindowDim = false,
-        enableBackHandler = false,
+    val submenu = rememberGlassSubmenuState(show)
+    var submenuPage by remember { mutableStateOf(NodeSubmenu.Layout) }
+    val layout = actions.layout
+    val routing = actions.routing
+    val search = actions.search
+    // 布局页只在有布局动作时存在:入口列表由枚举本身决定,不再逐个 if 手写一遍。
+    val submenuPages = if (layout != null) NodeSubmenu.entries else listOf(NodeSubmenu.Sort)
+
+    GlassPopupHost(
+        show = show,
+        onDismissRequest = onDismiss,
+        anchor = anchor,
+        anchorContent = anchorContent,
+        submenu = submenu,
+        submenuContent = {
+            GlassSubmenuPageHeader(
+                state = submenu,
+                text = submenuPage.label(),
+                icon = submenuPage.icon,
+                anchor = anchor,
+            )
+            when (submenuPage) {
+                NodeSubmenu.Layout -> {
+                    layout?.let { available ->
+                        NodeLayoutItems(available, onDismiss = submenu::close)
+                    }
+                }
+                NodeSubmenu.Sort -> {
+                    NodeSortItems(
+                        sortMode = actions.sortMode,
+                        onSortSelected = actions.onSortSelected,
+                        onDismiss = submenu::close,
+                    )
+                }
+            }
+        },
     ) {
-        Box(Modifier.fillMaxSize()) {
-            // Compose the component closed first, just like the persistent upstream sample.
-            // The outer host otherwise creates it with show=true and skips its entering transition.
-            var expanded by remember { mutableStateOf(false) }
-            LaunchedEffect(show) { expanded = show }
-            GlassTransformPopup(
-                show = expanded,
-                onDismissRequest = {
-                    sortSubmenu = false
-                    layoutSubmenu = false
+        if (routing != null) {
+            GlassMenuItem(
+                text = YumeTxt.Providers.TabTitle,
+                icon = Lucide.Gift,
+                onClick = {
+                    routing()
                     onDismiss()
                 },
-                anchor = anchor,
-                backdrop = backdrop,
-                anchorContent = anchorContent,
-                // The pill anchor supplies the shared surface; this remains the no-surface fallback.
-                anchorAlpha = 0f,
-                sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
-                visuals = popupVisuals,
-                stacked = sortSubmenu || layoutSubmenu,
-                alignToPageEnd = true,
-                onDismissFinished = {
-                    if (!show) {
-                        popupVisible.value = false
-                        sortSubmenuPresent = false
-                        layoutSubmenuPresent = false
-                    }
-                },
-                onMeasured = { menuWidth = with(density) { it.width.toDp() } },
-            ) {
-                onOpenRouting?.let { openRouting ->
-                    NodePopupItem(
-                        text = YumeTxt.Providers.TabTitle,
-                        icon = Lucide.Gift,
-                        onClick = {
-                            openRouting()
-                            onDismiss()
-                        },
-                    )
-                }
-                onToggleSearch?.let { toggleSearch ->
-                    NodePopupItem(
-                        text = YumeTxt.Connection.Search,
-                        icon = Lucide.Search,
-                        selected = searchVisible,
-                        onClick = {
-                            toggleSearch()
-                            onDismiss()
-                        },
-                    )
-                }
-                if (onNodeColumnsSelected != null) {
-                    NodePopupItem(
-                        text = YumeTxt.Proxy.Action.Layout,
-                        icon = Lucide.Columns2,
-                        showArrow = true,
-                        arrowRotation = {
-                            layoutSubmenuArrow * (1f - anchor.secondaryBackProgress)
-                        },
-                        modifier = Modifier.onGloballyPositioned {
-                            if (!layoutSubmenuPresent) layoutSubmenuAnchor = it.boundsInRoot()
-                        },
-                        onClick = {
-                            layoutSubmenuPresent = true
-                            layoutSubmenu = true
-                        },
-                    )
-                }
-                NodePopupItem(
-                    text = YumeTxt.Proxy.Action.Sort,
-                    icon = Lucide.ArrowUpDown,
-                    showArrow = true,
-                    arrowRotation = { sortSubmenuArrow * (1f - anchor.secondaryBackProgress) },
-                    modifier = Modifier.onGloballyPositioned {
-                        if (!sortSubmenuPresent) sortSubmenuAnchor = it.boundsInRoot()
-                    },
-                    onClick = {
-                        sortSubmenuPresent = true
-                        sortSubmenu = true
-                    },
-                )
-            }
-            GlassSecondaryPopup(
-                show = expanded && layoutSubmenu,
-                onDismissRequest = { layoutSubmenu = false },
-                anchorBounds = layoutSubmenuAnchor,
-                backdrop = backdrop,
-                materialAnchor = anchor,
-                sizing = GlassPopupSizing(minWidth = menuWidth, maxWidth = 188.dp),
-                visuals = popupVisuals,
-                onDismissFinished = { layoutSubmenuPresent = false },
-            ) {
-                GlassPopupItem(
-                    text = YumeTxt.Proxy.Action.Layout,
-                    icon = Lucide.Columns2,
-                    iconSize = 18.dp,
-                    iconGap = 15.dp,
-                    showArrow = true,
-                    arrowRotation = {
-                        layoutSubmenuArrow * (1f - anchor.secondaryBackProgress)
-                    },
-                    onClick = { layoutSubmenu = false },
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(
-                        horizontal = GlassPopupDefaults.DividerPaddingHorizontal,
-                        vertical = GlassPopupDefaults.DividerPaddingVertical,
-                    ),
-                    thickness = GlassPopupDefaults.DividerThickness,
-                )
-                GlassPopupItem(
-                    text = YumeTxt.Proxy.DisplayMode.Single,
-                    selected = !twoColumnNodes,
-                    onClick = {
-                        onNodeColumnsSelected?.invoke(false)
-                        layoutSubmenu = false
-                    },
-                )
-                GlassPopupItem(
-                    text = YumeTxt.Proxy.DisplayMode.Double,
-                    selected = twoColumnNodes,
-                    onClick = {
-                        onNodeColumnsSelected?.invoke(true)
-                        layoutSubmenu = false
-                    },
-                )
-                if (onGroupTabsModeSelected != null) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(
-                            horizontal = GlassPopupDefaults.DividerPaddingHorizontal,
-                            vertical = GlassPopupDefaults.DividerPaddingVertical,
-                        ),
-                        thickness = GlassPopupDefaults.DividerThickness,
-                    )
-                    GlassPopupItem(
-                        text = YumeTxt.Proxy.Action.TabsMode,
-                        selected = groupTabsMode,
-                        onClick = {
-                            onGroupTabsModeSelected(!groupTabsMode)
-                            layoutSubmenu = false
-                        },
-                    )
-                }
-            }
-            GlassSecondaryPopup(
-                show = expanded && sortSubmenu,
-                onDismissRequest = { sortSubmenu = false },
-                anchorBounds = sortSubmenuAnchor,
-                backdrop = backdrop,
-                materialAnchor = anchor,
-                sizing = GlassPopupSizing(minWidth = menuWidth, maxWidth = 188.dp),
-                visuals = popupVisuals,
-                onDismissFinished = { sortSubmenuPresent = false },
-            ) {
-                GlassPopupItem(
-                    text = YumeTxt.Proxy.Action.Sort,
-                    icon = Lucide.ArrowUpDown,
-                    iconSize = 18.dp,
-                    iconGap = 15.dp,
-                    showArrow = true,
-                    arrowRotation = {
-                        sortSubmenuArrow * (1f - anchor.secondaryBackProgress)
-                    },
-                    onClick = { sortSubmenu = false },
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(
-                        horizontal = GlassPopupDefaults.DividerPaddingHorizontal,
-                        vertical = GlassPopupDefaults.DividerPaddingVertical,
-                    ),
-                    thickness = GlassPopupDefaults.DividerThickness,
-                )
-                NodeSortModes.forEach { mode ->
-                    GlassPopupItem(
-                        text = mode.displayName,
-                        selected = mode == sortMode,
-                        onClick = {
-                            if (mode != sortMode) onSortSelected(mode)
-                            sortSubmenu = false
-                        },
-                    )
-                }
-            }
+            )
         }
+        if (search != null) {
+            GlassMenuItem(
+                text = YumeTxt.Connection.Search,
+                icon = Lucide.Search,
+                selected = search.visible,
+                onClick = {
+                    search.onToggle()
+                    onDismiss()
+                },
+            )
+        }
+        submenuPages.forEach { page ->
+            GlassPopupSubmenuItem(
+                text = page.label(),
+                icon = page.icon,
+                anchor = anchor,
+                open = submenu.open && submenuPage == page,
+                onOpen = { bounds ->
+                    submenuPage = page
+                    submenu.openAt(bounds)
+                },
+            )
+        }
+    }
+}
+
+/** The layout page of the "more" menu: column count, then the group-tab switch. */
+@Composable
+private fun NodeLayoutItems(
+    actions: NodeLayoutActions,
+    onDismiss: () -> Unit,
+) {
+    GlassMenuItem(
+        text = YumeTxt.Proxy.DisplayMode.Single,
+        selected = !actions.twoColumnNodes,
+        onClick = {
+            actions.onTwoColumnNodesChange(false)
+            onDismiss()
+        },
+    )
+    GlassMenuItem(
+        text = YumeTxt.Proxy.DisplayMode.Double,
+        selected = actions.twoColumnNodes,
+        onClick = {
+            actions.onTwoColumnNodesChange(true)
+            onDismiss()
+        },
+    )
+    GlassMenuDivider()
+    GlassMenuItem(
+        text = YumeTxt.Proxy.Action.TabsMode,
+        selected = actions.groupTabsMode,
+        onClick = {
+            actions.onGroupTabsModeChange(!actions.groupTabsMode)
+            onDismiss()
+        },
+    )
+}
+
+/** The sort modes as menu rows; shared by the actions submenu and the standalone sort popup. */
+@Composable
+private fun NodeSortItems(
+    sortMode: ProxySortMode,
+    onSortSelected: (ProxySortMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    NodeSortModes.forEach { mode ->
+        GlassMenuItem(
+            text = mode.displayName,
+            selected = mode == sortMode,
+            onClick = {
+                if (mode != sortMode) onSortSelected(mode)
+                onDismiss()
+            },
+        )
     }
 }
 
@@ -422,58 +236,22 @@ internal fun NodeSortPopupOverlay(
     show: Boolean,
     onDismiss: () -> Unit,
     anchor: GlassPopupAnchor,
-    anchorContent: @Composable () -> Unit,
     backdrop: Backdrop?,
     sortMode: ProxySortMode,
     onSortSelected: (ProxySortMode) -> Unit,
 ) {
-    val popupVisible = remember { mutableStateOf(false) }
-    val currentShow by rememberUpdatedState(show)
-    // This is a single icon anchor, not the top-bar pill: keep the sheet popup flat so no
-    // button-sized shadow is left behind when it collapses back into the icon.
-    val popupVisuals = GlassPopupDefaults.visuals(shadow = null)
-    LaunchedEffect(show) {
-        if (show) {
-            popupVisible.value = true
-        }
-    }
-    PopupLayout(
-        visible = popupVisible,
-        enterTransition = EnterTransition.None,
-        exitTransition = ExitTransition.None,
-        enableWindowDim = false,
-        enableBackHandler = false,
+    GlassPopupHost(
+        show = show,
+        onDismissRequest = onDismiss,
+        anchor = anchor,
+        anchorContent = { GlassTopActionAnchorIcon(Yume.ListChevronsUpDown) },
+        backdrop = backdrop,
+        alignToPageEnd = false,
     ) {
-        Box(Modifier.fillMaxSize()) {
-            // Compose the panel closed first so the opening transform actually plays.
-            var expanded by remember { mutableStateOf(false) }
-            LaunchedEffect(show) { expanded = show }
-            GlassTransformPopup(
-                show = expanded,
-                onDismissRequest = onDismiss,
-                anchor = anchor,
-                backdrop = backdrop,
-                anchorContent = anchorContent,
-                // This is a single icon anchor; the popup starts and ends at the icon rather
-                // than the surrounding 42dp glass button.
-                anchorAlpha = 0f,
-                sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
-                visuals = popupVisuals,
-                // Drop the popup host as soon as the collapse ends. Its full-screen catcher must
-                // not outlive the animation and swallow taps on the sheet underneath.
-                onDismissFinished = { if (!currentShow) popupVisible.value = false },
-            ) {
-                NodeSortModes.forEach { mode ->
-                    GlassPopupItem(
-                        text = mode.displayName,
-                        selected = mode == sortMode,
-                        onClick = {
-                            if (mode != sortMode) onSortSelected(mode)
-                            onDismiss()
-                        },
-                    )
-                }
-            }
-        }
+        NodeSortItems(
+            sortMode = sortMode,
+            onSortSelected = onSortSelected,
+            onDismiss = onDismiss,
+        )
     }
 }

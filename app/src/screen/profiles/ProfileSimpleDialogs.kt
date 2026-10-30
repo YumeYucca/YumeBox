@@ -23,40 +23,10 @@
 package com.github.yumeyucca.yumebox.screen.profiles
 
 
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.runtime.Composable
 import com.github.yumeyucca.yumebox.presentation.component.AppDialog
-import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldDialog
 import com.github.yumeyucca.yumebox.presentation.component.DialogButtonRow
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import top.yukonga.miuix.kmp.layout.DialogDefaults
-
-@Composable
-internal fun EditProfileNameDialog(
-    show: Boolean,
-    currentName: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-) {
-    var editName by
-    remember(show, currentName) {
-        mutableStateOf(TextFieldValue(currentName, TextRange(currentName.length)))
-    }
-
-    AppTextFieldDialog(
-        show = show,
-        title = YumeTxt.ProfilesPage.EditDialog.Title,
-        textFieldValue = editName,
-        onTextFieldValueChange = { editName = it },
-        onDismissRequest = onDismiss,
-        onConfirm = { onConfirm(editName.text) },
-        label = YumeTxt.ProfilesPage.Input.ProfileName,
-        useLabelAsPlaceholder = true,
-        singleLine = true,
-    )
-}
 
 @Composable
 internal fun DeleteConfirmDialog(
@@ -68,18 +38,10 @@ internal fun DeleteConfirmDialog(
 ) {
     AppDialog(
         show = show,
-        modifier = Modifier,
         title = YumeTxt.ProfilesPage.DeleteDialog.Title,
-        titleColor = DialogDefaults.titleColor(),
         summary = YumeTxt.ProfilesPage.DeleteDialog.Message.format(profileName),
-        summaryColor = DialogDefaults.summaryColor(),
-        backgroundColor = DialogDefaults.backgroundColor(),
-        enableWindowDim = true,
         onDismissRequest = onDismiss,
         onDismissFinished = onDismissFinished,
-        outsideMargin = DialogDefaults.outsideMargin,
-        insideMargin = DialogDefaults.insideMargin,
-        defaultWindowInsetsPadding = true,
         content = {
             DialogButtonRow(
                 onCancel = onDismiss,

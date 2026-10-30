@@ -31,7 +31,4 @@ data class OverrideConfig(
     val content: String,
     val createdAt: Long,
     val updatedAt: Long,
-) {
-    val fileName: String
-        get() = "$id.${contentType.extension}"
-}
+)

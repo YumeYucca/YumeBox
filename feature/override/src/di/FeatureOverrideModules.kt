@@ -18,9 +18,9 @@
  *
  */
 
-package com.github.yumeyucca.yumebox.di
+package com.github.yumeyucca.yumebox.feature.override.di
 
-import com.github.yumeyucca.yumebox.presentation.viewmodel.OverrideConfigViewModel
+import com.github.yumeyucca.yumebox.feature.override.presentation.viewmodel.OverrideConfigViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 

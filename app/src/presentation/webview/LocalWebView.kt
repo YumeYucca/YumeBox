@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.github.yumeyucca.yumebox.BuildInfo
 import com.github.yumeyucca.yumebox.WebViewActivity
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
@@ -54,16 +55,13 @@ private object NoOpWebChromeClient : WebChromeClient()
 fun LocalWebView(
     initialUrl: String,
     modifier: Modifier = Modifier,
-    enableDebug: Boolean = BuildInfo.DEBUG,
     onWebViewCreated: (WebView) -> Unit = {},
-    onPageFinished: (String) -> Unit = {},
-    onPageError: (String, String) -> Unit = { _, _ -> },
 ) {
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val webViewRef = remember { mutableStateOf<WebView?>(null) }
 
-    LaunchedEffect(enableDebug) {
-        runCatching { WebView.setWebContentsDebuggingEnabled(enableDebug) }
+    LaunchedEffect(Unit) {
+        runCatching { WebView.setWebContentsDebuggingEnabled(BuildInfo.DEBUG) }
             .onFailure { Timber.w(it, "Failed to update WebView debugging state") }
     }
 
@@ -113,7 +111,7 @@ fun LocalWebView(
 
     AndroidView(
         factory = { ctx ->
-            createWebView(ctx, initialUrl, onPageFinished, onPageError).also {
+            createWebView(ctx, initialUrl).also {
                 webViewRef.value = it
                 onWebViewCreated(it)
             }
@@ -126,8 +124,6 @@ fun LocalWebView(
 private fun createWebView(
     context: Context,
     initialUrl: String,
-    onPageFinished: (String) -> Unit,
-    onPageError: (String, String) -> Unit,
 ): WebView {
     val activity = context as? WebViewActivity
 
@@ -181,51 +177,6 @@ private fun createWebView(
                     return false
                 }
 
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                    onPageFinished(url ?: "")
-                }
-
-                @Suppress("DEPRECATION")
-                override fun onReceivedError(
-                    view: WebView?,
-                    request: WebResourceRequest?,
-                    error: WebResourceError?,
-                ) {
-                    @Suppress("DEPRECATION") super.onReceivedError(view, request, error)
-                    if (request?.isForMainFrame == true) {
-                        val errorUrl = request.url?.toString() ?: "unknown"
-                        val errorCode = error?.errorCode ?: -1
-                        val errorMessage = error?.description?.toString() ?: "unknown error"
-                        onPageError(errorUrl, "Error $errorCode: $errorMessage")
-                    }
-                }
-
-                override fun onReceivedHttpError(
-                    view: WebView?,
-                    request: WebResourceRequest?,
-                    errorResponse: WebResourceResponse?,
-                ) {
-                    super.onReceivedHttpError(view, request, errorResponse)
-                    if (request?.isForMainFrame == true) {
-                        val errorUrl = request.url?.toString() ?: "unknown"
-                        val statusCode = errorResponse?.statusCode ?: -1
-                        if (statusCode == 404) {
-                            onPageError(errorUrl, "404 Not Found")
-                        }
-                    }
-                }
-
-                @Deprecated("Deprecated in Java")
-                override fun onReceivedError(
-                    view: WebView?,
-                    errorCode: Int,
-                    description: String?,
-                    failingUrl: String?,
-                ) {
-                    @Suppress("DEPRECATION")
-                    super.onReceivedError(view, errorCode, description, failingUrl)
-                }
             }
 
         webChromeClient =

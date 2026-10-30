@@ -25,10 +25,8 @@ package com.github.yumeyucca.yumebox.screen.settings.backup
 import androidx.compose.runtime.Composable
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
-import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
+import com.github.yumeyucca.yumebox.presentation.component.StandalonePageList
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
-import com.github.yumeyucca.yumebox.presentation.component.combinePaddingValues
-import com.github.yumeyucca.yumebox.presentation.component.rememberStandalonePageMainPadding
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 
 /** Standalone backup & restore page, moved out of the Lab screen. */
@@ -39,10 +37,9 @@ fun BackupRestoreScreen() {
     GlassScaffold(
         topBar = { TopBar(title = YumeTxt.Settings.Section.BackupRestore, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
-        val mainLikePadding = rememberStandalonePageMainPadding()
-        ScreenLazyColumn(
+        StandalonePageList(
             scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
+            scaffoldPadding = innerPadding,
         ) {
             item {
                 BackupRestoreSection()

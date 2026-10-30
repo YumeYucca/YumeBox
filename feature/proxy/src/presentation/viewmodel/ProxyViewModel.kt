@@ -22,16 +22,15 @@
 
 package com.github.yumeyucca.yumebox.presentation.viewmodel
 
-
 import androidx.lifecycle.viewModelScope
-import com.github.yumeyucca.yumebox.core.presentation.ContractStateViewModel
-import com.github.yumeyucca.yumebox.core.presentation.LoadableState
-import com.github.yumeyucca.yumebox.data.controller.RuntimeOverrideController
+import com.github.yumeyucca.yumebox.presentation.base.ContractStateViewModel
+import com.github.yumeyucca.yumebox.presentation.base.LoadableState
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.data.store.ProxyDisplaySettingsStore
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
 import com.github.yumeyucca.yumebox.runtime.client.ProxyGroupSyncPriority
+import com.github.yumeyucca.yumebox.runtime.client.ProxyGroupSyncSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -42,25 +41,37 @@ sealed interface ProxyDelayTestProgress {
     data class Running(val completed: Int, val total: Int) : ProxyDelayTestProgress
 }
 
+/**
+ * The delay tests currently in flight.
+ *
+ * Group tests and proxy tests are two facts, not one: a group health check and per-node tests can
+ * run at the same time ([testDelay] only latches against another group test, [testProxyDelay] is
+ * independent), and the UI reports them on different surfaces — the sheet/header refresh indicator
+ * keys off [groupNames], the per-node spinners key off [proxyNames]. They are kept as two sets in
+ * one observed state so the boundary collects a single flow instead of one per name set.
+ */
+data class DelayTestState(
+    val groupNames: Set<String> = emptySet(),
+    val proxyNames: Set<String> = emptySet(),
+)
+
 class ProxyViewModel(
-    private val runtimeOverrideController: RuntimeOverrideController,
     private val proxyFacade: ProxyFacade,
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore,
 ) :
     ContractStateViewModel<ProxyViewModel.ProxyUiState, ProxyViewModel.ProxyUiEffect>(
         ProxyUiState()
     ) {
-    private val _testingGroupNames = MutableStateFlow<Set<String>>(emptySet())
-    val testingGroupNames: StateFlow<Set<String>> = _testingGroupNames.asStateFlow()
-
-    private val _testingProxyNames = MutableStateFlow<Set<String>>(emptySet())
-    val testingProxyNames: StateFlow<Set<String>> = _testingProxyNames.asStateFlow()
+    private val _delayTests = MutableStateFlow(DelayTestState())
+    val delayTests: StateFlow<DelayTestState> = _delayTests.asStateFlow()
 
     private val _delayTestProgress = MutableStateFlow<ProxyDelayTestProgress?>(null)
     val delayTestProgress: StateFlow<ProxyDelayTestProgress?> = _delayTestProgress.asStateFlow()
 
+    // Re-entrancy latch for [testDelay] only. It is not derivable from [DelayTestState]: the name
+    // set is published inside the launched coroutine, so a second call in the same frame would slip
+    // past a set-based guard, and "test all" holds the bulk path even when no group names exist.
     private var groupDelayTestInProgress = false
-    private val pendingProxyDelayTests = mutableSetOf<String>()
 
     /** UI selection shared between the left group list and shell right-pane node list. */
     private val _uiSelectedGroupName = MutableStateFlow<String?>(null)
@@ -94,7 +105,7 @@ class ProxyViewModel(
 
     fun proxyDelayFlow(name: String) = proxyFacade.proxyDelayFlow(name)
 
-    private val activeSyncSources = mutableSetOf<String>()
+    private val activeSyncSources = mutableSetOf<ProxyGroupSyncSource>()
 
     init {
         proxyFacade.warmUpProxyGroups()
@@ -109,7 +120,10 @@ class ProxyViewModel(
     val sortedProxyGroups: StateFlow<List<ProxyGroupInfo>> =
         groupSorter.bind(scope = viewModelScope, proxyGroups = proxyGroups, sortMode = sortMode)
 
-    fun ensureCoreLoaded(isActive: Boolean, source: String = "proxy_page") {
+    fun ensureCoreLoaded(
+        isActive: Boolean,
+        source: ProxyGroupSyncSource = ProxyGroupSyncSource.Page,
+    ) {
         val changed =
             if (isActive) {
                 activeSyncSources.add(source)
@@ -122,21 +136,19 @@ class ProxyViewModel(
             source = source,
         )
         if (isActive) {
-            viewModelScope.launch {
-                runCatching {
-                    if (proxyGroups.value.isEmpty()) {
-                        proxyFacade.refreshProxyGroups()
-                    }
+            launchGuarded {
+                if (proxyGroups.value.isEmpty()) {
+                    proxyFacade.refreshProxyGroups()
                 }
-                    .onFailure { error -> if (error is CancellationException) throw error }
             }
         }
     }
 
     fun refreshGroup(groupName: String) {
-        viewModelScope.launch {
-            runCatching { proxyFacade.refreshProxyGroup(groupName) }
-                .onFailure { error -> if (error is CancellationException) throw error }
+        launchGuarded(onFailure = { error ->
+            showError(error.message ?: YumeTxt.Util.Error.UnknownError)
+        }) {
+            proxyFacade.refreshProxyGroup(groupName)
         }
     }
 
@@ -154,7 +166,7 @@ class ProxyViewModel(
                         currentGroups.mapTo(linkedSetOf()) { it.name }
                     }
                 if (testingTargets.isNotEmpty()) {
-                    _testingGroupNames.update { it + testingTargets }
+                    _delayTests.update { it.copy(groupNames = it.groupNames + testingTargets) }
                 }
 
                 val onProgress: (Int, Int) -> Unit = { completed, total ->
@@ -173,7 +185,7 @@ class ProxyViewModel(
                     }
 
                 if (testingTargets.isNotEmpty()) {
-                    _testingGroupNames.update { it - testingTargets }
+                    _delayTests.update { it.copy(groupNames = it.groupNames - testingTargets) }
                 }
 
                 _delayTestProgress.value = null
@@ -197,34 +209,54 @@ class ProxyViewModel(
     }
 
     fun selectProxy(groupName: String, proxyName: String) {
-        viewModelScope.launch {
-            runCatching {
-                val success = proxyFacade.selectProxy(groupName, proxyName)
-                if (success) {
-                    showMessage(YumeTxt.Proxy.Selection.Switched.format(proxyName))
-                } else {
-                    showError(YumeTxt.Proxy.Selection.Failed)
-                }
+        launchGuarded(onFailure = { error ->
+            showError(YumeTxt.Proxy.Selection.Error.format(error.message))
+        }) {
+            val success = proxyFacade.selectProxy(groupName, proxyName)
+            if (success) {
+                showMessage(YumeTxt.Proxy.Selection.Switched.format(proxyName))
+            } else {
+                showError(YumeTxt.Proxy.Selection.Failed)
             }
-                .onFailure { error ->
-                    showError(YumeTxt.Proxy.Selection.Error.format(error.message))
-                }
         }
     }
 
     fun testProxyDelay(proxyName: String) {
-        if (!pendingProxyDelayTests.add(proxyName)) return
-        viewModelScope.launch {
-            _testingProxyNames.update { it + proxyName }
+        // Claim the name atomically: the observed set is both the spinner source and the
+        // "already in flight" guard, so a second tap on the same node while its test runs is still
+        // dropped instead of queueing a duplicate health check.
+        val previous = _delayTests.getAndUpdate { state ->
+            if (proxyName in state.proxyNames) {
+                state
+            } else {
+                state.copy(proxyNames = state.proxyNames + proxyName)
+            }
+        }
+        if (proxyName in previous.proxyNames) return
+        launchGuarded(onFailure = { error ->
+            showError(YumeTxt.Proxy.Testing.Failed.format(error.message))
+        }) {
             try {
-                runCatching { proxyFacade.healthCheckProxy(proxyName) }
-                    .onFailure { error ->
-                        if (error is CancellationException) throw error
-                        showError(YumeTxt.Proxy.Testing.Failed.format(error.message))
-                    }
+                proxyFacade.healthCheckProxy(proxyName)
             } finally {
-                _testingProxyNames.update { it - proxyName }
-                pendingProxyDelayTests.remove(proxyName)
+                _delayTests.update { it.copy(proxyNames = it.proxyNames - proxyName) }
+            }
+        }
+    }
+
+    /**
+     * Runs [block] in [viewModelScope] so that the "cancellation is not a failure" rule lives in one
+     * place: every proxy call here is a fire-and-forget action the user triggered, and a job that was
+     * cancelled mid-flight (page left, another selection made) must neither toast nor be swallowed.
+     */
+    private fun launchGuarded(
+        onFailure: (Throwable) -> Unit = {},
+        block: suspend () -> Unit,
+    ) {
+        viewModelScope.launch {
+            runCatching { block() }.onFailure { error ->
+                if (error is CancellationException) throw error
+                onFailure(error)
             }
         }
     }

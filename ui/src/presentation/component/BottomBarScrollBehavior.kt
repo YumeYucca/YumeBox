@@ -38,6 +38,9 @@ class BottomBarScrollBehavior {
     private val scrollThreshold = 12f
     private val flingThreshold = 120f
 
+    /** Deltas below this are sub-pixel noise from the scroll pipeline, not user intent. */
+    private val minScrollDelta = 0.5f
+
     private var lastToggleTime = 0L
     private val toggleDelay = 150L
 
@@ -46,8 +49,7 @@ class BottomBarScrollBehavior {
     val nestedScrollConnection =
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (!isAutoHideEnabled) return Offset.Zero
-                if (source != NestedScrollSource.UserInput) return Offset.Zero
+                if (!drivesAutoHide(source)) return Offset.Zero
 
                 updateVisibilityFromDelta(available.y)
                 return Offset.Zero
@@ -58,13 +60,12 @@ class BottomBarScrollBehavior {
                 available: Offset,
                 source: NestedScrollSource,
             ): Offset {
-                if (!isAutoHideEnabled) return Offset.Zero
-                if (source != NestedScrollSource.UserInput) return Offset.Zero
+                if (!drivesAutoHide(source)) return Offset.Zero
 
                 val delta =
                     when {
-                        abs(consumed.y) >= 0.5f -> consumed.y
-                        abs(available.y) >= 0.5f -> available.y
+                        abs(consumed.y) >= minScrollDelta -> consumed.y
+                        abs(available.y) >= minScrollDelta -> available.y
                         else -> 0f
                     }
                 if (delta == 0f) return Offset.Zero
@@ -92,8 +93,11 @@ class BottomBarScrollBehavior {
             }
         }
 
+    private fun drivesAutoHide(source: NestedScrollSource): Boolean =
+        isAutoHideEnabled && source == NestedScrollSource.UserInput
+
     private fun updateVisibilityFromDelta(deltaY: Float) {
-        if (abs(deltaY) < 0.5f) return
+        if (abs(deltaY) < minScrollDelta) return
 
         val reversedWhileShowing = accumulatedScroll > 0f && deltaY < 0f
         val reversedWhileHiding = accumulatedScroll < 0f && deltaY > 0f
@@ -110,30 +114,38 @@ class BottomBarScrollBehavior {
     }
 
     fun showBottomBar() {
-        val currentTime = System.currentTimeMillis()
-        if (!isBottomBarVisible && currentTime - lastToggleTime >= toggleDelay) {
-            isBottomBarVisible = true
-            lastToggleTime = currentTime
-        }
+        transitionTo(visible = true)
     }
 
     fun hideBottomBar() {
+        transitionTo(visible = false)
+    }
+
+    private fun transitionTo(visible: Boolean) {
         val currentTime = System.currentTimeMillis()
-        if (isBottomBarVisible && currentTime - lastToggleTime >= toggleDelay) {
-            isBottomBarVisible = false
-            lastToggleTime = currentTime
-        }
+        if (isBottomBarVisible == visible) return
+        if (currentTime - lastToggleTime < toggleDelay) return
+        isBottomBarVisible = visible
+        lastToggleTime = currentTime
     }
 }
 
 @Composable
-fun rememberBottomBarScrollBehavior(autoHideEnabled: Boolean = true): BottomBarScrollBehavior =
-    remember(autoHideEnabled) {
-        BottomBarScrollBehavior().apply { isAutoHideEnabled = autoHideEnabled }
-    }
+fun rememberBottomBarScrollBehavior(autoHideEnabled: Boolean = true): BottomBarScrollBehavior {
+    val behavior = remember { BottomBarScrollBehavior() }
+    // The flag is mutable state on the behaviour, so toggling it writes through: re-creating the
+    // object here would throw away the current visibility and the toggle debounce timestamp.
+    SideEffect { behavior.isAutoHideEnabled = autoHideEnabled }
+    return behavior
+}
 
+/**
+ * Reveals the bottom bar whenever [listState] sits at the very top of the list.
+ *
+ * This is a side effect, not a builder: call it as a statement from the list host.
+ */
 @Composable
-fun BottomBarScrollBehavior.withLazyListState(listState: LazyListState): BottomBarScrollBehavior {
+fun BottomBarScrollBehavior.ShowBottomBarWhenScrolledToTop(listState: LazyListState) {
     val isAtTop by
     remember(listState) {
         derivedStateOf {
@@ -146,8 +158,6 @@ fun BottomBarScrollBehavior.withLazyListState(listState: LazyListState): BottomB
             showBottomBar()
         }
     }
-
-    return this
 }
 
 val LocalBottomBarScrollBehavior = compositionLocalOf<BottomBarScrollBehavior?> { null }

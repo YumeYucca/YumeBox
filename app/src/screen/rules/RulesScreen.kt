@@ -22,23 +22,15 @@
 
 package com.github.yumeyucca.yumebox.screen.rules
 
-
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLocale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.model.RuntimeRule
@@ -56,47 +48,20 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * Runtime rules from `GET /rules`. Each card has an enable switch wired to `PATCH /rules/disable`.
  * This is **not** the custom-routing editor.
  *
- * Search chrome mirrors [com.github.yumeyucca.yumebox.screen.connection.ConnectionScreen] (collapsed
- * bar in TopBar + SearchPager overlay). Horizontal inset for cards is owned by shared [AppCard]
- * (`applyHorizontalPadding`), same as Log — not LazyColumn contentPadding.
+ * Rendered inline inside the shared scaffold owned by [RulesAndProvidersScreen]: this composable
+ * owns no top bar, search overlay or tab band of its own. Horizontal inset for cards is owned by
+ * shared [AppCard] (`applyHorizontalPadding`), same as Log — not LazyColumn contentPadding.
  */
 @Composable
 fun RulesScreen(
-    navigator: Navigator,
-    embedded: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(),
     scrollBehaviorOverride: ScrollBehavior? = null,
     listState: LazyListState = rememberLazyListState(),
 ) {
-    val density = LocalDensity.current
     val viewModel = koinViewModel<RulesViewModel>()
     val uiState by viewModel.uiState.collectAsState()
-    val filteredRules by viewModel.filteredRules.collectAsState()
     val context = LocalContext.current
     val scrollBehavior = scrollBehaviorOverride ?: MiuixScrollBehavior()
-    val spacing = AppTheme.spacing
-    val mainLikePadding = rememberStandalonePageMainPadding()
-    val mainListState = listState
-
-    var searchStatus by remember {
-        mutableStateOf(SearchStatus(label = YumeTxt.Rules.SearchHint))
-    }
-    val dynamicTopPadding by remember {
-        derivedStateOf { spacing.space12 * (1f - scrollBehavior.state.collapsedFraction) }
-    }
-    val listStartPadding = spacing.screenHorizontal
-    val listEndPadding = spacing.screenHorizontal
-    val currentSearchStatus =
-        remember(searchStatus, filteredRules, uiState.searchQuery) {
-            searchStatus.copy(
-                resultStatus =
-                    when {
-                        searchStatus.searchText.isBlank() -> SearchStatus.ResultStatus.DEFAULT
-                        filteredRules.isEmpty() -> SearchStatus.ResultStatus.EMPTY
-                        else -> SearchStatus.ResultStatus.SHOW
-                    }
-            )
-        }
 
     LaunchedEffect(Unit) { viewModel.refresh() }
     LaunchedEffect(uiState.toggleError) {
@@ -104,155 +69,36 @@ fun RulesScreen(
         context.toast(YumeTxt.Rules.Message.ToggleFailed.replace("%s", error))
         viewModel.consumeToggleError()
     }
-    LaunchedEffect(searchStatus.searchText) {
-        if (searchStatus.searchText != uiState.searchQuery) {
-            viewModel.setSearchQuery(searchStatus.searchText)
-        }
-    }
-    LaunchedEffect(uiState.searchQuery) {
-        if (searchStatus.searchText != uiState.searchQuery) {
-            searchStatus = searchStatus.copy(searchText = uiState.searchQuery)
-        }
-    }
-
-    val rulesContent: @Composable (PaddingValues, ScrollBehavior) -> Unit = { padding, behavior ->
-        when {
-            uiState.isLoading && uiState.rules.isEmpty() -> {
-                CenteredText(
-                    firstLine = YumeTxt.Rules.Empty.Loading,
-                    secondLine = YumeTxt.Rules.Empty.LoadingHint,
-                )
-            }
-
-            !uiState.isRunning && uiState.rules.isEmpty() -> {
-                CenteredText(
-                    firstLine = YumeTxt.Rules.Empty.NotRunning,
-                    secondLine = YumeTxt.Rules.Empty.NotRunningHint,
-                )
-            }
-
-            uiState.rules.isEmpty() -> {
-                CenteredText(
-                    firstLine = YumeTxt.Rules.Empty.NoRules,
-                    secondLine = YumeTxt.Rules.Empty.NoRulesHint,
-                )
-            }
-
-            else -> {
-                ScreenLazyColumn(
-                    scrollBehavior = behavior,
-                    innerPadding = padding,
-                    lazyListState = mainListState,
-                ) {
-                    items(
-                        items = filteredRules,
-                        key = { it.index },
-                        contentType = { "rule" },
-                    ) { rule ->
-                        RuleCard(
-                            rule = rule,
-                            enabled = !rule.disabled,
-                            toggling = rule.index in uiState.togglingIndexes,
-                            onEnabledChange = { enabled ->
-                                viewModel.setRuleEnabled(rule.index, enabled)
-                            },
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    if (embedded) {
-        rulesContent(contentPadding, scrollBehavior)
-        return
-    }
-    // Same shell as ConnectionScreen / LogScreen: outer Box so SearchPager can cover the
-    // scaffold (zIndex) while the collapsed bar still lives in TopBar.bottomContent.
-    Box(modifier = Modifier.fillMaxSize()) {
-        GlassScaffold(
-            topBar = {
-                currentSearchStatus.TopAppBarAnim {
-                    TopBar(
-                        title = YumeTxt.Rules.Title,
-                        scrollBehavior = scrollBehavior,
-                        bottomContent = {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .alpha(
-                                            if (currentSearchStatus.isCollapsed()) 1f else 0f
-                                        )
-                                        .onGloballyPositioned { coordinates ->
-                                            with(density) {
-                                                val offset = coordinates.positionInWindow().y.toDp()
-                                                if (currentSearchStatus.offsetY != offset) {
-                                                    searchStatus =
-                                                        currentSearchStatus.copy(offsetY = offset)
-                                                }
-                                            }
-                                        }
-                                        .then(
-                                            if (currentSearchStatus.isCollapsed()) {
-                                                Modifier.pointerInput(currentSearchStatus.current) {
-                                                    detectTapGestures {
-                                                        searchStatus =
-                                                            currentSearchStatus.copy(
-                                                                current =
-                                                                    SearchStatus.Status.EXPANDING
-                                                            )
-                                                    }
-                                                }
-                                            } else {
-                                                Modifier
-                                            }
-                                        )
-                            ) {
-                                CollapsedSearchBar(
-                                    label = currentSearchStatus.label,
-                                    topPadding = dynamicTopPadding,
-                                    startPadding = listStartPadding,
-                                    endPadding = listEndPadding,
-                                )
-                            }
-                        },
-                    )
-                }
-            }
-        ) { innerPadding ->
-            if (currentSearchStatus.shouldCollapse()) {
-                rulesContent(combinePaddingValues(innerPadding, mainLikePadding), scrollBehavior)
-            }
+    when {
+        uiState.isLoading && uiState.rules.isEmpty() -> {
+            CenteredText(
+                firstLine = YumeTxt.Rules.Empty.Loading,
+                secondLine = YumeTxt.Rules.Empty.LoadingHint,
+            )
         }
 
-        // Always composed — same as AccessControl. Do not gate with !isCollapsed().
-        currentSearchStatus.SearchPager(
-            onSearchStatusChange = { searchStatus = it },
-            padding =
-                SearchBarPadding(
-                    top = dynamicTopPadding,
-                    start = listStartPadding,
-                    end = listEndPadding,
-                ),
-            emptyResult = {
-                CenteredText(
-                    firstLine = YumeTxt.Rules.Empty.NoResults,
-                    secondLine = currentSearchStatus.searchText,
-                )
-            },
-        ) {
-            val searchListState = rememberLazyListState()
-            LazyColumn(
-                state = searchListState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding =
-                    PaddingValues(
-                        top = spacing.space6,
-                        bottom = mainLikePadding.calculateBottomPadding(),
-                    ),
+        !uiState.isRunning && uiState.rules.isEmpty() -> {
+            CenteredText(
+                firstLine = YumeTxt.Rules.Empty.NotRunning,
+                secondLine = YumeTxt.Rules.Empty.NotRunningHint,
+            )
+        }
+
+        uiState.rules.isEmpty() -> {
+            CenteredText(
+                firstLine = YumeTxt.Rules.Empty.NoRules,
+                secondLine = YumeTxt.Rules.Empty.NoRulesHint,
+            )
+        }
+
+        else -> {
+            ScreenLazyColumn(
+                scrollBehavior = scrollBehavior,
+                innerPadding = contentPadding,
+                lazyListState = listState,
             ) {
                 items(
-                    items = filteredRules,
+                    items = uiState.rules,
                     key = { it.index },
                     contentType = { "rule" },
                 ) { rule ->

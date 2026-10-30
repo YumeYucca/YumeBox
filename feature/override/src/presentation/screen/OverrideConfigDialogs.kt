@@ -18,7 +18,7 @@
  *
  */
 
-package com.github.yumeyucca.yumebox.presentation.screen
+package com.github.yumeyucca.yumebox.feature.override.presentation.screen
 
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -30,7 +30,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -40,21 +39,21 @@ import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.data.model.OverrideConfig
 import com.github.yumeyucca.yumebox.data.model.OverrideContentType
 import com.github.yumeyucca.yumebox.presentation.component.AppActionBottomSheet
-import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetAction
-import com.github.yumeyucca.yumebox.common.util.formatBytes
-import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetCloseAction
+import com.github.yumeyucca.yumebox.common.util.ByteFormatter
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetConfirmAction
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldDialog
 import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldRow
+import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownOption
 import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference
+import com.github.yumeyucca.yumebox.presentation.component.PreferenceArrowItem
 import com.github.yumeyucca.yumebox.presentation.component.SegmentedTabRow
 import com.github.yumeyucca.yumebox.presentation.util.readDisplaySize
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
@@ -66,7 +65,7 @@ internal enum class OverrideConfigInputMode {
 
 @Composable
 internal fun CreateConfigDialog(
-    show: MutableState<Boolean>,
+    show: Boolean,
     initialMode: OverrideConfigInputMode,
     onConfirmCreate: (String, OverrideContentType) -> Unit,
     onConfirmImport: suspend (String, String) -> Result<OverrideConfig>,
@@ -76,14 +75,14 @@ internal fun CreateConfigDialog(
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
-    var inputMode by remember(show.value, initialMode) { mutableStateOf(initialMode) }
-    val nameTextFieldValueState = remember(show.value) { mutableStateOf(TextFieldValue()) }
-    var contentType by remember(show.value) { mutableStateOf(OverrideContentType.Yaml) }
-    var selectedImportUri by remember(show.value) { mutableStateOf<Uri?>(null) }
-    var selectedImportFileName by remember(show.value) { mutableStateOf("") }
-    var selectedImportFileSize by remember(show.value) { mutableStateOf(0L) }
-    var networkImportUrl by remember(show.value) { mutableStateOf("") }
-    var isImporting by remember(show.value) { mutableStateOf(false) }
+    var inputMode by remember(show, initialMode) { mutableStateOf(initialMode) }
+    val nameTextFieldValueState = remember(show) { mutableStateOf(TextFieldValue()) }
+    var contentType by remember(show) { mutableStateOf(OverrideContentType.Yaml) }
+    var selectedImportUri by remember(show) { mutableStateOf<Uri?>(null) }
+    var selectedImportFileName by remember(show) { mutableStateOf("") }
+    var selectedImportFileSize by remember(show) { mutableStateOf(0L) }
+    var networkImportUrl by remember(show) { mutableStateOf("") }
+    var isImporting by remember(show) { mutableStateOf(false) }
     // Exposed as state (not a plain val) because it is read inside the sheet's endAction lambda:
     // the overlay-hosted title-bar row can be re-rendered from a stale composable after the app
     // returns from background, and only a state read there keeps it subscribed to updates.
@@ -131,17 +130,10 @@ internal fun CreateConfigDialog(
         }
 
     AppActionBottomSheet(
-        show = show.value,
+        show = show,
         // Title follows the mode: "新建配置" / "本地文件" / "链接导入" say what the sheet is about,
         // where a single generic "添加配置" made all three look identical.
-        title =
-            when (inputMode) {
-                OverrideConfigInputMode.CreateNew -> YumeTxt.Override.Action.New
-                OverrideConfigInputMode.LocalFile -> YumeTxt.ProfilesPage.Type.LocalFile
-                OverrideConfigInputMode.NetworkUrl -> YumeTxt.Override.Action.NetworkImport
-            },
-        startAction = { AppBottomSheetCloseAction(onClick = onDismiss) },
-        scrollableContent = true,
+        title = inputMode.label,
         endAction = {
             AppBottomSheetConfirmAction(
                 enabled = canConfirm && !isImporting,
@@ -168,8 +160,10 @@ internal fun CreateConfigDialog(
                                     scope.launch {
                                         isImporting = true
                                         onConfirmImport(content, selectedImportFileName)
-                                            .onSuccess { show.value = false }
+                                            .onSuccess { onDismiss() }
                                             .onFailure { error ->
+                                                // Cancelled by leaving the dialog, not a failed read.
+                                                if (error is CancellationException) throw error
                                                 context.toast(
                                                     error.message
                                                         ?: YumeTxt.Override.Import.ReadError
@@ -192,8 +186,10 @@ internal fun CreateConfigDialog(
                             scope.launch {
                                 isImporting = true
                                 onConfirmNetworkImport(url)
-                                    .onSuccess { show.value = false }
+                                    .onSuccess { onDismiss() }
                                     .onFailure { error ->
+                                        // Cancelled by leaving the dialog, not a failed download.
+                                        if (error is CancellationException) throw error
                                         context.toast(
                                             YumeTxt.Override.Import.NetworkError.format(
                                                 error.message
@@ -271,7 +267,7 @@ private fun OverrideInputModeSelector(
     selectedMode: OverrideConfigInputMode,
     onSelectedModeChange: (OverrideConfigInputMode) -> Unit,
 ) {
-    val inputModeOptions = remember { OverrideConfigInputMode.entries.toList() }
+    val inputModeOptions = OverrideConfigInputMode.entries
     val selectedModeIndex = inputModeOptions.indexOf(selectedMode).coerceAtLeast(0)
 
     SegmentedTabRow(
@@ -289,16 +285,11 @@ private fun OverrideTypeSelector(
     selectedType: OverrideContentType,
     onSelectedTypeChange: (OverrideContentType) -> Unit,
 ) {
-    val contentTypeOptions = remember { OverrideContentType.entries.toList() }
-    val selectedTypeIndex = contentTypeOptions.indexOf(selectedType).coerceAtLeast(0)
-
     GlassDropdownPreference(
         title = YumeTxt.Override.Dialog.Create.Type,
-        items = contentTypeOptions.map { it.label },
-        selectedIndex = selectedTypeIndex,
-        onSelectedIndexChange = { index ->
-            contentTypeOptions.getOrNull(index)?.let(onSelectedTypeChange)
-        },
+        options = OverrideContentType.entries.map { GlassDropdownOption(it, it.displayName) },
+        selected = selectedType,
+        onSelected = onSelectedTypeChange,
     )
 }
 
@@ -308,7 +299,7 @@ private fun ImportOverrideFileContent(
     fileSize: Long,
     onPickFile: () -> Unit,
 ) {
-    ArrowPreference(
+    PreferenceArrowItem(
         title = YumeTxt.ProfilesPage.Input.SelectFile,
         modifier = modifier,
         // The right-hand text is the "already picked" signal — the file size once a file is
@@ -317,7 +308,7 @@ private fun ImportOverrideFileContent(
             Text(
                 text =
                     if (fileSize > 0L) {
-                        formatBytes(fileSize)
+                        ByteFormatter.format(fileSize)
                     } else {
                         YumeTxt.ProfilesPage.Input.Optional
                     },
@@ -373,13 +364,6 @@ internal fun RenameConfigDialog(
         onImeAction = { confirmRename() },
     )
 }
-
-internal val OverrideContentType.label: String
-    get() =
-        when (this) {
-            OverrideContentType.Yaml -> "YAML"
-            OverrideContentType.JavaScript -> "JavaScript"
-        }
 
 private val OverrideConfigInputMode.label: String
     get() =

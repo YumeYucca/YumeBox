@@ -27,6 +27,7 @@ import com.github.yumeyucca.yumebox.common.util.AppLanguageManager
 import com.github.yumeyucca.yumebox.common.util.PlatformIdentifier
 import com.github.yumeyucca.yumebox.core.Global
 import com.github.yumeyucca.yumebox.core.util.AppVisibilityTracker
+import com.github.yumeyucca.yumebox.core.util.StartupTaskCoordinator
 import com.github.yumeyucca.yumebox.core.util.runtimeHomeDir
 import com.github.yumeyucca.yumebox.data.controller.AppTrafficStatisticsCollector
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
@@ -36,6 +37,7 @@ import com.github.yumeyucca.yumebox.feature.meta.presentation.util.CustomRouting
 import com.github.yumeyucca.yumebox.runtime.api.Components
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
 import com.github.yumeyucca.yumebox.screen.settings.MoeWallpaperImporter
+import com.github.yumeyucca.yumebox.presentation.component.NavTrace
 import com.github.yumeyucca.yumebox.substore.util.AppUtil
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.*
@@ -45,9 +47,86 @@ import org.koin.core.context.startKoin
 import org.tukaani.xz.XZInputStream
 import timber.log.Timber
 import java.io.File
+import java.io.InputStream
 
 class App : Application() {
-    private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    // Nothing above this scope collects the failure of a fire-and-forget task, and an unhandled
+    // exception in a `launch` would tear the process down. Each step below reports its own failure;
+    // this handler is the backstop for the work that cannot.
+    private val startupScope =
+        CoroutineScope(
+            SupervisorJob() +
+                Dispatchers.Default +
+                CoroutineExceptionHandler { _, error ->
+                    Timber.e(error, "Uncaught failure in a deferred startup task")
+                },
+        )
+
+    private val geoAssetNames = listOf("geoip.metadb", "geosite.dat", "ASN.mmdb")
+
+    /**
+     * Writes the last navigation events and the fatal stack to a file the user can send back.
+     *
+     * TEMPORARY DIAGNOSTIC for the navigation fault: a crash in a release build prints to logcat
+     * only, which is unreachable without a cable. The dump also goes to logcat unchanged, and the
+     * previous handler still runs so the platform behaviour does not change.
+     */
+    private fun installCrashDump() {
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            runCatching {
+                val report =
+                    buildString {
+                        appendLine("thread: ${thread.name}")
+                        appendLine("version: ${BuildInfo.BASE_VERSION} (${BuildInfo.VERSION_CODE})")
+                        appendLine()
+                        appendLine("navigation:")
+                        appendLine(NavTrace.dump())
+                        appendLine()
+                        appendLine("stack:")
+                        appendLine(error.stackTraceToString())
+                    }
+                android.util.Log.e("YumeBoxCrash", report)
+                val name = "crash-${System.currentTimeMillis()}.txt"
+                listOfNotNull(getExternalFilesDir(null), cacheDir, filesDir).forEach { dir ->
+                    runCatching { File(dir, name).writeText(report) }
+                }
+            }
+            previous?.uncaughtException(thread, error)
+        }
+    }
+
+    /**
+     * Copies any crash report left by the previous run into the public Downloads folder.
+     *
+     * TEMPORARY DIAGNOSTIC: the dump is written where the dead process could still write, which on a
+     * modern device is the app's own directory and hard to reach without a cable. Publishing it on
+     * the next start makes the file reachable from any file manager. Remove with [installCrashDump].
+     */
+    private fun publishPendingCrashReports() {
+        listOfNotNull(getExternalFilesDir(null), cacheDir, filesDir).forEach { dir ->
+            val reports =
+                dir.listFiles { file -> file.name.startsWith("crash-") && file.name.endsWith(".txt") }
+            reports?.forEach { file ->
+                if (runCatching { publishToDownloads(file) }.getOrDefault(false)) file.delete()
+            }
+        }
+    }
+
+    private fun publishToDownloads(file: File): Boolean {
+        val values =
+            android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Downloads.DISPLAY_NAME, "yumebox-${file.name}")
+                put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain")
+            }
+        val uri =
+            contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: return false
+        contentResolver.openOutputStream(uri)?.use { out ->
+            file.inputStream().use { input -> input.copyTo(out) }
+        } ?: return false
+        return true
+    }
 
     companion object {
         lateinit var instance: App
@@ -58,6 +137,8 @@ class App : Application() {
         super.onCreate()
 
         instance = this
+        installCrashDump()
+        publishPendingCrashReports()
         AppVisibilityTracker.register(this)
         if (BuildInfo.DEBUG && Timber.forest().isEmpty()) {
             Timber.plant(Timber.DebugTree())
@@ -79,10 +160,9 @@ class App : Application() {
         val appSettingsStorage: AppSettingsStore = koinApp.koin.get()
         AppLanguageManager.apply(appSettingsStorage.appLanguage.value)
 
-        // Keep first-run geo extraction ahead of the UI so starting the proxy never inherits it.
-        extractGeoFiles()
         val featureStore: FeatureStore = koinApp.koin.get()
         featureStore.syncAppVersion(BuildInfo.VERSION_CODE)
+        startGeoExtraction()
         scheduleDeferredStartupTasks(koinApp.koin, featureStore, appSettingsStorage)
 
         PlatformIdentifier.getPlatformIdentifier()
@@ -93,30 +173,56 @@ class App : Application() {
         AppLanguageManager.refreshSystemLanguage()
     }
 
+    /**
+     * Unpacks the bundled geo databases as startup warmup instead of doing it inline: a first run
+     * decompresses megabytes of xz on whatever thread got here, and this runs on the main thread.
+     *
+     * Every path that starts the runtime awaits the warmup first, so extraction is still guaranteed to
+     * finish before the core can read these files — that guarantee is the coordinator's job, not this
+     * method's. It stays idempotent: existing files are left alone, so the work after a first run is
+     * three `exists()` calls.
+     */
+    private fun startGeoExtraction() {
+        StartupTaskCoordinator.startWarmup(startupScope) {
+            withContext(Dispatchers.IO) { extractGeoFiles() }
+        }
+    }
+
     private fun extractGeoFiles() {
         val dir = runtimeHomeDir.apply { mkdirs() }
-        for (name in listOf("geoip.metadb", "geosite.dat", "ASN.mmdb")) {
+        for (name in geoAssetNames) {
             val target = File(dir, name)
-            if (!target.exists()) {
-                extractXzAsset("$name.xz", target) ?: copyAssetIfExists(name, target)
-            }
+            if (target.exists()) continue
+            if (installAsset(assetName = "$name.xz", target = target, decompress = true)) continue
+            installAsset(assetName = name, target = target)
         }
     }
 
     /**
-     * External-geo builds omit these runtime assets. Remove partial writes so the startup guard
-     * can require a Builtin APK to install a complete Geo data set.
+     * Installs one bundled asset into [target], decompressing it as xz when [decompress] is set.
+     *
+     * A partial write is removed on failure: external-geo builds omit these runtime assets, and the
+     * startup guard has to be able to require a Builtin APK to install a complete Geo data set.
+     * Returns false when the asset is not bundled.
      */
-    private fun copyAssetIfExists(name: String, target: File) {
+    private fun installAsset(assetName: String, target: File, decompress: Boolean = false): Boolean =
         runCatching {
-            assets.open(name).use { input ->
-                target.outputStream().use { input.copyTo(it) }
+            assets.open(assetName).use { raw ->
+                if (decompress) {
+                    XZInputStream(raw.buffered()).use { xz -> target.writeFrom(xz) }
+                } else {
+                    target.writeFrom(raw)
+                }
             }
         }
             .onFailure {
                 target.delete()
-                Timber.i("Runtime asset %s not bundled; a Builtin APK must install it", name)
+                Timber.i("Runtime asset %s unavailable; a Builtin APK must install it", assetName)
             }
+            .isSuccess
+
+    private fun File.writeFrom(input: InputStream) {
+        outputStream().buffered().use { output -> input.copyTo(output) }
     }
 
     /**
@@ -140,16 +246,22 @@ class App : Application() {
         }
     }
 
-    private fun extractXzAsset(assetName: String, target: File): Unit? = runCatching {
-        assets.open(assetName).use { input ->
-            XZInputStream(input.buffered()).use { xz ->
-                target.outputStream().buffered().use { xz.copyTo(it) }
-            }
+    /**
+     * Runs one deferred startup step and reports its failure without letting it escape.
+     *
+     * Cancellation is not a failure and must not be logged as one: this scope lives as long as the
+     * process, so the only way a step is cancelled is shutdown, and swallowing that would leave the
+     * remaining steps running against a torn-down app.
+     */
+    private suspend fun startupStep(what: String, block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Timber.e(error, what)
         }
-        Unit
     }
-        .onFailure { target.delete() }
-        .getOrNull()
 
     private fun scheduleDeferredStartupTasks(
         koin: Koin,
@@ -157,12 +269,22 @@ class App : Application() {
         appSettings: AppSettingsStore,
     ) {
         startupScope.launch {
-            runCatching { koin.get<CustomRoutingBootstrapper>().ensureDefaultContent() }
-                .onFailure { Timber.e(it, "Failed to bootstrap custom routing default content") }
-            runCatching { ensureMoeWallpaperLocalCopy(appSettings) }
-                .onFailure { Timber.e(it, "Failed to ensure Moe wallpaper local copy") }
-            runCatching { koin.get<AppTrafficStatisticsCollector>() }
-            runCatching { koin.get<ProxyFacade>().awaitProxyGroupWarmUp() }
+            // Same ordering the inline extraction used to give: nothing that can reach the core runs
+            // before the geo databases are on disk.
+            StartupTaskCoordinator.awaitWarmup()
+            startupStep("Failed to bootstrap custom routing default content") {
+                koin.get<CustomRoutingBootstrapper>().ensureDefaultContent()
+            }
+            startupStep("Failed to ensure Moe wallpaper local copy") {
+                ensureMoeWallpaperLocalCopy(appSettings)
+            }
+            // Constructing the collector is what starts it (its init launches the poll loops).
+            startupStep("Failed to start app traffic statistics collection") {
+                koin.get<AppTrafficStatisticsCollector>()
+            }
+            startupStep("Proxy group warm-up failed") {
+                koin.get<ProxyFacade>().awaitProxyGroupWarmUp()
+            }
 
             if (featureStore.isFirstTimeOpen()) {
                 withContext(Dispatchers.IO) {

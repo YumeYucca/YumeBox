@@ -20,11 +20,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
-import com.github.yumeyucca.yumebox.common.util.formatBytesForDisplay
+import com.github.yumeyucca.yumebox.common.util.ByteFormatter
 import com.github.yumeyucca.yumebox.presentation.component.CountryFlagCircle
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.util.extractFlaggedName
@@ -50,7 +49,7 @@ internal fun MoeTrafficStrip(
 
 @Composable
 private fun MoeTrafficItem(label: String, speed: Long) {
-    val (value, unit) = formatBytesForDisplay(speed)
+    val (value, unit) = ByteFormatter.formatForDisplay(speed)
     val onSurface = MiuixTheme.colorScheme.onSurface
     Row(
         horizontalArrangement = Arrangement.spacedBy(MoeUi.Traffic.itemGap),
@@ -135,7 +134,6 @@ private fun MoeInfoBlock(
     value: String,
     modifier: Modifier = Modifier,
     valueColor: Color = MiuixTheme.colorScheme.onBackground,
-    valueFontFamily: FontFamily? = null,
     alignEnd: Boolean = false,
     leading: (@Composable () -> Unit)? = null,
 ) {
@@ -154,7 +152,6 @@ private fun MoeInfoBlock(
             color = valueColor,
             style = MiuixTheme.textStyles.body1,
             fontWeight = FontWeight.Medium,
-            fontFamily = valueFontFamily,
             maxLines = 1,
             overflow = TextOverflow.Clip,
             modifier = if (alignEnd) Modifier else Modifier.weight(1f),

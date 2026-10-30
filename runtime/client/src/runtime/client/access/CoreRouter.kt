@@ -36,6 +36,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 /** Routes [CoreApi] to remote controller when active, otherwise the local controller. */
 class CoreRouter(
@@ -56,8 +57,8 @@ class CoreRouter(
 
     override suspend fun queryConnections(): ConnectionSnapshot = pick().queryConnections()
 
-    override suspend fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> =
-        pick().queryAllProxyGroups(excludeNotSelectable)
+    override suspend fun queryAllProxyGroups(): List<ProxyGroup> =
+        pick().queryAllProxyGroups()
 
     override suspend fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup =
         pick().queryProxyGroup(name, proxySort)
@@ -104,6 +105,9 @@ class CoreRouter(
                                 routedLogSubscription?.close()
                                 routedLogSubscription = nextSubscription
                                 target = nextTarget
+                            }
+                            .onFailure { error ->
+                                Timber.w(error, "Log stream rebind failed; keeping the current one")
                             }
                     }
                 }

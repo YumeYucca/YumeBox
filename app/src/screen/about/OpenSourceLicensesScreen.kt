@@ -73,10 +73,9 @@ fun OpenSourceLicensesScreen(navigator: Navigator) {
             TopBar(title = YumeTxt.OpenSourceLicenses.Title, scrollBehavior = scrollBehavior)
         }
     ) { innerPadding ->
-        val mainLikePadding = rememberStandalonePageMainPadding()
-        ScreenLazyColumn(
+        StandalonePageList(
             scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
+            scaffoldPadding = innerPadding,
         ) {
             // Match About page: breathing room under the large TopBar title.
             item { Spacer(modifier = Modifier.height(UiDp.dp24)) }
@@ -93,7 +92,7 @@ fun OpenSourceLicensesScreen(navigator: Navigator) {
                         onClick = {
                             val url = library.projectUrl
                             if (!url.isNullOrBlank()) {
-                                openUrl(context, url)
+                                context.openUrl(url)
                             }
                         },
                     )
@@ -128,28 +127,7 @@ private fun LibraryItem(library: Library, onClick: () -> Unit) {
                     .padding(spacing.space16),
             verticalArrangement = Arrangement.spacedBy(spacing.space10),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = library.name,
-                    style = MiuixTheme.textStyles.body1,
-                    color = MiuixTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                library.artifactVersion?.let { version ->
-                    Text(
-                        text = version,
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        modifier = Modifier.padding(start = spacing.space12),
-                    )
-                }
-            }
+            LibraryTitleRow(library = library)
 
             library.developers.firstOrNull()?.name?.let { author ->
                 Text(
@@ -159,14 +137,50 @@ private fun LibraryItem(library: Library, onClick: () -> Unit) {
                 )
             }
 
-            if (library.licenses.isNotEmpty()) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(spacing.space6),
-                    verticalArrangement = Arrangement.spacedBy(spacing.space6),
-                ) {
-                    library.licenses.forEach { license -> LicenseChip(licenseName = license.name) }
-                }
-            }
+            LibraryLicenseTags(library = library)
+        }
+    }
+}
+
+/** Name and artifact version of a library. */
+@Composable
+private fun LibraryTitleRow(library: Library) {
+    val spacing = AppTheme.spacing
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = library.name,
+            style = MiuixTheme.textStyles.body1,
+            color = MiuixTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        library.artifactVersion?.let { version ->
+            Text(
+                text = version,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                modifier = Modifier.padding(start = spacing.space12),
+            )
+        }
+    }
+}
+
+/** License tags of a library. */
+@Composable
+private fun LibraryLicenseTags(library: Library) {
+    if (library.licenses.isNotEmpty()) {
+        val spacing = AppTheme.spacing
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(spacing.space6),
+            verticalArrangement = Arrangement.spacedBy(spacing.space6),
+        ) {
+            library.licenses.forEach { license -> LicenseChip(licenseName = license.name) }
         }
     }
 }

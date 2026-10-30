@@ -21,7 +21,6 @@
 package com.github.yumeyucca.yumebox.di
 
 import com.github.yumeyucca.yumebox.presentation.viewmodel.FeatureViewModel
-import com.github.yumeyucca.yumebox.presentation.viewmodel.SettingViewModel
 import com.github.yumeyucca.yumebox.substore.util.SubStoreDownloadClient
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.Module
@@ -30,7 +29,6 @@ import org.koin.dsl.module
 
 val featureSubStoreViewModelModule = module {
     single { SubStoreDownloadClient(androidApplication(), get()) }
-    viewModel { SettingViewModel(get()) }
     viewModel { FeatureViewModel(get(), androidApplication(), get()) }
 }
 

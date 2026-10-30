@@ -27,6 +27,7 @@ import android.os.Build
 import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.github.yumeyucca.yumebox.screen.settings.ChinaAppDetector.Companion.MAX_SCANNABLE_DEX_BYTES
 import com.tencent.mmkv.MMKV
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -137,7 +138,11 @@ class ChinaAppDetector(context: Context) {
             }
             val apkPath = packageInfo.applicationInfo?.publicSourceDir ?: return false
             scanApkDexClasses(File(apkPath))
+        } catch (error: CancellationException) {
+            throw error
         } catch (_: Exception) {
+            // One unreadable package must not abort the batch: its dex files may be gone, the app may
+            // be mid-update, or the package manager may refuse the query outright.
             false
         }
     }

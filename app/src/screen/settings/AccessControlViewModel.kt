@@ -29,14 +29,15 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewModelScope
 import com.github.yumeyucca.yumebox.common.util.stateInWhileSubscribed
-import com.github.yumeyucca.yumebox.core.presentation.AndroidContractStateViewModel
-import com.github.yumeyucca.yumebox.core.presentation.LoadableState
+import com.github.yumeyucca.yumebox.presentation.base.AndroidContractStateViewModel
+import com.github.yumeyucca.yumebox.presentation.base.LoadableState
 import com.github.yumeyucca.yumebox.data.controller.AccessControlController
 import com.github.yumeyucca.yumebox.data.model.AccessControlImportStrategy
 import com.github.yumeyucca.yumebox.data.model.AccessControlMode
 import com.github.yumeyucca.yumebox.data.model.AccessControlSortMode
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.runtime.service.root.RootPackageShell
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -122,7 +123,7 @@ class AccessControlViewModel(
 
     private fun checkAndLoad() {
         val context = getApplication<Application>()
-        val permission = "com.android.permission.GET_INSTALLED_APPS"
+        val permission = GET_INSTALLED_APPS_PERMISSION
 
         if (RootPackageShell.hasRootAccess()) {
             loadApps()
@@ -167,7 +168,8 @@ class AccessControlViewModel(
             val apps = runCatching {
                 withContext(Dispatchers.IO) { loadInstalledApps() }
             }
-                .getOrElse {
+                .getOrElse { error ->
+                    if (error is CancellationException) throw error
                     _uiState.update { state ->
                         state.copy(isLoading = false, needsMiuiPermission = true)
                     }
@@ -368,7 +370,8 @@ class AccessControlViewModel(
                     }
                 )
             }
-                .getOrElse {
+                .getOrElse { error ->
+                    if (error is CancellationException) throw error
                     _uiState.update { state -> state.copy(isLoading = false) }
                     return@launch
                 }

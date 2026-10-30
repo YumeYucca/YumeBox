@@ -22,9 +22,11 @@ package com.github.yumeyucca.yumebox.runtime.service.shizuku
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.IBinder
 import android.util.Log
+import com.github.yumeyucca.yumebox.common.util.startActivitySafely
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import rikka.shizuku.Shizuku
@@ -73,7 +75,7 @@ object ShizukuManager {
     private var restorePending = false
 
     private val serviceConnection =
-        object : android.content.ServiceConnection {
+        object : ServiceConnection {
             override fun onServiceConnected(
                 name: ComponentName?,
                 binder: IBinder?,
@@ -144,14 +146,13 @@ object ShizukuManager {
             }
     }
 
-    fun openShizuku(context: Context): Boolean =
-        runCatching {
-            val intent =
-                context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE)
-                    ?: return@runCatching false
-            context.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-            true
-        }.getOrDefault(false)
+    fun openShizuku(context: Context): Boolean {
+        val intent =
+            runCatching { context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE) }
+                .onFailure { error -> Log.w(TAG, "Could not resolve the Shizuku launcher", error) }
+                .getOrNull() ?: return false
+        return context.startActivitySafely(intent)
+    }
 
     /**
      * Takes one hold on the XMSF bypass. HyperOS only keeps an unofficial island while that network

@@ -20,7 +20,7 @@
 
 @file:Suppress("UnusedSymbol", "DestructuringDeclaration")
 
-package com.github.yumeyucca.yumebox.presentation.viewmodel
+package com.github.yumeyucca.yumebox.feature.override.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -32,6 +32,7 @@ import com.github.yumeyucca.yumebox.data.model.OverrideContentType
 import com.github.yumeyucca.yumebox.data.model.OverrideMetadata
 import com.github.yumeyucca.yumebox.data.store.OverrideConfigStore
 import com.github.yumeyucca.yumebox.data.store.ProfileBindingProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,20 +61,14 @@ class OverrideConfigViewModel(
         private const val TAG = "OverrideConfigViewModel"
         private const val NETWORK_IMPORT_CONNECT_TIMEOUT_MS = 15_000
         private const val NETWORK_IMPORT_READ_TIMEOUT_MS = 30_000
-        private const val NETWORK_IMPORT_MAX_BYTES = 5L * 1024 * 1024
+        private const val NETWORK_IMPORT_MAX_BYTES = 5L * BYTES_PER_MEBIBYTE
     }
-
-    private val _configs = MutableStateFlow<List<OverrideConfig>>(emptyList())
-    val configs: StateFlow<List<OverrideConfig>> = _configs.asStateFlow()
 
     private val _builtInConfigs = MutableStateFlow<List<OverrideConfig>>(emptyList())
     val builtInConfigs: StateFlow<List<OverrideConfig>> = _builtInConfigs.asStateFlow()
 
     private val _userConfigs = MutableStateFlow<List<OverrideConfig>>(emptyList())
     val userConfigs: StateFlow<List<OverrideConfig>> = _userConfigs.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _usageCountMap = MutableStateFlow<Map<String, Int>>(emptyMap())
     val usageCountMap: StateFlow<Map<String, Int>> = _usageCountMap.asStateFlow()
@@ -89,7 +84,6 @@ class OverrideConfigViewModel(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught")
     fun refresh() {
         viewModelScope.launch { refreshNow() }
     }
@@ -101,7 +95,6 @@ class OverrideConfigViewModel(
     @Suppress("TooGenericExceptionCaught")
     private suspend fun refreshNow() {
         refreshMutex.withLock {
-            _isLoading.value = true
             try {
                 // Load independently: a built-in asset hiccup must not wipe imported overrides
                 // (and vice versa). First open used to fail the whole try when materialize threw.
@@ -109,6 +102,7 @@ class OverrideConfigViewModel(
                     configRepo.getBuiltInConfigs()
                 }
                     .onFailure { error ->
+                        if (error is CancellationException) throw error
                         Timber.tag(TAG).e(error, "Failed to load built-in overrides")
                     }
                     .getOrDefault(_builtInConfigs.value)
@@ -116,43 +110,42 @@ class OverrideConfigViewModel(
                     configRepo.getUserConfigs()
                 }
                     .onFailure { error ->
+                        if (error is CancellationException) throw error
                         Timber.tag(TAG).e(error, "Failed to load imported overrides")
                     }
                     .getOrDefault(_userConfigs.value)
                 _builtInConfigs.value = builtIns
                 _userConfigs.value = users
-                _configs.value = builtIns + users
                 loadUsageCounts()
-            } catch (
-                error:
-                Exception
-            ) { // fault barrier: top-level ViewModel load handler, log and reset
-                // loading
+            } catch (error: CancellationException) {
+                // A cancelled refresh must not be logged or treated as a load failure.
+                throw error
+            } catch (error: Exception) {
+                // Fault barrier: both loads above already fall back to the cached lists, so
+                // only the trailing usage-count refresh can reach here.
                 Timber.tag(TAG).e(error, "Failed to load overrides")
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
-    fun getConfigById(id: String): OverrideConfig? = _configs.value.find { it.id == id }
+    fun getConfigById(id: String): OverrideConfig? =
+        _builtInConfigs.value.find { it.id == id } ?: _userConfigs.value.find { it.id == id }
 
-    fun getConfigContent(configId: String): String? = configRepo.getConfigContent(configId)
+    suspend fun getConfigContent(configId: String): String? = configRepo.getConfigContent(configId)
 
     fun isBuiltInConfig(id: String): Boolean = OverrideInternalConstants.isBuiltInOverrideId(id)
 
-    fun saveConfigContent(configId: String, content: String): Boolean {
-        val saved = configRepo.saveConfigContent(configId, content)
-        if (!saved) return false
+    suspend fun saveConfigContent(configId: String, content: String): Boolean {
+        // Runs on the editor's own save coroutine: the write and the reload stay together, so the
+        // caller only learns "saved" once the active profile has actually been re-applied.
+        if (!configRepo.saveConfigContent(configId, content)) return false
 
-        viewModelScope.launch {
-            activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(configId)
-            refreshNow()
-        }
+        activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(configId)
+        refreshNow()
         return true
     }
 
-    fun createConfig(name: String, description: String? = null, contentType: OverrideContentType) {
+    fun createConfig(name: String, contentType: OverrideContentType) {
         viewModelScope.launch {
             runCatching {
                 val now = System.currentTimeMillis()
@@ -160,7 +153,6 @@ class OverrideConfigViewModel(
                     OverrideConfig(
                         id = OverrideMetadata.generateId(),
                         name = name,
-                        description = description,
                         contentType = contentType,
                         content = "",
                         createdAt = now,
@@ -170,7 +162,10 @@ class OverrideConfigViewModel(
                 _pendingRevealConfigId.value = config.id
                 refreshNow()
             }
-                .onFailure { error -> Timber.tag(TAG).e(error, "Failed to create override") }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    Timber.tag(TAG).e(error, "Failed to create override")
+                }
         }
     }
 
@@ -186,7 +181,10 @@ class OverrideConfigViewModel(
                 }
                 refreshNow()
             }
-                .onFailure { error -> Timber.tag(TAG).e(error, "Failed to delete override") }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    Timber.tag(TAG).e(error, "Failed to delete override")
+                }
         }
     }
 
@@ -201,38 +199,10 @@ class OverrideConfigViewModel(
                 configRepo.save(current.copy(name = trimmedName))
                 refreshNow()
             }
-                .onFailure { error -> Timber.tag(TAG).e(error, "Failed to rename override") }
-        }
-    }
-
-    fun duplicateConfig(id: String) {
-        viewModelScope.launch {
-            runCatching {
-                val source = getConfigById(id) ?: configRepo.getById(id) ?: return@runCatching
-                // Built-ins have no metadata row — materialize a user copy instead of
-                // store.duplicate.
-                val duplicated =
-                    if (isBuiltInConfig(id)) {
-                        val now = System.currentTimeMillis()
-                        OverrideConfig(
-                            id = OverrideMetadata.generateId(),
-                            name = YumeTxt.Override.BuiltIn.CopyName.format(source.name),
-                            description = source.description,
-                            contentType = source.contentType,
-                            content = source.content,
-                            createdAt = now,
-                            updatedAt = now,
-                        )
-                            .also { configRepo.save(it) }
-                    } else {
-                        configRepo.duplicate(id)
-                    }
-                if (duplicated != null) {
-                    _pendingRevealConfigId.value = duplicated.id
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    Timber.tag(TAG).e(error, "Failed to rename override")
                 }
-                refreshNow()
-            }
-                .onFailure { error -> Timber.tag(TAG).e(error, "Failed to duplicate override") }
         }
     }
 
@@ -247,26 +217,20 @@ class OverrideConfigViewModel(
                     configs.add(toIndex.coerceIn(0, configs.size), moving)
                 }
             _userConfigs.value = reorderedConfigs
-            _configs.value = _builtInConfigs.value + reorderedConfigs
 
             runCatching { configRepo.reorderUserConfigs(reorderedConfigs.map(OverrideConfig::id)) }
-                .onFailure { error -> Timber.tag(TAG).e(error, "Failed to reorder overrides") }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    Timber.tag(TAG).e(error, "Failed to reorder overrides")
+                }
             refreshNow()
         }
     }
 
-    suspend fun importConfig(content: String, sourceName: String?): Result<OverrideConfig> {
-        return importConfig(
-            content = content,
-            sourceName = sourceName,
-            fallbackContentType = null,
-        )
-    }
-
-    private suspend fun importConfig(
+    suspend fun importConfig(
         content: String,
         sourceName: String?,
-        fallbackContentType: OverrideContentType?,
+        fallbackContentType: OverrideContentType? = null,
     ): Result<OverrideConfig> {
         val contentType =
             OverrideContentType.fromFileName(sourceName)
@@ -292,7 +256,6 @@ class OverrideConfigViewModel(
                 name =
                     normalizeImportedConfigSourceName(sourceName)
                         ?: YumeTxt.Override.Save.ImportDefaultName,
-                description = null,
                 contentType = contentType,
                 content = content,
                 createdAt = System.currentTimeMillis(),
@@ -305,7 +268,12 @@ class OverrideConfigViewModel(
             refreshNow()
             config
         }
-            .onFailure { error -> Timber.tag(TAG).e(error, "Failed to import override") }
+            .onFailure { error ->
+                // A cancelled import is not an import failure: reporting it as one would hand the
+                // caller a Result.failure it turns into a "save failed" message after cancellation.
+                if (error is CancellationException) throw error
+                Timber.tag(TAG).e(error, "Failed to import override")
+            }
     }
 
     suspend fun importConfigFromUrl(rawUrl: String): Result<OverrideConfig> =
@@ -337,7 +305,7 @@ class OverrideConfigViewModel(
                         connection.contentLengthLong < 0L ||
                                 connection.contentLengthLong <= NETWORK_IMPORT_MAX_BYTES
                     ) {
-                        "远程配置超过 ${NETWORK_IMPORT_MAX_BYTES / (1024 * 1024)}MB 限制"
+                        networkImportTooLargeMessage(NETWORK_IMPORT_MAX_BYTES)
                     }
 
                     val contentTypeHeader = connection.contentType.orEmpty()
@@ -368,10 +336,10 @@ class OverrideConfigViewModel(
                     connection.disconnect()
                 }
             }
-                .fold(
-                    onSuccess = { Result.success(it) },
-                    onFailure = { Result.failure(it) },
-                )
+                .onFailure { error ->
+                    // Same as importConfig: the caller must see cancellation, not a failed download.
+                    if (error is CancellationException) throw error
+                }
         }
 
     fun consumePendingRevealConfig(configId: String) {
@@ -382,14 +350,19 @@ class OverrideConfigViewModel(
 
     private suspend fun loadUsageCounts() {
         val countMap = mutableMapOf<String, Int>()
-        _configs.value.forEach { config ->
+        (_builtInConfigs.value + _userConfigs.value).forEach { config ->
             countMap[config.id] = resolver.getOverrideUsageCount(config.id)
         }
         _usageCountMap.value = countMap
     }
 }
 
-internal fun readUtf8TextLimited(input: InputStream, maxBytes: Long): String {
+private const val BYTES_PER_MEBIBYTE = 1024 * 1024
+
+private fun networkImportTooLargeMessage(maxBytes: Long): String =
+    YumeTxt.Override.Import.TooLarge.format(maxBytes / BYTES_PER_MEBIBYTE)
+
+private fun readUtf8TextLimited(input: InputStream, maxBytes: Long): String {
     require(maxBytes in 0..Int.MAX_VALUE.toLong()) { "maxBytes is out of range" }
     val output = ByteArrayOutputStream(minOf(DEFAULT_BUFFER_SIZE.toLong(), maxBytes).toInt())
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
@@ -398,9 +371,7 @@ internal fun readUtf8TextLimited(input: InputStream, maxBytes: Long): String {
         val read = input.read(buffer)
         if (read < 0) break
         total += read.toLong()
-        require(total <= maxBytes) {
-            "远程配置超过 ${maxBytes / (1024 * 1024)}MB 限制"
-        }
+        require(total <= maxBytes) { networkImportTooLargeMessage(maxBytes) }
         output.write(buffer, 0, read)
     }
     return output.toString(Charsets.UTF_8.name())
@@ -477,7 +448,7 @@ private fun ensureSourceNameExtension(
         "$sourceName.${contentType.extension}"
     }
 
-internal fun normalizeImportedConfigSourceName(sourceName: String?): String? {
+private fun normalizeImportedConfigSourceName(sourceName: String?): String? {
     var normalizedName =
         sourceName
             ?.substringAfterLast('/')

@@ -27,12 +27,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
@@ -48,24 +46,15 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun GlassScaffold(
     topBar: @Composable () -> Unit,
     modifier: Modifier = Modifier,
-    floatingActionButton: @Composable () -> Unit = {},
     // Consumers of the body backdrop must be siblings of the recorded body, not its descendants.
     contentOverlay: @Composable (PaddingValues) -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    val surface = MiuixTheme.colorScheme.surface
-    val backdrop =
-        key(surface) {
-            rememberLayerBackdrop {
-                drawRect(surface)
-                drawContent()
-            }
-        }
+    val backdrop = rememberSurfaceBackdrop(MiuixTheme.colorScheme.surface)
     CompositionLocalProvider(LocalTopBarBackdrop provides backdrop) {
         Scaffold(
             topBar = topBar,
             modifier = modifier,
-            floatingActionButton = floatingActionButton,
         ) { innerPadding ->
             Box(Modifier.fillMaxSize()) {
                 Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {

@@ -7,13 +7,12 @@
 package com.github.yumeyucca.yumebox.runtime.service.core
 
 import android.content.Context
-import android.os.SystemClock
 import com.github.yumeyucca.yumebox.core.bridge.Channel
 import com.github.yumeyucca.yumebox.core.bridge.NativeProcess
 import com.github.yumeyucca.yumebox.core.util.runtimeHomeDir
 import com.github.yumeyucca.yumebox.runtime.service.controller.CoreController
+import com.github.yumeyucca.yumebox.runtime.service.util.awaitProcessGone
 import java.io.File
-import java.util.UUID
 import timber.log.Timber
 
 /**
@@ -37,8 +36,8 @@ class PreviewCoreProcess(private val context: Context) {
             val home = context.runtimeHomeDir.apply { mkdirs() }
             val workdir = File(home, PREVIEW_WORKDIR).apply { mkdirs() }
             File(home, SOCK).delete()
-            val (runtimeConfig, secret) = ensureControllerSecret(config)
-            val nextEndpoint = CoreEndpoint(File(home, SOCK).absolutePath, secret)
+            val controllerConfig = patchControllerSecret(config)
+            val nextEndpoint = CoreEndpoint(File(home, SOCK).absolutePath, controllerConfig.secret)
             val args =
                 arrayOf(
                     "--home",
@@ -51,7 +50,7 @@ class PreviewCoreProcess(private val context: Context) {
             val proc = spawn(home, workdir, args)
             try {
                 Channel(proc.channelFd).use { channel ->
-                    val bytes = runtimeConfig.toByteArray(Charsets.UTF_8)
+                    val bytes = controllerConfig.yaml.toByteArray(Charsets.UTF_8)
                     var offset = 0
                     while (offset < bytes.size) {
                         val length = minOf(CHUNK, bytes.size - offset)
@@ -63,7 +62,7 @@ class PreviewCoreProcess(private val context: Context) {
                 }
             } catch (error: Throwable) {
                 runCatching { proc.kill() }
-                waitUntilExited(proc.pid)
+                waitUntilExited(proc.pid, PREVIEW_STOP_GRACE_MS)
                 throw IllegalStateException("preview config handoff failed", error)
             }
             process = proc
@@ -81,6 +80,9 @@ class PreviewCoreProcess(private val context: Context) {
         if (active === this) active = null
         val previous = process
         process = null
+        // The controller owns a coroutine scope and an HTTP engine; dropping the reference alone
+        // leaks both on every preview session.
+        controller?.close()
         controller = null
         if (previous != null) {
             reap(previous)
@@ -121,19 +123,6 @@ class PreviewCoreProcess(private val context: Context) {
         return target
     }
 
-    private fun ensureControllerSecret(config: String): Pair<String, String> {
-        val secret = UUID.randomUUID().toString().replace("-", "")
-        val line = "secret: \"$secret\""
-        val lines = config.lineSequence().toMutableList()
-        val index = lines.indexOfFirst { it.trimStart().startsWith("secret:") }
-        if (index >= 0) {
-            lines[index] = line
-        } else {
-            lines.add(0, line)
-        }
-        return lines.joinToString("\n") to secret
-    }
-
     companion object {
         const val TAG = "PreviewCoreProcess"
         const val SOCK = "preview.sock"
@@ -157,12 +146,7 @@ class PreviewCoreProcess(private val context: Context) {
             waitUntilExited(process.pid, PREVIEW_STOP_KILL_WAIT_MS)
         }
 
-        private fun waitUntilExited(pid: Int, timeoutMs: Long = PREVIEW_STOP_KILL_WAIT_MS): Boolean {
-            val deadline = SystemClock.elapsedRealtime() + timeoutMs
-            while (File("/proc/$pid").exists() && SystemClock.elapsedRealtime() < deadline) {
-                Thread.sleep(PREVIEW_STOP_POLL_MS)
-            }
-            return !File("/proc/$pid").exists()
-        }
+        private fun waitUntilExited(pid: Int, timeoutMs: Long): Boolean =
+            awaitProcessGone(timeoutMs, PREVIEW_STOP_POLL_MS) { File("/proc/$pid").exists() }
     }
 }

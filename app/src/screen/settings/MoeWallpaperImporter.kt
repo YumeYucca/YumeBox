@@ -23,6 +23,7 @@ package com.github.yumeyucca.yumebox.screen.settings
 import android.content.Context
 import androidx.core.net.toUri
 import com.github.yumeyucca.yumebox.core.util.moeWallpaperFile
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -54,6 +55,11 @@ object MoeWallpaperImporter {
                 }
                 "file://${target.absolutePath}"
             }
+                .onFailure { error ->
+                    // Cancellation is not an import failure: reporting null here would make the
+                    // caller keep the old wallpaper as if the copy had simply failed.
+                    if (error is CancellationException) throw error
+                }
                 .getOrNull()
         }
 }

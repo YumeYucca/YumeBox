@@ -22,43 +22,42 @@ import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
+/**
+ * The part of the home settings the sheet edits as a draft: it is only written back when the
+ * user confirms, because expanding the sidebar would slide its own sheet out from under them.
+ */
+@Immutable
+internal data class MoeHomeCopy(
+    val quote: String,
+    val author: String,
+    val expandSidebar: Boolean,
+)
+
 @Composable
 internal fun MoeHomeSettingsSheet(
     show: Boolean,
-    quote: String,
-    author: String,
-    sidebarExpanded: Boolean,
+    copy: MoeHomeCopy,
     useSystemWallpaper: Boolean,
     statusBarSpacing: Boolean,
-    onQuoteChange: (String) -> Unit,
-    onAuthorChange: (String) -> Unit,
-    onSidebarExpandedChange: (Boolean) -> Unit,
     onUseSystemWallpaperChange: (Boolean) -> Unit,
     onStatusBarSpacingChange: (Boolean) -> Unit,
+    onSaveCopy: (MoeHomeCopy) -> Unit,
     onChangeWallpaper: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val spacing = AppTheme.spacing
-    var draftQuote by remember(show, quote) { mutableStateOf(quote) }
-    var draftAuthor by remember(show, author) { mutableStateOf(author) }
-    var draftSidebarExpanded by remember(show, sidebarExpanded) { mutableStateOf(sidebarExpanded) }
+    // Re-seeded per opening so a cancelled sheet never leaks its edits into the next one.
+    var draft by remember(show, copy) { mutableStateOf(copy) }
     val save = {
-        onQuoteChange(draftQuote)
-        onAuthorChange(draftAuthor)
-        onSidebarExpandedChange(draftSidebarExpanded)
+        onSaveCopy(draft)
         onDismiss()
     }
 
     AppActionBottomSheet(
         show = show,
         title = YumeTxt.Home.Settings.Title,
-        startAction = { AppBottomSheetCloseAction(onClick = onDismiss) },
         endAction = { AppBottomSheetConfirmAction(onClick = save) },
         onDismissRequest = onDismiss,
-        enableNestedScroll = true,
-        // The sheet scrolls this column itself, so a form taller than the sheet (or half-covered by
-        // the IME) stays reachable.
-        scrollableContent = true,
     ) {
         Column(
             modifier =
@@ -75,13 +74,13 @@ internal fun MoeHomeSettingsSheet(
                     // readable once text is typed, and the value sits on the card surface.
                     AppTextFieldRow(
                         label = YumeTxt.Home.Settings.Quote,
-                        value = draftQuote,
-                        onValueChange = { draftQuote = it },
+                        value = draft.quote,
+                        onValueChange = { draft = draft.copy(quote = it) },
                     )
                     AppTextFieldRow(
                         label = YumeTxt.Home.Settings.Author,
-                        value = draftAuthor,
-                        onValueChange = { draftAuthor = it },
+                        value = draft.author,
+                        onValueChange = { draft = draft.copy(author = it) },
                         showTopDivider = true,
                     )
                 }
@@ -96,8 +95,8 @@ internal fun MoeHomeSettingsSheet(
                 Column {
                     PreferenceSwitchItem(
                         title = YumeTxt.Home.Settings.ExpandSidebar,
-                        checked = draftSidebarExpanded,
-                        onCheckedChange = { draftSidebarExpanded = it },
+                        checked = draft.expandSidebar,
+                        onCheckedChange = { draft = draft.copy(expandSidebar = it) },
                     )
                     PreferenceSwitchItem(
                         title = YumeTxt.Home.Settings.StatusBarSpacing,

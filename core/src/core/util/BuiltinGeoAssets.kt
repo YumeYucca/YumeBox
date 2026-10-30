@@ -17,14 +17,11 @@ class BuiltinGeoAssetsRequiredException : IllegalStateException()
 
 /** Blocks local core startup until an MMDB Geo database has been installed once. */
 fun Context.requireBuiltinGeoAssets() {
-    check(
+    val installed =
         runtimeHomeDir.listFiles()?.any { file ->
             file.isFile &&
                 file.length() > 0L &&
                 file.extension.equals("mmdb", ignoreCase = true)
-        }
-            ?: false
-    ) {
-        throw BuiltinGeoAssetsRequiredException()
-    }
+        } == true
+    if (!installed) throw BuiltinGeoAssetsRequiredException()
 }

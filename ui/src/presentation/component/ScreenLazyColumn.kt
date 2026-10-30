@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -33,15 +32,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.Velocity
-import com.github.yumeyucca.yumebox.presentation.theme.LocalSpacing
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -55,22 +49,20 @@ fun ScreenLazyColumn(
     contentPadding: PaddingValues? = null,
     bottomPadding: Dp = UiDp.dp0,
     topPadding: Dp = UiDp.dp0,
-    enableGlobalScroll: Boolean = true,
     lazyListState: LazyListState = rememberLazyListState(),
-    onScrollDirectionChanged: ((Boolean) -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
     val layoutDirection = LocalLayoutDirection.current
-    val bottomBarScrollBehavior =
-        if (enableGlobalScroll) {
-            LocalBottomBarScrollBehavior.current?.withLazyListState(lazyListState)
-        } else {
-            null
-        }
-    val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
-    var lastHiddenState by remember(lazyListState) { mutableStateOf(false) }
+    // One wiring, two halves: the behaviour drives the bar's visibility from this list's scroll
+    // position, so both the tracked state and the connection come from the same value.
+    val bottomBarScrollBehavior = LocalBottomBarScrollBehavior.current
+    if (bottomBarScrollBehavior != null) {
+        bottomBarScrollBehavior.ShowBottomBarWhenScrolledToTop(lazyListState)
+    }
     val resolvedContentPadding =
-        remember(contentPadding, innerPadding, topPadding, bottomPadding) {
+        // `layoutDirection` is a key: the block converts the padding's start/end to left/right, so an
+        // RTL switch has to recompute it.
+        remember(contentPadding, innerPadding, topPadding, bottomPadding, layoutDirection) {
             contentPadding
                 ?: PaddingValues(
                     top = innerPadding.calculateTopPadding() + topPadding,
@@ -79,44 +71,6 @@ fun ScreenLazyColumn(
                     end = innerPadding.calculateEndPadding(layoutDirection),
                 )
         }
-    val fabScrollObserver =
-        remember(lazyListState) {
-            object : NestedScrollConnection {
-                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                    val scrollDirectionCallback =
-                        latestScrollDirectionCallback ?: return Offset.Zero
-                    val hiddenState =
-                        when {
-                            available.y < -1f -> true
-                            available.y > 1f -> false
-                            else -> return Offset.Zero
-                        }
-                    if (hiddenState != lastHiddenState) {
-                        lastHiddenState = hiddenState
-                        scrollDirectionCallback(hiddenState)
-                    }
-                    return Offset.Zero
-                }
-
-                override suspend fun onPostFling(
-                    consumed: Velocity,
-                    available: Velocity,
-                ): Velocity {
-                    if (consumed.y > 1f || available.y > 1f) {
-                        latestScrollDirectionCallback?.invoke(false)
-                        lastHiddenState = false
-                    }
-                    return Velocity.Zero
-                }
-            }
-        }
-
-    LaunchedEffect(lazyListState, latestScrollDirectionCallback) {
-        val scrollDirectionCallback = onScrollDirectionChanged ?: return@LaunchedEffect
-        scrollDirectionCallback(false)
-        lastHiddenState = false
-    }
-
     LazyColumn(
         state = lazyListState,
         modifier =
@@ -124,10 +78,9 @@ fun ScreenLazyColumn(
                 .fillMaxSize()
                 .overScrollVertical()
                 .scrollEndHaptic()
-                .nestedScroll(fabScrollObserver)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .let { mod ->
-                    if (enableGlobalScroll && bottomBarScrollBehavior != null) {
+                    if (bottomBarScrollBehavior != null) {
                         mod.nestedScroll(bottomBarScrollBehavior.nestedScrollConnection)
                     } else {
                         mod
@@ -139,23 +92,67 @@ fun ScreenLazyColumn(
     )
 }
 
+/**
+ * Stacks two padding sets: the page's own start/end from [localPadding] and the extra bottom inset
+ * [mainPadding] reserves for the floating bar.
+ */
 @Composable
-fun combinePaddingValues(localPadding: PaddingValues, mainPadding: PaddingValues): PaddingValues =
-    PaddingValues(
+fun combinePaddingValues(localPadding: PaddingValues, mainPadding: PaddingValues): PaddingValues {
+    val layoutDirection = LocalLayoutDirection.current
+    return PaddingValues(
         top = localPadding.calculateTopPadding(),
         bottom =
-            localPadding.calculateBottomPadding() +
-                    mainPadding.calculateBottomPadding() +
-                    LocalSpacing.current.space12,
-        start = localPadding.calculateStartPadding(LayoutDirection.Ltr),
-        end = localPadding.calculateEndPadding(LayoutDirection.Ltr),
+            localPadding.calculateBottomPadding()
+                .plus(mainPadding.calculateBottomPadding())
+                .plus(AppTheme.spacing.space12),
+        start = localPadding.calculateStartPadding(layoutDirection),
+        end = localPadding.calculateEndPadding(layoutDirection),
+    )
+}
+
+/**
+ * [ScreenLazyColumn] for a standalone page: [scaffoldPadding] is the Scaffold's own padding and the
+ * floating bottom bar's reserve is added here, so pages do not restate that policy themselves.
+ */
+@Composable
+fun StandalonePageList(
+    scrollBehavior: ScrollBehavior,
+    scaffoldPadding: PaddingValues,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues? = null,
+    bottomPadding: Dp = UiDp.dp0,
+    topPadding: Dp = UiDp.dp0,
+    lazyListState: LazyListState = rememberLazyListState(),
+    content: LazyListScope.() -> Unit,
+) {
+    ScreenLazyColumn(
+        scrollBehavior = scrollBehavior,
+        innerPadding = standalonePageInnerPadding(scaffoldPadding),
+        modifier = modifier,
+        contentPadding = contentPadding,
+        bottomPadding = bottomPadding,
+        topPadding = topPadding,
+        lazyListState = lazyListState,
+        content = content,
+    )
+}
+
+/**
+ * Inner padding for a standalone page: the scaffold's padding plus the height the floating bottom
+ * bar reserves, plus the spacing step that keeps the last row clear of it. Prefer this over holding
+ * [rememberStandalonePageMainPadding] unless the page also needs the raw reserved height elsewhere.
+ */
+@Composable
+fun standalonePageInnerPadding(scaffoldPadding: PaddingValues): PaddingValues =
+    combinePaddingValues(
+        localPadding = scaffoldPadding,
+        mainPadding = rememberStandalonePageMainPadding(),
     )
 
 @Composable
-fun rememberStandalonePageMainPadding(reservedBottomBarHeight: Dp? = null): PaddingValues {
-    val resolvedReservedBottomBarHeight =
-        reservedBottomBarHeight ?: rememberBottomBarReservedHeight()
-    return remember(resolvedReservedBottomBarHeight) {
-        PaddingValues(bottom = resolvedReservedBottomBarHeight)
+fun rememberStandalonePageMainPadding(): PaddingValues {
+    val reservedBottomBarHeight = rememberBottomBarReservedHeight()
+    return remember(reservedBottomBarHeight) {
+        PaddingValues(bottom = reservedBottomBarHeight)
     }
 }

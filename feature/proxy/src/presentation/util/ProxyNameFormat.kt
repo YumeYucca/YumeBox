@@ -193,7 +193,8 @@ private val countryNameRegex =
         RegexOption.IGNORE_CASE,
     )
 private val countryCodes = countries.mapTo(mutableSetOf()) { it.code }
-private val countryCodeAbbreviationRegex = Regex("(?<![A-Za-z])([A-Za-z]{2})(?![A-Za-z])")
+// Both sides exclude digits as well: "LA01"/"ID-1" are node names, not los-angeles/indonesia.
+private val countryCodeAbbreviationRegex = Regex("(?<![A-Za-z0-9])([A-Za-z]{2})(?![A-Za-z0-9])")
 private const val regionalIndicatorBase = 0x1F1E6
 private const val regionalIndicatorEnd = 0x1F1FF
 

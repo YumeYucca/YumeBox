@@ -38,8 +38,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.core.model.ConnectionInfo
+import com.github.yumeyucca.yumebox.feature.meta.presentation.util.displayTarget
+import com.github.yumeyucca.yumebox.feature.meta.presentation.util.networkName
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import kotlinx.serialization.json.jsonPrimitive
+import java.time.LocalDateTime
+import java.time.ZoneId
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -58,46 +61,8 @@ fun ConnectionCard(
     val backgroundColor = MiuixTheme.colorScheme.background
     val interactionSource = remember { MutableInteractionSource() }
 
-    val host =
-        remember(connectionInfo.metadata) {
-            connectionInfo.metadata["host"]?.jsonPrimitive?.content ?: ""
-        }
-    val network =
-        remember(connectionInfo.metadata) {
-            connectionInfo.metadata["network"]?.jsonPrimitive?.content ?: "TCP"
-        }
-    val destinationPort =
-        remember(connectionInfo.metadata) {
-            connectionInfo.metadata["destinationPort"]?.jsonPrimitive?.content ?: ""
-        }
-    val sourceIP =
-        remember(connectionInfo.metadata) {
-            connectionInfo.metadata["sourceIP"]?.jsonPrimitive?.content ?: ""
-        }
-    val sourcePort =
-        remember(connectionInfo.metadata) {
-            connectionInfo.metadata["sourcePort"]?.jsonPrimitive?.content ?: ""
-        }
-
-    val destinationIp =
-        remember(connectionInfo.metadata) {
-            connectionInfo.metadata["destinationIP"]?.jsonPrimitive?.content ?: ""
-        }
-
-    val displayHost =
-        remember(host, destinationIp, destinationPort, sourceIP, sourcePort) {
-            if (host.isNotEmpty() && destinationPort.isNotEmpty()) {
-                "$host:$destinationPort"
-            } else if (host.isNotEmpty()) {
-                host
-            } else if (destinationIp.isNotEmpty() && destinationPort.isNotEmpty()) {
-                "$destinationIp:$destinationPort"
-            } else if (destinationIp.isNotEmpty()) {
-                destinationIp
-            } else {
-                "$sourceIP:$sourcePort"
-            }
-        }
+    val network = remember(connectionInfo) { connectionInfo.networkName() }
+    val displayHost = remember(connectionInfo) { connectionInfo.displayTarget() }
 
     val relativeTime = formatRelativeTime(connectionInfo.start)
 
@@ -210,7 +175,7 @@ private fun formatRelativeTime(start: String): String {
             days < 7 -> YumeTxt.Connection.RelativeTime.DaysAgo.format(days)
             else -> {
                 val date =
-                    java.time.LocalDateTime.ofInstant(startTime, java.time.ZoneId.systemDefault())
+                    LocalDateTime.ofInstant(startTime, ZoneId.systemDefault())
                 YumeTxt.Connection.RelativeTime.Date.format(date.monthValue, date.dayOfMonth)
             }
         }

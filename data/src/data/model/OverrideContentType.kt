@@ -24,21 +24,28 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class OverrideContentType(val extension: String) {
+enum class OverrideContentType(
+    val extension: String,
+    val displayName: String,
+    /** Legacy extensions still accepted when reading existing files. */
+    val previousExtensions: List<String> = emptyList(),
+) {
     @SerialName("yaml")
-    Yaml("yaml"),
+    Yaml("yaml", "YAML", previousExtensions = listOf("yml")),
     @SerialName("js")
-    JavaScript("js");
+    JavaScript("js", "JavaScript");
 
     companion object {
-        fun fromExtension(extension: String?): OverrideContentType? =
-            when (extension?.lowercase()?.removePrefix(".")) {
-                "yaml",
-                "yml" -> Yaml
+        /** Every filename extension an override config file may use. */
+        val knownExtensions: Set<String> =
+            entries.flatMapTo(linkedSetOf()) { listOf(it.extension) + it.previousExtensions }
 
-                "js" -> JavaScript
-                else -> null
+        fun fromExtension(extension: String?): OverrideContentType? {
+            val normalized = extension?.lowercase()?.removePrefix(".") ?: return null
+            return entries.firstOrNull {
+                normalized == it.extension || normalized in it.previousExtensions
             }
+        }
 
         fun fromFileName(fileName: String?): OverrideContentType? =
             fromExtension(fileName?.substringAfterLast('.', missingDelimiterValue = ""))

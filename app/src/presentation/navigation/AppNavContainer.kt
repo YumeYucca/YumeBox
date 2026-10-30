@@ -20,25 +20,18 @@
 
 package com.github.yumeyucca.yumebox.presentation.navigation
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
-import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.*
 import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.androidPredictiveBackAnimatableV1
 import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
-import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandler
-import com.github.yumeyucca.yumebox.MainScreen
-import com.github.yumeyucca.yumebox.presentation.component.LocalNavigator
+import com.github.yumeyucca.yumebox.presentation.component.BottomBarDestination
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
-import com.github.yumeyucca.yumebox.screen.settings.MoeWallpaperCropScreen
-import kotlinx.coroutines.launch
 
 internal fun <C : Any, T : Any> yumeStackAnimation(): StackAnimation<C, T> =
     stackAnimation(fade(tween(300)) + slide(tween(400)) + scale(tween(500)))
@@ -61,71 +54,24 @@ class AppNavigationComponent(
 ) {
     // The bottom pager is nested in Route.Main, so keep its semantic destination outside the
     // screen composition while another Activity or a child route is on top.
-    private val mainPageState = mutableIntStateOf(0)
-    private var boundMainRoute: Route.Main? = null
+    private val mainDestinationState = mutableStateOf(BottomBarDestination.Home)
 
-    val navigator = Navigator(listOf(Route.Main()))
-    internal val childStack =
-        componentContext.childStack(
-            source = navigator.navigation,
-            initialConfiguration = Route.Main(),
-            serializer = null,
-            // predictiveBackAnimation is the sole system-back callback for this stack. Keeping
-            // childStack's own callback enabled lets fast gestures bypass the fallback animation.
-            handleBackButton = false,
-        ) { rawRoute, _ ->
-            RouteChild(rawRoute as Route, navigator, this)
-        }
+    val navigator = Navigator(listOf(Route.Main))
+    // The pane always has a root route: it is composed from a stack, so an empty stack would leave
+    // the pane blank and drop a later detail route. About is that resting content. It lives here, not
+    // in [MainScreen], because the screen is recreated by every root push and by config changes, which
+    // used to reset the pane under the user while the pager page survived.
+    val detailNavigator = Navigator(listOf(PaneRestingRoute))
+    internal val childStack: Value<ChildStack<Any, Route>> =
+        navigator.routeStack(componentContext, handleBackButton = true)
+    internal val routeStack = RouteStack(navigator, childStack)
 
-    internal fun bindMainRoute(route: Route.Main) {
-        if (boundMainRoute != route) {
-            mainPageState.intValue = route.initialPage
-            boundMainRoute = route
-        }
+    internal fun updateMainDestination(destination: BottomBarDestination) {
+        mainDestinationState.value = destination
     }
 
-    internal fun updateMainPage(page: Int) {
-        mainPageState.intValue = page
-    }
-
-    internal val mainPage: Int
-        get() = mainPageState.intValue
-}
-
-internal class RouteChild(
-    private val route: Route,
-    private val navigator: Navigator,
-    private val navigationComponent: AppNavigationComponent,
-) {
-    init {
-        if (route is Route.Main) {
-            navigationComponent.bindMainRoute(route)
-        }
-    }
-
-    @Composable
-    fun Content() {
-        CompositionLocalProvider(LocalNavigator provides navigator) {
-            when (route) {
-                is Route.Main ->
-                    MainScreen(
-                        navigator = navigator,
-                        initialPage = navigationComponent.mainPage,
-                        onMainPageChanged = navigationComponent::updateMainPage,
-                    )
-                is Route.MoeWallpaperCrop ->
-                    MoeWallpaperCropScreen(
-                        navigator,
-                        route.wallpaperUri,
-                        route.initialZoom,
-                        route.initialBiasX,
-                        route.initialBiasY,
-                    )
-
-                else -> RouteContent(route, navigator)
-            }
-        }
-    }
+    internal val mainDestination: BottomBarDestination
+        get() = mainDestinationState.value
 }
 
 @Composable
@@ -133,37 +79,31 @@ fun AppNavContainer(component: AppNavigationComponent) {
     val componentContext = component.componentContext
     val navigator = component.navigator
     val predictiveBackEnabled = component.predictiveBackEnabledAtLaunch
-    val scope = rememberCoroutineScope()
-    val commitBack: () -> Unit = remember(navigator, scope) {
-        {
-            scope.launch {
-                // A fast system gesture can complete without a progress frame. Commit after the
-                // platform transaction has closed so Children can start its fallback animation.
-                withFrameNanos { }
-                navigator.pop()
-            }
-            Unit
-        }
-    }
-    val stack by component.childStack.subscribeAsState()
-    SideEffect {
-        navigator.syncBackStack(stack.items.map { it.configuration })
-    }
-    if (!predictiveBackEnabled) {
-        BackHandler(enabled = stack.backStack.isNotEmpty(), onBack = commitBack)
-    }
-    val animation: StackAnimation<Any, RouteChild> = remember(component) {
+    val commitBack: () -> Unit = remember(navigator) { { navigator.pop() } }
+    val animation: StackAnimation<Any, Route> = remember(component) {
         if (predictiveBackEnabled) {
             yumeAnimation(componentContext.backHandler, commitBack)
         } else {
             yumeStackAnimation()
         }
     }
-    Children(
-        stack = stack,
-        modifier = Modifier.fillMaxSize(),
-        animation = animation,
-    ) { child ->
-        child.instance.Content()
+    // Provided above the stack so every route (root page or split-shell pane) reads the pager's
+    // persisted page from one place instead of the host threading it through. The config-preview slot
+    // is deliberately NOT provided here: [RouteStackHost] gives each stack its own.
+    // A bound reference is a new object per call, which would make an @Immutable argument unstable.
+    val onDestinationSettled = remember(component) { component::updateMainDestination }
+    // Stable for the life of the component: the page travels as a lambda that is read once, so a tab
+    // settle no longer invalidates every [LocalMainRouteArgs] reader.
+    val mainRouteArgs = remember(component) {
+        MainRouteArgs(
+            initialDestination = { component.mainDestination },
+            onDestinationSettled = onDestinationSettled,
+            detailNavigator = component.detailNavigator,
+        )
+    }
+    CompositionLocalProvider(
+        LocalMainRouteArgs provides mainRouteArgs,
+    ) {
+        RouteStackHost(stack = component.routeStack, animation = animation)
     }
 }

@@ -19,22 +19,22 @@
 
 package com.github.yumeyucca.yumebox.feature.editor.editor
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.presentation.component.GlassMenuItem
+import com.github.yumeyucca.yumebox.presentation.component.GlassPopupMenuSizing
+import com.github.yumeyucca.yumebox.presentation.component.GlassPopupHost
+import com.github.yumeyucca.yumebox.presentation.component.fixedWidth
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.ClipboardPaste
@@ -42,14 +42,9 @@ import io.github.yumeyucca.lucide.lucide.Copy
 import io.github.yumeyucca.lucide.lucide.Scissors
 import io.github.yumeyucca.lucide.lucide.TextCursor
 import io.github.rosemoe.sora.widget.CodeEditor
-import top.yukonga.miuix.kmp.glass.GlassPopupDefaults
-import top.yukonga.miuix.kmp.glass.GlassPopupItem
-import top.yukonga.miuix.kmp.glass.GlassPopupSizing
-import top.yukonga.miuix.kmp.glass.GlassTransformPopup
 import top.yukonga.miuix.kmp.glass.glassPopupAnchor
 import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
 import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
-import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -66,7 +61,6 @@ internal data class SelectionMenuState(
     val anchorX: Int,
     val anchorY: Int,
     val canCut: Boolean,
-    val canCopy: Boolean,
     val canPaste: Boolean,
     val canSelectAll: Boolean,
 )
@@ -123,7 +117,8 @@ internal fun buildSelectionMenuState(editor: CodeEditor): SelectionMenuState? {
     val canCut = editor.isEditable
     val canPaste = editor.isEditable && editor.hasClip()
     val canSelectAll = editor.getText().toString().isNotEmpty()
-    val actionCount = listOf(true, canCut, canPaste, canSelectAll).count { it }
+    // Copy is always offered; the other rows depend on the selection.
+    val actionCount = 1 + listOf(canCut, canPaste, canSelectAll).count { it }
     val topGuard = editor.getDpUnit() * (actionCount * 48f + 24f)
     val anchorY =
         if (selectionTop > topGuard) {
@@ -140,7 +135,6 @@ internal fun buildSelectionMenuState(editor: CodeEditor): SelectionMenuState? {
                 .roundToInt(),
         anchorY = anchorY.coerceIn(0f, editor.getHeight().toFloat()).roundToInt(),
         canCut = canCut,
-        canCopy = true,
         canPaste = canPaste,
         canSelectAll = canSelectAll,
     )
@@ -170,14 +164,6 @@ internal fun TextSelectionActionsMenu(
     onAction: (SelectionAction) -> Unit,
 ) {
     val anchor = rememberGlassPopupAnchor()
-    val popupVisible = remember { mutableStateOf(false) }
-    val popupVisuals = GlassPopupDefaults.visuals()
-
-    LaunchedEffect(show) {
-        if (show) {
-            popupVisible.value = true
-        }
-    }
 
     Box(Modifier.fillMaxSize()) {
         Box(
@@ -193,67 +179,41 @@ internal fun TextSelectionActionsMenu(
                     .glassPopupAnchorContent(anchor)
         )
 
-        PopupLayout(
-            visible = popupVisible,
-            enterTransition = EnterTransition.None,
-            exitTransition = ExitTransition.None,
-            enableWindowDim = false,
-            enableBackHandler = true,
+        GlassPopupHost(
+            show = show,
+            onDismissRequest = onDismiss,
+            anchor = anchor,
+            anchorContent = { Box(Modifier.size(1.dp)) },
+            backdrop = LocalTopBarBackdrop.current,
+            sizing = GlassPopupMenuSizing.fixedWidth(150.dp),
+            dismissOnBack = true,
+            onDismissFinished = onDismissFinished,
         ) {
-            var expanded by remember { mutableStateOf(false) }
-            LaunchedEffect(show) { expanded = show }
-            GlassTransformPopup(
-                show = expanded,
-                onDismissRequest = onDismiss,
-                anchor = anchor,
-                backdrop = LocalTopBarBackdrop.current,
-                anchorContent = { Box(Modifier.size(1.dp)) },
-                anchorAlpha = 0f,
-                sizing = GlassPopupSizing(minWidth = 150.dp, maxWidth = 150.dp),
-                visuals = popupVisuals,
-                onDismissFinished = {
-                    if (!show) {
-                        popupVisible.value = false
-                        onDismissFinished()
-                    }
-                },
-            ) {
-                if (state.canCut) {
-                    GlassPopupItem(
-                        text = YumeTxt.Editor.Action.Cut,
-                        icon = Lucide.Scissors,
-                        iconSize = 18.dp,
-                        iconGap = 15.dp,
-                        onClick = { onAction(SelectionAction.Cut) },
-                    )
-                }
-                if (state.canCopy) {
-                    GlassPopupItem(
-                        text = YumeTxt.Editor.Action.Copy,
-                        icon = Lucide.Copy,
-                        iconSize = 18.dp,
-                        iconGap = 15.dp,
-                        onClick = { onAction(SelectionAction.Copy) },
-                    )
-                }
-                if (state.canPaste) {
-                    GlassPopupItem(
-                        text = YumeTxt.Editor.Action.Paste,
-                        icon = Lucide.ClipboardPaste,
-                        iconSize = 18.dp,
-                        iconGap = 15.dp,
-                        onClick = { onAction(SelectionAction.Paste) },
-                    )
-                }
-                if (state.canSelectAll) {
-                    GlassPopupItem(
-                        text = YumeTxt.Editor.Action.SelectAll,
-                        icon = Lucide.TextCursor,
-                        iconSize = 18.dp,
-                        iconGap = 15.dp,
-                        onClick = { onAction(SelectionAction.SelectAll) },
-                    )
-                }
+            if (state.canCut) {
+                GlassMenuItem(
+                    text = YumeTxt.Editor.Action.Cut,
+                    icon = Lucide.Scissors,
+                    onClick = { onAction(SelectionAction.Cut) },
+                )
+            }
+            GlassMenuItem(
+                text = YumeTxt.Editor.Action.Copy,
+                icon = Lucide.Copy,
+                onClick = { onAction(SelectionAction.Copy) },
+            )
+            if (state.canPaste) {
+                GlassMenuItem(
+                    text = YumeTxt.Editor.Action.Paste,
+                    icon = Lucide.ClipboardPaste,
+                    onClick = { onAction(SelectionAction.Paste) },
+                )
+            }
+            if (state.canSelectAll) {
+                GlassMenuItem(
+                    text = YumeTxt.Editor.Action.SelectAll,
+                    icon = Lucide.TextCursor,
+                    onClick = { onAction(SelectionAction.SelectAll) },
+                )
             }
         }
     }

@@ -72,9 +72,6 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
         MutableStateFlow(RuntimeStateMapper.idleSnapshot(networkSettingsStorage.runMode.value))
     val runtimeSnapshot: StateFlow<RuntimeSnapshot> = _runtimeSnapshot.asStateFlow()
 
-    private val _isRunning = MutableStateFlow(false)
-    val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
-
     private val _isConfigReloading = MutableStateFlow(false)
     val isConfigReloading: StateFlow<Boolean> = _isConfigReloading.asStateFlow()
 
@@ -151,7 +148,6 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
 
     private fun publishSnapshot(snapshot: RuntimeSnapshot) {
         _runtimeSnapshot.value = snapshot
-        _isRunning.value = snapshot.running
     }
 
     private fun nextGeneration(): Long = ++generationCounter
@@ -207,12 +203,13 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
      * one.
      */
     private fun applyLocalLocked(state: RuntimeState, forceRefresh: Boolean) {
-        _isConfigReloading.value = state.reloading
         if (isRemoteControllerActive() ||
             _runtimeSnapshot.value.owner == RuntimeOwner.RemoteController
         ) {
             return
         }
+        // Only a locally owned runtime can be reloading; remote takeover must not leak the flag.
+        _isConfigReloading.value = state.reloading
         val previous = _runtimeSnapshot.value
         val next = mapLocal(state, previous)
         if (previous.running && !next.running && !state.reloading) clearRuntimePayload()

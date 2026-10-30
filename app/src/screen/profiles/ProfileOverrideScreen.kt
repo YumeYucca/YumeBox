@@ -30,37 +30,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.state.ToggleableState
-import com.github.yumeyucca.yumebox.common.util.toast
-import com.github.yumeyucca.yumebox.core.model.OverrideInternalConstants
-import com.github.yumeyucca.yumebox.data.controller.OverrideService
+import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.data.model.OverrideConfig
-import com.github.yumeyucca.yumebox.data.model.ProfileBinding
-import com.github.yumeyucca.yumebox.data.store.ProfileBindingProvider
-import com.github.yumeyucca.yumebox.feature.meta.presentation.util.CustomRoutingBootstrapper
 import com.github.yumeyucca.yumebox.presentation.component.*
-import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.presentation.viewmodel.OverrideConfigViewModel
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
-import com.github.yumeyucca.yumebox.runtime.api.Profile
-import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
-import timber.log.Timber
+import sh.calvin.reorderable.ReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
+import androidx.compose.foundation.lazy.LazyItemScope
 
 /**
  * Standalone "覆写" page for one profile: custom routing and the profile's override selection.
@@ -71,312 +54,186 @@ import top.yukonga.miuix.kmp.preference.SwitchPreference
 @Composable
 fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
     val profilesViewModel = koinViewModel<ProfilesViewModel>()
-    val homeViewModel = koinViewModel<HomeViewModel>()
-    val overrideConfigViewModel = koinViewModel<OverrideConfigViewModel>()
-    val bindingProvider: ProfileBindingProvider = koinInject()
-    val overrideService: OverrideService = koinInject()
-    val routingBootstrapper: CustomRoutingBootstrapper = koinInject()
-
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val componentSizes = AppTheme.sizes
     val scrollBehavior = MiuixScrollBehavior()
     val pageListState = rememberLazyListState()
-    val overrideListState = rememberLazyListState()
 
     val profiles by profilesViewModel.profiles.collectAsState()
-    val isRunning by homeViewModel.isRunning.collectAsState()
-    val builtInConfigs by overrideConfigViewModel.builtInConfigs.collectAsState()
-    val userConfigs by overrideConfigViewModel.userConfigs.collectAsState()
-
     val profile = remember(profiles, profileId) {
         profiles.firstOrNull { it.uuid.toString() == profileId }
     }
-    val selectableConfigs = remember(builtInConfigs, userConfigs) { builtInConfigs + userConfigs }
 
-    var customRoutingSelected by remember(profileId) { mutableStateOf(false) }
-    var pendingSelectedOverrideIds by remember(profileId) { mutableStateOf(emptyList<String>()) }
-    // The binding loads asynchronously after the page is interactive, so a late arrival must not
-    // clobber a toggle the user already changed.
-    var overrideSelectionInitialized by remember(profileId) { mutableStateOf(false) }
-    var binding by remember(profileId) { mutableStateOf<ProfileBinding?>(null) }
-    val currentProfile by rememberUpdatedState(profile)
-    val currentIsRunning by rememberUpdatedState(isRunning)
-    val saveMutex = remember(profileId) { Mutex() }
-    val persistOverrides: () -> Unit = {
-        scope.launch {
-            saveMutex.withLock {
-                val target = currentProfile ?: return@withLock
-                runCatching {
-                    binding =
-                        saveProfileOverrides(
-                            profile = target,
-                            selectedIds =
-                                buildFinalOverrideIds(
-                                    selectedOverrideIds = pendingSelectedOverrideIds,
-                                    customRoutingSelected = customRoutingSelected,
-                                ),
-                            binding = binding,
-                            bindingProvider = bindingProvider,
-                            routingBootstrapper = routingBootstrapper,
-                            overrideService = overrideService,
-                            homeViewModel = homeViewModel,
-                            isRunning = currentIsRunning,
-                            context = context,
-                        )
-                }
-                    .onFailure { error ->
-                        context.toast(error.message ?: YumeTxt.Util.Error.UnknownError)
-                    }
-            }
-        }
-    }
+    val draft = rememberProfileOverrideDraft(profileId = profileId, profile = profile)
+    val overrideReorderState = rememberProfileOverrideReorderState(draft)
 
-    val customRoutingId = OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
-    val selectableById = remember(selectableConfigs) { selectableConfigs.associateBy { it.id } }
-    val visibleSelectedOverrideIds =
-        remember(pendingSelectedOverrideIds, selectableById) {
-            pendingSelectedOverrideIds.filter(selectableById::containsKey)
-        }
-    val overrideRowIds =
-        remember(selectableConfigs, pendingSelectedOverrideIds, visibleSelectedOverrideIds) {
-            val selectedIds = pendingSelectedOverrideIds.toSet()
-            visibleSelectedOverrideIds +
-                    selectableConfigs
-                        .asSequence()
-                        .map(OverrideConfig::id)
-                        .filterNot(selectedIds::contains)
-                        .toList()
-        }
-    val currentVisibleSelectedOverrideIds by rememberUpdatedState(visibleSelectedOverrideIds)
-    val overrideReorderState =
-        rememberReorderableLazyListState(overrideListState) { from, to ->
-            pendingSelectedOverrideIds =
-                reorderVisibleOverrideIds(
-                    allIds = pendingSelectedOverrideIds,
-                    visibleIds = currentVisibleSelectedOverrideIds,
-                    from = from.index,
-                    to = to.index,
+    ProfileSettingsPage(
+        title = YumeTxt.ProfilesPage.SettingsDialog.SectionOverride,
+        scrollBehavior = scrollBehavior,
+        listState = pageListState,
+    ) {
+        item(key = "profile-override-section") {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                ProfileOverrideCustomRoutingSection(
+                    customRoutingSelected = draft.customRoutingSelected,
+                    enabled = draft.isLoaded,
+                    onCustomRoutingChange = { checked -> draft.setCustomRouting(checked) },
+                    onOpenCustomRouting = { navigator.push(Route.CustomRouting) },
                 )
-            persistOverrides()
-        }
 
-    LaunchedEffect(profileId) {
-        overrideConfigViewModel.refreshAndAwait()
-        val loaded = bindingProvider.getBinding(profileId)
-        binding = loaded
-        if (!overrideSelectionInitialized && loaded != null) {
-            customRoutingSelected = customRoutingId in loaded.overrideIds
-            pendingSelectedOverrideIds = loaded.overrideIds
-            overrideSelectionInitialized = true
-        }
-    }
-
-    val toggleUserOverrideSelection: (String) -> Unit = { overrideId ->
-        overrideSelectionInitialized = true
-        pendingSelectedOverrideIds =
-            if (overrideId in pendingSelectedOverrideIds) {
-                pendingSelectedOverrideIds - overrideId
-            } else {
-                (pendingSelectedOverrideIds + overrideId).distinct()
-            }
-        persistOverrides()
-    }
-
-    GlassScaffold(
-        topBar = {
-            TopBar(
-                title = YumeTxt.ProfilesPage.SettingsDialog.SectionOverride,
-                scrollBehavior = scrollBehavior,
-            )
-        }
-    ) { paddingValues ->
-        val mainLikePadding = rememberStandalonePageMainPadding()
-        ScreenLazyColumn(
-            scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(paddingValues, mainLikePadding),
-            lazyListState = pageListState,
-        ) {
-            item(key = "profile-override-section") {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Title(YumeTxt.ProfilesPage.SettingsDialog.CustomRouting)
-                    AppCard {
-                        SwitchPreference(
-                            title = YumeTxt.ProfilesPage.SettingsDialog.EnableCustomRouting,
-                            checked = customRoutingSelected,
-                            onCheckedChange = {
-                                overrideSelectionInitialized = true
-                                customRoutingSelected = it
-                                pendingSelectedOverrideIds =
-                                    if (it) {
-                                        (pendingSelectedOverrideIds + customRoutingId).distinct()
-                                    } else {
-                                        pendingSelectedOverrideIds - customRoutingId
-                                    }
-                                persistOverrides()
-                            },
-                        )
-                        ArrowPreference(
-                            title = YumeTxt.ProfilesPage.SettingsDialog.OpenCustomRouting,
-                            onClick = { navigator.push(Route.CustomRouting) },
-                        )
-                    }
-                    SectionSummary(YumeTxt.ProfilesPage.SettingsDialog.CustomRoutingSummary)
-
-                    if (overrideRowIds.isNotEmpty()) {
-                        AppCard {
-                            LazyColumn(
-                                state = overrideListState,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(
-                                            max = componentSizes.profileSettingsListMaxHeight
-                                        ),
-                            ) {
-                                items(overrideRowIds, key = { id -> "override-$id" }) { id ->
-                                    val config = selectableById[id] ?: return@items
-                                    val isSelected = id in pendingSelectedOverrideIds
-                                    Box(
-                                        modifier =
-                                            Modifier
-                                                .fillMaxWidth()
-                                                .animateItem(
-                                                    fadeInSpec = tween(160),
-                                                    fadeOutSpec = tween(120),
-                                                    placementSpec =
-                                                        tween(
-                                                            220,
-                                                            easing = FastOutSlowInEasing,
-                                                        ),
-                                                )
-                                    ) {
-                                        if (isSelected) {
-                                            ReorderableItem(
-                                                overrideReorderState,
-                                                key = "override-$id",
-                                            ) { isDragging ->
-                                                BasicComponent(
-                                                    title = config.name,
-                                                    modifier =
-                                                        Modifier
-                                                            .longPressDraggableHandle()
-                                                            .alpha(
-                                                                if (isDragging) 0.9f else 1f
-                                                            ),
-                                                    endActions = {
-                                                        Checkbox(
-                                                            state = ToggleableState.On,
-                                                            onClick = {
-                                                                toggleUserOverrideSelection(id)
-                                                            },
-                                                        )
-                                                    },
-                                                    onClick = {},
-                                                )
-                                            }
-                                        } else {
-                                            BasicComponent(
-                                                title = config.name,
-                                                endActions = {
-                                                    Checkbox(
-                                                        state = ToggleableState.Off,
-                                                        onClick = {
-                                                            toggleUserOverrideSelection(id)
-                                                        },
-                                                    )
-                                                },
-                                                onClick = { toggleUserOverrideSelection(id) },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                if (draft.rowIds.isNotEmpty()) {
+                    ProfileOverrideRowList(
+                        draft = draft,
+                        reorderState = overrideReorderState,
+                        maxHeight = componentSizes.profileSettingsListMaxHeight,
+                    )
                 }
-                SectionSummary(YumeTxt.ProfilesPage.SettingsDialog.SectionOverrideSummary)
             }
+            SectionSummary(YumeTxt.ProfilesPage.SettingsDialog.SectionOverrideSummary)
         }
     }
 }
 
-private fun buildFinalOverrideIds(
-    selectedOverrideIds: List<String>,
+/** The switch that turns custom routing on for this profile, and the arrow into its editor. */
+@Composable
+private fun ProfileOverrideCustomRoutingSection(
     customRoutingSelected: Boolean,
-): List<String> {
-    val customRoutingId = OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
-    val normalizedIds = selectedOverrideIds.distinct()
-    if (!customRoutingSelected) {
-        return normalizedIds - customRoutingId
+    enabled: Boolean,
+    onCustomRoutingChange: (Boolean) -> Unit,
+    onOpenCustomRouting: () -> Unit,
+) {
+    Title(YumeTxt.ProfilesPage.SettingsDialog.CustomRouting)
+    AppCard {
+        PreferenceSwitchItem(
+            title = YumeTxt.ProfilesPage.SettingsDialog.EnableCustomRouting,
+            checked = customRoutingSelected,
+            enabled = enabled,
+            onCheckedChange = { checked -> onCustomRoutingChange(checked) },
+        )
+        PreferenceArrowItem(
+            title = YumeTxt.ProfilesPage.SettingsDialog.OpenCustomRouting,
+            onClick = onOpenCustomRouting,
+        )
     }
-    if (customRoutingId in normalizedIds) {
-        return normalizedIds
-    }
-    return normalizedIds + customRoutingId
-}
-
-private fun reorderVisibleOverrideIds(
-    allIds: List<String>,
-    visibleIds: List<String>,
-    from: Int,
-    to: Int,
-): List<String> {
-    if (from !in visibleIds.indices || to !in visibleIds.indices || from == to) return allIds
-    val reorderedVisible = visibleIds.toMutableList()
-    reorderedVisible.add(to, reorderedVisible.removeAt(from))
-    val visibleSet = visibleIds.toSet()
-    val replacements = reorderedVisible.iterator()
-    return allIds.map { id -> if (id in visibleSet) replacements.next() else id }
+    SectionSummary(YumeTxt.ProfilesPage.SettingsDialog.CustomRoutingSummary)
 }
 
 /**
- * Persists the override selection and applies it to the running session when this profile is the
- * one currently in use. Returns the refreshed binding for the page's local state.
+ * The profile's override rows, capped at [maxHeight].
+ *
+ * [draft] is this page's own state holder: it owns the list state, the selection and the row order,
+ * so the section reads them from it instead of taking each one as a parameter.
  */
-private suspend fun saveProfileOverrides(
-    profile: Profile,
-    selectedIds: List<String>,
-    binding: ProfileBinding?,
-    bindingProvider: ProfileBindingProvider,
-    routingBootstrapper: CustomRoutingBootstrapper,
-    overrideService: OverrideService,
-    homeViewModel: HomeViewModel,
-    isRunning: Boolean,
-    context: android.content.Context,
-): ProfileBinding? {
-    val profileId = profile.uuid.toString()
-    val overrideIds = selectedIds.distinct()
-    val updatedBinding =
-        binding?.copy(overrideIds = overrideIds)
-            ?: ProfileBinding(profileId = profileId, overrideIds = overrideIds)
-
-    bindingProvider.setBinding(updatedBinding)
-    val refreshedBinding = bindingProvider.getBinding(profileId)
-
-    if (OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID in overrideIds) {
-        runCatching { routingBootstrapper.ensureDefaultContent() }
-            .onFailure { error ->
-                Timber.e(
-                    error,
-                    "Failed to generate custom routing content for profile %s",
-                    profileId,
-                )
-                context.toast(
-                    error.message ?: YumeTxt.ProfilesPage.SettingsDialog.CustomRouting
+@Composable
+private fun ProfileOverrideRowList(
+    draft: ProfileOverrideDraft,
+    reorderState: ReorderableLazyListState,
+    maxHeight: Dp,
+) {
+    AppCard {
+        LazyColumn(
+            state = draft.overrideListState,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = maxHeight),
+        ) {
+            items(draft.rowIds, key = { id -> "override-$id" }) { id ->
+                val config = draft.configFor(id) ?: return@items
+                ProfileOverrideConfigRow(
+                    config = config,
+                    isSelected = draft.isSelected(id),
+                    enabled = draft.isLoaded,
+                    reorderKey = "override-$id",
+                    reorderState = reorderState,
+                    onSelectedChange = { selected -> draft.setSelected(id, selected) },
+                    modifier =
+                        Modifier.animateItem(
+                            fadeInSpec = tween(160),
+                            fadeOutSpec = tween(120),
+                            placementSpec = tween(220, easing = FastOutSlowInEasing),
+                        ),
                 )
             }
-    }
-
-    val shouldApplyRuntime =
-        (isRunning || profile.active) &&
-                (profile.active || homeViewModel.isCurrentProfile(profile.uuid))
-    if (shouldApplyRuntime) {
-        val applied = overrideService.applyOverride(profileId)
-        if (!applied) {
-            Timber.w("Override apply reported failure for profile %s", profileId)
-            context.toast(YumeTxt.Util.Error.UnknownError)
         }
     }
-    return refreshedBinding
+}
+
+/**
+ * One override row: a checkbox plus the row tap, wrapped so a selected row can be dragged.
+ *
+ * [reorderKey] must match the key the list item was declared with, or dragging would address a
+ * different item.
+ */
+@Composable
+private fun LazyItemScope.ProfileOverrideConfigRow(
+    config: OverrideConfig,
+    isSelected: Boolean,
+    enabled: Boolean,
+    reorderKey: String,
+    reorderState: ReorderableLazyListState,
+    onSelectedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Selected rows drag to reorder; both states share one row config so the checkbox can never
+    // diverge from the tap area. ReorderableItem extends LazyItemScope, so it has to stay a direct
+    // child of the list item instead of sitting inside an extra Box.
+    val row: @Composable (Modifier) -> Unit = { rowModifier ->
+        ProfileOverrideRowContent(
+            title = config.name,
+            isSelected = isSelected,
+            enabled = enabled,
+            onSelectedChange = onSelectedChange,
+            modifier = rowModifier,
+        )
+    }
+    if (isSelected) {
+        ReorderableItem(
+            state = reorderState,
+            key = reorderKey,
+            modifier = modifier.fillMaxWidth(),
+        ) { isDragging ->
+            row(
+                Modifier
+                    .fillMaxWidth()
+                    .longPressDraggableHandle()
+                    .alpha(if (isDragging) 0.9f else 1f)
+            )
+        }
+    } else {
+        Box(modifier = modifier.fillMaxWidth()) { row(Modifier) }
+    }
+}
+
+/** The row itself: its name, its checkbox and its tap area, on the modifier the caller chooses. */
+@Composable
+private fun ProfileOverrideRowContent(
+    title: String,
+    isSelected: Boolean,
+    enabled: Boolean,
+    onSelectedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BasicComponent(
+        title = title,
+        modifier = modifier,
+        endActions = {
+            Checkbox(
+                state =
+                    if (isSelected) {
+                        ToggleableState.On
+                    } else {
+                        ToggleableState.Off
+                    },
+                enabled = enabled,
+                onClick = {
+                    onSelectedChange(!isSelected)
+                },
+            )
+        },
+        onClick = {
+            if (!isSelected) {
+                onSelectedChange(true)
+            }
+        },
+    )
 }

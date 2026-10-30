@@ -38,7 +38,7 @@ data class ProxyGroup(
     val hidden: Boolean = false,
 ) : Parcelable {
     class SliceProxyList(proxies: List<Proxy>) : List<Proxy> by proxies, Parcelable {
-        constructor(parcel: Parcel) : this(Proxy.createListFromParcelSlice(parcel, 0, 50))
+        constructor(parcel: Parcel) : this(Proxy.createListFromParcelSlice(parcel, 50))
 
         override fun describeContents(): Int = 0
 

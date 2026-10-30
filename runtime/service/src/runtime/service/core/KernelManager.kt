@@ -18,18 +18,19 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import io.ktor.http.HttpHeaders
 import io.ktor.utils.io.jvm.javaio.copyTo
+import com.github.yumeyucca.yumebox.core.util.LenientJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.tukaani.xz.XZInputStream
 import timber.log.Timber
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 
 /** Downloadable `libmihomocore.so` catalog and installer. Bundled Alpha remains the fallback. */
 object KernelManager {
@@ -47,13 +48,18 @@ object KernelManager {
 
     // Kernel-Builder's manifest intentionally carries release, template and toolchain metadata;
     // the runtime validates the fields it consumes while tolerating future metadata additions.
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = LenientJson
     private val installMutex = Mutex()
     // Do not initialize the HTTP engine while the local/bundled core is starting. The network
     // client is only needed after the user opens Kernel settings or selects a remote slot.
     private val client: HttpClient by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         HttpClient(OkHttp) { expectSuccess = false }
     }
+
+    /** Verdict of the whole-file ELF scan, keyed by path and invalidated by size/mtime. */
+    private val verifiedCores = ConcurrentHashMap<String, CoreVerdict>()
+
+    private data class CoreVerdict(val length: Long, val modifiedAt: Long, val valid: Boolean)
 
     @Serializable
     data class Index(
@@ -126,10 +132,12 @@ object KernelManager {
             val metadata = metadataFile(context, kernel.id)
             if (metadata.exists()) check(metadata.delete()) { "Unable to replace kernel metadata" }
             replace(target, expanded)
+            verifiedCores.remove(target.absolutePath)
             runCatching { writeInstalledKernel(context, kernel) }.onFailure {
                 Timber.tag("KernelManager").w(it, "Unable to save installed kernel version")
             }
         } finally {
+            verifiedCores.remove(expanded.absolutePath)
             expanded.delete()
         }
         return target
@@ -319,7 +327,24 @@ object KernelManager {
         Timber.tag("KernelManager").w(it, "Unable to read embedded kernel version")
     }.getOrNull()
 
-    private fun isAndroidArm64Core(file: File): Boolean = runCatching {
+    /**
+     * [isInstalled] is called from composition and from non-suspend settings code, while this check
+     * reads the whole `.so` looking for the entry point. Memoising it per file identity keeps a
+     * recomposition from rescanning every installed kernel.
+     */
+    private fun isAndroidArm64Core(file: File): Boolean {
+        val path = file.absolutePath
+        val length = file.length()
+        val modifiedAt = file.lastModified()
+        verifiedCores[path]
+            ?.takeIf { it.length == length && it.modifiedAt == modifiedAt }
+            ?.let { return it.valid }
+        val valid = scanAndroidArm64Core(file)
+        verifiedCores[path] = CoreVerdict(length, modifiedAt, valid)
+        return valid
+    }
+
+    private fun scanAndroidArm64Core(file: File): Boolean = runCatching {
         if (!file.isFile || file.length() < 64) return false
         val header = ByteArray(64)
         file.inputStream().use { check(it.read(header) == header.size) }

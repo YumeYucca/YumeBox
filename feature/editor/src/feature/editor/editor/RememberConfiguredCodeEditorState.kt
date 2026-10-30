@@ -22,17 +22,15 @@
 
 package com.github.yumeyucca.yumebox.feature.editor.editor
 
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 
 @Composable
 fun rememberConfiguredCodeEditorState(
     initialContent: String,
     language: LanguageScope,
-    readOnly: Boolean = false,
 ): CodeEditorState =
-    remember(initialContent, language, readOnly) {
-        CodeEditorState(initialContent = initialContent, language = language, readOnly = readOnly)
+    remember(initialContent, language) {
+        CodeEditorState(initialContent = initialContent, language = language)
     }

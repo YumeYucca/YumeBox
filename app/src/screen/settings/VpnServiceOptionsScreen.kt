@@ -30,8 +30,6 @@ import com.github.yumeyucca.yumebox.data.model.TunStack
 import com.github.yumeyucca.yumebox.presentation.component.*
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 
 /**
  * The VpnService "service config" sub-page (reached from the network-settings Advanced section).
@@ -40,66 +38,48 @@ import top.yukonga.miuix.kmp.basic.Scaffold
  */
 @Composable
 fun VpnServiceOptionsScreen() {
-    val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<NetworkSettingsViewModel>()
     val tunOptions by viewModel.tunServiceOptionsUiState.collectAsState()
     val stack by viewModel.tunStack.state.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopBar(
-                title = YumeTxt.NetworkSettings.Section.VpnOptions,
-                scrollBehavior = scrollBehavior,
+    ServiceOptionsPage(YumeTxt.NetworkSettings.Section.VpnOptions) {
+    item {
+        Title(YumeTxt.NetworkSettings.RunMode.VpnServiceTitle)
+        AppCard {
+            PreferenceEnumItem(
+                title = YumeTxt.NetworkSettings.TunOptions.StackTitle,
+                currentValue = stack.forVpnService(),
+                values = listOf(TunStack.GVisor, TunStack.Mips),
+                onValueChange = viewModel::onTunStackChange,
+                label = ::tunStackLabel,
+            )
+            PreferenceSwitchItem(
+                title = YumeTxt.NetworkSettings.VpnOptions.BypassPrivateTitle,
+                checked = tunOptions.common.bypassPrivateNetwork,
+                onCheckedChange = viewModel::onBypassPrivateNetworkChange,
+            )
+            PreferenceSwitchItem(
+                title = YumeTxt.NetworkSettings.VpnOptions.DnsHijackTitle,
+                checked = tunOptions.common.dnsHijack,
+                onCheckedChange = viewModel::onDnsHijackChange,
+            )
+            PreferenceSwitchItem(
+                title = YumeTxt.NetworkSettings.VpnOptions.EnableIpv6Title,
+                checked = tunOptions.common.enableIPv6,
+                onCheckedChange = viewModel::onEnableIPv6Change,
+            )
+            PreferenceSwitchItem(
+                title = YumeTxt.NetworkSettings.VpnOptions.AllowBypassTitle,
+                checked = tunOptions.allowBypass,
+                onCheckedChange = viewModel::onAllowBypassChange,
+            )
+            PreferenceSwitchItem(
+                title = YumeTxt.NetworkSettings.VpnOptions.SystemProxyTitle,
+                checked = tunOptions.systemProxy,
+                onCheckedChange = viewModel::onSystemProxyChange,
             )
         }
-    ) { innerPadding ->
-        val mainLikePadding = rememberStandalonePageMainPadding()
-        ScreenLazyColumn(
-            scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
-        ) {
-            item {
-                Title(YumeTxt.NetworkSettings.RunMode.VpnServiceTitle)
-                AppCard {
-                    PreferenceEnumItem(
-                        title = YumeTxt.NetworkSettings.TunOptions.StackTitle,
-                        currentValue = stack.forVpnService(),
-                        items =
-                            listOf(
-                                YumeTxt.NetworkSettings.TunOptions.StackGVisor,
-                                YumeTxt.NetworkSettings.TunOptions.StackMips,
-                            ),
-                        values = listOf(TunStack.GVisor, TunStack.Mips),
-                        onValueChange = viewModel::onTunStackChange,
-                    )
-                    PreferenceSwitchItem(
-                        title = YumeTxt.NetworkSettings.VpnOptions.BypassPrivateTitle,
-                        checked = tunOptions.common.bypassPrivateNetwork,
-                        onCheckedChange = viewModel::onBypassPrivateNetworkChange,
-                    )
-                    PreferenceSwitchItem(
-                        title = YumeTxt.NetworkSettings.VpnOptions.DnsHijackTitle,
-                        checked = tunOptions.common.dnsHijack,
-                        onCheckedChange = viewModel::onDnsHijackChange,
-                    )
-                    PreferenceSwitchItem(
-                        title = YumeTxt.NetworkSettings.VpnOptions.EnableIpv6Title,
-                        checked = tunOptions.common.enableIPv6,
-                        onCheckedChange = viewModel::onEnableIPv6Change,
-                    )
-                    PreferenceSwitchItem(
-                        title = YumeTxt.NetworkSettings.VpnOptions.AllowBypassTitle,
-                        checked = tunOptions.allowBypass,
-                        onCheckedChange = viewModel::onAllowBypassChange,
-                    )
-                    PreferenceSwitchItem(
-                        title = YumeTxt.NetworkSettings.VpnOptions.SystemProxyTitle,
-                        checked = tunOptions.systemProxy,
-                        onCheckedChange = viewModel::onSystemProxyChange,
-                    )
-                }
-            }
-            item { WifiAutomationSettingsSection() }
-        }
+    }
+    item { WifiAutomationSettingsSection() }
     }
 }

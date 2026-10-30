@@ -28,12 +28,6 @@ data class ProfileBinding(
     val overrideIds: List<String> = emptyList(),
 ) {
     companion object {
-        fun disabled(profileId: String): ProfileBinding =
-            ProfileBinding(profileId = profileId, overrideIds = emptyList())
-
-        fun withOverrides(profileId: String, overrideIds: List<String>): ProfileBinding =
-            ProfileBinding(profileId = profileId, overrideIds = overrideIds)
-
         fun withOverride(profileId: String, overrideId: String): ProfileBinding =
             ProfileBinding(profileId = profileId, overrideIds = listOf(overrideId))
     }
@@ -53,19 +47,6 @@ data class ProfileBinding(
 
     fun removeOverride(overrideId: String): ProfileBinding =
         copy(overrideIds = overrideIds - overrideId)
-
-    fun moveOverride(fromIndex: Int, toIndex: Int): ProfileBinding {
-        if (fromIndex !in overrideIds.indices || toIndex !in overrideIds.indices) return this
-        if (fromIndex == toIndex) return this
-
-        val newList = overrideIds.toMutableList()
-        val item = newList.removeAt(fromIndex)
-        newList.add(toIndex, item)
-
-        return copy(overrideIds = newList)
-    }
-
-    fun setOverrides(overrideIds: List<String>): ProfileBinding = copy(overrideIds = overrideIds)
 
     fun clearOverrides(): ProfileBinding = copy(overrideIds = emptyList())
 }

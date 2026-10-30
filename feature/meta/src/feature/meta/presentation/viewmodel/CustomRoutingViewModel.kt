@@ -30,11 +30,13 @@ import com.github.yumeyucca.yumebox.core.util.YamlCodec
 import com.github.yumeyucca.yumebox.data.controller.ActiveProfileOverrideReloader
 import com.github.yumeyucca.yumebox.data.store.OverrideConfigStore
 import com.github.yumeyucca.yumebox.feature.meta.presentation.util.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 class CustomRoutingViewModel(
@@ -54,48 +56,71 @@ class CustomRoutingViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.Default) {
-            runCatching { reloadStateFromStoredContent() }
-                .onFailure {
-                    Timber.e(it, "Failed to reload custom routing state from stored content")
-                }
+            try {
+                applyContentState(customRoutingBootstrapper.ensureDefaultContent())
+            } catch (error: CancellationException) {
+                // The scope is gone; an empty custom routing page must not be published as content.
+                throw error
+            } catch (error: Exception) {
+                Timber.e(error, "Failed to reload custom routing state from stored content")
+            }
         }
     }
 
     suspend fun savePresetSelection(
         updatedPresetSelection: OverridePresetTemplateSelection
-    ): Result<Unit> = runCatching {
+    ): Result<Unit> = saveOutcome {
         check(templateRoundTripSafeState.value) {
             "Preset changes cannot overwrite manually edited custom routing YAML"
         }
-        val generatedYaml = buildPresetTemplateYaml(updatedPresetSelection)
-        overrideConfigRepository.saveCustomRoutingContent(generatedYaml)
-        applyContentState(generatedYaml)
-        activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(
-            OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
-        )
+        persist(dumpPreset(updatedPresetSelection))
     }
 
-    suspend fun saveCustomRoutingYaml(content: String): Result<Unit> = runCatching {
+    suspend fun saveCustomRoutingYaml(content: String): Result<Unit> = saveOutcome {
         val contentToSave =
             if (content.isBlank()) {
-                buildPresetTemplateYaml(defaultOverridePresetTemplateSelection())
+                dumpPreset(defaultOverridePresetTemplateSelection())
             } else {
-                YamlCodec.validate(content)
+                withContext(Dispatchers.Default) { YamlCodec.validate(content) }
                 content
             }
-        overrideConfigRepository.saveCustomRoutingContent(contentToSave)
-        applyContentState(contentToSave)
+        persist(contentToSave)
+    }
+
+    /**
+     * Renders one preset. The dump is dozens of providers, groups and rules plus a re-load
+     * self-check, so it stays off the main thread: saves are launched from the composition scope.
+     */
+    private suspend fun dumpPreset(selection: OverridePresetTemplateSelection): String =
+        withContext(Dispatchers.Default) { buildPresetTemplateYaml(selection) }
+
+    /**
+     * A failed save is a [Result] the screen toasts, but a cancelled one is not: leaving the screen
+     * mid-save has to cancel this work instead of reporting a failure that never happened.
+     */
+    private suspend fun saveOutcome(block: suspend () -> Unit): Result<Unit> =
+        try {
+            block()
+            Result.success(Unit)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+
+    /** Stores one custom routing payload and re-applies it to the active profile. */
+    private suspend fun persist(content: String) {
+        overrideConfigRepository.saveCustomRoutingContent(content)
+        applyContentState(content)
         activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(
             OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
         )
     }
 
-    private suspend fun reloadStateFromStoredContent() {
-        applyContentState(customRoutingBootstrapper.ensureDefaultContent())
-    }
-
-    private fun applyContentState(content: String?) {
-        val analysis = analyzePresetTemplateContent(content)
+    private suspend fun applyContentState(content: String?) {
+        // Parsing a whole override YAML is the same weight as rendering one, so it happens off the
+        // main thread too; only the three published values are written on the calling dispatcher.
+        val analysis = withContext(Dispatchers.Default) { analyzePresetTemplateContent(content) }
         customRoutingContentState.value = content.orEmpty()
         presetSelectionState.value = analysis.selection
         templateRoundTripSafeState.value = analysis.matchesTemplateExactly

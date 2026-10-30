@@ -20,19 +20,8 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-
-internal fun dismissProfileAddSheet(
-    show: MutableState<Boolean>,
-    isDownloading: Boolean,
-    profilesViewModel: ProfilesViewModel,
-) {
-    if (isDownloading) return
-    show.value = false
-    profilesViewModel.clearDownloadProgress()
-}
 
 internal fun textValueAtEnd(text: String): TextFieldValue =
     TextFieldValue(text = text, selection = TextRange(text.length))

@@ -18,8 +18,6 @@
  *
  */
 
-@file:Suppress("UnusedSymbol")
-
 package com.github.yumeyucca.yumebox.data.model
 
 
@@ -39,38 +37,12 @@ data class OverrideMetadata(
         const val ID_PREFIX = "cfg-"
         const val LEGACY_SYSTEM_PREFIX = "preset-"
 
+        /** Whether [id] is a leftover from the old bundled-preset scheme. */
+        fun isLegacyPresetId(id: String): Boolean = id.startsWith(LEGACY_SYSTEM_PREFIX)
+
         fun generateId(): String =
             "$ID_PREFIX${System.currentTimeMillis()}-${(1000..9999).random()}"
-
-        fun create(
-            name: String,
-            description: String? = null,
-            contentType: OverrideContentType = OverrideContentType.Yaml,
-        ): OverrideMetadata {
-            val now = System.currentTimeMillis()
-            return OverrideMetadata(
-                id = generateId(),
-                name = name,
-                description = description,
-                contentType = contentType,
-                createdAt = now,
-                updatedAt = now,
-            )
-        }
     }
-
-    fun update(
-        name: String = this.name,
-        description: String? = this.description,
-        contentType: OverrideContentType = this.contentType,
-    ): OverrideMetadata =
-        copy(
-            name = name,
-            description = description,
-            contentType = contentType,
-            updatedAt = System.currentTimeMillis(),
-            sortOrder = sortOrder,
-        )
 
     fun duplicateAsUser(): OverrideMetadata {
         val now = System.currentTimeMillis()
@@ -104,13 +76,27 @@ data class MetadataIndex(
                 profileChains.mapValues { (_, binding) -> binding.removeOverride(overrideId) }
         )
 
-    fun sanitizeProfileChains(predicate: (String) -> Boolean): MetadataIndex =
-        copy(
-            profileChains =
-                profileChains.mapValues { (_, binding) ->
-                    binding.copy(overrideIds = binding.overrideIds.filter(predicate))
-                }
-        )
+    /**
+     * Drops override references [against] cannot satisfy: legacy preset leftovers and ids whose
+     * config is gone. A stale id must never survive a metadata write, and both metadata owners
+     * (configs and profile bindings) must agree on that filter.
+     */
+    fun withSanitizedBindings(
+        against: Map<String, OverrideMetadata> = configs,
+    ): MetadataIndex {
+        val sanitized =
+            profileChains.mapValues { (_, binding) ->
+                binding.copy(
+                    overrideIds =
+                        binding.overrideIds.filterNot { overrideId ->
+                            OverrideMetadata.isLegacyPresetId(overrideId) ||
+                                    (overrideId.startsWith(OverrideMetadata.ID_PREFIX) &&
+                                            overrideId !in against)
+                        }
+                )
+            }
+        return if (sanitized == profileChains) this else copy(profileChains = sanitized)
+    }
 
     fun sortedUserMetadata(): List<OverrideMetadata> =
         configs.values.sortedWith(
@@ -141,12 +127,4 @@ data class MetadataIndex(
             this
         }
     }
-
-    fun getProfileChain(profileId: String): ProfileBinding? = profileChains[profileId]
-
-    fun upsertProfileChain(binding: ProfileBinding): MetadataIndex =
-        copy(profileChains = profileChains + (binding.profileId to binding))
-
-    fun removeProfileChain(profileId: String): MetadataIndex =
-        copy(profileChains = profileChains - profileId)
 }

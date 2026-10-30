@@ -20,7 +20,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.viewmodel
 
-import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,6 +32,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+
+/**
+ * The one identity of a provider: type plus name. The list key and the "being updated" set must
+ * agree, so both are derived from this instead of repeating the concatenation.
+ */
+internal fun providerKey(provider: Provider): String = "${provider.type}_${provider.name}"
 
 class ProvidersViewModel(
     private val proxyFacade: ProxyFacade,
@@ -62,7 +67,7 @@ class ProvidersViewModel(
                         it.copy(
                             error =
                                 YumeTxt.Providers.Message.FetchFailed.format(
-                                    error.message ?: "Unknown error"
+                                    error.message ?: YumeTxt.Util.Error.UnknownError
                                 )
                         )
                     }
@@ -71,32 +76,41 @@ class ProvidersViewModel(
         }
     }
 
-    fun updateProvider(provider: Provider) {
-        val providerKey = "${provider.type}_${provider.name}"
+    /**
+     * One provider, one request: mark it busy, run it, refresh on success with a message, report the
+     * failure message on error, clear the mark either way. Only the request and the two texts differ
+     * between "update" and "upload", so they are arguments instead of a second copy of the flow.
+     */
+    private fun runProviderUpdate(
+        provider: Provider,
+        successMessage: () -> String,
+        failureMessage: (String) -> String,
+        request: suspend () -> Result<Unit>,
+    ) {
+        val key = providerKey(provider)
         viewModelScope.launch {
-            _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
-            val result = providersRepository.updateProvider(provider)
-            result
+            _uiState.update { it.copy(updatingProviders = it.updatingProviders + key) }
+            request()
                 .onSuccess {
                     refreshProviders()
-                    _uiState.update {
-                        it.copy(
-                            message = YumeTxt.Providers.Message.UpdateSuccess.format(provider.name)
-                        )
-                    }
+                    _uiState.update { it.copy(message = successMessage()) }
                 }
                 .onFailure { error ->
                     _uiState.update {
-                        it.copy(
-                            error =
-                                YumeTxt.Providers.Message.UpdateFailed.format(
-                                    error.message ?: "Unknown error"
-                                )
-                        )
+                        it.copy(error = failureMessage(error.message ?: YumeTxt.Util.Error.UnknownError))
                     }
                 }
-            _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
+            _uiState.update { it.copy(updatingProviders = it.updatingProviders - key) }
         }
+    }
+
+    fun updateProvider(provider: Provider) {
+        runProviderUpdate(
+            provider = provider,
+            successMessage = { YumeTxt.Providers.Message.UpdateSuccess.format(provider.name) },
+            failureMessage = { YumeTxt.Providers.Message.UpdateFailed.format(it) },
+            request = { providersRepository.updateProvider(provider) },
+        )
     }
 
     fun updateAllProviders() {
@@ -106,7 +120,7 @@ class ProvidersViewModel(
             if (httpProviders.isEmpty()) return@launch
 
             _uiState.update { it.copy(isUpdatingAll = true) }
-            val providerKeys = httpProviders.map { "${it.type}_${it.name}" }.toSet()
+            val providerKeys = httpProviders.map(::providerKey).toSet()
             _uiState.update { it.copy(updatingProviders = providerKeys) }
 
             val result = providersRepository.updateAllProviders(httpProviders)
@@ -120,7 +134,7 @@ class ProvidersViewModel(
                             it.copy(
                                 error =
                                     YumeTxt.Providers.Message.UpdateFailed.format(
-                                        "Failed providers: ${updateResult.failedProviders.joinToString(", ")}"
+                                        updateResult.failedProviders.joinToString(", ")
                                     )
                             )
                         }
@@ -131,7 +145,7 @@ class ProvidersViewModel(
                         it.copy(
                             error =
                                 YumeTxt.Providers.Message.UpdateFailed.format(
-                                    error.message ?: "Unknown error"
+                                    error.message ?: YumeTxt.Util.Error.UnknownError
                                 )
                         )
                     }
@@ -149,34 +163,13 @@ class ProvidersViewModel(
         _uiState.update { it.copy(error = null) }
     }
 
-    fun uploadProviderFile(context: Context, provider: Provider, uri: Uri) {
-        val providerKey = "${provider.type}_${provider.name}"
-        viewModelScope.launch {
-            _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
-
-            val result = providersRepository.uploadProviderFile(context, provider, uri)
-            result
-                .onSuccess {
-                    refreshProviders()
-                    _uiState.update {
-                        it.copy(
-                            message = YumeTxt.Providers.Message.UploadSuccess.format(provider.name)
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            error =
-                                YumeTxt.Providers.Message.UploadFailed.format(
-                                    error.message ?: "Unknown error"
-                                )
-                        )
-                    }
-                }
-
-            _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
-        }
+    fun uploadProviderFile(provider: Provider, uri: Uri) {
+        runProviderUpdate(
+            provider = provider,
+            successMessage = { YumeTxt.Providers.Message.UploadSuccess.format(provider.name) },
+            failureMessage = { YumeTxt.Providers.Message.UploadFailed.format(it) },
+            request = { providersRepository.uploadProviderFile(provider, uri) },
+        )
     }
 
     data class ProvidersUiState(

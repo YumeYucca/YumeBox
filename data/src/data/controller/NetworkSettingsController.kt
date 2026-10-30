@@ -29,6 +29,7 @@ import com.github.yumeyucca.yumebox.data.store.Preference
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 class NetworkSettingsController(
     private val store: NetworkSettingsStore,
@@ -79,9 +80,11 @@ class NetworkSettingsController(
 
     private fun scheduleRestart() {
         restarter.schedule {
-            val targetMode = store.runMode.value
-            beforeRestart(targetMode)
-            startService(targetMode)
+            // [startService] runs the before-restart hook itself, so it is not repeated here: a
+            // hook with a side effect would otherwise run twice for one restart.
+            startService(store.runMode.value).onFailure { error ->
+                Timber.e(error, "Restart after a network settings change failed")
+            }
         }
     }
 

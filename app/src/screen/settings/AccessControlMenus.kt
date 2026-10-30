@@ -22,41 +22,24 @@ package com.github.yumeyucca.yumebox.screen.settings
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.AccessControlSortMode
-import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
-import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
-import top.yukonga.miuix.kmp.basic.HorizontalDivider
+import com.github.yumeyucca.yumebox.presentation.component.GlassMenuItem
+import com.github.yumeyucca.yumebox.presentation.component.GlassPopupHost
+import com.github.yumeyucca.yumebox.presentation.component.GlassPopupSubmenuItem
+import com.github.yumeyucca.yumebox.presentation.component.GlassSubmenuPageHeader
+import com.github.yumeyucca.yumebox.presentation.component.GlassTopActionAnchorIcon
+import com.github.yumeyucca.yumebox.presentation.component.rememberGlassSubmenuState
+import com.github.yumeyucca.yumebox.presentation.icon.Yume
+import com.github.yumeyucca.yumebox.presentation.icon.yume.Bolt
+import com.github.yumeyucca.yumebox.presentation.icon.yume.ListChevronsUpDown
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
-import top.yukonga.miuix.kmp.glass.GlassPopupDefaults
-import top.yukonga.miuix.kmp.glass.GlassPopupItem
-import top.yukonga.miuix.kmp.glass.GlassPopupSizing
-import top.yukonga.miuix.kmp.glass.GlassSecondaryPopup
-import top.yukonga.miuix.kmp.glass.GlassTransformPopup
-import top.yukonga.miuix.kmp.layout.CascadingPopupDefaults
-import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
 import java.util.Locale
 
 // :data cannot depend on YumeTxt, so persisted sort modes are localized at the app boundary.
@@ -80,7 +63,6 @@ internal data class AccessControlMenuActions(
 )
 
 private enum class AccessControlMenuPage {
-    Root,
     Batch,
     Region,
 }
@@ -92,147 +74,92 @@ internal fun AccessControlOperationsMenu(
     anchor: GlassPopupAnchor,
     uiState: AccessControlViewModel.UiState,
     actions: AccessControlMenuActions,
-    anchorContent: @Composable () -> Unit,
+    anchorContent: @Composable () -> Unit = {
+        GlassTopActionAnchorIcon(Yume.Bolt)
+    },
 ) {
     val settings = YumeTxt.AccessControl.Settings
-    val backdrop = LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current
-    val density = LocalDensity.current
-    val arrowTurn = CascadingPopupDefaults.arrowRotation(LocalLayoutDirection.current)
-
-    var submenuOpen by remember { mutableStateOf(false) }
+    val submenu = rememberGlassSubmenuState(showPopup)
     var submenuPage by remember { mutableStateOf(AccessControlMenuPage.Batch) }
-    var submenuPresent by remember { mutableStateOf(false) }
-    var submenuAnchor by remember { mutableStateOf(Rect.Zero) }
-    var menuWidth by remember { mutableStateOf(0.dp) }
-    val batchExpanded = submenuOpen && submenuPage == AccessControlMenuPage.Batch
-    val regionExpanded = submenuOpen && submenuPage == AccessControlMenuPage.Region
-    val batchArrow by animateFloatAsState(
-        targetValue = if (batchExpanded) arrowTurn else 0f,
-        animationSpec = CascadingPopupDefaults.arrowSpring(batchExpanded),
-        label = "accessControlBatchArrow",
-    )
-    val regionArrow by animateFloatAsState(
-        targetValue = if (regionExpanded) arrowTurn else 0f,
-        animationSpec = CascadingPopupDefaults.arrowSpring(regionExpanded),
-        label = "accessControlRegionArrow",
-    )
-    val submenuArrow =
-        if (submenuPage == AccessControlMenuPage.Region) regionArrow else batchArrow
 
-    LaunchedEffect(showPopup) {
-        if (!showPopup) submenuOpen = false
+    fun applyAndClose(action: () -> Unit) {
+        action()
+        submenu.close()
+        onShowPopupChange(false)
     }
 
-    fun openSubmenu(page: AccessControlMenuPage) {
-        submenuPage = page
-        submenuPresent = true
-        submenuOpen = true
-    }
-
-    AccessControlGlassPopup(
+    GlassPopupHost(
         show = showPopup,
-        onDismiss = {
-            submenuOpen = false
-            onShowPopupChange(false)
-        },
+        onDismissRequest = { onShowPopupChange(false) },
         anchor = anchor,
         anchorContent = anchorContent,
-        stacked = submenuOpen,
-        onMeasured = { menuWidth = with(density) { it.width.toDp() } },
-        secondaryPopup = { expanded ->
-            GlassSecondaryPopup(
-                show = expanded && submenuOpen,
-                onDismissRequest = { submenuOpen = false },
-                anchorBounds = submenuAnchor,
-                backdrop = backdrop,
-                materialAnchor = anchor,
-                sizing = GlassPopupSizing(minWidth = menuWidth, maxWidth = 188.dp),
-                visuals = GlassPopupDefaults.visuals(),
-                onDismissFinished = { submenuPresent = false },
-            ) {
-                GlassPopupItem(
-                    text =
-                        when (submenuPage) {
-                            AccessControlMenuPage.Batch -> settings.BatchOperation
-                            AccessControlMenuPage.Region -> settings.RegionQuickSelect
-                            AccessControlMenuPage.Root -> settings.BatchOperation
-                        },
-                    showArrow = true,
-                    arrowRotation = { submenuArrow * (1f - anchor.secondaryBackProgress) },
-                    onClick = { submenuOpen = false },
-                )
-                HorizontalDivider(
-                    modifier =
-                        Modifier.padding(
-                            horizontal = GlassPopupDefaults.DividerPaddingHorizontal,
-                            vertical = GlassPopupDefaults.DividerPaddingVertical,
-                        ),
-                    thickness = GlassPopupDefaults.DividerThickness,
-                )
-                when (submenuPage) {
-                    AccessControlMenuPage.Batch -> {
-                        GlassPopupItem(text = settings.SelectAll, onClick = {
-                            actions.onSelectAll()
-                            submenuOpen = false
-                            onShowPopupChange(false)
-                        })
-                        GlassPopupItem(text = settings.DeselectAll, onClick = {
-                            actions.onDeselectAll()
-                            submenuOpen = false
-                            onShowPopupChange(false)
-                        })
-                        GlassPopupItem(text = settings.Invert, onClick = {
-                            actions.onInvertSelection()
-                            submenuOpen = false
-                            onShowPopupChange(false)
-                        })
-                    }
+        submenu = submenu,
+        submenuContent = {
+            GlassSubmenuPageHeader(
+                state = submenu,
+                text =
+                    when (submenuPage) {
+                        AccessControlMenuPage.Batch -> settings.BatchOperation
+                        AccessControlMenuPage.Region -> settings.RegionQuickSelect
+                    },
+                anchor = anchor,
+            )
+            when (submenuPage) {
+                AccessControlMenuPage.Batch -> {
+                    GlassMenuItem(
+                        text = settings.SelectAll,
+                        onClick = { applyAndClose(actions.onSelectAll) },
+                    )
+                    GlassMenuItem(
+                        text = settings.DeselectAll,
+                        onClick = { applyAndClose(actions.onDeselectAll) },
+                    )
+                    GlassMenuItem(
+                        text = settings.Invert,
+                        onClick = { applyAndClose(actions.onInvertSelection) },
+                    )
+                }
 
-                    AccessControlMenuPage.Region -> {
-                        GlassPopupItem(text = settings.ChinaApps, onClick = {
-                            actions.onSelectChinaApps()
-                            submenuOpen = false
-                            onShowPopupChange(false)
-                        })
-                        GlassPopupItem(text = settings.OverseasApps, onClick = {
-                            actions.onSelectNonChinaApps()
-                            submenuOpen = false
-                            onShowPopupChange(false)
-                        })
-                    }
-
-                    AccessControlMenuPage.Root -> Unit
+                AccessControlMenuPage.Region -> {
+                    GlassMenuItem(
+                        text = settings.ChinaApps,
+                        onClick = { applyAndClose(actions.onSelectChinaApps) },
+                    )
+                    GlassMenuItem(
+                        text = settings.OverseasApps,
+                        onClick = { applyAndClose(actions.onSelectNonChinaApps) },
+                    )
                 }
             }
         },
     ) {
-        GlassPopupItem(
+        GlassMenuItem(
             text = settings.ShowSystemApps,
             selected = uiState.showSystemApps,
             onClick = { actions.onShowSystemAppsChange(!uiState.showSystemApps) },
         )
-        GlassPopupItem(
+        GlassMenuItem(
             text = settings.SelectedFirst,
             selected = uiState.selectedFirst,
             onClick = { actions.onSelectedFirstChange(!uiState.selectedFirst) },
         )
-        GlassPopupItem(
+        GlassPopupSubmenuItem(
             text = settings.BatchOperation,
-            showArrow = true,
-            arrowRotation = { batchArrow * (1f - anchor.secondaryBackProgress) },
-            modifier = Modifier.onGloballyPositioned {
-                if (!submenuPresent) submenuAnchor = it.boundsInRoot()
+            anchor = anchor,
+            open = submenu.open && submenuPage == AccessControlMenuPage.Batch,
+            onOpen = { bounds ->
+                submenuPage = AccessControlMenuPage.Batch
+                submenu.openAt(bounds)
             },
-            onClick = { openSubmenu(AccessControlMenuPage.Batch) },
         )
-        GlassPopupItem(
+        GlassPopupSubmenuItem(
             text = settings.RegionQuickSelect,
-            showArrow = true,
-            arrowRotation = { regionArrow * (1f - anchor.secondaryBackProgress) },
-            modifier = Modifier.onGloballyPositioned {
-                if (!submenuPresent) submenuAnchor = it.boundsInRoot()
+            anchor = anchor,
+            open = submenu.open && submenuPage == AccessControlMenuPage.Region,
+            onOpen = { bounds ->
+                submenuPage = AccessControlMenuPage.Region
+                submenu.openAt(bounds)
             },
-            onClick = { openSubmenu(AccessControlMenuPage.Region) },
         )
     }
 }
@@ -244,16 +171,18 @@ internal fun AccessControlSortMenu(
     sortMode: AccessControlSortMode,
     onSortSelected: (AccessControlSortMode) -> Unit,
     anchor: GlassPopupAnchor,
-    anchorContent: @Composable () -> Unit,
+    anchorContent: @Composable () -> Unit = {
+        GlassTopActionAnchorIcon(Yume.ListChevronsUpDown)
+    },
 ) {
-    AccessControlGlassPopup(
+    GlassPopupHost(
         show = show,
-        onDismiss = onDismiss,
+        onDismissRequest = onDismiss,
         anchor = anchor,
         anchorContent = anchorContent,
     ) {
         AccessControlSortMode.entries.forEach { mode ->
-            GlassPopupItem(
+            GlassMenuItem(
                 text = mode.displayName,
                 selected = sortMode == mode,
                 onClick = {
@@ -261,56 +190,6 @@ internal fun AccessControlSortMenu(
                     onDismiss()
                 },
             )
-        }
-    }
-}
-
-@Composable
-private fun AccessControlGlassPopup(
-    show: Boolean,
-    onDismiss: () -> Unit,
-    anchor: GlassPopupAnchor,
-    anchorContent: @Composable () -> Unit,
-    stacked: Boolean = false,
-    onMeasured: ((Size) -> Unit)? = null,
-    secondaryPopup: @Composable BoxScope.(Boolean) -> Unit = {},
-    content: @Composable () -> Unit,
-) {
-    // PopupLayout relocates this content; capture the page backdrop before leaving its provider.
-    val backdrop = LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current
-    val popupVisible = remember { mutableStateOf(false) }
-    val popupVisuals = GlassPopupDefaults.visuals()
-    LaunchedEffect(show) {
-        if (show) popupVisible.value = true
-    }
-    PopupLayout(
-        visible = popupVisible,
-        enterTransition = EnterTransition.None,
-        exitTransition = ExitTransition.None,
-        enableWindowDim = false,
-        enableBackHandler = false,
-    ) {
-        Box(Modifier.fillMaxSize()) {
-            // Compose the component closed first so the host does not skip its entering transition.
-            var expanded by remember { mutableStateOf(false) }
-            LaunchedEffect(show) { expanded = show }
-            GlassTransformPopup(
-                show = expanded,
-                onDismissRequest = onDismiss,
-                anchor = anchor,
-                backdrop = backdrop,
-                anchorContent = anchorContent,
-                anchorAlpha = 0f,
-                sizing = GlassPopupSizing(minWidth = 188.dp, maxWidth = 188.dp),
-                visuals = popupVisuals,
-                stacked = stacked,
-                alignToPageEnd = true,
-                onMeasured = onMeasured,
-                onDismissFinished = { if (!show) popupVisible.value = false },
-            ) {
-                content()
-            }
-            secondaryPopup(expanded)
         }
     }
 }

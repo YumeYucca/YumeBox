@@ -42,22 +42,15 @@ data class PollingTimerSpec(
 
 object PollingTimerSpecs {
     val MoeElapsedClock = PollingTimerSpec("acg_elapsed_clock", 1_000L, 0L)
-    val HomeSpeedSampling = PollingTimerSpec("home_speed_sampling", 1_000L, 0L)
-    val LogScreenRefresh = PollingTimerSpec("log_screen_refresh", 500L, 0L)
     val ConnectionsPolling = PollingTimerSpec("connections_polling", 1_000L, 0L)
     val RuntimeTrafficPolling = PollingTimerSpec("runtime_traffic_polling", 1_000L, 0L)
     val RuntimeProxyGroupSyncFast = PollingTimerSpec("runtime_proxy_group_sync_fast", 1_000L, 0L)
     val RuntimeProxyGroupSyncSlow = PollingTimerSpec("runtime_proxy_group_sync_slow", 3_000L, 0L)
-    val RuntimeRootLogPolling = PollingTimerSpec("runtime_root_log_polling", 300L, 0L)
     val ServiceTrafficNotification = PollingTimerSpec("service_traffic_notification", 1_000L, 0L)
-    val ProxyTileRefresh = PollingTimerSpec("proxy_tile_refresh", 1_000L, 0L)
     val SessionConnectionTracking = PollingTimerSpec("session_connection_tracking", 5_000L, 0L)
     val RemoteControllerProbe = PollingTimerSpec("remote_controller_probe", 250L, 250L)
-    val HomeIpRefresh = PollingTimerSpec("home_ip_refresh", 15_000L, 0L)
     val TrafficStatsCollection = PollingTimerSpec("traffic_stats_collection", 15_000L, 0L)
     val ProxyHealthcheckRefresh = PollingTimerSpec("proxy_healthcheck_refresh", 1_500L, 1_500L)
-    val ProxyTestingSortHold = PollingTimerSpec("proxy_testing_sort_hold", 2_200L, 2_200L)
-    val ProxySwitchFeedback = PollingTimerSpec("proxy_switch_feedback", 500L, 500L)
 
     fun dynamic(
         name: String,
@@ -80,7 +73,9 @@ object PollingTimers {
     private val tickerCache = ConcurrentHashMap<PollingTimerSpec, SharedFlow<Long>>()
 
     fun ticks(spec: PollingTimerSpec): Flow<Long> =
-        tickerCache.getOrPut(spec) {
+        // `computeIfAbsent`, not `getOrPut`: the latter reads then writes, so two first callers can
+        // each build (and subscribe to) their own shared flow for the same spec.
+        tickerCache.computeIfAbsent(spec) {
             flow {
                 if (spec.initialDelayMillis > 0L) {
                     delay(spec.initialDelayMillis.milliseconds)

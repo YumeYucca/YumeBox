@@ -45,6 +45,7 @@ import com.github.yumeyucca.yumebox.runtime.service.profile.ImportedDao
 import com.github.yumeyucca.yumebox.runtime.service.shizuku.ShizukuManager
 import com.github.yumeyucca.yumebox.runtime.service.util.ServiceLogoIcons
 import com.tencent.mmkv.MMKV
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -157,8 +158,14 @@ class ServiceNotificationManager(
         profileName: String,
     ): NotificationPresentation.Running {
         val core = CoreProcess.controller(service)
-        val now = runCatching { core.queryTrafficNow() }.getOrDefault(0L)
-        val total = runCatching { core.queryTrafficTotal() }.getOrDefault(0L)
+        val now =
+            runCatching { core.queryTrafficNow() }
+                .onFailure { error -> if (error is CancellationException) throw error }
+                .getOrDefault(0L)
+        val total =
+            runCatching { core.queryTrafficTotal() }
+                .onFailure { error -> if (error is CancellationException) throw error }
+                .getOrDefault(0L)
         val displaySettings =
             NotificationDisplaySettings(
                 firstLine = appSettings.notificationFirstLine.value,
@@ -288,7 +295,9 @@ class ServiceNotificationManager(
             return currentNode
         }
         currentNodeUpdatedAt = now
-        runCatching { core.queryAllProxyGroups(false) }
+        // A failed probe keeps the previous node name; cancellation still propagates.
+        runCatching { core.queryAllProxyGroups() }
+            .onFailure { error -> if (error is CancellationException) throw error }
             .onSuccess { groups ->
                 currentNode = groups.map { it.toInfo() }.resolvePrimaryNode()?.name
             }

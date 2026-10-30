@@ -22,69 +22,33 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-
-import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.*
 import com.github.yumeyucca.yumebox.MainActivity
-import com.github.yumeyucca.yumebox.presentation.component.WindowLayoutMode
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import org.koin.androidx.compose.koinViewModel
 
-@SuppressLint("UseKtx")
-private data class ProfilesPagerUi(
-    val profiles: List<com.github.yumeyucca.yumebox.runtime.api.Profile>,
-    val isRunning: Boolean,
-)
-
 @Composable
-private fun rememberProfilesPagerUi(
-    profilesViewModel: ProfilesViewModel,
-    homeViewModel: HomeViewModel,
-): ProfilesPagerUi {
-    val profiles by profilesViewModel.profiles.collectAsState()
-    val isRunning by homeViewModel.isRunning.collectAsState()
-    return remember(profiles, isRunning) {
-        ProfilesPagerUi(
-            profiles = profiles,
-            isRunning = isRunning,
-        )
-    }
-}
-
-@Composable
-fun ProfilesPager(
-    mainInnerPadding: PaddingValues,
-    windowLayoutMode: WindowLayoutMode = WindowLayoutMode.Compact,
-) {
+fun ProfilesPager(mainInnerPadding: PaddingValues) {
     val profilesViewModel = koinViewModel<ProfilesViewModel>()
     val homeViewModel = koinViewModel<HomeViewModel>()
-    val screen = rememberProfilesPagerUi(profilesViewModel, homeViewModel)
+    val profiles by profilesViewModel.profiles.collectAsState()
+    val isRunning by homeViewModel.isRunning.collectAsState()
     val dialogs = rememberProfilesDialogState()
     val pendingImportUrl by MainActivity.pendingImportUrl.collectAsState()
     LaunchedEffect(pendingImportUrl) {
         if (pendingImportUrl != null) {
-            dialogs.importUrl = pendingImportUrl
-            dialogs.profileToEdit = null
-            dialogs.showAdd.value = true
+            dialogs.addRequest = AddProfileRequest(importUrl = pendingImportUrl)
             MainActivity.clearPendingImportUrl()
         }
     }
 
-    ProfilesPageHost(
+    ProfilesPageContent(
         mainInnerPadding = mainInnerPadding,
-        profiles = screen.profiles,
+        profiles = profiles,
         state = dialogs,
         profilesViewModel = profilesViewModel,
         homeViewModel = homeViewModel,
-        isRunning = screen.isRunning,
-        windowLayoutMode = windowLayoutMode,
-        sheetHost = {
-            ProfilesDialogHost(
-                state = dialogs,
-                profiles = screen.profiles,
-                profilesViewModel = profilesViewModel,
-            )
-        },
+        isRunning = isRunning,
     )
 }

@@ -29,34 +29,19 @@ import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 
 object EditorColorSynchronizer {
     fun createColorScheme(isDark: Boolean, appColors: AppColors = AppColors()): EditorColorScheme {
-        val editorColors = appColors.editor
+        val textActionColors = resolveTextActionColors(isDark, appColors)
         return object : EditorColorScheme(isDark) {
             override fun applyDefault() {
                 super.applyDefault()
                 applyCursorPalette(this, isDark)
 
-                setColor(
-                    TEXT_ACTION_WINDOW_BACKGROUND,
-                    if (isDark) {
-                        editorColors.darkTextActionBackground.toArgb()
-                    } else {
-                        editorColors.lightTextActionBackground.toArgb()
-                    },
-                )
-                setColor(
-                    TEXT_ACTION_WINDOW_ICON_COLOR,
-                    if (isDark) {
-                        editorColors.darkTextActionIcon.toArgb()
-                    } else {
-                        editorColors.lightTextActionIcon.toArgb()
-                    },
-                )
+                setColor(TEXT_ACTION_WINDOW_BACKGROUND, textActionColors.background)
+                setColor(TEXT_ACTION_WINDOW_ICON_COLOR, textActionColors.icon)
             }
         }
     }
 
     fun updateColors(editor: CodeEditor, isDark: Boolean, appColors: AppColors = AppColors()) {
-        val editorColors = appColors.editor
         val scheme = editor.colorScheme
 
         applyCursorPalette(scheme, isDark)
@@ -65,22 +50,29 @@ object EditorColorSynchronizer {
             editor.indentGuideColor = palette.blockLine
             editor.activeIndentGuideColor = palette.blockLineCurrent
         }
-        scheme.setColor(
-            EditorColorScheme.TEXT_ACTION_WINDOW_BACKGROUND,
-            if (isDark) {
-                editorColors.darkTextActionBackground.toArgb()
-            } else {
-                editorColors.lightTextActionBackground.toArgb()
-            },
-        )
-        scheme.setColor(
-            EditorColorScheme.TEXT_ACTION_WINDOW_ICON_COLOR,
-            if (isDark) {
-                editorColors.darkTextActionIcon.toArgb()
-            } else {
-                editorColors.lightTextActionIcon.toArgb()
-            },
-        )
+        val textActionColors = resolveTextActionColors(isDark, appColors)
+        scheme.setColor(EditorColorScheme.TEXT_ACTION_WINDOW_BACKGROUND, textActionColors.background)
+        scheme.setColor(EditorColorScheme.TEXT_ACTION_WINDOW_ICON_COLOR, textActionColors.icon)
+    }
+
+    private data class TextActionColors(
+        val background: Int,
+        val icon: Int,
+    )
+
+    private fun resolveTextActionColors(isDark: Boolean, appColors: AppColors): TextActionColors {
+        val editorColors = appColors.editor
+        return if (isDark) {
+            TextActionColors(
+                background = editorColors.darkTextActionBackground.toArgb(),
+                icon = editorColors.darkTextActionIcon.toArgb(),
+            )
+        } else {
+            TextActionColors(
+                background = editorColors.lightTextActionBackground.toArgb(),
+                icon = editorColors.lightTextActionIcon.toArgb(),
+            )
+        }
     }
 
     private fun applyCursorPalette(scheme: EditorColorScheme, isDark: Boolean) {

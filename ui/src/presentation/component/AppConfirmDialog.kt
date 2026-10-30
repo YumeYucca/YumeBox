@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.runtime.Composable
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
@@ -37,12 +36,14 @@ fun AppConfirmDialog(
     cancelText: String = YumeTxt.Component.Button.Cancel,
 ) {
     AppDialog(show = show, title = title, onDismissRequest = onDismissRequest) {
-        AppConfirmDialogContent(
-            message = message,
-            onCancel = onDismissRequest,
-            onConfirm = onConfirm,
-            cancelText = cancelText,
-            confirmText = confirmText,
-        )
+        AppDialogColumn {
+            AppDialogMessage(message = message)
+            DialogButtonRow(
+                onCancel = onDismissRequest,
+                onConfirm = onConfirm,
+                cancelText = cancelText,
+                confirmText = confirmText,
+            )
+        }
     }
 }

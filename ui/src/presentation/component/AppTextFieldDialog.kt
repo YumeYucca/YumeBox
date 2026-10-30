@@ -22,17 +22,12 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 
 @Composable
 fun AppTextFieldDialog(
@@ -44,41 +39,21 @@ fun AppTextFieldDialog(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
     summary: String? = null,
-    label: String = "",
-    useLabelAsPlaceholder: Boolean = false,
     singleLine: Boolean = false,
-    maxLines: Int = 1,
-    renderInRootScaffold: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onImeAction: (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
-    supportingContent: @Composable (() -> Unit)? = null,
 ) {
     var localTextFieldValue by
     remember(show) {
         mutableStateOf(TextFieldValue(text = value, selection = TextRange(value.length)))
     }
-    var pendingExternalSyncText by remember(show) { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(show) {
-        if (show) {
-            localTextFieldValue = TextFieldValue(text = value, selection = TextRange(value.length))
-            pendingExternalSyncText = null
-        }
-    }
-
+    // The caller's [value] is authoritative whenever it stops matching what is on screen: that covers
+    // both the echo of an edit and a rewrite the caller made to it.
     LaunchedEffect(value, show) {
         if (!show) return@LaunchedEffect
-        when {
-            value == localTextFieldValue.text -> {
-                pendingExternalSyncText = null
-            }
-
-            pendingExternalSyncText != null -> {
-                localTextFieldValue =
-                    TextFieldValue(text = value, selection = TextRange(value.length))
-                pendingExternalSyncText = null
-            }
+        if (value != localTextFieldValue.text) {
+            localTextFieldValue = TextFieldValue(text = value, selection = TextRange(value.length))
         }
     }
 
@@ -88,22 +63,16 @@ fun AppTextFieldDialog(
         textFieldValue = localTextFieldValue,
         onTextFieldValueChange = { updatedTextFieldValue ->
             localTextFieldValue = updatedTextFieldValue
-            pendingExternalSyncText = updatedTextFieldValue.text
             onValueChange(updatedTextFieldValue.text)
         },
         onDismissRequest = onDismissRequest,
         onConfirm = onConfirm,
         modifier = modifier,
         summary = summary,
-        label = label,
-        useLabelAsPlaceholder = useLabelAsPlaceholder,
         singleLine = singleLine,
-        maxLines = maxLines,
-        renderInRootScaffold = renderInRootScaffold,
         keyboardOptions = keyboardOptions,
         onImeAction = onImeAction,
         trailingIcon = trailingIcon,
-        supportingContent = supportingContent,
     )
 }
 
@@ -117,68 +86,33 @@ fun AppTextFieldDialog(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
     summary: String? = null,
-    label: String = "",
-    useLabelAsPlaceholder: Boolean = false,
     singleLine: Boolean = false,
-    maxLines: Int = 1,
-    renderInRootScaffold: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onImeAction: (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
-    supportingContent: @Composable (() -> Unit)? = null,
 ) {
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    fun hideInput() {
-        focusManager.clearFocus(force = true)
-        keyboardController?.hide()
-    }
-
-    AppDialog(
+    AppInputDialog(
         show = show,
-        modifier = modifier,
         title = title,
+        onDismissRequest = onDismissRequest,
+        onConfirm = onConfirm,
+        modifier = modifier,
         summary = summary,
-        onDismissRequest = {
-            hideInput()
-            onDismissRequest()
-        },
-        renderInRootScaffold = renderInRootScaffold,
-    ) {
-        AppDialogColumn {
-            val textFieldModifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = if (supportingContent == null) UiDp.dp0 else UiDp.dp8)
-            OemTextField(
-                modifier = textFieldModifier,
-                value = textFieldValue,
-                onValueChange = onTextFieldValueChange,
-                label = label,
-                useLabelAsPlaceholder = useLabelAsPlaceholder,
-                singleLine = singleLine,
-                maxLines = maxLines,
-                keyboardOptions = keyboardOptions,
-                onImeAction = onImeAction?.let { action ->
+    ) { dismissInput ->
+        OemTextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = textFieldValue,
+            onValueChange = onTextFieldValueChange,
+            singleLine = singleLine,
+            keyboardOptions = keyboardOptions,
+            onImeAction =
+                onImeAction?.let { action ->
                     {
-                        hideInput()
+                        dismissInput()
                         action()
                     }
                 },
-                trailingIcon = trailingIcon,
-            )
-            supportingContent?.invoke()
-            DialogButtonRow(
-                onCancel = {
-                    hideInput()
-                    onDismissRequest()
-                },
-                onConfirm = {
-                    hideInput()
-                    onConfirm()
-                },
-            )
-        }
+            trailingIcon = trailingIcon,
+        )
     }
 }

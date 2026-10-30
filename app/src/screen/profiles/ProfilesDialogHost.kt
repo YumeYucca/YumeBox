@@ -22,10 +22,14 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import com.github.yumeyucca.yumebox.runtime.client.ProfilePatch
 
 @Composable
 internal fun ProfilesDialogHost(
@@ -33,37 +37,46 @@ internal fun ProfilesDialogHost(
     profiles: List<Profile>,
     profilesViewModel: ProfilesViewModel,
 ) {
+    val context = LocalContext.current
+    val downloadProgress by profilesViewModel.downloadProgress.collectAsState()
+    val uiState by profilesViewModel.uiState.collectAsState()
+
+    // Declared before the sheet so it consumes the message that signalled `Completed` after the
+    // sheet's own completion effect ran; clearing it can never cancel a finish.
+    LaunchedEffect(uiState.message) {
+        if (uiState.message != null) profilesViewModel.clearMessage()
+    }
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { errorMessage ->
+            // Import failures only toast; do not dump the long core message into the sheet form.
+            context.toast(errorMessage, Toast.LENGTH_LONG)
+            profilesViewModel.clearError()
+        }
+    }
+
     ProfilesSortSheet(
-        show = state.showSortSheet.value,
+        show = state.showSortSheet,
         profiles = profiles,
         onOrderCommitted = { ordered ->
             profilesViewModel.commitProfileOrder(ordered.map { it.uuid })
-            state.sortCommitCount.value++
+            state.sortCommitCount++
         },
-        onDismiss = { state.showSortSheet.value = false },
+        onDismiss = { state.showSortSheet = false },
     )
 
     AddProfileSheet(
         show = state.showAdd,
-        profileToEdit = state.profileToEdit,
-        importUrl = state.importUrl ?: state.scannedUrl,
+        form = state.addForm,
+        onDismiss = { state.addRequest = null },
+        importUrl = state.addRequest?.importUrl,
         onAddProfile = { name, source, type, interval, fileUri, ageSecretKey ->
             profilesViewModel.createProfile(type, name, source, interval, fileUri, ageSecretKey)
         },
-        onUpdateProfile = { uuid, name, source, interval ->
-            profilesViewModel.patchProfile(
-                uuid,
-                ProfilePatch(name = name, source = source, interval = interval),
-            )
-        },
+        downloadProgress = downloadProgress,
         onDownloadComplete = {
-            state.isDownloading = false
-            state.showAdd.value = false
-            state.importUrl = null
-            state.scannedUrl = null
+            state.addRequest = null
             profilesViewModel.clearDownloadProgress()
         },
-        profilesViewModel = profilesViewModel,
     )
 
     ProfileDeleteDialog(state, profilesViewModel)

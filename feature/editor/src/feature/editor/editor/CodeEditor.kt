@@ -22,17 +22,14 @@
 
 package com.github.yumeyucca.yumebox.feature.editor.editor
 
-
+import android.content.Context
 import android.util.TypedValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.feature.editor.language.TextMateInitializer
 import com.github.yumeyucca.yumebox.feature.editor.theme.EditorThemeManager
 import io.github.rosemoe.sora.event.ContentChangeEvent
@@ -50,40 +47,20 @@ import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 import io.github.rosemoe.sora.widget.subscribeAlways
 import timber.log.Timber
 
-private const val EDITOR_DEFAULT_TEXT_SIZE_SP = 14f
-
 @Suppress("TooGenericExceptionCaught")
 @Composable
 fun CodeEditor(
     state: CodeEditorState,
     modifier: Modifier = Modifier,
-    fontSizeSp: Float = EDITOR_DEFAULT_TEXT_SIZE_SP,
+    fontSizeSp: Float = DefaultEditorFontSizeSp,
     onScroll: ((Int) -> Unit)? = null,
     onTextChange: ((String) -> Unit)? = null,
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
     val editorRef = remember { mutableStateOf<CodeEditor?>(null) }
     val selectionMenuController = remember { SelectionMenuController() }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_PAUSE -> {
-                    Timber.d("CodeEditor: onPause")
-                }
-
-                Lifecycle.Event.ON_RESUME -> {
-                    Timber.d("CodeEditor: onResume")
-                }
-
-                else -> {}
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-
+    DisposableEffect(Unit) {
         onDispose {
-            Timber.d("CodeEditor: Disposing...")
-            lifecycleOwner.lifecycle.removeObserver(observer)
             editorRef.value?.let { editor ->
                 try {
                     editor.release()
@@ -98,7 +75,7 @@ fun CodeEditor(
     }
 
     val editorThemeState = EditorThemeManager.rememberEditorTheme()
-    LaunchedEffect(editorRef.value, editorThemeState.isDark) {
+    LaunchedEffect(editorRef.value, editorThemeState.isDark, state.language) {
         editorRef.value?.let { editor ->
             EditorThemeManager.updateTheme(editor, editorThemeState.isDark)
             TextMateInitializer.setLanguage(editor, state.language)
@@ -162,7 +139,7 @@ fun CodeEditor(
 }
 
 private fun createCodeEditor(
-    context: android.content.Context,
+    context: Context,
     state: CodeEditorState,
     isDark: Boolean,
     fontSizeSp: Float,
@@ -175,8 +152,6 @@ private fun createCodeEditor(
     TextMateInitializer.setTheme(isDark)
 
     return IndentGuideCodeEditor(context).apply {
-        isEditable = !state.readOnly
-
         // The editor has a fixed text size; font size changes go through the bottom bar.
         setTextSize(fontSizeSp)
         isScalable = false
@@ -222,7 +197,7 @@ private fun createCodeEditor(
 
         setText(state.content)
 
-        EditorThemeManager.applyTheme(this)
+        EditorThemeManager.applyTheme(this, isDark)
         TextMateInitializer.setLanguage(this, state.language)
         EditorThemeManager.updateTheme(this, isDark)
         registerInlayHintProvider(ColorInlayHintProvider(this))
@@ -264,6 +239,6 @@ private fun createCodeEditor(
             if (!event.isGainFocus) onSelectionMenuChange(null)
         }
 
-        Timber.d("CodeEditor created: language=${state.language}, readOnly=${state.readOnly}")
+        Timber.d("CodeEditor created: language=${state.language}")
     }
 }

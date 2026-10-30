@@ -27,7 +27,6 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
-import com.github.yumeyucca.yumebox.data.model.AppRouteTrafficUsage
 import com.github.yumeyucca.yumebox.data.model.AppTrafficUsage
 import com.github.yumeyucca.yumebox.data.model.DailyTrafficSummary
 import com.github.yumeyucca.yumebox.data.model.HourlyTrafficSummary
@@ -241,49 +240,6 @@ abstract class TrafficStatisticsDao {
     )
     abstract fun getAppUsagesFlow(cutoffMillis: Long): Flow<List<AppTrafficUsage>>
 
-    /** One-shot variant of [getAppUsagesFlow] for facade parity. */
-    @Query(
-        """
-        SELECT app_key AS appKey,
-               package_name AS packageName,
-               app_name AS appName,
-               SUM(total_upload) AS totalUpload,
-               SUM(total_download) AS totalDownload,
-               MAX(last_active_at) AS lastActiveAt
-        FROM app_traffic_daily
-        WHERE date_millis >= :cutoffMillis
-        GROUP BY app_key
-        ORDER BY (app_key = 'system:unattributed') ASC,
-                 (SUM(total_upload) + SUM(total_download)) DESC
-        """
-    )
-    abstract suspend fun getAppUsagesSorted(cutoffMillis: Long): List<AppTrafficUsage>
-
-    /**
-     * Per-route aggregation for a single app over `[cutoffMillis, +inf)`, ordered by total bytes
-     * then recency. `route_label` is taken from the most-recent row (SQLite single-`max()`
-     * bare-column rule).
-     */
-    @Query(
-        """
-        SELECT app_key AS appKey,
-               route_key AS routeKey,
-               route_label AS routeLabel,
-               SUM(total_upload) AS totalUpload,
-               SUM(total_download) AS totalDownload,
-               MAX(last_active_at) AS lastActiveAt
-        FROM route_traffic_daily
-        WHERE app_key = :appKey AND date_millis >= :cutoffMillis
-        GROUP BY route_key
-        ORDER BY (SUM(total_upload) + SUM(total_download)) DESC,
-                 MAX(last_active_at) DESC
-        """
-    )
-    abstract suspend fun getAppRouteUsages(
-        appKey: String,
-        cutoffMillis: Long,
-    ): List<AppRouteTrafficUsage>
-
     /**
      * Daily totals over `[cutoffMillis, +inf)`, one row per day, oldest first. Used by the week bar
      * chart (screen-time style).
@@ -316,13 +272,6 @@ abstract class TrafficStatisticsDao {
     // endregion
 
     // region retention & clear
-
-    @Transaction
-    open suspend fun deleteOlderThan(cutoffMillis: Long) {
-        deleteAppOlderThan(cutoffMillis)
-        deleteRouteOlderThan(cutoffMillis)
-        deleteHourlyOlderThan(cutoffMillis)
-    }
 
     @Query("DELETE FROM app_traffic_daily WHERE date_millis < :cutoffMillis")
     protected abstract suspend fun deleteAppOlderThan(cutoffMillis: Long): Int

@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -51,8 +50,6 @@ internal fun LinkSettingsDialog(
         show = show.value,
         title = YumeTxt.ProfilesPage.LinkSettings.Title,
         onDismissRequest = { show.value = false },
-        enableNestedScroll = true,
-        scrollableContent = true,
         content = {
             LinkSettingsContent(
                 links = links,
