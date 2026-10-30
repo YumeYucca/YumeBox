@@ -1,11 +1,9 @@
 import requests
 import os
 import glob
-import re
-import shutil
-import subprocess  # nosec B404 - only runs fixed git commands from CI env
 import html
 import json
+import hashlib
 from contextlib import ExitStack
 from pathlib import Path
 
@@ -16,110 +14,83 @@ BRANCH = os.environ.get("BRANCH")
 WORKFLOW_NAME = os.environ.get("WORKFLOW_NAME", "")
 EVENT_NAME = os.environ.get("EVENT_NAME", "")
 RUN_NUMBER = os.environ.get("RUN_NUMBER", "")
-COMMIT_SHA = os.environ.get("COMMIT_SHA", "")
 REPOSITORY = os.environ.get("REPOSITORY", "")
 RUN_ID = os.environ.get("RUN_ID", "")
 SERVER_URL = os.environ.get("SERVER_URL", "https://github.com")
-VERSION_NAME = os.environ.get("VERSION_NAME", "")
-VERSION_CODE = os.environ.get("VERSION_CODE", "")
-RELEASE_URL = os.environ.get("RELEASE_URL", "")
-META_URL = os.environ.get("META_URL", "")
 PUBLISH_DIR = os.environ.get("PUBLISH_DIR", "")
 LOGO_PATH = os.environ.get("LOGO_PATH", "website/images/brand/project-preview.webp")
 LOGO_URL = os.environ.get("LOGO_URL", "https://yumebox.yumeyuka.moe/images/brand/project-preview.webp")
-COMMIT_MESSAGE = os.environ.get("COMMIT_MESSAGE", "")
 BOT_API_BASE_URL = os.environ.get("BOT_API_BASE_URL", "https://api.telegram.org").rstrip("/")
 
 MAX_LOGO_BYTES = 10 * 1024 * 1024
-
-
-def get_commit_message():
-    msg = (COMMIT_MESSAGE or "").strip()
-    if not msg and COMMIT_SHA:
-        if not re.fullmatch(r"[0-9a-fA-F]{7,64}", COMMIT_SHA):
-            print("[-] COMMIT_SHA is not a valid git sha, skipping git log")
-            return msg
-        git = shutil.which("git") or "git"
-        try:
-            # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit, python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
-            result = subprocess.run(  # noqa: S603 # nosec B603 - fixed git argv, sha validated above
-                [git, "log", "-1", "--format=%B", COMMIT_SHA],
-                cwd=os.environ.get("GITHUB_WORKSPACE") or ".",
-                capture_output=True, text=True, timeout=15,
-            )
-            msg = (result.stdout or "").strip()
-        except Exception as e:
-            print(f"[-] git log failed: {e}")
-    return msg
 
 
 def html_escape(text):
     return html.escape(text or "")
 
 
-def _workflow_label():
-    workflow_name_lower = WORKFLOW_NAME.lower()
-    if "test" in workflow_name_lower:
-        return "Test"
-    return "Normal"
+def _action_url():
+    if not REPOSITORY or not RUN_ID:
+        return ""
+    return f"{SERVER_URL}/{REPOSITORY}/actions/runs/{RUN_ID}"
 
 
-def _trigger_label():
-    return {"push": "Push", "schedule": "Nightly"}.get(EVENT_NAME, "Manual")
+def _sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as apk:
+        for chunk in iter(lambda: apk.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
-def _version_lines():
-    if VERSION_NAME and VERSION_CODE:
-        version = f"{html_escape(VERSION_NAME)} ({html_escape(VERSION_CODE)})"
-        return [f"<b>• Version</b>: <code>{version}</code>"]
-    if VERSION_NAME:
-        return [f"<b>• Version</b>: <code>{html_escape(VERSION_NAME)}</code>"]
-    return []
+def _apk_variant(path):
+    name = os.path.basename(path).lower()
+    if "builtin" in name:
+        return "builtin"
+    if "external" in name:
+        return "external"
+    return ""
 
 
-def _link_lines():
-    lines = []
-    if REPOSITORY and RUN_ID:
-        action_url = f"{SERVER_URL}/{REPOSITORY}/actions/runs/{RUN_ID}"
-        lines.append(f'<b>• Download</b>: <a href="{action_url}">workpiece</a>')
-    if RELEASE_URL:
-        lines.append(f'<b>• Release</b>: <a href="{RELEASE_URL}">open</a>')
-    if META_URL:
-        lines.append(f'<b>• Meta</b>: <a href="{META_URL}">json</a>')
-    return lines
-
-
-def _commit_lines():
-    commit_short = COMMIT_SHA[:7] if COMMIT_SHA else "unknown"
-    if REPOSITORY and COMMIT_SHA:
-        commit_url = f"{SERVER_URL}/{REPOSITORY}/commit/{COMMIT_SHA}"
-        link = f'<a href="{commit_url}">{html_escape(commit_short)}</a>'
-        lines = [f"<b>• Commit</b>: {link}"]
-    else:
-        lines = [f"<b>• Commit</b>: {html_escape(commit_short)}"]
-
-    commit_message = get_commit_message()
-    if commit_message:
-        body = commit_message.strip()
-        if len(body) > 700:
-            body = body[:700].rstrip() + "…"
-        lines.append(f"<blockquote>{html_escape(body)}</blockquote>")
-    return lines
-
-
-def get_caption():
-    display_title = TITLE
-    if _workflow_label() == "Test" and "test" not in TITLE.lower():
-        display_title = f"{TITLE} Test"
-
+def get_caption(files):
     lines = [
-        f"<b>{html_escape(display_title)}</b>",
-        f"<b>• Trigger</b>: {html_escape(_trigger_label())}",
-        f"<b>• Branch</b>: {html_escape(BRANCH)}",
+        f"<b>{html_escape(TITLE)}</b>",
+        "",
+        "⚠️ Nightly builds may be unstable. Use with caution.",
     ]
-    lines.extend(_version_lines())
-    lines.extend(_link_lines())
-    lines.extend(_commit_lines())
+
+    action_url = _action_url()
+    if action_url:
+        lines.extend(
+            [
+                "",
+                "<b>GitHub Actions</b>",
+                f'<a href="{action_url}">{html_escape(action_url)}</a>',
+            ]
+        )
+
+    hashes = {}
+    for path in files:
+        variant = _apk_variant(path)
+        if variant:
+            hashes[variant] = _sha256(path)
+
+    if hashes:
+        lines.extend(["", "<b>SHA-256</b>"])
+        for variant in ("builtin", "external"):
+            digest = hashes.get(variant)
+            if digest:
+                lines.extend([f"<code>{variant}</code>", f"<pre>{digest}</pre>"])
+
+    lines.extend(
+        [
+            "",
+            "<b>Choose an APK variant</b>",
+            "• <code>builtin</code>: includes Geo data, recommended for first install",
+            "• <code>external</code>: smaller, recommended for updates",
+            "• Both variants are functionally identical",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -226,7 +197,7 @@ def send_files_via_bot_api():
     # Bot API URL
     bot_url = f"{BOT_API_BASE_URL}/bot{BOT_TOKEN}"
 
-    caption = get_caption()
+    caption = get_caption(files)
     print("[+] Caption:", caption)
 
     caption_sent = False

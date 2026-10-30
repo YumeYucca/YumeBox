@@ -181,7 +181,7 @@ jobs:
       channel: pre
       apk_artifact_name: ${{ needs.prepare-publish-pre-app.outputs.default_apk_name }}
       builtin_apk_artifact_name: ${{ needs.prepare-publish-pre-app.outputs.builtin_apk_name }}
-      telegram_title: YumeBox Pre
+      telegram_title: YumeBox Nightly
     secrets: inherit
 
   verify-published-apk:
