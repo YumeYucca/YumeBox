@@ -20,6 +20,7 @@
 
 #define CORE_LIBRARY_OPTION "--core-library"
 #define CORE_ENTRY_SYMBOL "MihomoMain"
+#define CORE_ENTRY_SYMBOL_ALT "SingboxMain"
 #define CHANNEL_ENV_PREFIX "CHANNEL="
 
 extern char **environ;
@@ -73,8 +74,14 @@ int main(int argc, char **argv) {
     dlerror();
     void *symbol = dlsym(library, CORE_ENTRY_SYMBOL);
     const char *symbol_error = dlerror();
-    if (symbol_error != NULL) {
-        return fail("resolve " CORE_ENTRY_SYMBOL, symbol_error);
+    if (symbol_error != NULL || symbol == NULL) {
+        /* The sing-box core exports its own entry point; one loader serves both engines, which is
+         * what lets a device keep a mihomo kernel installed and fall back to it. */
+        symbol = dlsym(library, CORE_ENTRY_SYMBOL_ALT);
+        symbol_error = dlerror();
+    }
+    if (symbol_error != NULL || symbol == NULL) {
+        return fail("resolve " CORE_ENTRY_SYMBOL " or " CORE_ENTRY_SYMBOL_ALT, symbol_error);
     }
 
     mihomo_main_fn entry;

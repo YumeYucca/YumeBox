@@ -49,6 +49,9 @@ object KernelManager {
     private const val CAPABILITY_EBPF = "ebpf"
     private const val LEGACY_EBPF_ID = "ebpf"
 
+    /** Entry points the shared loader understands: mihomo, then sing-box. */
+    private val CORE_ENTRY_SYMBOLS = arrayOf("MihomoMain", "SingboxMain")
+
     // Kernel-Builder's manifest intentionally carries release, template and toolchain metadata;
     // the runtime validates the fields it consumes while tolerating future metadata additions.
     private val json = Json { ignoreUnknownKeys = true }
@@ -419,18 +422,23 @@ object KernelManager {
         check(header[4] == 2.toByte() && header[5] == 1.toByte())
         check(header[16] == 3.toByte() && header[17] == 0.toByte())
         check((header[18].toInt() and 0xff) == 183 && header[19] == 0.toByte())
+        // Both engines share the loader, so a kernel is valid if it exports either entry point.
+        CORE_ENTRY_SYMBOLS.any { symbol -> fileContainsSymbol(file, symbol) }
+    }.onFailure { Timber.tag("KernelManager").w(it, "Kernel verification failed") }.getOrDefault(false)
+
+    private fun fileContainsSymbol(file: File, symbol: String): Boolean =
         file.inputStream().buffered().use { input ->
-            val needle = "MihomoMain".toByteArray()
+            val needle = symbol.toByteArray()
             var matched = 0
             while (true) {
                 val value = input.read()
-                if (value < 0) break
+                if (value < 0) return@use false
                 matched = if (value.toByte() == needle[matched]) matched + 1 else if (value.toByte() == needle[0]) 1 else 0
-                if (matched == needle.size) return true
+                if (matched == needle.size) return@use true
             }
+            @Suppress("UNREACHABLE_CODE")
             false
         }
-    }.onFailure { Timber.tag("KernelManager").w(it, "Kernel verification failed") }.getOrDefault(false)
 
     private fun libraryDirectory(context: Context): File = context.filesDir.resolve("lib")
 

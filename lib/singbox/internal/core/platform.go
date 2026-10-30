@@ -1,28 +1,30 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/netip"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
 	boxadapter "github.com/sagernet/sing-box/adapter"
-	"github.com/sagernet/sing-box/common/process"
 	"github.com/sagernet/sing-box/constant"
-	libplatform "github.com/sagernet/sing-box/experimental/libbox/platform"
 	"github.com/sagernet/sing-box/option"
 	"github.com/sagernet/sing-tun"
 	"github.com/sagernet/sing/common/control"
 	"github.com/sagernet/sing/common/logger"
 )
 
-// Platform is the no-JVM implementation of sing-box's platform seam. libbox normally implements
-// it through gomobile callbacks into the app's Java code; YumeBox runs the core in a separate
-// process, so everything is either a direct syscall or a launcher RPC.
+// Platform is the no-JVM implementation of sing-box's platform seam.
+//
+// sing-box 1.13 turned this interface into a set of capability switches
+// (UsePlatformInterface, UsePlatformDefaultInterfaceMonitor, ...): the core only calls back into
+// the platform for the pieces a host opts into. YumeBox runs the core in a separate process, so
+// every capability is either a direct syscall or a launcher RPC, and the ones that need Java are
+// switched off with a value the core understands.
 type Platform struct {
 	opts           Options
 	tunFd          int
@@ -30,13 +32,12 @@ type Platform struct {
 	controllerAddr string
 	monitor        *interfaceMonitor
 
-	access           sync.Mutex
-	networkManager   boxadapter.NetworkManager
-	myTunName        string
-	platformInitOnce sync.Once
+	access         sync.Mutex
+	networkManager boxadapter.NetworkManager
+	myTunName      string
 }
 
-var _ libplatform.Interface = (*Platform)(nil)
+var _ boxadapter.PlatformInterface = (*Platform)(nil)
 
 func newPlatform(opts Options, tunFd int, rpc *launcherRPC, controllerAddr string) *Platform {
 	return &Platform{
@@ -69,9 +70,15 @@ func (p *Platform) AutoDetectInterfaceControl(fd int) error {
 	return p.rpc.protect(fd)
 }
 
-// OpenTun is the technical pivot of the whole port: the VpnService fd arrives over the launcher
-// channel, so the tun is built on top of it instead of being created here.
-func (p *Platform) OpenTun(options *tun.Options, platformOptions option.TunPlatformOptions) (tun.Tun, error) {
+// UsePlatformInterface is true only when the launcher handed over a tun fd; without one the core
+// would have to create the interface itself, which the app never wants.
+func (p *Platform) UsePlatformInterface() bool {
+	return p.tunFd >= 0
+}
+
+// OpenInterface is the technical pivot of the whole port: the VpnService fd arrives over the
+// launcher channel, so the tun is built on top of it instead of being created here.
+func (p *Platform) OpenInterface(options *tun.Options, platformOptions option.TunPlatformOptions) (tun.Tun, error) {
 	if p.tunFd < 0 {
 		return nil, fmt.Errorf("no tun file descriptor was handed over by the launcher")
 	}
@@ -96,21 +103,29 @@ func (p *Platform) OpenTun(options *tun.Options, platformOptions option.TunPlatf
 	return tun.New(*options)
 }
 
+func (p *Platform) UsePlatformDefaultInterfaceMonitor() bool { return true }
+
 func (p *Platform) CreateDefaultInterfaceMonitor(_ logger.Logger) tun.DefaultInterfaceMonitor {
 	return p.monitor
 }
 
-func (p *Platform) Interfaces() ([]boxadapter.NetworkInterface, error) {
+func (p *Platform) UsePlatformNetworkInterfaces() bool { return true }
+
+func (p *Platform) NetworkInterfaces() ([]boxadapter.NetworkInterface, error) {
 	systemInterfaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
 	}
+	p.access.Lock()
+	tunName := p.myTunName
+	p.access.Unlock()
+
 	interfaces := make([]boxadapter.NetworkInterface, 0, len(systemInterfaces))
 	for _, systemInterface := range systemInterfaces {
 		if systemInterface.Flags&net.FlagUp == 0 {
 			continue
 		}
-		if systemInterface.Name == p.myTunName {
+		if systemInterface.Name == tunName {
 			continue
 		}
 		interfaces = append(interfaces, boxadapter.NetworkInterface{
@@ -129,9 +144,11 @@ func (p *Platform) Interfaces() ([]boxadapter.NetworkInterface, error) {
 
 func (p *Platform) UnderNetworkExtension() bool { return false }
 
-func (p *Platform) IncludeAllNetworks() bool { return false }
+func (p *Platform) NetworkExtensionIncludeAllNetworks() bool { return false }
 
 func (p *Platform) ClearDNSCache() {}
+
+func (p *Platform) RequestPermissionForWIFIState() error { return nil }
 
 func (p *Platform) ReadWIFIState() boxadapter.WIFIState {
 	return boxadapter.WIFIState{}
@@ -159,36 +176,35 @@ func (p *Platform) SystemCertificates() []string {
 	return certificates
 }
 
-// FindProcessInfo answers sing-box's process lookup with the launcher's socket-owner RPC, which
-// is the only owner source that works for a VpnService child on API 29+.
-func (p *Platform) FindProcessInfo(_ context.Context, network string, source netip.AddrPort, destination netip.AddrPort) (*process.Info, error) {
-	protocol := protocolFor(network)
-	if protocol < 0 || p.rpc == nil {
-		return nil, process.ErrNotFound
+// UsePlatformConnectionOwnerFinder is the 1.13 replacement for embedding process.Searcher: the
+// launcher's socket-owner RPC is the only owner source that works for a VpnService child on API 29+.
+func (p *Platform) UsePlatformConnectionOwnerFinder() bool { return p.rpc != nil }
+
+func (p *Platform) FindConnectionOwner(request *boxadapter.FindConnectionOwnerRequest) (*boxadapter.ConnectionOwner, error) {
+	if p.rpc == nil {
+		return nil, fmt.Errorf("no launcher channel for connection owner lookup")
 	}
-	uid, pkg := socketOwnerQuery(p.rpc)(protocol, source.String(), destination.String())
+	source := net.JoinHostPort(request.SourceAddress, strconv.Itoa(int(request.SourcePort)))
+	destination := net.JoinHostPort(request.DestinationAddress, strconv.Itoa(int(request.DestinationPort)))
+	uid, pkg := socketOwnerQuery(p.rpc)(int(request.IpProtocol), source, destination)
 	if uid < 0 && pkg == "" {
-		return nil, process.ErrNotFound
+		return nil, fmt.Errorf("connection owner not found")
 	}
-	return &process.Info{
-		PackageName: pkg,
-		ProcessPath: pkg,
+	owner := &boxadapter.ConnectionOwner{
 		UserId:      int32(uid),
-	}, nil
-}
-
-func (p *Platform) SendNotification(_ *libplatform.Notification) error { return nil }
-
-func protocolFor(network string) int {
-	switch network {
-	case "tcp", "tcp4", "tcp6":
-		return 6 // syscall.IPPROTO_TCP
-	case "udp", "udp4", "udp6":
-		return 17 // syscall.IPPROTO_UDP
-	default:
-		return -1
+		ProcessPath: pkg,
 	}
+	if pkg != "" {
+		owner.AndroidPackageNames = []string{pkg}
+	}
+	return owner, nil
 }
+
+func (p *Platform) UsePlatformWIFIMonitor() bool { return false }
+
+func (p *Platform) UsePlatformNotification() bool { return false }
+
+func (p *Platform) SendNotification(_ *boxadapter.Notification) error { return nil }
 
 func interfacePrefixes(systemInterface net.Interface) []netip.Prefix {
 	addresses, err := systemInterface.Addrs()

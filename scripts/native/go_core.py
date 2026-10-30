@@ -1,4 +1,9 @@
-"""Mihomo Go shared-core builder."""
+﻿"""Go shared-core builder, for either the mihomo or the sing-box engine.
+
+Which engine a build produces is a one-line switch: ``golang.core`` in kernel.properties.
+Both land in the same file name so the loader, the kernel index and KernelManager stay untouched;
+the loader resolves either entry symbol.
+"""
 
 from __future__ import annotations
 
@@ -16,23 +21,40 @@ class GoCoreBuilder:
         self.config = config
         self.ndk_tools = ndk_tools
         self.root = config.project_root
-        self.source_dir = self.root / "lib/native/go"
         self.output_dir = self.root / "build/native/go-core"
         self.app_jni_root = self.root / "jniLibs"
+        self.build_flags = config.get_csv("golang.buildFlags", "-trimpath")
+        self.core_kind = (config.get_string("golang.core", "mihomo") or "mihomo").strip().lower()
         self.mihomo_dir = self.root / "lib/mihomo/mihomo"
         self.kernel_patch_dir = self.root / ".github/patches/mihomo"
-        self.build_tags = config.get_csv("golang.buildTags", "cmfa")
-        self.build_flags = config.get_csv("golang.buildFlags", "-trimpath")
-        self.package_name = config.get_string("golang.packageName", "cfa/native")
+        if self.core_kind == "singbox":
+            # The sing-box module lives in its own directory and is built as the module root, so
+            # the package path is "." rather than a named sub-package.
+            self.source_dir = self.root / "lib/singbox"
+            self.package_name = "."
+            self.build_tags = config.get_csv(
+                "golang.singboxBuildTags",
+                "with_clash_api,with_gvisor,with_quic,with_utls,with_wireguard",
+            )
+            self.kernel_patch_dir = self.root / ".github/patches/singbox"
+        else:
+            self.source_dir = self.root / "lib/native/go"
+            self.build_tags = config.get_csv("golang.buildTags", "cmfa")
+            self.package_name = config.get_string("golang.packageName", "cfa/native")
         self.core_version_stamp: CoreVersionStamp | None = None
 
     def build_all(self) -> None:
         if not self.source_dir.exists():
             raise RuntimeError(f"[GoCore] Source directory not found: {self.source_dir}")
         self.apply_kernel_patches()
-        self.core_version_stamp = resolve_core_version_stamp(self.config, self.root)
         abis = configured_abis(self.config)
-        write_core_version_stamp(self.core_version_stamp, abis, self.root)
+        if self.core_kind == "singbox":
+            # No version stamp: sing-box has no constant package to inject into, and the stamp
+            # files drive the mihomo-shaped release metadata.
+            print("[GoCore] Engine: sing-box")
+        else:
+            self.core_version_stamp = resolve_core_version_stamp(self.config, self.root)
+            write_core_version_stamp(self.core_version_stamp, abis, self.root)
         print(f"[GoCore] Building shared core ({self.OUTPUT_LIBRARY_NAME}) for ABIs: {', '.join(abis)}")
         for abi in abis:
             self.build_for_abi(abi)
@@ -119,4 +141,6 @@ class GoCoreBuilder:
             else:
                 flags.insert(index + 1, f"-s -w {inject}")
         return flags
+
+
 

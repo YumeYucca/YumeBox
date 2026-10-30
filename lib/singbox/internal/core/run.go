@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/sagernet/sing-box"
-	"github.com/sagernet/sing-box/experimental/libbox/platform"
+	boxadapter "github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing-box/include"
 	"github.com/sagernet/sing-box/log"
 	"github.com/sagernet/sing-box/option"
@@ -75,7 +75,7 @@ func Run(args []string, channel string) int {
 	}
 
 	instancePlatform := newPlatform(opts, tunFd, rpc, controllerAddr)
-	ctx = service.ContextWith[platform.Interface](ctx, instancePlatform)
+	ctx = service.ContextWith[boxadapter.PlatformInterface](ctx, instancePlatform)
 
 	instance, err := box.New(box.Options{
 		Context:           ctx,
@@ -134,7 +134,7 @@ func Check(home string, rawConfig []byte) error {
 	if err != nil {
 		return fmt.Errorf("decode config: %w", err)
 	}
-	ctx = service.ContextWith[platform.Interface](ctx, newPlatform(Options{Mode: "check"}, -1, nil, ""))
+	ctx = service.ContextWith[boxadapter.PlatformInterface](ctx, newPlatform(Options{Mode: "check"}, -1, nil, ""))
 	instance, err := box.New(box.Options{Context: ctx, Options: options, PlatformLogWriter: platformLog{}})
 	if err != nil {
 		return fmt.Errorf("create instance: %w", err)
@@ -142,13 +142,18 @@ func Check(home string, rawConfig []byte) error {
 	return instance.Close()
 }
 
-// readStartup fetches the compiled config: vpn takes it 鈥?plus the TUN fd 鈥?off the CHANNEL
-// socketpair, root modes read it from --config. tunFd/channelFd are -1 when the mode has none.
+// readStartup fetches the compiled config: vpn takes it, plus the TUN fd, off the CHANNEL
+// socketpair; root modes read it from --config. tunFd/channelFd are -1 when the mode has none.
 func readStartup(opts Options) (rawConfig []byte, tunFd, channelFd int) {
 	tunFd, channelFd = -1, -1
 
 	switch opts.Mode {
-	case "tun", "ebpf":
+	case "ebpf":
+		// sing-box has no eBPF inbound. Refusing loudly beats starting a tun that silently
+		// captures nothing while the UI still shows "connected".
+		Fatal("mode \"ebpf\" is not supported by the sing-box core")
+		return nil, -1, -1
+	case "tun":
 		if opts.ConfigPath == "" {
 			Fatal("mode %q requires --config", opts.Mode)
 			return nil, -1, -1
