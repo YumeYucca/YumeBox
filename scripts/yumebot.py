@@ -14,6 +14,7 @@ BRANCH = os.environ.get("BRANCH")
 WORKFLOW_NAME = os.environ.get("WORKFLOW_NAME", "")
 EVENT_NAME = os.environ.get("EVENT_NAME", "")
 RUN_NUMBER = os.environ.get("RUN_NUMBER", "")
+COMMIT_SHA = os.environ.get("COMMIT_SHA", "")
 REPOSITORY = os.environ.get("REPOSITORY", "")
 RUN_ID = os.environ.get("RUN_ID", "")
 SERVER_URL = os.environ.get("SERVER_URL", "https://github.com")
@@ -27,6 +28,20 @@ MAX_LOGO_BYTES = 10 * 1024 * 1024
 
 def html_escape(text):
     return html.escape(text or "")
+
+
+def _upload_name(path):
+    """Telegram reuses a previously sent document when the file name matches.
+
+    Publish names are date-based for channel builds, so every build on the same
+    day would collide. Tag the uploaded name with the content hash instead.
+    """
+    name = os.path.basename(path)
+    stem, dot, ext = name.rpartition(".")
+    digest = _sha256(path)[:8]
+    if not dot:
+        return f"{name}-{digest}"
+    return f"{stem}-{digest}.{ext}"
 
 
 def _action_url():
@@ -80,7 +95,7 @@ def get_caption(files):
         for variant in ("builtin", "external"):
             digest = hashes.get(variant)
             if digest:
-                lines.extend([f"<code>{variant}</code>", f"<pre>{digest}</pre>"])
+                lines.append(f"<code>{variant}</code> · <code>{digest}</code>")
 
     lines.extend(
         [
@@ -256,7 +271,7 @@ def send_files_via_bot_api():
                 field_name = f"document{index}"
                 media.append({"type": "document", "media": f"attach://{field_name}"})
                 upload_files[field_name] = (
-                    os.path.basename(file_path),
+                    _upload_name(file_path),
                     stack.enter_context(open(file_path, "rb")),
                     "application/vnd.android.package-archive",
                 )
