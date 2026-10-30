@@ -177,7 +177,7 @@ class NdkTools:
         return self._tool(f"llvm-strip{extension}")
 
     def get_min_android_api(self) -> int:
-        return max(self.config.get_int("android.minSdk", 24), 24)
+        return max(self.config.get_int("android.minSdk", 33), 33)
 
     def _cmake_tool(self, name: str) -> Path:
         extension = ".exe" if SystemDetector.os_name() == "windows" else ""

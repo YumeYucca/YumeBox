@@ -24,10 +24,10 @@ package com.github.yumeyucca.yumebox.screen.settings
 
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
+import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import com.github.yumeyucca.yumebox.presentation.component.StandalonePageList
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
 
 /**
  * The shared shell of the per-run-mode "service config" sub-pages.
@@ -42,7 +42,9 @@ internal fun ServiceOptionsPage(
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    Scaffold(
+    // GlassScaffold, not a plain Scaffold: it records the page backdrop the dropdown popups sample.
+    // Without it the stack/DNS/Wi-Fi pickers silently fall back to the legacy window popup.
+    GlassScaffold(
         topBar = {
             TopBar(
                 title = title,

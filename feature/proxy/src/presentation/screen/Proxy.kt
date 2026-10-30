@@ -40,8 +40,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
@@ -59,6 +61,7 @@ import com.github.yumeyucca.yumebox.presentation.util.rememberSavedGridState
 import com.github.yumeyucca.yumebox.presentation.util.rememberSavedListState
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
@@ -140,6 +143,16 @@ private fun ProxyPageShell(
             nodeSearchVisible = nodeSearchVisible,
             selectionController = selectionController,
         )
+    val activeScrollSurface = state.activeScrollSurface
+    val activeIsAtTop = state.activeIsAtTop
+    val density = LocalDensity.current
+    LaunchedEffect(isActive, scrollBehavior, activeScrollSurface) {
+        if (!isActive) return@LaunchedEffect
+        scrollBehavior.syncFromScrollSurface(
+            atTop = activeIsAtTop.value,
+            rampPx = with(density) { UiDp.dp32.toPx() },
+        )
+    }
     // The group-tab branch uses the pager state as non-null, so bind it to a local
     // val before that branch.
     val tabbedPagerState = state.tabbedPagerState
@@ -524,4 +537,17 @@ private fun proxyGroupContentTransform(forward: Boolean): ContentTransform {
             animationSpec = tween(durationMillis = exitMillis, easing = AnimationSpecs.Legacy),
             targetOffsetX = { width -> if (forward) -width / 3 else width },
         ) + fadeOut(animationSpec = tween(durationMillis = 160, easing = AnimationSpecs.Legacy)))
+}
+
+private suspend fun ScrollBehavior.syncFromScrollSurface(atTop: Boolean, rampPx: Float) {
+    if (atTop) {
+        state.contentOffset = 0f
+        state.heightOffset = 0f
+        return
+    }
+    state.contentOffset = minOf(state.contentOffset, -rampPx)
+    val heightLimit =
+        snapshotFlow { state.heightOffsetLimit }
+            .first { it < 0f && it > -Float.MAX_VALUE }
+    state.heightOffset = heightLimit
 }

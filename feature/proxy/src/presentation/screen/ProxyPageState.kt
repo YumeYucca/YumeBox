@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -79,6 +80,8 @@ internal class ProxyPageState(
     val groupTabListStates: SnapshotStateMap<String, LazyListState>,
     val groupTabGridStates: SnapshotStateMap<String, LazyGridState>,
     val tabCollapseState: ProxyTabScrollState,
+    val activeScrollSurface: Any?,
+    val activeIsAtTop: State<Boolean>,
     val categoryTabInset: Dp,
 ) {
     /** 策略页当前停在哪个 tab;分组 tab 模式下仍保留切换前的选择。 */
@@ -239,30 +242,34 @@ internal fun rememberProxyPageState(
     }
 
     val categoryTabInset = if (proxyListTabs.isEmpty()) UiDp.dp0 else ProxyTabBandInset
+    val showsGroupList =
+        pane == ProxyPageMode.SplitMaster || (!groupTabsMode && selectedGroupName == null)
     val activeListState =
         when {
+            showsGroupList -> groupListState
             groupTabsMode -> activeGroupTabListState
-            selectedGroupName != null -> nodeListState
-            else -> groupListState
+            else -> nodeListState
         }
     val activeGridState =
         when {
+            showsGroupList -> null
             groupTabsMode -> activeGroupTabGridState
-            selectedGroupName != null -> nodeGridState
-            else -> null
+            else -> nodeGridState
         }
-    val activeIsAtTop by
-        remember(activeListState, activeGridState, twoColumnNodesState.value) {
+    val activeScrollSurface: Any? =
+        if (showsGroupList || !twoColumnNodesState.value) activeListState else activeGridState
+    val activeIsAtTop =
+        remember(activeScrollSurface) {
             derivedStateOf {
-                if (twoColumnNodesState.value) {
-                    activeGridState?.isAtTop ?: true
-                } else {
-                    activeListState?.isAtTop ?: true
+                when (val surface = activeScrollSurface) {
+                    is LazyListState -> surface.isAtTop
+                    is LazyGridState -> surface.isAtTop
+                    else -> true
                 }
             }
         }
-    LaunchedEffect(activeIsAtTop) {
-        tabCollapseState.syncContent(activeIsAtTop)
+    LaunchedEffect(activeIsAtTop.value) {
+        tabCollapseState.syncContent(activeIsAtTop.value)
     }
 
     return ProxyPageState(
@@ -285,6 +292,8 @@ internal fun rememberProxyPageState(
         groupTabListStates = groupTabListStates,
         groupTabGridStates = groupTabGridStates,
         tabCollapseState = tabCollapseState,
+        activeScrollSurface = activeScrollSurface,
+        activeIsAtTop = activeIsAtTop,
         categoryTabInset = categoryTabInset,
     )
 }
