@@ -206,9 +206,9 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
         if (isRemoteControllerActive() ||
             _runtimeSnapshot.value.owner == RuntimeOwner.RemoteController
         ) {
+            _isConfigReloading.value = false
             return
         }
-        // Only a locally owned runtime can be reloading; remote takeover must not leak the flag.
         _isConfigReloading.value = state.reloading
         val previous = _runtimeSnapshot.value
         val next = mapLocal(state, previous)
