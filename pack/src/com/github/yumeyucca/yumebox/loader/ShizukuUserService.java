@@ -28,11 +28,19 @@ public final class ShizukuUserService extends Binder {
 
     private static final int TRANSACTION_SET_PACKAGE_NETWORKING_ENABLED = FIRST_CALL_TRANSACTION;
 
+    /** ShizukuApiConstants.USER_SERVICE_TRANSACTION_destroy. */
+    private static final int TRANSACTION_DESTROY = 16_777_115;
+
     private static final int FIREWALL_CHAIN_OEM_DENY = 9;
 
     @Override
     protected boolean onTransact(int code, Parcel data, Parcel reply, int flags)
             throws RemoteException {
+        // Shizuku asks a non-daemon user service to exit when its last client is gone.
+        if (code == TRANSACTION_DESTROY) {
+            System.exit(0);
+            return true;
+        }
         if (code == INTERFACE_TRANSACTION) {
             if (reply != null) {
                 reply.writeString(DESCRIPTOR);
