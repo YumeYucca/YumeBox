@@ -2462,11 +2462,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun ServiceOptionsSummary(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Advanced.ServiceOptionsSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Advanced.ServiceOptionsSummary, *args)
-            public val OverrideSectionTitle: String
-                get() = YumeLocaleManager.activeStrings.NetworkSettings.Advanced.OverrideSectionTitle
-            @androidx.compose.runtime.Composable
-            public fun OverrideSectionTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.Advanced.OverrideSectionTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.Advanced.OverrideSectionTitle, *args)
         }
         public object RunMode {
             public val SectionTitle: String
@@ -2516,6 +2511,36 @@ public object YumeTxt {
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.RunMode.Notice else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.RunMode.Notice, *args)
         }
         public object VpnOptions {
+            public val ProtocolSectionTitle: String
+                get() = YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.ProtocolSectionTitle
+            @androidx.compose.runtime.Composable
+            public fun ProtocolSectionTitle(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.ProtocolSectionTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.ProtocolSectionTitle, *args)
+            public val ProtocolSectionSummary: String
+                get() = YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.ProtocolSectionSummary
+            @androidx.compose.runtime.Composable
+            public fun ProtocolSectionSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.ProtocolSectionSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.ProtocolSectionSummary, *args)
+            public val NetworkSectionTitle: String
+                get() = YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.NetworkSectionTitle
+            @androidx.compose.runtime.Composable
+            public fun NetworkSectionTitle(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.NetworkSectionTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.NetworkSectionTitle, *args)
+            public val NetworkSectionSummary: String
+                get() = YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.NetworkSectionSummary
+            @androidx.compose.runtime.Composable
+            public fun NetworkSectionSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.NetworkSectionSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.NetworkSectionSummary, *args)
+            public val DnsSectionTitle: String
+                get() = YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.DnsSectionTitle
+            @androidx.compose.runtime.Composable
+            public fun DnsSectionTitle(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.DnsSectionTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.DnsSectionTitle, *args)
+            public val DnsSectionSummary: String
+                get() = YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.DnsSectionSummary
+            @androidx.compose.runtime.Composable
+            public fun DnsSectionSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.DnsSectionSummary else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.DnsSectionSummary, *args)
             public val BypassPrivateTitle: String
                 get() = YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.BypassPrivateTitle
             @androidx.compose.runtime.Composable
@@ -2541,13 +2566,6 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun SystemProxyTitle(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.SystemProxyTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.VpnOptions.SystemProxyTitle, *args)
-        }
-        public object EbpfOptions {
-            public val BypassCnTitle: String
-                get() = YumeLocaleManager.activeStrings.NetworkSettings.EbpfOptions.BypassCnTitle
-            @androidx.compose.runtime.Composable
-            public fun BypassCnTitle(vararg args: Any?): String =
-                if (args.isEmpty()) YumeLocaleManager.activeStrings.NetworkSettings.EbpfOptions.BypassCnTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.NetworkSettings.EbpfOptions.BypassCnTitle, *args)
         }
         public object TunOptions {
             public val Title: String

@@ -52,8 +52,6 @@ sealed interface Route {
 
     data object TunServiceOptions : Route
 
-    data object EbpfServiceOptions : Route
-
     data object AccessControl : Route
 
     data object AccessControlAppList : Route

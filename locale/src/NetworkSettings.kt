@@ -12,7 +12,6 @@ internal val ZhHansYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = Yu
         DisableOverrideTitle = "禁用所有覆写",
         DisableOverrideSummary = "开启后直接运行原配置（含 Tun、eBPF 参数），不再应用任何覆写",
         ServiceOptionsSummary = "当前运行模式对应的服务参数",
-        OverrideSectionTitle = "覆写",
     ),
     RunMode = YumeStrings_NetworkSettings_RunMode(
         SectionTitle = "运行模式",
@@ -26,14 +25,17 @@ internal val ZhHansYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = Yu
         Notice = "Vpn Service 兼容性最好；Tun、eBPF 性能更好，但需要 Root 权限",
     ),
     VpnOptions = YumeStrings_NetworkSettings_VpnOptions(
+        ProtocolSectionTitle = "协议",
+        ProtocolSectionSummary = "Vpn Service 使用的协议栈",
+        NetworkSectionTitle = "网络",
+        NetworkSectionSummary = "私有网络绕过、应用绕过与系统代理",
+        DnsSectionTitle = "DNS 与 IPv6",
+        DnsSectionSummary = "DNS 劫持与 IPv6 运行",
         BypassPrivateTitle = "绕过私有网络",
         DnsHijackTitle = "DNS 劫持",
         AllowBypassTitle = "允许应用绕过",
         EnableIpv6Title = "运行 IPv6",
         SystemProxyTitle = "VPN 系统代理",
-    ),
-    EbpfOptions = YumeStrings_NetworkSettings_EbpfOptions(
-        BypassCnTitle = "国内 IP 不过核心",
     ),
     TunOptions = YumeStrings_NetworkSettings_TunOptions(
         Title = "Tun 配置",
@@ -134,7 +136,6 @@ internal val ZhYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
         DisableOverrideTitle = "停用所有覆寫",
         DisableOverrideSummary = "開啟後直接執行原設定（含 Tun、eBPF 參數），不再套用任何覆寫",
         ServiceOptionsSummary = "目前執行模式對應的服務參數",
-        OverrideSectionTitle = "覆寫",
     ),
     RunMode = YumeStrings_NetworkSettings_RunMode(
         SectionTitle = "執行模式",
@@ -148,14 +149,17 @@ internal val ZhYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
         Notice = "Vpn Service 相容性最好；Tun、eBPF 效能更好，但需要 Root 權限",
     ),
     VpnOptions = YumeStrings_NetworkSettings_VpnOptions(
+        ProtocolSectionTitle = "協定",
+        ProtocolSectionSummary = "Vpn Service 使用的協定堆疊",
+        NetworkSectionTitle = "網路",
+        NetworkSectionSummary = "私有網路繞過、應用程式繞過與系統代理",
+        DnsSectionTitle = "DNS 與 IPv6",
+        DnsSectionSummary = "DNS 劫持與 IPv6 執行",
         BypassPrivateTitle = "略過私人網路",
         DnsHijackTitle = "DNS 劫持",
         AllowBypassTitle = "允許應用略過",
         EnableIpv6Title = "啟用 IPv6",
         SystemProxyTitle = "VPN 內建系統代理",
-    ),
-    EbpfOptions = YumeStrings_NetworkSettings_EbpfOptions(
-        BypassCnTitle = "中國大陸 IP 不經核心",
     ),
     TunOptions = YumeStrings_NetworkSettings_TunOptions(
         Title = "Tun 設定",
@@ -256,7 +260,6 @@ internal val EnYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
         DisableOverrideTitle = "Disable All Overrides",
         DisableOverrideSummary = "Runs the original config as-is, Tun/eBPF parameters included, no overrides applied",
         ServiceOptionsSummary = "Service parameters for the current run mode",
-        OverrideSectionTitle = "Overrides",
     ),
     RunMode = YumeStrings_NetworkSettings_RunMode(
         SectionTitle = "Run Mode",
@@ -270,14 +273,17 @@ internal val EnYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
         Notice = "Vpn Service is the most compatible; Tun/eBPF are faster but need root access",
     ),
     VpnOptions = YumeStrings_NetworkSettings_VpnOptions(
+        ProtocolSectionTitle = "Protocol",
+        ProtocolSectionSummary = "Network stack used by Vpn Service",
+        NetworkSectionTitle = "Network",
+        NetworkSectionSummary = "Private network bypass, app bypass and system proxy",
+        DnsSectionTitle = "DNS & IPv6",
+        DnsSectionSummary = "DNS hijack and IPv6",
         BypassPrivateTitle = "Bypass Private Networks",
         DnsHijackTitle = "DNS Hijack",
         AllowBypassTitle = "Allow App Bypass",
         EnableIpv6Title = "Enable IPv6",
         SystemProxyTitle = "VPN Built-in System Proxy",
-    ),
-    EbpfOptions = YumeStrings_NetworkSettings_EbpfOptions(
-        BypassCnTitle = "Bypass mainland China IPs in kernel",
     ),
     TunOptions = YumeStrings_NetworkSettings_TunOptions(
         Title = "Tun Options",
@@ -378,7 +384,6 @@ internal val JaYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
         DisableOverrideTitle = "すべての上書きを無効化",
         DisableOverrideSummary = "有効にすると元の設定をそのまま実行します（Tun・eBPF 込み、オーバーライドなし）",
         ServiceOptionsSummary = "現在の実行モードに対応するサービス設定",
-        OverrideSectionTitle = "上書き",
     ),
     RunMode = YumeStrings_NetworkSettings_RunMode(
         SectionTitle = "実行モード",
@@ -392,14 +397,17 @@ internal val JaYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
         Notice = "Vpn Service は最も互換性が高いです。Tun・eBPF は Root 権限が必要で高速です",
     ),
     VpnOptions = YumeStrings_NetworkSettings_VpnOptions(
+        ProtocolSectionTitle = "プロトコル",
+        ProtocolSectionSummary = "Vpn Service が使用するプロトコルスタック",
+        NetworkSectionTitle = "ネットワーク",
+        NetworkSectionSummary = "プライベートネットワーク、アプリのバイパス、システムプロキシ",
+        DnsSectionTitle = "DNS と IPv6",
+        DnsSectionSummary = "DNS ハイジャックと IPv6",
         BypassPrivateTitle = "プライベートネットワークをバイパス",
         DnsHijackTitle = "DNS ハイジャック",
         AllowBypassTitle = "アプリのバイパスを許可",
         EnableIpv6Title = "IPv6 を有効化",
         SystemProxyTitle = "VPN 内蔵システムプロキシ",
-    ),
-    EbpfOptions = YumeStrings_NetworkSettings_EbpfOptions(
-        BypassCnTitle = "中国 IP をカーネルでバイパス",
     ),
     TunOptions = YumeStrings_NetworkSettings_TunOptions(
         Title = "Tun 設定",
@@ -500,7 +508,6 @@ internal val RuYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
         DisableOverrideTitle = "Отключить все переопределения",
         DisableOverrideSummary = "Запускает исходный конфиг как есть, включая Tun и eBPF, без переопределений",
         ServiceOptionsSummary = "Параметры службы для текущего режима работы",
-        OverrideSectionTitle = "Переопределения",
     ),
     RunMode = YumeStrings_NetworkSettings_RunMode(
         SectionTitle = "Режим работы",
@@ -514,14 +521,17 @@ internal val RuYumeStrings_NetworkSettings: YumeStrings_NetworkSettings = YumeSt
         Notice = "Vpn Service — самый совместимый; Tun/eBPF быстрее, но нужны root-права",
     ),
     VpnOptions = YumeStrings_NetworkSettings_VpnOptions(
+        ProtocolSectionTitle = "Протокол",
+        ProtocolSectionSummary = "Стек протоколов, используемый Vpn Service",
+        NetworkSectionTitle = "Сеть",
+        NetworkSectionSummary = "Обход частных сетей, обход приложений и системный прокси",
+        DnsSectionTitle = "DNS и IPv6",
+        DnsSectionSummary = "Перехват DNS и IPv6",
         BypassPrivateTitle = "Обходить частные сети",
         DnsHijackTitle = "Перехват DNS",
         AllowBypassTitle = "Разрешить обход приложениями",
         EnableIpv6Title = "Включить IPv6",
         SystemProxyTitle = "Встроенный системный прокси VPN",
-    ),
-    EbpfOptions = YumeStrings_NetworkSettings_EbpfOptions(
-        BypassCnTitle = "Обходить IP материкового Китая в ядре",
     ),
     TunOptions = YumeStrings_NetworkSettings_TunOptions(
         Title = "Параметры Tun",

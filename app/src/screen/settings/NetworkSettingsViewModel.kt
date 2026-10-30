@@ -54,7 +54,6 @@ class NetworkSettingsViewModel(
     // own `Preference` stay public.
     private val runMode: Preference<RunMode> = settings.runMode
     private val bypassPrivateNetwork: Preference<Boolean> = settings.bypassPrivateNetwork
-    val ebpfBypassCn: Preference<Boolean> = settings.ebpfBypassCn
     private val dnsHijack: Preference<Boolean> = settings.dnsHijack
     private val allowBypass: Preference<Boolean> = settings.allowBypass
     private val enableIPv6: Preference<Boolean> = settings.enableIPv6
@@ -253,10 +252,6 @@ class NetworkSettingsViewModel(
 
     fun onBypassPrivateNetworkChange(enabled: Boolean) {
         controller.setAndRestartIfNeeded(bypassPrivateNetwork, enabled)
-    }
-
-    fun onEbpfBypassCnChange(enabled: Boolean) {
-        controller.setAndRestartIfNeeded(ebpfBypassCn, enabled)
     }
 
     fun onDnsHijackChange(enabled: Boolean) {
