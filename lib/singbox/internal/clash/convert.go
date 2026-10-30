@@ -54,6 +54,9 @@ type converter struct {
 	orderedRuleSets []string
 	// providers holds rule-providers so RULE-SET rules can resolve their source.
 	providers map[string]map[string]any
+	// pinnedNodes counts nodes whose certificate pin cannot be expressed, so the warning is
+	// reported once instead of once per node.
+	pinnedNodes int
 }
 
 // Convert parses a Clash YAML document and returns sing-box options.
@@ -134,6 +137,9 @@ func Convert(content []byte, options Options) (Result, error) {
 	if providers, ok := c.convertProxyProviders(document["proxy-providers"]); ok {
 		result["providers"] = providers
 	}
+	if c.pinnedNodes > 0 {
+		c.warnf("%d nodes pin a certificate fingerprint; sing-box pins the public key instead, so the pin is dropped (skip-cert-verify still applies)", c.pinnedNodes)
+	}
 	if sets := c.ruleSetList(); len(sets) > 0 {
 		route["rule_set"] = sets
 	}
@@ -207,7 +213,7 @@ func (c *converter) convertProxy(proxy map[string]any) (map[string]any, error) {
 			"security": defaultString(asString(proxy["cipher"]), "auto"),
 			"alter_id": asInt(proxy["alterId"]),
 		}
-		putIfPresent(outbound, "tls", tlsOptions(proxy))
+		putIfPresent(outbound, "tls", tlsOptions(proxy, false))
 		putIfPresent(outbound, "transport", transportOptions(proxy))
 		return outbound, nil
 
@@ -223,7 +229,7 @@ func (c *converter) convertProxy(proxy map[string]any) (map[string]any, error) {
 		if proxy["reality-opts"] != nil {
 			outbound["tls"] = realityOptions(proxy)
 		} else {
-			outbound["tls"] = tlsOptions(proxy)
+			outbound["tls"] = tlsOptions(proxy, false)
 		}
 		putIfPresent(outbound, "transport", transportOptions(proxy))
 		return outbound, nil
@@ -234,7 +240,7 @@ func (c *converter) convertProxy(proxy map[string]any) (map[string]any, error) {
 			"server": server, "server_port": port,
 			"password": asString(proxy["password"]),
 		}
-		putIfPresent(outbound, "tls", tlsOptions(proxy))
+		putIfPresent(outbound, "tls", tlsOptions(proxy, true))
 		putIfPresent(outbound, "transport", transportOptions(proxy))
 		return outbound, nil
 
@@ -243,7 +249,7 @@ func (c *converter) convertProxy(proxy map[string]any) (map[string]any, error) {
 			"type": "hysteria2", "tag": name,
 			"server": server, "server_port": port,
 			"password": asString(proxy["auth-str"]),
-			"tls":      tlsOptions(proxy),
+			"tls":      tlsOptions(proxy, true),
 		}
 		if password := asString(proxy["password"]); password != "" {
 			outbound["password"] = password
@@ -254,6 +260,15 @@ func (c *converter) convertProxy(proxy map[string]any) (map[string]any, error) {
 				"password": asString(proxy["obfs-password"]),
 			}
 		}
+		// Clash spells port hopping as "ports: 50000-53000" (and mport for the older field);
+		// sing-box takes the same thing as server_ports with a colon separator. Without this the
+		// node keeps the placeholder port and never connects.
+		if ports := defaultString(asString(proxy["ports"]), asString(proxy["mport"])); ports != "" {
+			outbound["server_ports"] = []string{strings.ReplaceAll(ports, "-", ":")}
+		}
+		if asString(proxy["fingerprint"]) != "" {
+			c.pinnedNodes++
+		}
 		return outbound, nil
 
 	case "tuic":
@@ -262,7 +277,7 @@ func (c *converter) convertProxy(proxy map[string]any) (map[string]any, error) {
 			"server": server, "server_port": port,
 			"uuid": asString(proxy["uuid"]), "password": asString(proxy["password"]),
 			"congestion_control": asString(proxy["congestion-controller"]),
-			"tls":                tlsOptions(proxy),
+			"tls":                tlsOptions(proxy, true),
 		}, nil
 
 	case "socks5", "socks":
@@ -287,7 +302,7 @@ func (c *converter) convertProxy(proxy map[string]any) (map[string]any, error) {
 			outbound["password"] = asString(proxy["password"])
 		}
 		if asBool(proxy["tls"]) {
-			outbound["tls"] = tlsOptions(proxy)
+			outbound["tls"] = tlsOptions(proxy, false)
 		}
 		return outbound, nil
 
@@ -333,8 +348,10 @@ func encodePluginOptions(plugin string, options map[string]any) string {
 }
 
 // tlsOptions maps Clash's flat tls/sni/skip-cert-verify flags onto sing-box's tls block.
-func tlsOptions(proxy map[string]any) map[string]any {
-	enabled := asBool(proxy["tls"]) || asBool(proxy["hysteria2-tls"])
+// mandatory covers the protocols where Clash implies TLS (trojan, hysteria2, tuic): their nodes
+// usually carry no "tls: true", but sing-box rejects the outbound without a tls block.
+func tlsOptions(proxy map[string]any, mandatory bool) map[string]any {
+	enabled := mandatory || asBool(proxy["tls"]) || asBool(proxy["hysteria2-tls"])
 	if !enabled {
 		return nil
 	}
@@ -357,7 +374,7 @@ func tlsOptions(proxy map[string]any) map[string]any {
 }
 
 func realityOptions(proxy map[string]any) map[string]any {
-	options := tlsOptions(proxy)
+	options := tlsOptions(proxy, true)
 	if options == nil {
 		options = map[string]any{"enabled": true}
 	}
@@ -431,12 +448,17 @@ func (c *converter) convertGroups(raw any, proxies []map[string]any) ([]map[stri
 				"outbounds": members, "default": members[0],
 			})
 		case "url-test", "url-test-fallback":
+			interval := clashDuration(asString(group["interval"]), "5m")
 			groups = append(groups, map[string]any{
 				"type": "urltest", "tag": name,
 				"outbounds": members,
 				"url":       defaultString(asString(group["url"]), "https://www.gstatic.com/generate_204"),
-				"interval":  clashDuration(asString(group["interval"]), "5m"),
-				"tolerance": asInt(group["tolerance"]),
+				"interval":  interval,
+				// sing-box refuses to start when interval is greater than idle_timeout, and
+				// profiles happily ship 24h test intervals. Pinning idle_timeout to the same value
+				// keeps the profile cadence instead of silently clamping it.
+				"idle_timeout": interval,
+				"tolerance":    asInt(group["tolerance"]),
 			})
 		case "fallback", "load-balance":
 			// sing-box has neither a fallback nor a load-balance group. urltest is the closest
@@ -447,7 +469,7 @@ func (c *converter) convertGroups(raw any, proxies []map[string]any) ([]map[stri
 				"type": "urltest", "tag": name,
 				"outbounds": members,
 				"url":       "https://www.gstatic.com/generate_204",
-				"interval":  "5m",
+				"interval":  "5m", "idle_timeout": "5m",
 			})
 		default:
 			return nil, fmt.Errorf("unsupported proxy group type %q (group %q)", groupType, name)
@@ -510,6 +532,19 @@ func (c *converter) convertRoute(raw any, dnsTag string) (map[string]any, error)
 			}
 			continue
 		}
+		// Clash allows rule options after the target: IP-CIDR,1.1.1.1/32,PROXY,no-resolve.
+		// They have to go before the target is read, otherwise the option becomes the target and
+		// the group name ends up inside the CIDR.
+		for len(parts) > 2 {
+			switch strings.ToLower(parts[len(parts)-1]) {
+			case "no-resolve", "src", "dns-fake":
+				c.warnf("rule option %q has no sing-box equivalent; ignored", parts[len(parts)-1])
+				parts = parts[:len(parts)-1]
+				continue
+			}
+			break
+		}
+
 		if len(parts) < 2 {
 			c.warnf("rule %q has no target and was dropped", line)
 			continue
@@ -811,6 +846,7 @@ func (c *converter) convertDNS(raw any) (map[string]any, bool) {
 	if len(servers) == 0 {
 		return nil, false
 	}
+	realFinalTag := asString(servers[0].(map[string]any)["tag"])
 	// A server addressed by domain name needs an IP-based resolver to bootstrap itself; sing-box
 	// refuses to start otherwise ("missing domain resolver for domain server address").
 	bootstrap := ""
@@ -831,16 +867,73 @@ func (c *converter) convertDNS(raw any) (map[string]any, bool) {
 			}
 		}
 	}
-	if strings.EqualFold(asString(dns["enhanced-mode"]), "fake-ip") {
-		c.warnf("dns.enhanced-mode fake-ip is not emitted yet; DNS will answer with real addresses")
+	fakeIP := strings.EqualFold(asString(dns["enhanced-mode"]), "fake-ip")
+	var dnsRules []any
+	if fakeIP {
+		// Clash answers A/AAAA from a fake range and lets the router map the address back to the
+		// domain. sing-box models that as a fakeip DNS server plus rules that send A/AAAA there,
+		// with the profile fake-ip-filter carved out to a real resolver.
+		range4 := defaultString(asString(dns["fake-ip-range"]), "198.18.0.1/16")
+		fakeIPServers := []any{map[string]any{
+			"type": "fakeip", "tag": "fakeip", "inet4_range": range4,
+		}}
+		servers = append(fakeIPServers, servers...)
+
+		realTag := asString(servers[len(servers)-1].(map[string]any)["tag"])
+		excluded := map[string]any{"query_type": []string{"A", "AAAA"}, "server": realTag}
+		var suffixes, domains []string
+		for _, entry := range asStringList(dns["fake-ip-filter"]) {
+			switch {
+			case strings.HasPrefix(entry, "+."):
+				suffixes = append(suffixes, strings.TrimPrefix(entry, "+."))
+			case strings.HasPrefix(entry, "."):
+				suffixes = append(suffixes, strings.TrimPrefix(entry, "."))
+			case strings.ContainsAny(entry, "*"):
+				c.warnf("fake-ip-filter pattern %q uses wildcards sing-box cannot express; skipped", entry)
+			case entry != "":
+				domains = append(domains, entry)
+			}
+		}
+		if len(suffixes) > 0 {
+			excluded["domain_suffix"] = suffixes
+		}
+		if len(domains) > 0 {
+			excluded["domain"] = domains
+		}
+		if len(suffixes) > 0 || len(domains) > 0 {
+			dnsRules = append(dnsRules, excluded)
+		}
+		dnsRules = append(dnsRules, map[string]any{
+			"query_type": []string{"A", "AAAA"}, "server": "fakeip",
+		})
 	}
+	// Report the Clash-only DNS switches once, as a list, instead of silently dropping them: each
+	// one changes resolution behaviour in a way a user may notice.
+	var ignored []string
 	if len(asStringList(dns["fallback"])) > 0 {
-		c.warnf("dns.fallback is ignored: sing-box resolves through the single nameserver list")
+		ignored = append(ignored, "fallback")
 	}
-	return map[string]any{
+	for _, key := range []string{"default-nameserver", "proxy-server-nameserver", "fallback-filter", "nameserver-policy"} {
+		if dns[key] != nil {
+			ignored = append(ignored, key)
+		}
+	}
+	if asBool(dns["respect-rules"]) {
+		ignored = append(ignored, "respect-rules")
+	}
+	if len(ignored) > 0 {
+		c.warnf("dns fields with no sing-box equivalent were ignored: %s", strings.Join(ignored, ", "))
+	}
+	result := map[string]any{
 		"servers": servers,
-		"final":   asString(servers[0].(map[string]any)["tag"]),
-	}, true
+		// final stays on a real resolver: fakeip only answers A/AAAA, and a fakeip final would
+		// leave every other query type without an answer.
+		"final": realFinalTag,
+	}
+	if len(dnsRules) > 0 {
+		result["rules"] = dnsRules
+	}
+	return result, true
 }
 
 // defaultNameServers mirrors the mihomo runtime patch, minus the two resolvers that are routinely

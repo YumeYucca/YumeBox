@@ -308,3 +308,159 @@ rules:
 		t.Fatalf("sing-box rejected the converted logical rules: %v", err)
 	}
 }
+
+func TestFakeIPProfileGetsFakeipServerAndRules(t *testing.T) {
+	profile := `
+mixed-port: 7890
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter: ["+.lan", "localhost", "+.stun.*.*"]
+  nameserver: [223.5.5.5]
+proxies:
+  - { name: n, type: trojan, server: n.example.com, port: 443, password: p }
+proxy-groups:
+  - { name: g, type: select, proxies: [n, DIRECT] }
+rules:
+  - MATCH,g
+`
+	result, err := clash.Convert([]byte(profile), clash.Options{Gateway: "172.19.0.1/30"})
+	if err != nil {
+		t.Fatalf("convert: %v", err)
+	}
+	dns := result.Options["dns"].(map[string]any)
+	hasFakeIP := false
+	for _, entry := range dns["servers"].([]any) {
+		server := entry.(map[string]any)
+		if server["type"] == "fakeip" {
+			hasFakeIP = true
+			if server["inet4_range"] != "198.18.0.1/16" {
+				t.Errorf("fakeip range: got %v", server["inet4_range"])
+			}
+		}
+	}
+	if !hasFakeIP {
+		t.Fatal("enhanced-mode fake-ip must emit a fakeip dns server")
+	}
+	if dns["final"] == "fakeip" {
+		t.Fatal("final must stay on a real resolver, fakeip only answers A/AAAA")
+	}
+	rules, _ := dns["rules"].([]any)
+	if len(rules) != 2 {
+		t.Fatalf("expected a filter rule plus the A/AAAA catch-all, got %d", len(rules))
+	}
+	filter := rules[0].(map[string]any)
+	if filter["server"] == "fakeip" {
+		t.Fatal("the fake-ip-filter rule must point at a real resolver")
+	}
+	suffixes, _ := filter["domain_suffix"].([]string)
+	found := false
+	for _, suffix := range suffixes {
+		if suffix == "lan" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("+.lan should map to domain_suffix lan, got %v", filter["domain_suffix"])
+	}
+	encoded, _ := json.Marshal(result.Options)
+	if err := core.Check("", encoded); err != nil {
+		t.Fatalf("sing-box rejected the fake-ip config: %v", err)
+	}
+}
+
+// This mirrors the shapes a real paid subscription ships (observed live): port hopping on
+// hysteria2, certificate pinning, implicit TLS on trojan, a 24h url-test interval, a fallback
+// group, fake-ip DNS and a no-resolve option after the target. Each of those broke the converter
+// once; the test exists so they cannot break it again.
+const subscriptionShapes = `
+mixed-port: 7890
+mode: rule
+log-level: info
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver: [223.5.5.5, 119.29.29.29]
+  fallback: [1.1.1.1]
+  fallback-filter: { geoip: true, geoip-code: CN }
+proxies:
+  - { name: hy2, type: hysteria2, server: hy2.example.com, port: 50000, ports: 50000-53000,
+      password: p, sni: www.example.com, skip-cert-verify: true,
+      fingerprint: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef, udp: true }
+  - { name: vless, type: vless, server: vless.example.com, port: 443,
+      uuid: 11111111-2222-3333-4444-555555555555, tls: true, servername: vless.example.com,
+      network: tcp, flow: xtls-rprx-vision }
+  - { name: trojan, type: trojan, server: trojan.example.com, port: 443, password: p,
+      sni: trojan.example.com, skip-cert-verify: true }
+proxy-groups:
+  - { name: PROXY, type: select, proxies: [AUTO, FAILOVER, hy2, DIRECT] }
+  - { name: AUTO, type: url-test, proxies: [hy2, vless],
+      url: 'http://www.gstatic.com/generate_204', interval: 86400 }
+  - { name: FAILOVER, type: fallback, proxies: [hy2, vless], interval: 7200 }
+rules:
+  - IP-CIDR,1.1.1.1/32,PROXY,no-resolve
+  - DOMAIN-SUFFIX,example.com,PROXY
+  - GEOIP,CN,DIRECT
+  - MATCH,PROXY
+`
+
+func TestRealSubscriptionShapesSurviveConversion(t *testing.T) {
+	result, err := clash.Convert([]byte(subscriptionShapes), clash.Options{Gateway: "172.19.0.1/30"})
+	if err != nil {
+		t.Fatalf("convert: %v", err)
+	}
+	outbounds := map[string]map[string]any{}
+	for _, entry := range result.Options["outbounds"].([]map[string]any) {
+		outbounds[entry["tag"].(string)] = entry
+	}
+
+	hy2 := outbounds["hy2"]
+	ports, _ := hy2["server_ports"].([]string)
+	if len(ports) != 1 || ports[0] != "50000:53000" {
+		t.Fatalf("hysteria2 port hopping must become server_ports, got %v", hy2["server_ports"])
+	}
+	tls, _ := hy2["tls"].(map[string]any)
+	if tls == nil || tls["enabled"] != true {
+		t.Fatalf("hysteria2 must carry a tls block, got %v", hy2["tls"])
+	}
+
+	trojan := outbounds["trojan"]
+	trojanTLS, _ := trojan["tls"].(map[string]any)
+	if trojanTLS == nil || trojanTLS["enabled"] != true {
+		t.Fatalf("trojan implies TLS even without tls: true, got %v", trojan["tls"])
+	}
+
+	auto := outbounds["AUTO"]
+	if auto["interval"] != auto["idle_timeout"] {
+		t.Fatalf("urltest needs interval <= idle_timeout, got interval=%v idle_timeout=%v",
+			auto["interval"], auto["idle_timeout"])
+	}
+	if outbounds["FAILOVER"]["type"] != "urltest" {
+		t.Fatal("fallback must degrade to urltest")
+	}
+
+	rules := result.Options["route"].(map[string]any)["rules"].([]any)
+	foundCIDR := false
+	for _, entry := range rules {
+		rule := entry.(map[string]any)
+		if cidrs, ok := rule["ip_cidr"].([]string); ok && len(cidrs) == 1 {
+			if cidrs[0] != "1.1.1.1/32" {
+				t.Fatalf("no-resolve must not leak into the CIDR, got %q", cidrs[0])
+			}
+			if rule["outbound"] != "PROXY" {
+				t.Fatalf("target must stay PROXY, got %v", rule["outbound"])
+			}
+			foundCIDR = true
+		}
+	}
+	if !foundCIDR {
+		t.Fatal("the IP-CIDR rule with a trailing no-resolve was lost")
+	}
+
+	encoded, _ := json.Marshal(result.Options)
+	if err := core.Check("", encoded); err != nil {
+		t.Fatalf("sing-box rejected the converted subscription shapes: %v", err)
+	}
+}

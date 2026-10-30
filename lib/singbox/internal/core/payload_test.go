@@ -1,11 +1,11 @@
-//go:build with_utls && with_quic
-
 package core_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/yumeyucca/yumebox/singbox/internal/clash"
 	"github.com/yumeyucca/yumebox/singbox/internal/core"
 )
 
@@ -34,5 +34,18 @@ func TestIsJSONToleratesBOM(t *testing.T) {
 	}
 	if core.IsJSON([]byte("mixed-port: 7890\n")) {
 		t.Fatal("clash yaml must not be treated as json")
+	}
+}
+
+func TestUTF16PayloadIsRejectedWithTheRealCause(t *testing.T) {
+	// A UTF-16 document is valid YAML to the parser but decodes to an empty map, which used to
+	// start a core with no outbounds at all. The error has to name the encoding instead.
+	payload := []byte{0xFF, 0xFE, '{', 0x00, '}', 0x00}
+	_, _, err := core.Prepare(payload, clash.Options{})
+	if err == nil {
+		t.Fatal("expected an encoding error")
+	}
+	if !strings.Contains(err.Error(), "UTF-16") {
+		t.Fatalf("error should name the encoding, got: %v", err)
 	}
 }
