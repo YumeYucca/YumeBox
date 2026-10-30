@@ -1,4 +1,4 @@
-﻿"""Go shared-core builder, for either the mihomo or the sing-box engine.
+"""Go shared-core builder, for either the mihomo or the sing-box engine.
 
 Which engine a build produces is a one-line switch: ``golang.core`` in kernel.properties.
 Both land in the same file name so the loader, the kernel index and KernelManager stay untouched;
@@ -6,6 +6,9 @@ the loader resolves either entry symbol.
 """
 
 from __future__ import annotations
+
+import re
+from datetime import datetime
 
 from .command import command_failure, execute_command
 from .config import NdkTools, ProjectConfig, configured_abis
@@ -49,15 +52,38 @@ class GoCoreBuilder:
         self.apply_kernel_patches()
         abis = configured_abis(self.config)
         if self.core_kind == "singbox":
-            # No version stamp: sing-box has no constant package to inject into, and the stamp
-            # files drive the mihomo-shaped release metadata.
+            # The properties file is still written: packaging reads it for the core version shown
+            # in the app, and a missing file breaks the APK build. Only the -X injection is
+            # skipped, because sing-box has no constant package to inject into.
             print("[GoCore] Engine: sing-box")
+            self.core_version_stamp = self.singbox_version_stamp()
+            write_core_version_stamp(self.core_version_stamp, abis, self.root)
         else:
             self.core_version_stamp = resolve_core_version_stamp(self.config, self.root)
             write_core_version_stamp(self.core_version_stamp, abis, self.root)
         print(f"[GoCore] Building shared core ({self.OUTPUT_LIBRARY_NAME}) for ABIs: {', '.join(abis)}")
         for abi in abis:
             self.build_for_abi(abi)
+
+    def singbox_version_stamp(self) -> CoreVersionStamp:
+        """Reads the engine version out of go.mod so the stamp names the actual engine."""
+        version = "unknown"
+        go_mod = self.source_dir / "go.mod"
+        if go_mod.is_file():
+            match = re.search(
+                r"github\.com/sagernet/sing-box\s+(v[0-9][^\s]*)",
+                go_mod.read_text(encoding="utf-8"),
+            )
+            if match:
+                version = match.group(1)
+        build_time = datetime.now().strftime("%Y%m%d%H%M")
+        return CoreVersionStamp(
+            branch="singbox",
+            commit=version,
+            display_version=f"sing-box {version}",
+            git_version_arg=f"singbox_{version}_{build_time}",
+            build_time=build_time,
+        )
 
     def apply_kernel_patches(self) -> None:
         if not self.kernel_patch_dir.is_dir() or not (self.mihomo_dir / ".git").exists():
@@ -95,7 +121,9 @@ class GoCoreBuilder:
         print(f"[building] Building for {abi} (Go shared core, arch: {arch})...")
         output_file = self.output_dir / abi / self.OUTPUT_LIBRARY_NAME
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        flags = self.merge_core_ldflags(self.build_flags, self.core_version_stamp)
+        # sing-box has no constant package to inject, so it gets the relocations flag only.
+        stamp = self.core_version_stamp if self.core_kind != "singbox" else None
+        flags = self.merge_core_ldflags(self.build_flags, stamp)
         command = ["go", "build", "-buildmode", "c-shared", *flags]
         if self.build_tags:
             command.extend(["-tags", ",".join(self.build_tags)])
