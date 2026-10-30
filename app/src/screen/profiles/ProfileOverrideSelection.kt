@@ -26,43 +26,85 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.github.yumeyucca.yumebox.data.model.ProfileBinding
 
 /**
  * The override selection of the profile being edited, together with the gate that keeps an early
  * toggle from overwriting the persisted list before the binding has been read.
  *
- * The page owns the I/O: [toggle] and [reorder] only return the new list when it actually changed,
- * so the composition never has to reason about the flag itself.
+ * The page owns the I/O: [attach], [detach], [setEnabled] and [reorder] only report a change when
+ * they actually changed the selection, so a no-op never reaches persistence.
  */
 @Stable
 internal class ProfileOverrideSelection internal constructor() {
+    /** Every row attached to the profile, in drag order. */
     var ids by mutableStateOf(emptyList<String>())
+        private set
+
+    /** Attached rows whose apply checkbox is off. */
+    var disabledIds by mutableStateOf(emptyList<String>())
         private set
 
     /** False until the binding has been read; every mutation before that is dropped on purpose. */
     var isLoaded by mutableStateOf(false)
         private set
 
-    fun bind(loadedIds: List<String>?) {
-        ids = loadedIds.orEmpty().distinct()
+    fun bind(binding: ProfileBinding?) {
+        ids = binding?.overrideIds.orEmpty().distinct()
+        val attachedIds = ids.toSet()
+        disabledIds = binding?.disabledOverrideIds.orEmpty().filter(attachedIds::contains).distinct()
         isLoaded = true
     }
 
-    /** Adds or removes [overrideId]; returns the new list, or null when nothing changed. */
-    fun toggle(overrideId: String, selected: Boolean): List<String>? {
-        if (!isLoaded) return null
-        val next =
+    fun isEnabled(overrideId: String): Boolean =
+        overrideId in ids && overrideId !in disabledIds
+
+    /** Attaches a row without applying it. */
+    fun attach(overrideId: String): Boolean {
+        if (!isLoaded || overrideId in ids) return false
+        ids = ids + overrideId
+        disabledIds = disabledIds + overrideId
+        return true
+    }
+
+    fun detach(overrideId: String): Boolean {
+        if (!isLoaded || overrideId !in ids) return false
+        ids = ids - overrideId
+        disabledIds = disabledIds - overrideId
+        return true
+    }
+
+    /** Ticks or unticks an attached row; an id that is not attached cannot be enabled. */
+    fun setEnabled(overrideId: String, enabled: Boolean): Boolean {
+        if (!isLoaded || overrideId !in ids) return false
+        val nextDisabled =
             when {
-                selected && overrideId !in ids -> ids + overrideId
-                !selected && overrideId in ids -> ids - overrideId
-                else -> null
+                enabled && overrideId in disabledIds -> disabledIds - overrideId
+                !enabled && overrideId !in disabledIds -> disabledIds + overrideId
+                else -> return false
             }
-        return next?.also { ids = it }
+        disabledIds = nextDisabled
+        return true
+    }
+
+    /** 自定义分流 is a normal attached row, but its switch removes it instead of disabling it. */
+    fun setCustomRouting(overrideId: String, enabled: Boolean): Boolean {
+        if (!isLoaded) return false
+        return if (enabled) {
+            if (overrideId in ids) {
+                setEnabled(overrideId, true)
+            } else {
+                ids = ids + overrideId
+                true
+            }
+        } else {
+            detach(overrideId)
+        }
     }
 
     /** Moves one row inside [visibleIds], the order the user is dragging in. */
-    fun reorder(visibleIds: List<String>, from: Int, to: Int): List<String>? {
-        if (!isLoaded) return null
+    fun reorder(visibleIds: List<String>, from: Int, to: Int): Boolean {
+        if (!isLoaded) return false
         val next =
             reorderVisibleOverrideIds(
                 allIds = ids,
@@ -70,9 +112,9 @@ internal class ProfileOverrideSelection internal constructor() {
                 from = from,
                 to = to,
             )
-        if (next == ids) return null
+        if (next == ids) return false
         ids = next
-        return next
+        return true
     }
 }
 

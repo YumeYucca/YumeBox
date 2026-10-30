@@ -86,13 +86,17 @@ data class MetadataIndex(
     ): MetadataIndex {
         val sanitized =
             profileChains.mapValues { (_, binding) ->
+                val sanitizedIds =
+                    binding.overrideIds.filterNot { overrideId ->
+                        OverrideMetadata.isLegacyPresetId(overrideId) ||
+                                (overrideId.startsWith(OverrideMetadata.ID_PREFIX) &&
+                                        overrideId !in against)
+                    }
+                val attachedIds = sanitizedIds.toSet()
                 binding.copy(
-                    overrideIds =
-                        binding.overrideIds.filterNot { overrideId ->
-                            OverrideMetadata.isLegacyPresetId(overrideId) ||
-                                    (overrideId.startsWith(OverrideMetadata.ID_PREFIX) &&
-                                            overrideId !in against)
-                        }
+                    overrideIds = sanitizedIds,
+                    disabledOverrideIds =
+                        binding.disabledOverrideIds.filter(attachedIds::contains),
                 )
             }
         return if (sanitized == profileChains) this else copy(profileChains = sanitized)

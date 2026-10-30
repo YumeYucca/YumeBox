@@ -44,10 +44,13 @@ class CompiledConfigPipeline(private val context: Context) {
     fun resolveOverrideSpecs(profileUuid: String): List<OverrideSpec> {
         val overridesDir = context.filesDir.resolve("overrides")
         val metadata = loadMetadataIndex(overridesDir.resolve("metadata.yaml"))
+        val chain = metadata.profileChains[profileUuid]
+        val disabledOverrideIds = chain?.disabledOverrideIds.orEmpty().toSet()
         val userOverrides =
-            metadata.profileChains[profileUuid]
+            chain
                 ?.overrideIds
                 .orEmpty()
+                .filterNot(disabledOverrideIds::contains)
                 .filterNot { it.startsWith(LEGACY_PRESET_PREFIX) || it.startsWith(INTERNAL_RUNTIME_PREFIX) }
                 .distinct()
                 .map { overrideId ->
@@ -178,7 +181,10 @@ class CompiledConfigPipeline(private val context: Context) {
     @Serializable private data class ConfigMetadataPayload(val contentType: String = "yaml")
 
     @Serializable
-    private data class ProfileChainPayload(val overrideIds: List<String> = emptyList())
+    private data class ProfileChainPayload(
+        val overrideIds: List<String> = emptyList(),
+        val disabledOverrideIds: List<String> = emptyList(),
+    )
 
     private companion object {
         const val INTERNAL_RUNTIME_PREFIX = "__runtime__"

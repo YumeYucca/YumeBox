@@ -35,14 +35,20 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.data.model.OverrideConfig
+import com.github.yumeyucca.yumebox.presentation.icon.Yume
+import com.github.yumeyucca.yumebox.presentation.icon.yume.BadgePlus
+import com.github.yumeyucca.yumebox.presentation.icon.yume.Check
+import com.github.yumeyucca.yumebox.presentation.icon.yume.List
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import org.koin.androidx.compose.koinViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.foundation.lazy.LazyItemScope
 
 /**
@@ -80,13 +86,13 @@ fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
                     onOpenCustomRouting = { navigator.push(Route.CustomRouting) },
                 )
 
-                if (draft.rowIds.isNotEmpty()) {
-                    ProfileOverrideRowList(
-                        draft = draft,
-                        reorderState = overrideReorderState,
-                        maxHeight = componentSizes.profileSettingsListMaxHeight,
-                    )
-                }
+                Title(YumeTxt.Settings.UiSettings.OverrideScript)
+
+                ProfileOverrideRowList(
+                    draft = draft,
+                    reorderState = overrideReorderState,
+                    maxHeight = componentSizes.profileSettingsListMaxHeight,
+                )
             }
             SectionSummary(YumeTxt.ProfilesPage.SettingsDialog.SectionOverrideSummary)
         }
@@ -118,7 +124,7 @@ private fun ProfileOverrideCustomRoutingSection(
 }
 
 /**
- * The profile's override rows, capped at [maxHeight].
+ * The add dropdown and the profile's override rows, in one card and capped at [maxHeight].
  *
  * [draft] is this page's own state holder: it owns the list state, the selection and the row order,
  * so the section reads them from it instead of taking each one as a parameter.
@@ -130,36 +136,63 @@ private fun ProfileOverrideRowList(
     maxHeight: Dp,
 ) {
     AppCard {
-        LazyColumn(
-            state = draft.overrideListState,
+        GlassDropdownPreference(
+            options =
+                draft.pickerConfigs.map { config ->
+                    GlassDropdownOption(
+                        value = config.id,
+                        label = config.name,
+                        icon = if (draft.isAttached(config.id)) Yume.Check else Yume.BadgePlus,
+                    )
+                },
+            selected = null,
+            title = YumeTxt.Override.Dialog.Create.Title,
+            enabled = draft.isLoaded,
+            maxHeight = maxHeight,
             modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = maxHeight),
-        ) {
-            items(draft.rowIds, key = { id -> "override-$id" }) { id ->
-                val config = draft.configFor(id) ?: return@items
-                ProfileOverrideConfigRow(
-                    config = config,
-                    isSelected = draft.isSelected(id),
-                    enabled = draft.isLoaded,
-                    reorderKey = "override-$id",
-                    reorderState = reorderState,
-                    onSelectedChange = { selected -> draft.setSelected(id, selected) },
-                    modifier =
-                        Modifier.animateItem(
-                            fadeInSpec = tween(160),
-                            fadeOutSpec = tween(120),
-                            placementSpec = tween(220, easing = FastOutSlowInEasing),
-                        ),
-                )
+                    .fillMaxWidth(),
+            onSelected = { overrideId ->
+                if (draft.isAttached(overrideId)) {
+                    draft.detach(overrideId)
+                } else {
+                    draft.attach(overrideId)
+                }
+            },
+        )
+
+        if (draft.rowIds.isNotEmpty()) {
+            LazyColumn(
+                state = draft.overrideListState,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = maxHeight),
+            ) {
+                items(draft.rowIds, key = { id -> "override-$id" }) { id ->
+                    val config = draft.configFor(id) ?: return@items
+                    ProfileOverrideConfigRow(
+                        config = config,
+                        isSelected = draft.isSelected(id),
+                        enabled = draft.isLoaded,
+                        reorderKey = "override-$id",
+                        reorderState = reorderState,
+                        onSelectedChange = { selected -> draft.setSelected(id, selected) },
+                        modifier =
+                            Modifier.animateItem(
+                                fadeInSpec = tween(160),
+                                fadeOutSpec = tween(120),
+                                placementSpec = tween(220, easing = FastOutSlowInEasing),
+                            ),
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * One override row: a checkbox plus the row tap, wrapped so a selected row can be dragged.
+ * One override row: a left drag handle, the name and the enable checkbox.
  *
  * [reorderKey] must match the key the list item was declared with, or dragging would address a
  * different item.
@@ -174,37 +207,28 @@ private fun LazyItemScope.ProfileOverrideConfigRow(
     onSelectedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Selected rows drag to reorder; both states share one row config so the checkbox can never
-    // diverge from the tap area. ReorderableItem extends LazyItemScope, so it has to stay a direct
-    // child of the list item instead of sitting inside an extra Box.
-    val row: @Composable (Modifier) -> Unit = { rowModifier ->
+    // Only the handle starts a drag, so the row's tap area and checkbox stay usable. ReorderableItem
+    // extends LazyItemScope, so it has to stay a direct child of the list item.
+    ReorderableItem(
+        state = reorderState,
+        key = reorderKey,
+        modifier = modifier.fillMaxWidth(),
+    ) { isDragging ->
         ProfileOverrideRowContent(
             title = config.name,
             isSelected = isSelected,
             enabled = enabled,
             onSelectedChange = onSelectedChange,
-            modifier = rowModifier,
-        )
-    }
-    if (isSelected) {
-        ReorderableItem(
-            state = reorderState,
-            key = reorderKey,
-            modifier = modifier.fillMaxWidth(),
-        ) { isDragging ->
-            row(
+            modifier =
                 Modifier
                     .fillMaxWidth()
-                    .longPressDraggableHandle()
-                    .alpha(if (isDragging) 0.9f else 1f)
-            )
-        }
-    } else {
-        Box(modifier = modifier.fillMaxWidth()) { row(Modifier) }
+                    .alpha(if (isDragging) 0.9f else 1f),
+            dragHandleModifier = Modifier.draggableHandle(),
+        )
     }
 }
 
-/** The row itself: its name, its checkbox and its tap area, on the modifier the caller chooses. */
+/** The row itself: drag handle, name, enable checkbox; the caller supplies the drag modifier. */
 @Composable
 private fun ProfileOverrideRowContent(
     title: String,
@@ -212,10 +236,23 @@ private fun ProfileOverrideRowContent(
     enabled: Boolean,
     onSelectedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    dragHandleModifier: Modifier = Modifier,
 ) {
     BasicComponent(
         title = title,
         modifier = modifier,
+        enabled = enabled,
+        startAction = {
+            Icon(
+                imageVector = Yume.List,
+                contentDescription = null,
+                tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                modifier =
+                    dragHandleModifier
+                        .padding(end = UiDp.dp12)
+                        .size(UiDp.dp24),
+            )
+        },
         endActions = {
             Checkbox(
                 state =
@@ -237,3 +274,4 @@ private fun ProfileOverrideRowContent(
         },
     )
 }
+

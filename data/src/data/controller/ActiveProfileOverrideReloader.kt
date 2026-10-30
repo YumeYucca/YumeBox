@@ -41,7 +41,7 @@ class ActiveProfileOverrideReloader(
     suspend fun reapplyActiveProfileIfUsingOverride(overrideId: String): Boolean {
         val activeProfile = queryActiveProfile() ?: return true
         val binding = bindingProvider.getBinding(activeProfile.uuid.toString()) ?: return true
-        if (!binding.overrideIds.contains(overrideId)) {
+        if (!binding.isOverrideEnabled(overrideId)) {
             return true
         }
 
@@ -59,6 +59,6 @@ class ActiveProfileOverrideReloader(
     suspend fun isActiveProfileUsingOverride(overrideId: String): Boolean {
         val activeProfile = queryActiveProfile() ?: return false
         val binding = bindingProvider.getBinding(activeProfile.uuid.toString()) ?: return false
-        return binding.overrideIds.contains(overrideId)
+        return binding.isOverrideEnabled(overrideId)
     }
 }
