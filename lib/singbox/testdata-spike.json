@@ -1,0 +1,15 @@
+{
+  "log": { "level": "info" },
+  "inbounds": [
+    { "type": "tun", "tag": "tun-in", "address": ["172.19.0.1/30"], "mtu": 1500, "auto_route": false, "stack": "gvisor" }
+  ],
+  "outbounds": [
+    { "type": "selector", "tag": "proxy", "outbounds": ["direct", "block"] },
+    { "type": "direct", "tag": "direct" },
+    { "type": "block", "tag": "block" }
+  ],
+  "route": {
+    "rules": [ { "domain_suffix": [".example.com"], "outbound": "block" } ],
+    "final": "proxy"
+  }
+}

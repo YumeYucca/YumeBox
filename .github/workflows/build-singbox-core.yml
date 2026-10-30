@@ -1,0 +1,51 @@
+name: Build sing-box core (spike)
+
+# Standalone workflow on purpose: the spike must be buildable without touching the mihomo
+# pipeline (scripts/native-build.py, kernel.properties, PackApkTask) that still ships the app.
+on:
+  workflow_dispatch:
+    inputs:
+      abi:
+        description: "ABI to build"
+        required: false
+        default: arm64
+        type: choice
+        options: [arm64, arm, x86_64]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: lib/singbox/go.sum
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Android NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "ndk;27.2.12479018"
+
+      - name: Build c-shared core
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.2.12479018
+        run: |
+          chmod +x scripts/singbox/build-core.sh
+          scripts/singbox/build-core.sh ${{ inputs.abi }}
+
+      - name: Report artifacts
+        run: |
+          ls -l build/native/singbox/*/libsingboxcore.so
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: singbox-core-${{ inputs.abi }}
+          path: build/native/singbox/**/*
+          if-no-files-found: error
