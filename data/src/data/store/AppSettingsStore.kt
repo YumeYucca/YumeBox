@@ -63,6 +63,8 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     val predictiveBackMaxProgress by floatFlow(50.0f)
     val customUserAgent by strFlow("")
     val autoCheckUpdate by boolFlow(true)
+    // Empty follows the installed build's channel; "stable" is Release, "nightly" is Nightly.
+    val updateChannel by strFlow("")
 
     init {
         migrateLegacyHomeKeys()

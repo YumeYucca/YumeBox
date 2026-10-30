@@ -25,6 +25,7 @@ package com.github.yumeyucca.yumebox.screen.settings
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumeyucca.yumebox.BuildInfo
 import com.github.yumeyucca.yumebox.common.util.XiaomiAutoStart
 import com.github.yumeyucca.yumebox.common.util.stateInWhileSubscribed
 import com.github.yumeyucca.yumebox.common.util.toast
@@ -39,6 +40,7 @@ import com.github.yumeyucca.yumebox.data.store.FeatureStore
 import com.github.yumeyucca.yumebox.data.store.Preference
 import com.github.yumeyucca.yumebox.runtime.service.notification.HyperOsIsland
 import com.github.yumeyucca.yumebox.runtime.service.shizuku.ShizukuManager
+import com.github.yumeyucca.yumebox.update.AppUpdateChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -92,6 +94,7 @@ class AppSettingsViewModel(
 
     val customUserAgent: Preference<String> = settings.customUserAgent
     val autoCheckUpdate: Preference<Boolean> = settings.autoCheckUpdate
+    val updateChannel: Preference<String> = settings.updateChannel
 
     data class BehaviorSectionState(
         val automaticRestart: Boolean = false,
@@ -267,13 +270,19 @@ class AppSettingsViewModel(
     data class NetworkSectionState(
         val autoCheckUpdate: Boolean = true,
         val customUserAgent: String = "",
+        val updateChannel: AppUpdateChannel = AppUpdateChannel.Release,
     )
 
     val networkSectionState: StateFlow<NetworkSectionState> =
-        combine(customUserAgent.state, autoCheckUpdate.state) { userAgent, autoCheck ->
+        combine(
+            customUserAgent.state,
+            autoCheckUpdate.state,
+            updateChannel.state,
+        ) { userAgent, autoCheck, channel ->
             NetworkSectionState(
                 autoCheckUpdate = autoCheck,
                 customUserAgent = userAgent,
+                updateChannel = AppUpdateChannel.resolve(channel, BuildInfo.UPDATE_CHANNEL),
             )
         }
             .stateInWhileSubscribed(
@@ -281,6 +290,8 @@ class AppSettingsViewModel(
                 NetworkSectionState(
                     autoCheckUpdate = autoCheckUpdate.value,
                     customUserAgent = customUserAgent.value,
+                    updateChannel =
+                        AppUpdateChannel.resolve(updateChannel.value, BuildInfo.UPDATE_CHANNEL),
                 ),
             )
 
@@ -424,4 +435,6 @@ class AppSettingsViewModel(
     fun applyCustomUserAgent(userAgent: String) = controller.applyCustomUserAgent(userAgent)
 
     fun onAutoCheckUpdateChange(enabled: Boolean) = autoCheckUpdate.set(enabled)
+
+    fun onUpdateChannelChange(channel: AppUpdateChannel) = updateChannel.set(channel.key)
 }

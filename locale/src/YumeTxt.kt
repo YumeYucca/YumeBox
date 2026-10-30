@@ -768,6 +768,21 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun AutoCheckUpdateTitle(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Network.AutoCheckUpdateTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Network.AutoCheckUpdateTitle, *args)
+            public val UpdateChannelTitle: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Network.UpdateChannelTitle
+            @androidx.compose.runtime.Composable
+            public fun UpdateChannelTitle(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Network.UpdateChannelTitle else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Network.UpdateChannelTitle, *args)
+            public val UpdateChannelRelease: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Network.UpdateChannelRelease
+            @androidx.compose.runtime.Composable
+            public fun UpdateChannelRelease(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Network.UpdateChannelRelease else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Network.UpdateChannelRelease, *args)
+            public val UpdateChannelNightly: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Network.UpdateChannelNightly
+            @androidx.compose.runtime.Composable
+            public fun UpdateChannelNightly(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Network.UpdateChannelNightly else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.AppSettings.Network.UpdateChannelNightly, *args)
             public val UserAgentTitle: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Network.UserAgentTitle
             @androidx.compose.runtime.Composable

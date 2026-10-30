@@ -254,6 +254,9 @@ public data class YumeStrings_AppSettings_ServiceSection(
 
 public data class YumeStrings_AppSettings_Network(
     public val AutoCheckUpdateTitle: String,
+    public val UpdateChannelTitle: String,
+    public val UpdateChannelRelease: String,
+    public val UpdateChannelNightly: String,
     public val UserAgentTitle: String,
 )
 

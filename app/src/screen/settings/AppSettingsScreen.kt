@@ -27,12 +27,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.style.TextAlign
 import androidx.core.net.toUri
 import com.github.yumeyucca.yumebox.common.util.SubscriptionUserAgentDefaults
 import com.github.yumeyucca.yumebox.common.util.startActivitySafely
@@ -44,6 +45,7 @@ import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.screen.settings.component.ThemeColorPickerItem
+import com.github.yumeyucca.yumebox.update.AppUpdateChannel
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -260,6 +262,21 @@ private fun AppNetworkSettingsSection(viewModel: AppSettingsViewModel) {
             checked = section.autoCheckUpdate,
             onCheckedChange = viewModel::onAutoCheckUpdateChange,
         )
+        PreferenceEnumItem(
+            title = YumeTxt.AppSettings.Network.UpdateChannelTitle,
+            currentValue = section.updateChannel,
+            values = AppUpdateChannel.entries,
+            onValueChange = viewModel::onUpdateChannelChange,
+            label = { channel ->
+                when (channel) {
+                    AppUpdateChannel.Release -> YumeTxt.AppSettings.Network.UpdateChannelRelease
+                    AppUpdateChannel.Nightly -> YumeTxt.AppSettings.Network.UpdateChannelNightly
+                }
+            },
+        )
+    }
+    Spacer(Modifier.height(UiDp.dp12))
+    AppCard {
         CustomUserAgentPreferenceItem(
             customUserAgent = section.customUserAgent,
             onConfirm = viewModel::applyCustomUserAgent,
@@ -393,16 +410,8 @@ private fun CustomUserAgentPreferenceItem(customUserAgent: String, onConfirm: (S
 
     PreferenceArrowItem(
         title = YumeTxt.AppSettings.Network.UserAgentTitle,
-        endActions = {
-            Text(
-                text = effectiveUserAgent,
-                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f),
-            )
-        },
         onClick = {
-            draft = customUserAgent
+            draft = effectiveUserAgent
             showEditDialog = true
         },
         holdDownState = showEditDialog,

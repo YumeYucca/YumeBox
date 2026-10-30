@@ -28,6 +28,7 @@ import com.github.yumeyucca.yumebox.data.update.AppUpdateRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -47,7 +48,6 @@ class AppUpdateViewModel(
     private val settings: AppSettingsStore,
 ) : ViewModel() {
     private val baseUrl = BuildInfo.UPDATE_BASE_URL.trim().trimEnd('/')
-    private val channel = BuildInfo.UPDATE_CHANNEL.trim()
     private val autoCheckUpdate = settings.autoCheckUpdate
     private var dismissedVersionCode: Int = 0
     private var refreshJob: Job? = null
@@ -57,20 +57,26 @@ class AppUpdateViewModel(
 
     init {
         viewModelScope.launch {
-            autoCheckUpdate.state.collectLatest { enabled ->
-                if (enabled) {
-                    refresh()
-                } else {
-                    refreshJob?.cancel()
-                    _update.value = null
+            combine(
+                autoCheckUpdate.state,
+                settings.updateChannel.state,
+            ) { enabled, _ -> enabled }
+                .collectLatest { enabled ->
+                    if (enabled) {
+                        refresh()
+                    } else {
+                        refreshJob?.cancel()
+                        _update.value = null
+                    }
                 }
-            }
         }
     }
 
     fun refresh() {
         if (!autoCheckUpdate.value) return
-        if (baseUrl.isBlank() || channel.isBlank()) return
+        if (baseUrl.isBlank()) return
+        val channel =
+            AppUpdateChannel.resolve(settings.updateChannel.value, BuildInfo.UPDATE_CHANNEL).key
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch {
             val info =

@@ -104,6 +104,9 @@ internal val ZhHansYumeStrings_AppSettings: YumeStrings_AppSettings = YumeString
     ),
     Network = YumeStrings_AppSettings_Network(
         AutoCheckUpdateTitle = "自动检查更新",
+        UpdateChannelTitle = "更新通道",
+        UpdateChannelRelease = "Release",
+        UpdateChannelNightly = "Nightly",
         UserAgentTitle = "User-Agent",
     ),
     WarningDialog = YumeStrings_AppSettings_WarningDialog(
@@ -221,6 +224,9 @@ internal val ZhYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
     ),
     Network = YumeStrings_AppSettings_Network(
         AutoCheckUpdateTitle = "自動檢查更新",
+        UpdateChannelTitle = "更新通道",
+        UpdateChannelRelease = "Release",
+        UpdateChannelNightly = "Nightly",
         UserAgentTitle = "User-Agent",
     ),
     WarningDialog = YumeStrings_AppSettings_WarningDialog(
@@ -338,6 +344,9 @@ internal val EnYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
     ),
     Network = YumeStrings_AppSettings_Network(
         AutoCheckUpdateTitle = "Automatically check for updates",
+        UpdateChannelTitle = "Update Channel",
+        UpdateChannelRelease = "Release",
+        UpdateChannelNightly = "Nightly",
         UserAgentTitle = "User-Agent",
     ),
     WarningDialog = YumeStrings_AppSettings_WarningDialog(
@@ -455,6 +464,9 @@ internal val JaYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
     ),
     Network = YumeStrings_AppSettings_Network(
         AutoCheckUpdateTitle = "自動的に更新を確認",
+        UpdateChannelTitle = "更新チャンネル",
+        UpdateChannelRelease = "Release",
+        UpdateChannelNightly = "Nightly",
         UserAgentTitle = "User-Agent",
     ),
     WarningDialog = YumeStrings_AppSettings_WarningDialog(
@@ -572,6 +584,9 @@ internal val RuYumeStrings_AppSettings: YumeStrings_AppSettings = YumeStrings_Ap
     ),
     Network = YumeStrings_AppSettings_Network(
         AutoCheckUpdateTitle = "Автоматически проверять обновления",
+        UpdateChannelTitle = "Канал обновлений",
+        UpdateChannelRelease = "Release",
+        UpdateChannelNightly = "Nightly",
         UserAgentTitle = "User-Agent",
     ),
     WarningDialog = YumeStrings_AppSettings_WarningDialog(
