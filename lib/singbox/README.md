@@ -30,7 +30,28 @@ go run -tags "with_clash_api with_gvisor" ./cmd/check testdata-spike.json
 # testdata-spike.json is a valid sing-box config
 ```
 
-`cmd/check` 走的是 Android 核心里同一条代码路径（`include.Context` → `option.Options` 解码 → `box.New`），所以它能提前抓住"配置字段写错/缺 build tag"这类问题。后面 P2 的转换器就靠它做合并门禁。
+`cmd/check` 走的是 Android 核心里同一条代码路径（`include.Context` → `option.Options` 解码 → `box.New`），而且**接受 Clash YAML**（自动转换后再校验），所以它就是转换器的合并门禁。
+
+## Clash 转换器（`internal/clash`）
+
+Rust 编译器不动：它继续输出 Clash YAML，只有最后一公里在这里翻译成 sing-box options。`core.Prepare` 按首字符判断 JSON（直通）还是 YAML（转换）。
+
+已覆盖：
+
+- 协议：ss（含 obfs/v2ray-plugin）、vmess（ws/grpc/tls）、vless（含 reality）、trojan、hysteria2、tuic、socks5、http
+- 组：`select` → selector，`url-test` → urltest；`fallback` / `load-balance` 降级为 urltest 并**明确告警**
+- 规则：DOMAIN / DOMAIN-SUFFIX / DOMAIN-KEYWORD / IP-CIDR / SRC-IP-CIDR / DST-PORT / SRC-PORT / PROCESS-NAME / PROCESS-PATH / NETWORK / GEOIP / GEOSITE / RULE-SET / MATCH；端口支持 `80/443` 与 `1000-2000`
+- GEOIP/GEOSITE 自动生成指向 `sing-geoip`/`sing-geosite` 的 `route.rule_set`
+- DNS：udp/tls/https/quic，DoH/DoT 自动挂 `domain_resolver` 引导；**没有 dns 块时注入 223.5.5.5 / 119.29.29.29**（否则 Android 上退回 `[::1]:53`，全部域名出站失败）
+- 模式切换：自动生成 `clash_mode: Global/Direct` 两条规则（Global 指向第一个 selector）
+- 非 VPN 运行（无 gateway）时，把 `mixed-port` / `socks-port` 变成本地入站
+
+已知不支持（会告警或报错，不会静默丢）：
+
+- `snell`、`wireguard` 等未列出的代理类型 → **直接报错并点名节点**
+- `proxy-providers` 暂不展开（节点会缺，明确告警）
+- Clash YAML 格式的 `rule-providers` 需要离线转成 `.srs`，否则 RULE-SET 规则被丢弃并告警
+- `dns.enhanced-mode: fake-ip`、`dns.fallback`、`no-resolve` 暂不映射
 
 > **build tag 是硬要求**：不带 `with_clash_api`，`box.New` 直接报 `clash api is not included in this build`；不带 `with_gvisor`，`stack: gvisor` 的 tun inbound 无法启动。
 

@@ -15,6 +15,8 @@ import (
 	"github.com/sagernet/sing-box/option"
 	sjson "github.com/sagernet/sing/common/json"
 	"github.com/sagernet/sing/service"
+
+	"github.com/yumeyucca/yumebox/singbox/internal/clash"
 )
 
 // Run is the c-shared entry point body: parse flags, pull the config (and the TUN fd) off the
@@ -47,7 +49,22 @@ func Run(args []string, channel string) int {
 	}
 
 	ctx := include.Context(context.Background())
-	options, err := sjson.UnmarshalExtendedContext[option.Options](ctx, rawConfig)
+
+	payload, warnings, err := Prepare(rawConfig, clash.Options{
+		Gateway: opts.Gateway,
+		TunName: opts.TunName,
+		MTU:     opts.MTU,
+		// The app's mode switch is only real if the converted config declares the modes.
+		EnableModeSwitching: true,
+	})
+	if err != nil {
+		return Fatal("convert config: %v", err)
+	}
+	for _, warning := range warnings {
+		fmt.Fprintf(os.Stderr, "singbox: conversion warning: %s\n", warning)
+	}
+
+	options, err := sjson.UnmarshalExtendedContext[option.Options](ctx, payload)
 	if err != nil {
 		return Fatal("decode config: %v", err)
 	}
@@ -101,15 +118,19 @@ func Run(args []string, channel string) int {
 
 // Check decodes and builds a config without starting it. This is the `--test` equivalent used by
 // the build pipeline and by lib/singbox/cmd/check, so the compiler's output is validated by the
-// same code path that will run it.
+// same code path that will run it. Clash YAML is accepted and converted first, exactly like Run.
 func Check(home string, rawConfig []byte) error {
+	payload, _, err := Prepare(rawConfig, clash.Options{EnableModeSwitching: true})
+	if err != nil {
+		return err
+	}
 	if home != "" {
 		if err := os.Chdir(home); err != nil {
 			return fmt.Errorf("chdir %q: %w", home, err)
 		}
 	}
 	ctx := include.Context(context.Background())
-	options, err := sjson.UnmarshalExtendedContext[option.Options](ctx, rawConfig)
+	options, err := sjson.UnmarshalExtendedContext[option.Options](ctx, payload)
 	if err != nil {
 		return fmt.Errorf("decode config: %w", err)
 	}
@@ -121,7 +142,7 @@ func Check(home string, rawConfig []byte) error {
 	return instance.Close()
 }
 
-// readStartup fetches the compiled config: vpn takes it — plus the TUN fd — off the CHANNEL
+// readStartup fetches the compiled config: vpn takes it 鈥?plus the TUN fd 鈥?off the CHANNEL
 // socketpair, root modes read it from --config. tunFd/channelFd are -1 when the mode has none.
 func readStartup(opts Options) (rawConfig []byte, tunFd, channelFd int) {
 	tunFd, channelFd = -1, -1

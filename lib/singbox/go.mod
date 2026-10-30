@@ -6,6 +6,7 @@ require (
 	github.com/sagernet/sing v0.7.12
 	github.com/sagernet/sing-box v1.12.9
 	github.com/sagernet/sing-tun v0.7.2
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
