@@ -26,6 +26,7 @@ import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.*
 import timber.log.Timber
@@ -36,8 +37,8 @@ import com.github.yumeyucca.yumebox.data.model.SubStorePanel
 import com.github.yumeyucca.yumebox.data.store.FeatureStore
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.presentation.component.*
-import com.github.yumeyucca.yumebox.presentation.navigation.DeepLink
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
+import com.github.yumeyucca.yumebox.presentation.navigation.RouteStack
 import com.github.yumeyucca.yumebox.presentation.navigation.rememberMainPageModel
 import com.github.yumeyucca.yumebox.presentation.screen.ProxyPager
 import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
@@ -53,12 +54,14 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import com.github.yumeyucca.yumebox.presentation.navigation.PaneRestingRoute
 
 @Composable
-fun MainScreen(
+internal fun MainScreen(
     navigator: Navigator,
     initialDestination: BottomBarDestination,
     onDestinationSettled: (BottomBarDestination) -> Unit,
-    detailNavigator: Navigator,
+    rootStack: RouteStack,
+    detailStack: RouteStack,
 ) {
+    val detailNavigator = detailStack.navigator
     val context = LocalContext.current
     val windowLayoutMode = rememberWindowLayoutMode()
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
@@ -138,6 +141,12 @@ fun MainScreen(
 
     val handlePageChange: (BottomBarDestination) -> Unit = remember(pageModel) { pageModel::show }
 
+    LaunchedEffect(initialDestination, pageModel) {
+        if (pageModel.settled != initialDestination) {
+            pageModel.show(initialDestination)
+        }
+    }
+
     val usesSplitShell = windowLayoutMode.usesSplitShell
 
     // The right pane shows the current tab's side content: whatever the user opened there belongs to
@@ -155,30 +164,16 @@ fun MainScreen(
         // question only has to be answered when the tab actually changes.
         if (
             settledDestination != BottomBarDestination.Proxy &&
-            detailNavigator.backStack.lastOrNull() != PaneRestingRoute
+            detailNavigator.currentRoute != PaneRestingRoute
         ) {
             detailNavigator.replaceAll(listOf(PaneRestingRoute))
         }
     }
 
-    val pendingDeepLink by MainActivity.pendingDeepLink.collectAsState()
-    LaunchedEffect(pendingDeepLink) {
-        val pending = pendingDeepLink ?: return@LaunchedEffect
-        when (pending) {
-            is DeepLink.Page -> handlePageChange(pending.destination)
-            // The pane renders a route for as long as one is open, even on the proxy tab (that tab
-            // only draws nodes while its pane sits at the resting route), so the link is visible
-            // without switching tabs first.
-            is DeepLink.Screen ->
-                navigator.openRoute(pending.route, detailNavigator.takeIf { usesSplitShell })
-        }
-        MainActivity.clearPendingDeepLink(pending)
-    }
-
     MainScreenBackHandler(
         mainPagerState = mainPagerState,
-        navigator = navigator,
-        detailNavigator = detailNavigator,
+        rootStack = rootStack,
+        detailStack = detailStack,
         splitShell = usesSplitShell,
         onPopDetail = { detailNavigator.pop() },
     )
@@ -206,7 +201,7 @@ fun MainScreen(
                     wallpaperBiasY = moeWallpaperBiasY,
                     pageProgress = pageModel.homeVisibility,
                 ),
-            detailNavigator = detailNavigator,
+            detailStack = detailStack,
             splitLeftFraction = splitLeftFraction,
             onSplitLeftFractionChange = onSplitLeftFractionChange,
             onOpenPanel = openNetworkPanel,
@@ -217,18 +212,15 @@ fun MainScreen(
 @Composable
 private fun MainScreenBackHandler(
     mainPagerState: MainPagerState,
-    navigator: Navigator,
-    detailNavigator: Navigator,
+    rootStack: RouteStack,
+    detailStack: RouteStack,
     splitShell: Boolean,
     onPopDetail: () -> Unit,
 ) {
-    // Both stacks are read behind derived states so a push inside a pane only invalidates this
-    // handler instead of the whole shell.
-    val canPopRoute by remember(navigator) { derivedStateOf { navigator.backStack.size > 1 } }
-    val canPopDetail by
-        remember(detailNavigator, splitShell) {
-            derivedStateOf { splitShell && detailNavigator.backStack.size > 1 }
-        }
+    val root by rootStack.value.subscribeAsState()
+    val detail by detailStack.value.subscribeAsState()
+    val canPopRoute = root.backStack.isNotEmpty()
+    val canPopDetail = splitShell && detail.backStack.isNotEmpty()
     val canReturnHome = mainPagerState.selectedPage != 0 && !canPopRoute && !canPopDetail
     // A route the split shell pushed into the detail pane closes before back is allowed to leave the
     // page, so the two handlers are never enabled at the same time.
@@ -265,10 +257,7 @@ internal fun MainRootPageContent(state: MainRootPageState) {
     val navigator = LocalNavigator.current
     val detailNavigator = LocalDetailNavigator.current
     val openRoutingFromProxy: () -> Unit = {
-        navigator.openRoute(
-            Route.RulesAndProviders(RulesProvidersTab.Rules),
-            detailNavigator,
-        )
+        (detailNavigator ?: navigator).push(Route.RulesAndProviders(RulesProvidersTab.Rules))
     }
     when (state.destination) {
         BottomBarDestination.Home -> {

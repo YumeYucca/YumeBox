@@ -61,7 +61,8 @@ fun SettingPager() {
     val versionInfo = "v${BuildInfo.BASE_VERSION}"
 
     // No persistent selected highlight on the list — opens should not leave a tint.
-    val openRoot: (Route) -> Unit = { route -> rootNavigator.openRoute(route, detailNavigator) }
+    val targetNavigator = detailNavigator ?: rootNavigator
+    val openRoot: (Route) -> Unit = { route -> targetNavigator.push(route) }
 
     SettingsMasterList(
         scrollBehavior = scrollBehavior,

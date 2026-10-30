@@ -32,15 +32,16 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
+import com.github.yumeyucca.yumebox.presentation.navigation.RouteStack
 import com.github.yumeyucca.yumebox.screen.rules.RulesProvidersTab
 import com.github.yumeyucca.yumebox.presentation.navigation.RouteStackHost
-import com.github.yumeyucca.yumebox.presentation.navigation.rememberRouteStack
 import com.github.yumeyucca.yumebox.presentation.theme.verticalBounceContentTransform
 import com.github.yumeyucca.yumebox.presentation.screen.ProxyShellNodeDetail
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
@@ -62,11 +63,12 @@ internal fun MainContentHost(
     tabs: BottomBarTabs,
     bottomBarVisible: Boolean,
     home: MoeHomeFrame,
-    detailNavigator: Navigator,
+    detailStack: RouteStack,
     splitLeftFraction: Float,
     onSplitLeftFractionChange: (Float) -> Unit,
     onOpenPanel: () -> Unit,
 ) {
+    val detailNavigator = detailStack.navigator
     val visibleBottomBarReservedHeight = rememberBottomBarReservedHeight()
     // The bar yields to scrolling, and the space it takes has to yield with it: reserving a full
     // bar's worth of padding while it is auto-hidden left a dead band under every list.
@@ -85,10 +87,6 @@ internal fun MainContentHost(
     // clips the rail clock and squeezes the panel against the divider (issue #151 items 1/3/8),
     // so the pager inside the pane always uses the tablet (card) home layout.
     val leftLayoutMode = WindowLayoutMode.RailSingle
-    // One detail stack for the whole screen: it must outlive the pane switch, otherwise every
-    // split↔compact toggle builds a new ChildStack subscribing to the same navigator.
-    val detailStack = rememberRouteStack(detailNavigator)
-
     if (windowLayoutMode.usesSplitShell) {
         DualPaneLayout(
             left = {
@@ -129,14 +127,13 @@ internal fun MainContentHost(
                     val openRoutingInPane: () -> Unit =
                         remember(detailNavigator) {
                             {
-                                detailNavigator.openRoute(
-                                    Route.RulesAndProviders(RulesProvidersTab.Rules),
-                                )
+                                detailNavigator.push(Route.RulesAndProviders(RulesProvidersTab.Rules))
                             }
                         }
+                    val detailChildStack by detailStack.value.subscribeAsState()
                     val showProxyNodes =
                         tabs.settled == BottomBarDestination.Proxy &&
-                            detailNavigator.backStack.lastOrNull() == PaneRestingRoute
+                            detailChildStack.active.configuration == PaneRestingRoute
                     AnimatedContent(
                         targetState = showProxyNodes,
                         modifier = Modifier.fillMaxSize(),

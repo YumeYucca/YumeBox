@@ -38,7 +38,7 @@ import com.github.yumeyucca.yumebox.screen.settings.backup.BackupRestoreScreen
 import com.github.yumeyucca.yumebox.screen.traffic.TrafficStatisticsScreen
 
 @Composable
-fun RouteContent(route: Route, navigator: Navigator) {
+internal fun RouteContent(route: Route, navigator: Navigator) {
     // TEMPORARY DIAGNOSTIC: names the page being composed when a crash happens.
     com.github.yumeyucca.yumebox.presentation.component.NavTrace.record("compose $route")
     when (route) {
@@ -46,9 +46,10 @@ fun RouteContent(route: Route, navigator: Navigator) {
             val args = LocalMainRouteArgs.current
             MainScreen(
                 navigator = navigator,
-                initialDestination = args.initialDestination(),
+                initialDestination = args.destination(),
                 onDestinationSettled = args.onDestinationSettled,
-                detailNavigator = args.detailNavigator,
+                rootStack = args.rootStack,
+                detailStack = args.detailStack,
             )
         }
 
