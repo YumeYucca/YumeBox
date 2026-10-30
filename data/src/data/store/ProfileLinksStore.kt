@@ -24,8 +24,8 @@ package com.github.yumeyucca.yumebox.data.store
 
 
 import com.tencent.mmkv.MMKV
+import com.github.yumeyucca.yumebox.core.util.LenientJson
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 @Serializable
 data class ProfileLink(
@@ -40,7 +40,7 @@ enum class LinkOpenMode {
 }
 
 class ProfileLinksStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = externalMmkv) {
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = LenientJson
 
     val linkOpenMode by enumFlow(LinkOpenMode.IN_APP)
 

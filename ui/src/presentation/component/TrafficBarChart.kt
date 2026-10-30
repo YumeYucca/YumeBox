@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -33,16 +32,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumeyucca.yumebox.common.util.formatBytes
+import com.github.yumeyucca.yumebox.common.util.ByteFormatter
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleBackground
@@ -66,15 +63,10 @@ fun TrafficBarChart(
     items: List<BarChartItem>,
     modifier: Modifier = Modifier,
     animationKey: Any? = null,
-    maxDisplayValue: Long? = null,
     averageValue: Long? = null,
     averageLabel: String? = null,
     showSelectionTip: Boolean = false,
     tipTitleFor: (BarChartItem) -> String = { it.label },
-    onItemClick: ((Int) -> Unit)? = null,
-    selectedIndex: Int = -1,
-    barColor: Color = MiuixTheme.colorScheme.primary,
-    highlightColor: Color = MiuixTheme.colorScheme.primary,
     chartHeight: Dp = AppTheme.sizes.trafficBarChartHeight,
     barWidth: Dp = AppTheme.sizes.trafficBarWidth,
 ) {
@@ -84,8 +76,7 @@ fun TrafficBarChart(
     val displayItems = items.ifEmpty { listOf(BarChartItem("", 0L)) }
     val slotCount = displayItems.size
     val safeMaxValue =
-        (maxDisplayValue
-            ?: maxOf(displayItems.maxOfOrNull(BarChartItem::value) ?: 0L, averageValue ?: 0L))
+        maxOf(displayItems.maxOfOrNull(BarChartItem::value) ?: 0L, averageValue ?: 0L)
             .coerceAtLeast(1L)
     val hasTraffic = displayItems.any { it.value > 0L }
 
@@ -108,9 +99,7 @@ fun TrafficBarChart(
     var internalSelectedIndex by
     remember(animationKey, slotCount) { mutableIntStateOf(defaultIndex) }
     val activeIndex =
-        selectedIndex.takeIf { it in displayItems.indices }
-            ?: internalSelectedIndex.takeIf { it in displayItems.indices }
-            ?: defaultIndex
+        internalSelectedIndex.takeIf { it in displayItems.indices } ?: defaultIndex
     val averageFraction =
         averageValue
             ?.takeIf { it > 0L }
@@ -120,6 +109,9 @@ fun TrafficBarChart(
     val verticalGridColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.24f)
     val guideColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.28f)
     val labelColor = MiuixTheme.colorScheme.onSurfaceVariantSummary
+    // One ramp for every bar: the selected bar is the full-strength primary, the rest sit just
+    // under it, so selection reads as emphasis rather than as a second series.
+    val barColor = MiuixTheme.colorScheme.primary
     val averageLineColor = MiuixTheme.colorScheme.primary.copy(alpha = 0.48f)
     val tipBubbleHeight = 60.dp
     val tipHeight = if (showSelectionTip) 72.dp else 0.dp
@@ -216,7 +208,6 @@ fun TrafficBarChart(
                                         interactionSource = remember { MutableInteractionSource() },
                                     ) {
                                         internalSelectedIndex = index
-                                        onItemClick?.invoke(index)
                                     },
                             contentAlignment = Alignment.BottomCenter,
                         ) {
@@ -228,7 +219,7 @@ fun TrafficBarChart(
                                             .fillMaxHeight(heightFraction)
                                             .squircleBackground(
                                                 if (index == activeIndex && showSelectionTip) {
-                                                    highlightColor
+                                                    barColor
                                                 } else {
                                                     barColor.copy(alpha = 0.92f)
                                                 },
@@ -252,8 +243,8 @@ fun TrafficBarChart(
                         .align(Alignment.BottomEnd)
                         .padding(start = spacing.space8)
             ) {
-                ScaleLabel(formatBytes(safeMaxValue), Modifier.align(Alignment.TopStart))
-                ScaleLabel(formatBytes(safeMaxValue / 2), Modifier.align(Alignment.CenterStart))
+                ScaleLabel(ByteFormatter.format(safeMaxValue), Modifier.align(Alignment.TopStart))
+                ScaleLabel(ByteFormatter.format(safeMaxValue / 2), Modifier.align(Alignment.CenterStart))
                 ScaleLabel("0", Modifier.align(Alignment.BottomStart))
 
                 if (averageFraction != null && !averageLabel.isNullOrBlank()) {
@@ -300,7 +291,7 @@ fun TrafficBarChart(
                             maxLines = 1,
                         )
                         Text(
-                            text = formatBytes(selectedItem.value),
+                            text = ByteFormatter.format(selectedItem.value),
                             style = MiuixTheme.textStyles.body2,
                             color = MiuixTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.SemiBold,

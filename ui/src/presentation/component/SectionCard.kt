@@ -22,12 +22,11 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 
+/** Section title plus the card that follows it; the two always travel together. */
 @Composable
-fun SectionCard(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun SectionCard(title: String, content: @Composable () -> Unit) {
     Title(title)
-    AppCard(modifier = modifier) { content() }
+    AppCard { content() }
 }

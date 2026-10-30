@@ -29,7 +29,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -118,7 +117,7 @@ class ApiClient(
         if (response.isBlank()) return JsonNull
         return try {
             json.parseToJsonElement(response)
-        } catch (error: Throwable) {
+        } catch (error: Exception) { // fault barrier: any parse failure must surface as a protocol error
             throw ApiProtocolException(error)
         }
     }

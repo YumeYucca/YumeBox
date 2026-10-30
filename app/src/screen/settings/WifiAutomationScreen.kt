@@ -11,150 +11,38 @@
 
 package com.github.yumeyucca.yumebox.screen.settings
 
-import android.Manifest
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import androidx.core.location.LocationManagerCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.WifiAutomationAction
 import com.github.yumeyucca.yumebox.data.model.WifiAutomationFallbackAction
-import com.github.yumeyucca.yumebox.data.model.WifiAutomationRule
 import com.github.yumeyucca.yumebox.presentation.component.*
-import com.github.yumeyucca.yumebox.presentation.icon.Yume
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Wifi
-import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.RadioButton
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference as WindowDropdownPreference
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private enum class WifiPermissionAction { Enable, Scan }
-
-/** Inline section of the VpnService configuration page. It deliberately has no separate route. */
+/**
+ * Inline section of the VpnService configuration page. It deliberately has no separate route.
+ *
+ * It only collects state, remembers the permission flow and renders: the choreography of asking for
+ * location access lives in [WifiPermissionFlow].
+ */
 @Composable
 fun WifiAutomationSettingsSection() {
     val context = LocalContext.current
-    val activity = context as? Activity
     val viewModel = koinViewModel<WifiAutomationViewModel>()
     val state by viewModel.uiState.collectAsState()
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var pendingAction by remember { mutableStateOf<WifiPermissionAction?>(null) }
+    val permissionFlow =
+        rememberWifiPermissionFlow(
+            context = context,
+            locationRequested = { state.locationRequested },
+            onEnable = viewModel::enable,
+            onScan = viewModel::scanWifi,
+            onPermissionAsked = viewModel::markLocationPermissionRequested,
+        )
     var scanSheetVisible by remember { mutableStateOf(false) }
     var editSheetVisible by remember { mutableStateOf(false) }
-    var showPermissionExplanation by remember { mutableStateOf(false) }
-    var showApproximateLocation by remember { mutableStateOf(false) }
-    var showPermissionDenied by remember { mutableStateOf(false) }
-    var showPermissionSettings by remember { mutableStateOf(false) }
-    var showLocationSettings by remember { mutableStateOf(false) }
-
-    fun completePendingAction() {
-        when (pendingAction) {
-            WifiPermissionAction.Enable -> viewModel.enable()
-            WifiPermissionAction.Scan -> viewModel.scanWifi()
-            null -> Unit
-        }
-        pendingAction = null
-    }
-
-    fun hasSsidPermission(): Boolean =
-        when {
-            Build.VERSION.SDK_INT <= Build.VERSION_CODES.O -> true
-            Build.VERSION.SDK_INT <= Build.VERSION_CODES.P -> hasPermission(
-                context,
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-            ) || hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-
-            else -> hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-        }
-
-    fun systemLocationEnabled(): Boolean =
-        Build.VERSION.SDK_INT <= Build.VERSION_CODES.O ||
-            LocationManagerCompat.isLocationEnabled(
-                context.getSystemService(android.location.LocationManager::class.java)
-            )
-
-    val locationSettingsLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (pendingAction != null && systemLocationEnabled()) {
-                if (hasSsidPermission()) completePendingAction() else showPermissionExplanation = true
-            }
-        }
-    val appSettingsLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (pendingAction != null && hasSsidPermission() && systemLocationEnabled()) {
-                completePendingAction()
-            }
-        }
-    val permissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-            if (hasSsidPermission()) {
-                completePendingAction()
-            } else if (
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                    hasPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-            ) {
-                showApproximateLocation = true
-            } else {
-                val permission = requiredLocationPermissions().last()
-                if (activity?.shouldShowRequestPermissionRationale(permission) == false) {
-                    showPermissionSettings = true
-                } else {
-                    showPermissionDenied = true
-                }
-            }
-        }
-
-    fun requestSsidAccess(action: WifiPermissionAction) {
-        pendingAction = action
-        when {
-            Build.VERSION.SDK_INT > Build.VERSION_CODES.O && !systemLocationEnabled() -> {
-                showLocationSettings = true
-            }
-
-            hasSsidPermission() -> completePendingAction()
-            state.locationRequested &&
-                activity?.shouldShowRequestPermissionRationale(requiredLocationPermissions().last()) == false -> {
-                showPermissionSettings = true
-            }
-
-            else -> showPermissionExplanation = true
-        }
-    }
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
@@ -170,482 +58,181 @@ fun WifiAutomationSettingsSection() {
         }
     }
 
-    DisposableEffect(lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refreshProfiles()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    // Profiles can be added or renamed on another screen, so the picker is rebuilt on every resume.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshProfiles()
+        onPauseOrDispose { }
     }
 
+    WifiAutomationToggleSection(
+        checked = state.enabled,
+        onCheckedChange = { enabled ->
+            if (enabled) permissionFlow.request(WifiPermissionAction.Enable) else viewModel.disable()
+        },
+    )
+    WifiNameSection(
+        onAddManual = {
+            viewModel.resetScan()
+            scanSheetVisible = true
+            permissionFlow.request(WifiPermissionAction.Scan)
+        },
+        onEditRules = { editSheetVisible = true },
+    )
+    WifiNetworkChangeSection(state = state, viewModel = viewModel)
+
+    WifiAutomationSheetHosts(
+        scanVisible = scanSheetVisible,
+        onScanVisibleChange = { scanSheetVisible = it },
+        editVisible = editSheetVisible,
+        onEditVisibleChange = { editSheetVisible = it },
+        state = state,
+        viewModel = viewModel,
+    )
+
+    WifiPermissionDialog(
+        show = permissionFlow.promptVisible,
+        prompt = permissionFlow.prompt,
+        onDismissRequest = permissionFlow::dismissPrompt,
+        onConfirm = permissionFlow::onPromptConfirmed,
+    )
+}
+
+/** The master switch, which routes through the permission flow before enabling. */
+@Composable
+private fun WifiAutomationToggleSection(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
     Title(YumeTxt.NetworkSettings.WifiAutomation.Title)
     AppCard {
         PreferenceSwitchItem(
             title = YumeTxt.NetworkSettings.WifiAutomation.EnabledTitle,
-            checked = state.enabled,
-            onCheckedChange = { enabled ->
-                if (enabled) requestSsidAccess(WifiPermissionAction.Enable) else viewModel.disable()
-            },
+            checked = checked,
+            onCheckedChange = onCheckedChange,
         )
     }
+}
+
+/** The two Wi-Fi name entries: add/scan for a network, or edit the stored rules. */
+@Composable
+private fun WifiNameSection(
+    onAddManual: () -> Unit,
+    onEditRules: () -> Unit,
+) {
     Title(YumeTxt.NetworkSettings.WifiAutomation.WifiNameHeading)
     AppCard {
         PreferenceArrowItem(
             title = YumeTxt.NetworkSettings.WifiAutomation.ManualDialogTitle,
-            onClick = {
-                viewModel.resetScan()
-                scanSheetVisible = true
-                requestSsidAccess(WifiPermissionAction.Scan)
-            },
+            onClick = onAddManual,
         )
         PreferenceArrowItem(
             title = YumeTxt.NetworkSettings.WifiAutomation.EditDialogTitle,
-            onClick = { editSheetVisible = true },
+            onClick = onEditRules,
         )
     }
+}
+
+/** What to do when the other known Wi-Fi or no Wi-Fi is seen. */
+@Composable
+private fun WifiNetworkChangeSection(
+    state: WifiAutomationViewModel.UiState,
+    viewModel: WifiAutomationViewModel,
+) {
     Title(YumeTxt.NetworkSettings.WifiAutomation.NetworkChangeSection)
     AppCard {
-        PreferenceEnumItem(
+        WifiFallbackActionPreference(
             title = YumeTxt.NetworkSettings.WifiAutomation.OtherWifiTitle,
-            currentValue = state.otherWifiAction,
-            items = fallbackActionLabels(),
-            values = WifiAutomationFallbackAction.entries,
-            onValueChange = viewModel::changeOtherWifiAction,
+            action = state.otherWifiAction,
+            profileUuid = state.otherWifiProfileUuid,
+            profiles = state.profiles,
+            onActionChange = viewModel::changeOtherWifiAction,
+            onProfileUuidChange = viewModel::changeOtherWifiProfileUuid,
         )
-        if (state.otherWifiAction == WifiAutomationFallbackAction.Start) {
-            WifiProfileSwitchSelector(
-                profiles = state.profiles,
-                profileUuid = state.otherWifiProfileUuid,
-                onProfileUuidChange = viewModel::changeOtherWifiProfileUuid,
-            )
-        }
-        PreferenceEnumItem(
+        WifiFallbackActionPreference(
             title = YumeTxt.NetworkSettings.WifiAutomation.NoWifiTitle,
-            currentValue = state.noWifiAction,
-            items = fallbackActionLabels(),
-            values = WifiAutomationFallbackAction.entries,
-            onValueChange = viewModel::changeNoWifiAction,
+            action = state.noWifiAction,
+            profileUuid = state.noWifiProfileUuid,
+            profiles = state.profiles,
+            onActionChange = viewModel::changeNoWifiAction,
+            onProfileUuidChange = viewModel::changeNoWifiProfileUuid,
         )
-        if (state.noWifiAction == WifiAutomationFallbackAction.Start) {
-            WifiProfileSwitchSelector(
-                profiles = state.profiles,
-                profileUuid = state.noWifiProfileUuid,
-                onProfileUuidChange = viewModel::changeNoWifiProfileUuid,
-            )
-        }
     }
+}
 
+/** The scan and rule-edit bottom sheets, both driven by the screen's visibility flags. */
+@Composable
+private fun WifiAutomationSheetHosts(
+    scanVisible: Boolean,
+    onScanVisibleChange: (Boolean) -> Unit,
+    editVisible: Boolean,
+    onEditVisibleChange: (Boolean) -> Unit,
+    state: WifiAutomationViewModel.UiState,
+    viewModel: WifiAutomationViewModel,
+) {
     WifiScanSheet(
-        show = scanSheetVisible,
-        scannedNetworks = state.scannedNetworks,
+        show = scanVisible,
+        phase = state.scanPhase,
         profiles = state.profiles,
-        isScanning = state.isScanning,
-        scanCompleted = state.scanCompleted,
-        scanUnavailable = state.scanUnavailable,
-        onDismiss = { scanSheetVisible = false },
+        onDismiss = { onScanVisibleChange(false) },
         onDismissFinished = viewModel::resetScan,
         onConfirm = { ssid, action, profileUuid ->
             viewModel.addManualSsid(ssid, action, profileUuid)
-            scanSheetVisible = false
+            onScanVisibleChange(false)
         },
     )
 
     WifiRuleEditSheet(
-        show = editSheetVisible,
+        show = editVisible,
         rules = state.rules,
         profiles = state.profiles,
-        onDismiss = { editSheetVisible = false },
+        onDismiss = { onEditVisibleChange(false) },
         onConfirm = { ssid, action, profileUuid ->
             viewModel.changeRuleAction(ssid, action, profileUuid)
-            editSheetVisible = false
+            onEditVisibleChange(false)
         },
         onDelete = viewModel::removeRule,
     )
-
-    AppConfirmDialog(
-        show = showPermissionExplanation,
-        title = YumeTxt.NetworkSettings.WifiAutomation.PermissionTitle,
-        message = YumeTxt.NetworkSettings.WifiAutomation.PermissionMessage,
-        onDismissRequest = {
-            pendingAction = null
-            showPermissionExplanation = false
-        },
-        onConfirm = {
-            showPermissionExplanation = false
-            viewModel.markLocationPermissionRequested()
-            permissionLauncher.launch(requiredLocationPermissions())
-        },
-        confirmText = YumeTxt.NetworkSettings.WifiAutomation.Grant,
-    )
-    AppConfirmDialog(
-        show = showApproximateLocation,
-        title = YumeTxt.NetworkSettings.WifiAutomation.ApproximateTitle,
-        message = YumeTxt.NetworkSettings.WifiAutomation.ApproximateMessage,
-        onDismissRequest = {
-            pendingAction = null
-            showApproximateLocation = false
-        },
-        onConfirm = {
-            showApproximateLocation = false
-            permissionLauncher.launch(requiredLocationPermissions())
-        },
-        confirmText = YumeTxt.NetworkSettings.WifiAutomation.Grant,
-    )
-    AppConfirmDialog(
-        show = showPermissionDenied,
-        title = YumeTxt.NetworkSettings.WifiAutomation.DeniedTitle,
-        message = YumeTxt.NetworkSettings.WifiAutomation.DeniedMessage,
-        onDismissRequest = {
-            pendingAction = null
-            showPermissionDenied = false
-        },
-        onConfirm = {
-            showPermissionDenied = false
-            showPermissionExplanation = true
-        },
-        confirmText = YumeTxt.NetworkSettings.WifiAutomation.Grant,
-    )
-    AppConfirmDialog(
-        show = showPermissionSettings,
-        title = YumeTxt.NetworkSettings.WifiAutomation.SettingsTitle,
-        message = YumeTxt.NetworkSettings.WifiAutomation.SettingsMessage,
-        onDismissRequest = {
-            pendingAction = null
-            showPermissionSettings = false
-        },
-        onConfirm = {
-            showPermissionSettings = false
-            appSettingsLauncher.launch(
-                Intent(
-                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                    Uri.fromParts("package", context.packageName, null),
-                )
-            )
-        },
-        confirmText = YumeTxt.NetworkSettings.WifiAutomation.OpenSettings,
-    )
-    AppConfirmDialog(
-        show = showLocationSettings,
-        title = YumeTxt.NetworkSettings.WifiAutomation.LocationTitle,
-        message = YumeTxt.NetworkSettings.WifiAutomation.LocationMessage,
-        onDismissRequest = {
-            pendingAction = null
-            showLocationSettings = false
-        },
-        onConfirm = {
-            showLocationSettings = false
-            locationSettingsLauncher.launch(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-        },
-        confirmText = YumeTxt.NetworkSettings.WifiAutomation.TurnOnLocation,
-    )
 }
 
+/**
+ * One fallback-action preference plus, for [WifiAutomationFallbackAction.Start], the profile it
+ * switches to. This is the only place that knows "start needs a target profile".
+ */
 @Composable
-private fun WifiScanSheet(
-    show: Boolean,
-    scannedNetworks: List<com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidNetwork>,
+private fun WifiFallbackActionPreference(
+    title: String,
+    action: WifiAutomationFallbackAction,
+    profileUuid: String?,
     profiles: List<Profile>,
-    isScanning: Boolean,
-    scanCompleted: Boolean,
-    scanUnavailable: Boolean,
-    onDismiss: () -> Unit,
-    onDismissFinished: () -> Unit,
-    onConfirm: (ssid: String, action: WifiAutomationAction, profileUuid: String?) -> Unit,
+    onActionChange: (WifiAutomationFallbackAction) -> Unit,
+    onProfileUuidChange: (String?) -> Unit,
 ) {
-    val spacing = AppTheme.spacing
-    var selectedSsid by remember { mutableStateOf<String?>(null) }
-    var action by remember { mutableStateOf(WifiAutomationAction.Start) }
-    var profileUuid by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(show) {
-        if (show) {
-            selectedSsid = null
-            action = WifiAutomationAction.Start
-            profileUuid = null
-        }
-    }
-
-    AppActionBottomSheet(
-        show = show,
-        title = YumeTxt.NetworkSettings.WifiAutomation.ManualDialogTitle,
-        startAction = { AppBottomSheetCloseAction(onClick = onDismiss) },
-        endAction = {
-            AppBottomSheetConfirmAction(
-                enabled = selectedSsid != null,
-                onClick = { selectedSsid?.let { onConfirm(it, action, profileUuid) } },
-            )
-        },
-        onDismissRequest = onDismiss,
-        onDismissFinished = onDismissFinished,
-        insideMargin = DpSize(UiDp.dp12, UiDp.dp8),
-        enableNestedScroll = true,
-        scrollableContent = true,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .animateContentSize(),
-            verticalArrangement = Arrangement.spacedBy(spacing.space16),
-        ) {
-            when {
-                isScanning -> {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 176.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(
-                            spacing.space12,
-                            Alignment.CenterVertically,
-                        ),
-                    ) {
-                        InfiniteProgressIndicator(modifier = Modifier.size(32.dp))
-                        Text(
-                            text = YumeTxt.NetworkSettings.WifiAutomation.Scanning,
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-
-                scanUnavailable -> BasicComponent(title = YumeTxt.NetworkSettings.WifiAutomation.ScanUnavailable)
-                scanCompleted && scannedNetworks.isEmpty() ->
-                    BasicComponent(title = YumeTxt.NetworkSettings.WifiAutomation.ScanEmpty)
-
-                scannedNetworks.isNotEmpty() -> {
-                    AnimatedVisibility(
-                        visible = selectedSsid != null,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically(),
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(spacing.space16)) {
-                            AppCard {
-                                WindowDropdownPreference(
-                                    title = YumeTxt.NetworkSettings.WifiAutomation.ActionTitle,
-                                    items = listOf(
-                                        YumeTxt.NetworkSettings.WifiAutomation.StartAction,
-                                        YumeTxt.NetworkSettings.WifiAutomation.StopAction,
-                                    ),
-                                    selectedIndex = if (action == WifiAutomationAction.Start) 0 else 1,
-                                    onSelectedIndexChange = { index ->
-                                        action =
-                                            if (index == 0) {
-                                                WifiAutomationAction.Start
-                                            } else {
-                                                WifiAutomationAction.Stop
-                                            }
-                                    },
-                                )
-                            }
-                            if (action == WifiAutomationAction.Start) {
-                                AppCard {
-                                    WifiProfileSwitchSelector(
-                                        profiles = profiles,
-                                        profileUuid = profileUuid,
-                                        onProfileUuidChange = { profileUuid = it },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    AppCard {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp),
-                        ) {
-                            items(scannedNetworks, key = { it.ssid }) { network ->
-                                BasicComponent(
-                                    title = network.ssid,
-                                    summary = network.label,
-                                    onClick = { selectedSsid = network.ssid },
-                                    startAction = {
-                                        Icon(
-                                            modifier = Modifier.padding(end = UiDp.dp8),
-                                            imageVector = Yume.Wifi,
-                                            contentDescription = null,
-                                        )
-                                    },
-                                    endActions = {
-                                        RadioButton(
-                                            selected = selectedSsid == network.ssid,
-                                            onClick = { selectedSsid = network.ssid },
-                                        )
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    PreferenceEnumItem(
+        title = title,
+        currentValue = action,
+        values = WifiAutomationFallbackAction.entries,
+        onValueChange = onActionChange,
+        label = ::fallbackActionLabel,
+    )
+    if (action == WifiAutomationFallbackAction.Start) {
+        WifiProfileSwitchSelector(
+            profiles = profiles,
+            profileUuid = profileUuid,
+            onProfileUuidChange = onProfileUuidChange,
+        )
     }
 }
 
-@Composable
-private fun WifiRuleEditSheet(
-    show: Boolean,
-    rules: List<WifiAutomationRule>,
-    profiles: List<Profile>,
-    onDismiss: () -> Unit,
-    onConfirm: (ssid: String, action: WifiAutomationAction, profileUuid: String?) -> Unit,
-    onDelete: (ssid: String) -> Unit,
-) {
-    val spacing = AppTheme.spacing
-    var selectedSsid by remember { mutableStateOf<String?>(null) }
-    var action by remember { mutableStateOf(WifiAutomationAction.Start) }
-    var profileUuid by remember { mutableStateOf<String?>(null) }
-    val selectedRule = rules.firstOrNull { it.ssid == selectedSsid }
-
-    LaunchedEffect(show) {
-        if (show) selectedSsid = null
-    }
-    LaunchedEffect(selectedRule) {
-        selectedRule?.let { rule ->
-            action = rule.action
-            profileUuid = rule.profileUuid
-        }
-    }
-
-    AppActionBottomSheet(
-        show = show,
-        title = YumeTxt.NetworkSettings.WifiAutomation.EditDialogTitle,
-        startAction = { AppBottomSheetCloseAction(onClick = onDismiss) },
-        endAction = {
-            AppBottomSheetConfirmAction(
-                enabled = selectedRule != null,
-                onClick = { selectedRule?.let { onConfirm(it.ssid, action, profileUuid) } },
-            )
-        },
-        onDismissRequest = onDismiss,
-        insideMargin = DpSize(UiDp.dp12, UiDp.dp8),
-        enableNestedScroll = true,
-        scrollableContent = true,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(bottom = UiDp.dp16),
-            verticalArrangement = Arrangement.spacedBy(spacing.space12),
-        ) {
-            AnimatedVisibility(
-                visible = selectedRule != null,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(spacing.space12)) {
-                    AppCard {
-                        WindowDropdownPreference(
-                            title = YumeTxt.NetworkSettings.WifiAutomation.ActionTitle,
-                            items = listOf(
-                                YumeTxt.NetworkSettings.WifiAutomation.StartAction,
-                                YumeTxt.NetworkSettings.WifiAutomation.StopAction,
-                            ),
-                            selectedIndex = if (action == WifiAutomationAction.Start) 0 else 1,
-                            onSelectedIndexChange = { index ->
-                                action =
-                                    if (index == 0) WifiAutomationAction.Start else WifiAutomationAction.Stop
-                            },
-                        )
-                    }
-                    if (action == WifiAutomationAction.Start) {
-                        AppCard {
-                            WifiProfileSwitchSelector(
-                                profiles = profiles,
-                                profileUuid = profileUuid,
-                                onProfileUuidChange = { profileUuid = it },
-                            )
-                        }
-                    }
-                }
-            }
-            if (rules.isEmpty()) {
-                BasicComponent(title = YumeTxt.NetworkSettings.WifiAutomation.EmptyRules)
-            } else {
-                AppCard {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp),
-                    ) {
-                        items(rules, key = { it.ssid }) { rule ->
-                            BasicComponent(
-                                title = rule.ssid,
-                                summary = actionLabel(rule.action),
-                                onClick = { selectedSsid = rule.ssid },
-                                startAction = {
-                                    Icon(
-                                        modifier = Modifier.padding(end = UiDp.dp8),
-                                        imageVector = Yume.Wifi,
-                                        contentDescription = null,
-                                    )
-                                },
-                                endActions = {
-                                    RadioButton(
-                                        selected = selectedSsid == rule.ssid,
-                                        onClick = { selectedSsid = rule.ssid },
-                                    )
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-            AnimatedVisibility(
-                visible = selectedRule != null,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
-                TextButton(
-                    text = YumeTxt.Component.ProfileCard.Delete,
-                    onClick = {
-                        selectedRule?.let { onDelete(it.ssid) }
-                        selectedSsid = null
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.textButtonColors(textColor = MiuixTheme.colorScheme.error),
-                )
-            }
-        }
-    }
-}
-
-private fun actionLabel(action: WifiAutomationAction): String =
+/** Label of one rule action; the fallback actions reuse the same two verbs. */
+internal fun actionLabel(action: WifiAutomationAction): String =
     when (action) {
         WifiAutomationAction.Start -> YumeTxt.NetworkSettings.WifiAutomation.StartAction
         WifiAutomationAction.Stop -> YumeTxt.NetworkSettings.WifiAutomation.StopAction
     }
 
-@Composable
-private fun WifiProfileSwitchSelector(
-    profiles: List<Profile>,
-    profileUuid: String?,
-    onProfileUuidChange: (String?) -> Unit,
-) {
-    val items = remember(profiles) {
-        listOf(YumeTxt.NetworkSettings.WifiAutomation.NoSwitchAction) + profiles.map { it.name }
-    }
-    val selectedIndex = profiles.indexOfFirst { it.uuid.toString() == profileUuid } + 1
-
-    WindowDropdownPreference(
-        title = YumeTxt.NetworkSettings.WifiAutomation.ProfileAction,
-        items = items,
-        selectedIndex = selectedIndex,
-        onSelectedIndexChange = { index -> onProfileUuidChange(profiles.getOrNull(index - 1)?.uuid?.toString()) },
-    )
-}
-
-@Composable
-private fun fallbackActionLabels() =
-    listOf(
-        YumeTxt.NetworkSettings.WifiAutomation.KeepAction,
-        YumeTxt.NetworkSettings.WifiAutomation.StartAction,
-        YumeTxt.NetworkSettings.WifiAutomation.StopAction,
-    )
-
-private fun hasPermission(context: Context, permission: String): Boolean =
-    ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-
-private fun requiredLocationPermissions(): Array<String> =
-    when {
-        Build.VERSION.SDK_INT <= Build.VERSION_CODES.O -> emptyArray()
-        Build.VERSION.SDK_INT <= Build.VERSION_CODES.P -> arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION)
-        Build.VERSION.SDK_INT <= Build.VERSION_CODES.R -> arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
-        else -> arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
+private fun fallbackActionLabel(action: WifiAutomationFallbackAction): String =
+    when (action) {
+        WifiAutomationFallbackAction.Keep -> YumeTxt.NetworkSettings.WifiAutomation.KeepAction
+        WifiAutomationFallbackAction.Start -> actionLabel(WifiAutomationAction.Start)
+        WifiAutomationFallbackAction.Stop -> actionLabel(WifiAutomationAction.Stop)
     }

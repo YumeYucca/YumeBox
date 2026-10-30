@@ -30,7 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-fun WebViewScreen(initialUrl: String, onBack: (() -> Unit)? = null) {
+fun WebViewScreen(initialUrl: String) {
     val context = LocalContext.current
     val activity = context as? Activity
     var webView by remember { mutableStateOf<WebView?>(null) }
@@ -40,7 +40,7 @@ fun WebViewScreen(initialUrl: String, onBack: (() -> Unit)? = null) {
         if (currentWebView?.canGoBack() == true) {
             currentWebView.goBack()
         } else {
-            onBack?.invoke() ?: activity?.finish()
+            activity?.finish()
         }
     }
 

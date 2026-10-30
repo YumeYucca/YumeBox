@@ -21,6 +21,17 @@
 package com.github.yumeyucca.yumebox.common.util
 
 import com.github.yumeyucca.yumebox.core.util.scaleBytes
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+
+/** A formatted byte count split into its number and unit, so UIs can style the unit separately. */
+data class FormattedBytes(
+    val value: String,
+    val unit: String,
+)
 
 object ByteFormatter {
     private val SI_UNITS = arrayOf("B", "KB", "MB", "GB", "TB", "PB")
@@ -42,13 +53,13 @@ object ByteFormatter {
     }
 
     @JvmStatic
-    fun formatForDisplay(bytes: Long, isSpeed: Boolean = false): Pair<String, String> {
+    fun formatForDisplay(bytes: Long, isSpeed: Boolean = false): FormattedBytes {
         val suffix = if (isSpeed) "/s" else ""
         val scaled = scaleBytes(bytes, maxRank = 3)
         return when (scaled.rank) {
-            0 -> Pair("${bytes.coerceAtLeast(0L)}", "B$suffix")
-            3 -> Pair("%.2f".format(scaled.value), "GB$suffix")
-            else -> Pair(adaptive(scaled.value), "${SI_UNITS[scaled.rank]}$suffix")
+            0 -> FormattedBytes("${bytes.coerceAtLeast(0L)}", "B$suffix")
+            3 -> FormattedBytes("%.2f".format(scaled.value), "GB$suffix")
+            else -> FormattedBytes(adaptive(scaled.value), "${SI_UNITS[scaled.rank]}$suffix")
         }
     }
 
@@ -57,8 +68,25 @@ object ByteFormatter {
         if (num < 10) "%.1f".format(num) else "%.0f".format(num)
 }
 
-fun formatBytes(bytes: Long): String = ByteFormatter.format(bytes)
+private val dateTimeFormatters = ConcurrentHashMap<String, DateTimeFormatter>()
 
-fun formatSpeed(bytesPerSecond: Long): String = ByteFormatter.formatSpeed(bytesPerSecond)
+/**
+ * Formats [epochMillis] with [pattern] in the device's zone and locale.
+ *
+ * Formatters are cached per pattern: the call sites sit in list rows, and building a
+ * [DateTimeFormatter] (or the older `SimpleDateFormat`) per row shows up in traces.
+ */
+fun formatDateTime(
+    epochMillis: Long,
+    pattern: String,
+): String {
+    val formatter =
+        dateTimeFormatters.computeIfAbsent(pattern) {
+            DateTimeFormatter.ofPattern(it, Locale.getDefault())
+        }
+    return formatter.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+}
 
-fun formatBytesForDisplay(bytes: Long): Pair<String, String> = ByteFormatter.formatForDisplay(bytes)
+/** Date-only form of [formatDateTime]; the ISO `yyyy-MM-dd` shape used for expiries. */
+fun formatEpochDate(epochMillis: Long): String =
+    Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate().toString()

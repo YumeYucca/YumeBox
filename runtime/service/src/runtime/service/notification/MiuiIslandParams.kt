@@ -26,7 +26,7 @@ import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 /**
  * Builds the HyperOS Super Island payload that the system reads from the `miui.focus.param`
- * notification extra: base info (profile and subscription line), a hint block for the expanded area
+ * notification extra: base info (the configured notification lines), a hint block for the expanded area
  * (current node and compact traffic text) and the island area definitions.
  */
 object MiuiIslandParams {
@@ -74,7 +74,7 @@ object MiuiIslandParams {
                     JSONObject().apply {
                         put("type", 2)
                         put("title", profileName)
-                        // One line under the title: usage and expiry joined with "|".
+                        // Second notification line selected in the notification settings.
                         put("content", usageText)
                         put("subTitle", "")
                         put("extraTitle", "")
@@ -166,8 +166,8 @@ object MiuiIslandParams {
                                     "picInfo",
                                     JSONObject().apply {
                                         put("type", 1)
-                                        put("pic", "miui.focus.pic_small")
-                                        put("picDark", "miui.focus.pic_small_dark")
+                                        put("pic", HyperOsIsland.PIC_SMALL)
+                                        put("picDark", HyperOsIsland.PIC_SMALL_DARK)
                                     },
                                 )
                             },

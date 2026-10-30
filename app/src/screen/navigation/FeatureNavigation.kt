@@ -34,13 +34,19 @@ import com.github.yumeyucca.yumebox.screen.feature.PanelShortcutDialog
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
+/** What the panel-shortcut dialog is being opened for. */
+@Immutable
+private data class PanelShortcutRequest(val url: String, val label: String)
+
 @Composable
 fun FeatureScreen(navigator: Navigator) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val remoteControllerStore = koinInject<RemoteControllerStore>()
 
-    var shortcutTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
+    // The payload outlives the dialog: the sheet keeps drawing while it animates out, so it may
+    // only be cleared from [PanelShortcutDialog.onDismissFinished].
+    var shortcutRequest by remember { mutableStateOf<PanelShortcutRequest?>(null) }
     var shortcutDialogVisible by remember { mutableStateOf(false) }
 
     FeatureContent(
@@ -48,24 +54,29 @@ fun FeatureScreen(navigator: Navigator) {
         onCreatePanelShortcut = { url, label ->
             val targetUrl =
                 remoteControllerStore.activeBackend()?.let { buildRemotePanelUrl(url, it) } ?: url
-            shortcutTarget = targetUrl to label
+            shortcutRequest = PanelShortcutRequest(url = targetUrl, label = label)
             shortcutDialogVisible = true
         },
     )
 
-    shortcutTarget?.let { (url, label) ->
+    shortcutRequest?.let { request ->
         PanelShortcutDialog(
             show = shortcutDialogVisible,
-            url = url,
-            defaultLabel = label,
+            url = request.url,
+            defaultLabel = request.label,
             onDismiss = { shortcutDialogVisible = false },
             onConfirm = { name, iconUri ->
                 scope.launch {
-                    DashboardShortcutHelper.createPanelShortcut(context, url, name, iconUri)
+                    DashboardShortcutHelper.createPanelShortcut(
+                        context = context,
+                        url = request.url,
+                        label = name,
+                        iconUri = iconUri,
+                    )
                 }
                 shortcutDialogVisible = false
             },
-            onDismissFinished = { shortcutTarget = null },
+            onDismissFinished = { shortcutRequest = null },
         )
     }
 }

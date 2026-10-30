@@ -21,14 +21,8 @@
 package com.github.yumeyucca.yumebox.screen.profiles
 
 import com.github.yumeyucca.yumebox.core.model.FetchStatus
-import com.github.yumeyucca.yumebox.core.presentation.LoadableState
+import com.github.yumeyucca.yumebox.presentation.base.LoadableState
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-
-sealed interface ProfilesUiEffect {
-    data class ShowMessage(val message: String) : ProfilesUiEffect
-
-    data class ShowError(val message: String) : ProfilesUiEffect
-}
 
 data class ProfilesUiState(
     override val isLoading: Boolean = false,
@@ -43,7 +37,6 @@ data class ProfilesUiState(
 }
 
 data class DownloadProgress(
-    val percent: Int?,
     val message: String,
     val itemProgress: String? = null,
     val isCompleted: Boolean = false,
@@ -74,5 +67,5 @@ internal fun FetchStatus.toDownloadProgress(): DownloadProgress {
             null
         }
 
-    return DownloadProgress(percent = percent, message = message, itemProgress = itemProgress)
+    return DownloadProgress(message = message, itemProgress = itemProgress)
 }

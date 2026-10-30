@@ -39,7 +39,6 @@ fun CenteredText(
     firstLine: String,
     secondLine: String,
     modifier: Modifier = Modifier.fillMaxSize(),
-    showEmptyResourceIllustration: Boolean = true,
 ) {
     val spacing = AppTheme.spacing
     val opacity = AppTheme.opacity
@@ -55,10 +54,8 @@ fun CenteredText(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            if (showEmptyResourceIllustration) {
-                EmptyResourceIllustration()
-                Spacer(modifier = Modifier.height(spacing.space16))
-            }
+            EmptyResourceIllustration()
+            Spacer(modifier = Modifier.height(spacing.space16))
             Text(
                 text = firstLine,
                 modifier = Modifier.fillMaxWidth(),

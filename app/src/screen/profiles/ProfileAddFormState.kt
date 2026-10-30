@@ -24,31 +24,43 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.text.input.TextFieldValue
 import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
 
+/** What the add/edit sheet is showing, derived once per composition instead of per-signal flags. */
+internal enum class ProfileSheetPhase {
+    /** The form is editable; nothing is in flight. */
+    Editing,
+
+    /** An import or update is running and still reporting progress. */
+    Downloading,
+
+    /** The work finished; the sheet holds the completed state until it closes. */
+    Completed,
+    ;
+
+    /** True while the sheet shows progress instead of the form. */
+    val showsProgress: Boolean get() = this != Editing
+}
+
 @Stable
 internal class ProfileAddFormState {
     val importType = mutableStateOf(ProfileImportType.Url)
     val name = mutableStateOf(TextFieldValue())
     val url = mutableStateOf(TextFieldValue())
     val filePath = mutableStateOf("")
-    val fileName = mutableStateOf(TextFieldValue())
     // Shown at the right edge of the file row: a non-zero size is the "file already picked" signal.
     val fileSize = mutableStateOf(0L)
     val ageSecretKey = mutableStateOf(TextFieldValue())
     val error = mutableStateOf("")
-    val isDownloading = mutableStateOf(false)
-    val hasShownComplete = mutableStateOf(false)
     val stableHeightPx = mutableIntStateOf(0)
 
     fun reset() {
         name.value = textValueAtEnd("")
         url.value = textValueAtEnd("")
         filePath.value = ""
-        fileName.value = textValueAtEnd("")
         fileSize.value = 0L
         ageSecretKey.value = TextFieldValue()
         error.value = ""
-        isDownloading.value = false
-        hasShownComplete.value = false
+        // Measured per sheet: a height carried over from a previous form would size the progress view.
+        stableHeightPx.intValue = 0
     }
 
     fun clearTypeInput() {
@@ -56,7 +68,6 @@ internal class ProfileAddFormState {
             ProfileImportType.Url -> url.value = textValueAtEnd("")
             ProfileImportType.LocalFile -> {
                 filePath.value = ""
-                fileName.value = textValueAtEnd("")
                 fileSize.value = 0L
             }
             ProfileImportType.Qr -> Unit
@@ -65,5 +76,14 @@ internal class ProfileAddFormState {
     }
 }
 
-@Composable
-internal fun rememberProfileAddFormState(): ProfileAddFormState = remember { ProfileAddFormState() }
+/** An import finishes on its download progress, so that one signal decides the phase. */
+internal fun profileSheetPhase(
+    isDownloading: Boolean,
+    downloadCompleted: Boolean,
+): ProfileSheetPhase =
+    when {
+        !isDownloading -> ProfileSheetPhase.Editing
+        downloadCompleted -> ProfileSheetPhase.Completed
+        else -> ProfileSheetPhase.Downloading
+    }
+

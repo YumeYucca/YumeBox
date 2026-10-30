@@ -31,45 +31,51 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+/** What one symbol key does: most keys insert text, the indent key commits the current tab stop. */
+internal sealed interface EditorSymbolAction {
+    data class Insert(val text: String) : EditorSymbolAction
+
+    data object Indent : EditorSymbolAction
+}
+
 private data class EditorSymbol(
     val display: String,
-    val insert: String,
+    val action: EditorSymbolAction,
 )
 
 // Mirrors the symbol input row from the sora-editor demo.
 private val EditorSymbols =
     listOf(
-        EditorSymbol(display = "->", insert = "\t"),
-        EditorSymbol(display = "{", insert = "{}"),
-        EditorSymbol(display = "}", insert = "}"),
-        EditorSymbol(display = "(", insert = "("),
-        EditorSymbol(display = ")", insert = ")"),
-        EditorSymbol(display = ",", insert = ","),
-        EditorSymbol(display = ".", insert = "."),
-        EditorSymbol(display = ";", insert = ";"),
-        EditorSymbol(display = "\"", insert = "\""),
-        EditorSymbol(display = "?", insert = "?"),
-        EditorSymbol(display = "+", insert = "+"),
-        EditorSymbol(display = "-", insert = "-"),
-        EditorSymbol(display = "*", insert = "*"),
-        EditorSymbol(display = "/", insert = "/"),
-        EditorSymbol(display = "<", insert = "<"),
-        EditorSymbol(display = ">", insert = ">"),
-        EditorSymbol(display = "[", insert = "["),
-        EditorSymbol(display = "]", insert = "]"),
-        EditorSymbol(display = ":", insert = ":"),
+        EditorSymbol(display = "->", action = EditorSymbolAction.Indent),
+        EditorSymbol(display = "{", action = EditorSymbolAction.Insert("{}")),
+        EditorSymbol(display = "}", action = EditorSymbolAction.Insert("}")),
+        EditorSymbol(display = "(", action = EditorSymbolAction.Insert("(")),
+        EditorSymbol(display = ")", action = EditorSymbolAction.Insert(")")),
+        EditorSymbol(display = ",", action = EditorSymbolAction.Insert(",")),
+        EditorSymbol(display = ".", action = EditorSymbolAction.Insert(".")),
+        EditorSymbol(display = ";", action = EditorSymbolAction.Insert(";")),
+        EditorSymbol(display = "\"", action = EditorSymbolAction.Insert("\"")),
+        EditorSymbol(display = "?", action = EditorSymbolAction.Insert("?")),
+        EditorSymbol(display = "+", action = EditorSymbolAction.Insert("+")),
+        EditorSymbol(display = "-", action = EditorSymbolAction.Insert("-")),
+        EditorSymbol(display = "*", action = EditorSymbolAction.Insert("*")),
+        EditorSymbol(display = "/", action = EditorSymbolAction.Insert("/")),
+        EditorSymbol(display = "<", action = EditorSymbolAction.Insert("<")),
+        EditorSymbol(display = ">", action = EditorSymbolAction.Insert(">")),
+        EditorSymbol(display = "[", action = EditorSymbolAction.Insert("[")),
+        EditorSymbol(display = "]", action = EditorSymbolAction.Insert("]")),
+        EditorSymbol(display = ":", action = EditorSymbolAction.Insert(":")),
     )
 
 @Composable
 internal fun EditorSymbolBar(
-    onInsert: (String) -> Unit,
+    onSymbol: (EditorSymbolAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -87,7 +93,7 @@ internal fun EditorSymbolBar(
         ) {
             EditorSymbols.forEach { symbol ->
                 IconButton(
-                    onClick = { onInsert(symbol.insert) },
+                    onClick = { onSymbol(symbol.action) },
                     minWidth = UiDp.dp40,
                     minHeight = UiDp.dp40,
                     cornerRadius = UiDp.dp12,

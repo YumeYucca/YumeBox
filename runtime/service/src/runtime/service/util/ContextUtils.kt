@@ -32,15 +32,12 @@ val Context.importedDir: File
 val File.directoryLastModified: Long?
     get() = walk().maxOfOrNull { it.lastModified() }
 
-fun Context.sendBroadcastSelf(intent: Intent) {
-    sendBroadcast(intent.setPackage(this.packageName))
-}
-
 fun Context.sendProfileChanged(uuid: UUID, affectsRuntime: Boolean) {
     val intent =
         Intent(Intents.ACTION_PROFILE_CHANGED)
             .putExtra(Intents.EXTRA_UUID, uuid.toString())
             .putExtra(Intents.EXTRA_AFFECTS_RUNTIME, affectsRuntime)
+            .setPackage(packageName)
 
-    sendBroadcastSelf(intent)
+    sendBroadcast(intent)
 }

@@ -30,6 +30,7 @@ import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
 import com.github.yumeyucca.yumebox.data.model.RemoteProtocol
+import com.github.yumeyucca.yumebox.data.model.SubStorePanel
 import com.github.yumeyucca.yumebox.data.store.FeatureStore
 import com.github.yumeyucca.yumebox.data.store.Preference
 import com.github.yumeyucca.yumebox.substore.SubStorePaths
@@ -38,13 +39,20 @@ import com.github.yumeyucca.yumebox.substore.SubStoreServiceRequest
 import com.github.yumeyucca.yumebox.substore.engine.NativeLibraryManager
 import com.github.yumeyucca.yumebox.substore.model.AutoCloseMode
 import com.github.yumeyucca.yumebox.substore.util.SubStoreDownloadClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+
+/** Independently downloadable payloads of the Sub-Store runtime. */
+enum class SubStoreResource {
+    Frontend,
+    Backend,
+    Javet,
+}
 
 class FeatureViewModel(
     store: FeatureStore,
@@ -54,46 +62,39 @@ class FeatureViewModel(
     val allowLanAccess: Preference<Boolean> = store.allowLanAccess
     val backendPort: Preference<Int> = store.backendPort
     val frontendPort: Preference<Int> = store.frontendPort
-    val selectedPanelType: Preference<Int> = store.selectedPanelType
     val panelProtocol: Preference<RemoteProtocol> = store.panelProtocol
-    val exitUiWhenBackground: Preference<Boolean> = store.exitUiWhenBackground
+
+    /** Persisted as an ordinal; [FeatureScreenState.panelType] is the typed view of it. */
+    private val selectedPanelType: Preference<Int> = store.selectedPanelType
     private val autoCloseModePreference: Preference<Int> = store.subStoreAutoCloseMode
 
-    private val _autoCloseMode =
-        MutableStateFlow(
-            AutoCloseMode.entries.getOrNull(autoCloseModePreference.value)
-                ?: AutoCloseMode.ALWAYS_ON,
-        )
-    val autoCloseMode: StateFlow<AutoCloseMode> = _autoCloseMode.asStateFlow()
+    /** Derived from the stored ordinal; the preference stays the single source of truth. */
+    val autoCloseMode: StateFlow<AutoCloseMode> =
+        autoCloseModePreference.state
+            .map { it.toAutoCloseMode() }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = autoCloseModePreference.value.toAutoCloseMode(),
+            )
 
-    val serviceRunningState: StateFlow<Boolean> =
-        SubStoreServiceController.snapshot
+    private val serviceRunningState: StateFlow<Boolean> =
+        SubStoreServiceController.lifecycle
             .map { it.isActive }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
-                initialValue = SubStoreServiceController.snapshot.value.isActive,
+                initialValue = SubStoreServiceController.lifecycle.value.isActive,
             )
 
     private var autoCloseJob: Job? = null
-    private val statusInitializationMutex = Mutex()
 
-    private val _isDownloadingSubStoreFrontend = MutableStateFlow(false)
-    val isDownloadingSubStoreFrontend: StateFlow<Boolean> =
-        _isDownloadingSubStoreFrontend.asStateFlow()
-
-    private val _isDownloadingSubStoreBackend = MutableStateFlow(false)
-    val isDownloadingSubStoreBackend: StateFlow<Boolean> =
-        _isDownloadingSubStoreBackend.asStateFlow()
+    /** Resources whose download is in flight; a set instead of one flag per payload. */
+    private val _downloading = MutableStateFlow<Set<SubStoreResource>>(emptySet())
 
     private val _isSubStoreInitialized = MutableStateFlow(false)
-    val isSubStoreInitialized: StateFlow<Boolean> = _isSubStoreInitialized.asStateFlow()
-
-    private val _isDownloadingJavet = MutableStateFlow(false)
-    val isDownloadingJavet: StateFlow<Boolean> = _isDownloadingJavet.asStateFlow()
 
     private val _isJavetLoaded = MutableStateFlow(false)
-    val isJavetLoaded: StateFlow<Boolean> = _isJavetLoaded.asStateFlow()
 
     data class FeatureScreenState(
         val isServiceRunning: Boolean = false,
@@ -101,57 +102,47 @@ class FeatureViewModel(
         val frontendPort: Int = 0,
         val backendPort: Int = 0,
         val autoCloseMode: AutoCloseMode = AutoCloseMode.ALWAYS_ON,
-        val isDownloadingSubStoreFrontend: Boolean = false,
-        val isDownloadingSubStoreBackend: Boolean = false,
-        val isDownloadingJavet: Boolean = false,
+        val downloading: Set<SubStoreResource> = emptySet(),
         val isJavetLoaded: Boolean = false,
-        val selectedPanelType: Int = 0,
+        /** Null when the stored ordinal matches no [SubStorePanel], so no panel URL is offered. */
+        val panelType: SubStorePanel? = null,
     )
+
+    /** Everything the service itself reports; the rest of the screen state is layered on below. */
+    private val serviceState: Flow<FeatureScreenState> =
+        combine(
+            serviceRunningState,
+            allowLanAccess.state,
+            frontendPort.state,
+            backendPort.state,
+            autoCloseMode,
+        ) { isRunning, allowLan, frontendPort, backendPort, autoCloseMode ->
+            FeatureScreenState(
+                isServiceRunning = isRunning,
+                allowLanAccess = allowLan,
+                frontendPort = frontendPort,
+                backendPort = backendPort,
+                autoCloseMode = autoCloseMode,
+            )
+        }
 
     val screenState: StateFlow<FeatureScreenState> =
         combine(
-            combine(
-                serviceRunningState,
-                allowLanAccess.state,
-                frontendPort.state,
-                backendPort.state,
-                autoCloseMode,
-            ) { running, lan, front, back, autoClose ->
-                FeatureScreenState(
-                    isServiceRunning = running,
-                    allowLanAccess = lan,
-                    frontendPort = front,
-                    backendPort = back,
-                    autoCloseMode = autoClose,
-                )
-            },
-            combine(
-                isDownloadingSubStoreFrontend,
-                isDownloadingSubStoreBackend,
-                isDownloadingJavet,
-                isJavetLoaded,
-                selectedPanelType.state,
-            ) { dlFront, dlBack, dlJavet, javet, panel ->
-                FeatureScreenState(
-                    isDownloadingSubStoreFrontend = dlFront,
-                    isDownloadingSubStoreBackend = dlBack,
-                    isDownloadingJavet = dlJavet,
-                    isJavetLoaded = javet,
-                    selectedPanelType = panel,
-                )
-            },
-        ) { base, extra ->
-            base.copy(
-                isDownloadingSubStoreFrontend = extra.isDownloadingSubStoreFrontend,
-                isDownloadingSubStoreBackend = extra.isDownloadingSubStoreBackend,
-                isDownloadingJavet = extra.isDownloadingJavet,
-                isJavetLoaded = extra.isJavetLoaded,
-                selectedPanelType = extra.selectedPanelType,
+            serviceState,
+            _downloading,
+            _isJavetLoaded,
+            selectedPanelType.state.map { SubStorePanel.fromIndex(it) },
+        ) { service, downloading, javetLoaded, panelType ->
+            service.copy(
+                downloading = downloading,
+                isJavetLoaded = javetLoaded,
+                panelType = panelType,
             )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = FeatureScreenState(),
+            initialValue =
+                FeatureScreenState(panelType = SubStorePanel.fromIndex(selectedPanelType.value)),
         )
 
     fun startService() {
@@ -161,13 +152,17 @@ class FeatureViewModel(
         }
         if (!checkSubStoreReadiness()) return
         viewModelScope.launch {
-            runCatching {
+            try {
                 SubStoreServiceController.startService(
                     context = application,
                     request = currentServiceRequest(),
                 )
-            }.onSuccess { setupAutoCloseTimer() }
-                .onFailure { error -> showToast(error.message ?: YumeTxt.Util.Error.UnknownError) }
+                setupAutoCloseTimer()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                showToast(error.message ?: YumeTxt.Util.Error.UnknownError)
+            }
         }
     }
 
@@ -189,10 +184,8 @@ class FeatureViewModel(
         }
 
     fun stopService() {
-        viewModelScope.launch {
-            cancelAutoCloseTimer()
-            SubStoreServiceController.stopService(application)
-        }
+        cancelAutoCloseTimer()
+        SubStoreServiceController.stopService(application)
     }
 
     fun setAllowLanAccess(allow: Boolean) {
@@ -210,91 +203,67 @@ class FeatureViewModel(
         )
 
     fun setAutoCloseMode(mode: AutoCloseMode) {
-        _autoCloseMode.value = mode
         autoCloseModePreference.set(mode.ordinal)
-        if (serviceRunningState.value) {
-            cancelAutoCloseTimer()
-            setupAutoCloseTimer()
-        }
+        if (serviceRunningState.value) setupAutoCloseTimer(mode)
     }
 
     fun initializeSubStoreStatus() {
-        viewModelScope.launch(Dispatchers.IO) { refreshSubStoreStatus() }
-    }
-
-    private fun initializeJavetStatus() {
-        NativeLibraryManager.initialize(application)
-        _isJavetLoaded.value =
-            NativeLibraryManager.isLibraryAvailable(NativeLibraryManager.JAVET_LIBRARY_NAME) &&
-            NativeLibraryManager.loadJniLibrary(NativeLibraryManager.JAVET_LIBRARY_NAME)
-    }
-
-    fun refreshJavetStatus() {
-        viewModelScope.launch(Dispatchers.IO) { refreshSubStoreStatus() }
-    }
-
-    private suspend fun refreshSubStoreStatus() {
-        statusInitializationMutex.withLock {
+        viewModelScope.launch(Dispatchers.IO) {
             _isSubStoreInitialized.value = SubStorePaths.isResourcesReady()
             initializeJavetStatus()
         }
     }
 
-    fun downloadJavetLibrary() {
-        if (_isDownloadingJavet.value) return
-        viewModelScope.launch {
-            _isDownloadingJavet.value = true
-            val wasJavetLoaded = _isJavetLoaded.value
-            val downloaded =
-                runCatching {
-                    NativeLibraryManager.initialize(application)
-                    val temporaryFile =
-                        requireNotNull(
-                            NativeLibraryManager.getDownloadTempFile(
-                                NativeLibraryManager.JAVET_LIBRARY_NAME,
-                            ),
-                        )
-                    temporaryFile.delete()
-                    // Versioned asset first, legacy fixed tag as fallback.
-                    NativeLibraryManager.JAVET_ARCHIVE_URLS.any { url ->
-                        downloadClient.download(url, temporaryFile) &&
-                            NativeLibraryManager.installDownloadedArchive(
-                                NativeLibraryManager.JAVET_LIBRARY_NAME,
-                                temporaryFile,
-                            )
-                    } &&
-                        NativeLibraryManager.loadJniLibrary(NativeLibraryManager.JAVET_LIBRARY_NAME)
-                }.getOrElse { error ->
-                    showToast(
-                        YumeTxt.Feature.SubStore.DownloadError.format(
-                            error.message ?: YumeTxt.Util.Error.UnknownError,
-                        ),
-                    )
-                    false
-                }
-            _isJavetLoaded.value = downloaded || wasJavetLoaded
-            showToast(
-                if (downloaded) {
-                    YumeTxt.Feature.SubStore.JavetDownloadSuccess
-                } else {
-                    YumeTxt.Feature.SubStore.JavetDownloadFailed
-                },
-            )
-            _isDownloadingJavet.value = false
-        }
+    private fun initializeJavetStatus() {
+        NativeLibraryManager.initialize(application)
+        _isJavetLoaded.value =
+            NativeLibraryManager.isLibraryAvailable() && NativeLibraryManager.loadJniLibrary()
     }
 
-    fun setSelectedPanelType(panelType: Int) {
-        selectedPanelType.set(panelType)
+    fun setSelectedPanelType(panelType: SubStorePanel) {
+        selectedPanelType.set(panelType.ordinal)
     }
 
     fun setPanelProtocol(protocol: RemoteProtocol) = panelProtocol.set(protocol)
 
-    fun setExitUiWhenBackground(enabled: Boolean) = exitUiWhenBackground.set(enabled)
+    /**
+     * Installs the runtime first when missing, then fetches the frontend and backend payloads.
+     * The two payloads are independent downloads, so they run concurrently.
+     */
+    fun installResources() {
+        viewModelScope.launch {
+            if (!_isJavetLoaded.value && !downloadJavetLibrary()) return@launch
+            coroutineScope {
+                launch { downloadSubStoreFrontend() }
+                launch { downloadSubStoreBackend() }
+            }
+        }
+    }
 
-    fun downloadSubStoreFrontend() {
-        launchResourceDownload(
-            loadingState = _isDownloadingSubStoreFrontend,
+    private suspend fun downloadJavetLibrary(): Boolean {
+        val wasJavetLoaded = _isJavetLoaded.value
+        val downloaded =
+            runResourceDownload(
+                resource = SubStoreResource.Javet,
+                successMessage = YumeTxt.Feature.SubStore.JavetDownloadSuccess,
+                failureMessage = YumeTxt.Feature.SubStore.JavetDownloadFailed,
+            ) {
+                NativeLibraryManager.initialize(application)
+                val temporaryFile = requireNotNull(NativeLibraryManager.getDownloadTempFile())
+                temporaryFile.delete()
+                // Versioned asset first, legacy fixed tag as fallback.
+                NativeLibraryManager.JAVET_ARCHIVE_URLS.any { url ->
+                    downloadClient.download(url, temporaryFile) &&
+                        NativeLibraryManager.installDownloadedArchive(temporaryFile)
+                } && NativeLibraryManager.loadJniLibrary()
+            }
+        _isJavetLoaded.value = downloaded || wasJavetLoaded
+        return _isJavetLoaded.value
+    }
+
+    private suspend fun downloadSubStoreFrontend() {
+        runResourceDownload(
+            resource = SubStoreResource.Frontend,
             successMessage = YumeTxt.Feature.SubStore.FrontendDownloadSuccess,
             failureMessage = YumeTxt.Feature.SubStore.FrontendDownloadFailed,
         ) {
@@ -308,9 +277,9 @@ class FeatureViewModel(
         }
     }
 
-    fun downloadSubStoreBackend() {
-        launchResourceDownload(
-            loadingState = _isDownloadingSubStoreBackend,
+    private suspend fun downloadSubStoreBackend() {
+        runResourceDownload(
+            resource = SubStoreResource.Backend,
             successMessage = YumeTxt.Feature.SubStore.BackendDownloadSuccess,
             failureMessage = YumeTxt.Feature.SubStore.BackendDownloadFailed,
         ) {
@@ -324,76 +293,52 @@ class FeatureViewModel(
         }
     }
 
-    fun downloadSubStoreAll() {
-        viewModelScope.launch {
-            if (_isDownloadingSubStoreFrontend.value || _isDownloadingSubStoreBackend.value) {
-                return@launch
+    /**
+     * Runs one download with the shared toasts and bookkeeping, and skips it when the same
+     * resource is already downloading. Suspends until the download has finished, so callers can
+     * chain payloads without polling.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun runResourceDownload(
+        resource: SubStoreResource,
+        successMessage: String,
+        failureMessage: String,
+        action: suspend () -> Boolean,
+    ): Boolean {
+        if (resource in _downloading.value) return false
+        _downloading.update { it + resource }
+        return try {
+            val success = action()
+            showToast(if (success) successMessage else failureMessage)
+            if (success) {
+                _isSubStoreInitialized.value = SubStorePaths.isResourcesReady()
             }
-            downloadSubStoreFrontend()
-            while (_isDownloadingSubStoreFrontend.value) {
-                PollingTimers.awaitTick(
-                    PollingTimerSpecs.dynamic(
-                        name = "substore_frontend_download_wait",
-                        intervalMillis = 200L,
-                        initialDelayMillis = 200L,
-                    ),
-                )
-            }
-            downloadSubStoreBackend()
-        }
-    }
-
-    /** Installs the runtime first when missing, then the Sub-Store frontend and backend. */
-    fun installResources() {
-        viewModelScope.launch {
-            if (!_isJavetLoaded.value) {
-                downloadJavetLibrary()
-                while (_isDownloadingJavet.value) {
-                    PollingTimers.awaitTick(
-                        PollingTimerSpecs.dynamic(
-                            name = "substore_javet_install_wait",
-                            intervalMillis = 200L,
-                            initialDelayMillis = 200L,
-                        ),
-                    )
-                }
-                if (!_isJavetLoaded.value) return@launch
-            }
-            downloadSubStoreAll()
+            success
+        } catch (error: CancellationException) {
+            throw error
+        } catch (
+            error: Exception
+        ) { // fault barrier: one failed payload toasts instead of aborting the batch
+            showToast(
+                YumeTxt.Feature.SubStore.DownloadError.format(
+                    error.message ?: YumeTxt.Util.Error.UnknownError,
+                ),
+            )
+            false
+        } finally {
+            _downloading.update { it - resource }
         }
     }
 
     private fun showToast(msg: String) = application.toast(msg)
 
-    private fun launchResourceDownload(
-        loadingState: MutableStateFlow<Boolean>,
-        successMessage: String,
-        failureMessage: String,
-        action: suspend () -> Boolean,
-    ) {
-        if (loadingState.value) return
-        viewModelScope.launch {
-            loadingState.value = true
-            runCatching {
-                val success = action()
-                showToast(if (success) successMessage else failureMessage)
-                if (success) {
-                    _isSubStoreInitialized.value = SubStorePaths.isResourcesReady()
-                }
-            }.onFailure { error ->
-                showToast(
-                    YumeTxt.Feature.SubStore.DownloadError.format(
-                        error.message ?: YumeTxt.Util.Error.UnknownError,
-                    ),
-                )
-            }
-            loadingState.value = false
-        }
-    }
+    private fun Int.toAutoCloseMode(): AutoCloseMode =
+        AutoCloseMode.entries.getOrNull(this) ?: AutoCloseMode.ALWAYS_ON
 
-    private fun setupAutoCloseTimer() {
+    private fun setupAutoCloseTimer(
+        mode: AutoCloseMode = autoCloseModePreference.value.toAutoCloseMode(),
+    ) {
         cancelAutoCloseTimer()
-        val mode = _autoCloseMode.value
         mode.minutes?.let { minutes ->
             autoCloseJob =
                 viewModelScope.launch {

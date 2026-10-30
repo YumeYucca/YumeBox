@@ -24,31 +24,17 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
-import com.github.yumeyucca.yumebox.runtime.api.Profile
-import java.io.File
 
 enum class ProfileImportType {
     Url,
     LocalFile,
     Qr,
-    ;
-
-    companion object {
-        fun fromSpinnerIndex(index: Int): ProfileImportType = entries.getOrNull(index) ?: Url
-
-        fun fromProfile(profileType: Profile.Type): ProfileImportType =
-            when (profileType) {
-                Profile.Type.Url -> ProfileImportType.Url
-                Profile.Type.File -> ProfileImportType.LocalFile
-                Profile.Type.External -> ProfileImportType.LocalFile
-            }
-    }
 }
 
 private val subscriptionUrlPattern =
     Regex(pattern = "^https?://\\S+$", options = setOf(RegexOption.IGNORE_CASE))
 
-fun isSubscriptionUrl(value: String): Boolean = subscriptionUrlPattern.matches(value.trim())
+private fun isSubscriptionUrl(value: String): Boolean = subscriptionUrlPattern.matches(value.trim())
 
 fun readClipboardSubscriptionUrl(context: Context): String? {
     return runCatching {
@@ -62,12 +48,7 @@ fun readClipboardSubscriptionUrl(context: Context): String? {
 }
 
 fun isYamlConfigFileName(fileName: String): Boolean =
-    when (fileName.substringAfterLast(".", "").lowercase()) {
-        "yaml",
-        "yml" -> true
-
-        else -> false
-    }
+    fileName.endsWith(".yaml", ignoreCase = true) || fileName.endsWith(".yml", ignoreCase = true)
 
 fun profileNameFromConfigFileName(fileName: String, fallback: String): String =
     fileName.substringBeforeLast(".").ifBlank {
@@ -85,9 +66,6 @@ fun readDisplayName(context: Context, uri: Uri, fallback: String): String =
                 cursor.getString(nameIndex)
             }
         } ?: fallback
-
-fun sourceFileName(source: String): String =
-    source.takeIf(String::isNotEmpty)?.let { File(it).name }.orEmpty()
 
 /** Byte size of a picked document, or 0 when the provider does not report one. */
 fun readDisplaySize(context: Context, uri: Uri): Long =

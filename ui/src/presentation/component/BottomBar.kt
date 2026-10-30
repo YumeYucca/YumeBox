@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.animation.animateBounds
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -39,7 +38,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.layout.onSizeChanged
@@ -59,6 +57,7 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.PackageCheck
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.theme.isDarkTheme
 import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.glassSurface
 import com.kyant.shapes.Capsule
@@ -66,124 +65,14 @@ import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.glass.GlassNavigationBar
 import top.yukonga.miuix.kmp.glass.GlassNavigationItem
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.job
-import kotlinx.coroutines.launch
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
 private const val BottomBarLayoutAnimationDurationMillis = 380
 private const val ProxyDestinationRevealDurationMillis = 300
-private const val PagerAnimateScrollPreJumpThreshold = 3
-
-class MainPagerState(
-    val pagerState: PagerState,
-    private val coroutineScope: CoroutineScope,
-) {
-    var selectedPage by mutableIntStateOf(pagerState.currentPage)
-        private set
-
-    var isNavigating by mutableStateOf(false)
-        private set
-
-    private var navJob: Job? = null
-
-    fun animateToPage(targetIndex: Int) {
-        val boundedTarget = targetIndex.coerceIn(0, pagerState.pageCount - 1)
-        if (boundedTarget == selectedPage && (isNavigating || !pagerState.isScrollInProgress)) return
-
-        navJob?.cancel()
-        selectedPage = boundedTarget
-        isNavigating = true
-        navJob = coroutineScope.launch {
-            val myJob = coroutineContext.job
-            try {
-                val hops = abs(boundedTarget - pagerState.currentPage)
-                val animationSpec = MainBottomBarDefaults.pagerNavigationAnimationSpec(hops)
-                if (
-                    hops >= PagerAnimateScrollPreJumpThreshold &&
-                        pagerState.layoutInfo.pageSize > 0
-                ) {
-                    pagerState.animateScrollToPageUninterrupted(
-                        page = boundedTarget,
-                        animationSpec = animationSpec,
-                    )
-                } else {
-                    pagerState.animateScrollToPage(
-                        page = boundedTarget,
-                        animationSpec = animationSpec,
-                    )
-                }
-            } finally {
-                if (navJob == myJob) {
-                    isNavigating = false
-                    if (pagerState.currentPage != boundedTarget) {
-                        selectedPage = pagerState.currentPage
-                    }
-                }
-            }
-        }
-    }
-
-    fun syncPage() {
-        if (!isNavigating && selectedPage != pagerState.currentPage) {
-            selectedPage = pagerState.currentPage
-        }
-    }
-}
-
-private suspend fun PagerState.animateScrollToPageUninterrupted(
-    page: Int,
-    animationSpec: AnimationSpec<Float>,
-) {
-    val target = page.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
-    val pageSizeWithSpacing = layoutInfo.pageSize + layoutInfo.pageSpacing
-    if (pageSizeWithSpacing <= 0) {
-        animateScrollToPage(page = target, animationSpec = animationSpec)
-        return
-    }
-    scroll {
-        updateTargetPage(target)
-        val distance = (target - currentPage - currentPageOffsetFraction) * pageSizeWithSpacing
-        var previous = 0f
-        animate(0f, distance, animationSpec = animationSpec) { value, _ ->
-            previous += scrollBy(value - previous)
-        }
-    }
-}
-
-@Composable
-fun rememberMainPagerState(
-    pagerState: PagerState,
-    coroutineScope: CoroutineScope = rememberCoroutineScope(),
-): MainPagerState =
-    remember(pagerState, coroutineScope) { MainPagerState(pagerState, coroutineScope) }
-
-val LocalPagerState = compositionLocalOf<PagerState> { error("LocalPagerState is not provided") }
-val LocalMainPagerState =
-    compositionLocalOf<MainPagerState> { error("LocalMainPagerState is not provided") }
-val LocalHandlePageChange =
-    compositionLocalOf<(BottomBarDestination) -> Unit> {
-        error("LocalHandlePageChange is not provided")
-    }
-val LocalNavigator = compositionLocalOf<Navigator> { error("LocalNavigator is not provided") }
-
-/**
- * Right-pane navigator for the tablet dual-pane shell.
- *
- * Non-null only when [WindowLayoutMode.usesSplitShell] is active. Treat non-null as the single
- * source of truth for "we are in split shell" — do not re-derive shell mode from width in modules.
- */
-val LocalDetailNavigator = compositionLocalOf<Navigator?> { null }
-
-/** True when the composition is hosted inside the tablet dual-pane shell. */
-inline val Navigator?.isSplitShell: Boolean
-    get() = this != null
 
 object MainBottomBarDefaults {
     // NexioSchedule-aligned capsule sizing: each tab owns 21% of the screen width, so the pill
@@ -252,24 +141,21 @@ fun BottomBarContent(
     isVisible: Boolean = true,
     destinations: List<BottomBarDestination> = BottomBarDestination.entries,
 ) {
-    FloatingBottomBarContent(isVisible = isVisible, destinations = destinations)
-}
-
-@Composable
-private fun FloatingBottomBarContent(
-    isVisible: Boolean = true,
-    destinations: List<BottomBarDestination> = BottomBarDestination.entries,
-) {
     val bottomBarScrollBehavior = LocalBottomBarScrollBehavior.current
     val mainPagerState = LocalMainPagerState.current
     val pagerState = mainPagerState.pagerState
-    // Selection and indicator must share the pager's physical position. selectedPage is updated
-    // optimistically before navigation starts, which previously recolored an icon while the
-    // indicator was still parked on the old page.
-    val page by remember(pagerState) { derivedStateOf { pagerState.currentPage } }
     // Tabs exclude Home: the home page owns its chrome and the bar is hidden there anyway, so the
     // pager's page 0 has no tab. Tab index = pager page index - 1 throughout the math below.
     val tabs = remember(destinations) { destinations.filter { it != BottomBarDestination.Home } }
+    if (tabs.isEmpty()) return
+    // Selection and indicator must share the pager's physical position. selectedPage is updated
+    // optimistically before navigation starts, which previously recolored an icon while the
+    // indicator was still parked on the old page, so the settled page wins until the pager moves.
+    val selectedTabIndex =
+        (
+            if (mainPagerState.isNavigating) mainPagerState.selectedPage else pagerState.currentPage
+            ) - 1
+    val tabIndex = selectedTabIndex.coerceIn(0, tabs.lastIndex)
     val indicatorProgress by
     remember(pagerState, tabs.size) {
         derivedStateOf {
@@ -280,55 +166,54 @@ private fun FloatingBottomBarContent(
         }
     }
     val bottomBarVisible = isVisible && (bottomBarScrollBehavior?.isBottomBarVisible ?: true)
-    var revealProxyDestination by remember { mutableStateOf(false) }
+    // The proxy tab fades in the first time it becomes available; it only starts revealed once the
+    // destination list contains it, so the fade also plays when a layout switch adds it later.
+    var proxyTabRevealed by remember { mutableStateOf(false) }
     LaunchedEffect(BottomBarDestination.Proxy in tabs) {
-        revealProxyDestination = BottomBarDestination.Proxy in tabs
+        if (BottomBarDestination.Proxy in tabs) proxyTabRevealed = true
     }
     val density = LocalDensity.current
     val opacity = AppTheme.opacity
     val exitOffsetPx =
         remember(density) { with(density) { MainBottomBarDefaults.ExitOffset.toPx() } }
-    val animatedTranslationY = remember { Animatable(if (bottomBarVisible) 0f else exitOffsetPx) }
+    // One transition drives both halves of the hide/show transform: as separate drivers, the fade and
+    // the slide could be started by different effects and settle a frame apart.
+    val visibility = updateTransition(targetState = bottomBarVisible, label = "bottom_bar_visibility")
     val animatedAlpha by
-    animateFloatAsState(
-        targetValue = if (bottomBarVisible) 1f else 0f,
-        animationSpec =
+    visibility.animateFloat(
+        transitionSpec = {
             tween(
                 durationMillis = 180,
                 easing =
-                    if (bottomBarVisible) {
+                    if (targetState) {
                         AnimationSpecs.EmphasizedDecelerate
                     } else {
                         AnimationSpecs.EmphasizedAccelerate
                     },
-            ),
-        label = "legacy_bottom_bar_alpha",
-    )
-
-    LaunchedEffect(bottomBarVisible, exitOffsetPx) {
-        if (bottomBarVisible) {
-            animatedTranslationY.animateTo(
-                targetValue = 0f,
-                animationSpec =
-                    tween(durationMillis = 280, easing = AnimationSpecs.EmphasizedDecelerate),
             )
-        } else {
-            animatedTranslationY.animateTo(
-                targetValue = exitOffsetPx,
-                animationSpec =
-                    tween(durationMillis = 220, easing = AnimationSpecs.EmphasizedAccelerate),
+        },
+        label = "bottom_bar_alpha",
+    ) { visible -> if (visible) 1f else 0f }
+    val exitProgress by
+    visibility.animateFloat(
+        transitionSpec = {
+            tween(
+                durationMillis = if (targetState) 280 else 220,
+                easing =
+                    if (targetState) {
+                        AnimationSpecs.EmphasizedDecelerate
+                    } else {
+                        AnimationSpecs.EmphasizedAccelerate
+                    },
             )
-        }
-    }
+        },
+        label = "bottom_bar_exit_progress",
+    ) { visible -> if (visible) 0f else 1f }
 
-    val handlePageChange = LocalHandlePageChange.current
-    val onItemClick: (BottomBarDestination) -> Unit = { destination ->
-        val index = destinations.indexOf(destination)
-        if (index != mainPagerState.selectedPage ||
-            (!mainPagerState.isNavigating && pagerState.currentPageOffsetFraction != 0f)) {
-            handlePageChange(destination)
-        }
-    }
+    // Taps go straight to the pager: it owns the "this page is already showing" rule, and re-deriving
+    // it here is what let the two drift apart — the bar treated a mid-drag page as a real target and
+    // the pager did not, so the same tap either snapped the page home or did nothing.
+    val onItemClick: (BottomBarDestination) -> Unit = LocalHandlePageChange.current
 
     val bottomSafeInset =
         with(density) {
@@ -336,7 +221,7 @@ private fun FloatingBottomBarContent(
             val gestureBottom = WindowInsets.systemGestures.getBottom(this)
             max(navigationBottom, gestureBottom).toDp()
         }
-    val isLightTheme = MiuixTheme.colorScheme.background.luminance() >= 0.5f
+    val isLightTheme = !isDarkTheme()
     val selectedColor = MiuixTheme.colorScheme.primary
     val unselectedColor = MiuixTheme.colorScheme.onSurface.copy(alpha = opacity.secondaryText)
     // NexioSchedule-style frosted glass: with a live glass backdrop the capsule frosts the page
@@ -345,6 +230,12 @@ private fun FloatingBottomBarContent(
     val glassBackdrop = LocalGlassBackdrop.current
     val fallbackColor = MiuixTheme.colorScheme.surfaceContainer
     val indicatorContainerColor = selectedColor.copy(alpha = opacity.subtle)
+    // Distance from the screen edge: hug the gesture-nav inset, but never closer than the minimum.
+    val bottomGap =
+        maxOf(
+            bottomSafeInset + MainBottomBarDefaults.InsetBreathingRoom,
+            MainBottomBarDefaults.MinFloatingBottomGap,
+        )
     val widthFraction by
         animateFloatAsState(
             targetValue =
@@ -358,12 +249,19 @@ private fun FloatingBottomBarContent(
             label = "bottom_bar_width_fraction",
         )
 
+    // Both capsules share the same placement, width and hide/show transform; only the body differs.
+    val barModifier =
+        Modifier.fillMaxWidth(widthFraction)
+            .padding(bottom = bottomGap)
+            .graphicsLayer {
+                alpha = animatedAlpha
+                translationY = exitProgress * exitOffsetPx
+            }
+
     if (glassBackdrop != null && isRuntimeShaderSupported()) {
-        if (tabs.isEmpty()) return
         GlassNavigationBar(
             items = tabs.map { GlassNavigationItem(icon = it.icon, label = it.label) },
-            selectedIndex = ((if (mainPagerState.isNavigating) mainPagerState.selectedPage else page) - 1)
-                .coerceIn(0, tabs.lastIndex),
+            selectedIndex = tabIndex,
             onSelect = { index -> tabs.getOrNull(index)?.let(onItemClick) },
             backdrop = glassBackdrop,
             height = MainBottomBarDefaults.BarHeight,
@@ -371,86 +269,63 @@ private fun FloatingBottomBarContent(
             unselectedColor = unselectedColor,
             indicatorColor = indicatorContainerColor,
             indicatorPressedColor = selectedColor.copy(alpha = opacity.subtle * 2f),
-            modifier = Modifier
-                .fillMaxWidth(widthFraction)
-                .padding(bottom = maxOf(
-                    bottomSafeInset + MainBottomBarDefaults.InsetBreathingRoom,
-                    MainBottomBarDefaults.MinFloatingBottomGap,
-                ))
-                .graphicsLayer {
-                    alpha = animatedAlpha
-                    translationY = animatedTranslationY.value
-                },
+            modifier = barModifier,
         )
         return
     }
 
-    LegacyBottomNavigationBar(
+    BottomNavigationBar(
         indicatorProgress = indicatorProgress,
         tabsCount = tabs.size,
         isLightTheme = isLightTheme,
         glassBackdrop = glassBackdrop,
         fallbackColor = fallbackColor,
         indicatorContainerColor = indicatorContainerColor,
-        modifier =
-            Modifier
-                .fillMaxWidth(widthFraction)
-                .padding(
-                    bottom =
-                        maxOf(
-                            bottomSafeInset + MainBottomBarDefaults.InsetBreathingRoom,
-                            MainBottomBarDefaults.MinFloatingBottomGap,
-                        )
-                )
-                .graphicsLayer {
-                    alpha = animatedAlpha
-                    translationY = animatedTranslationY.value
-                },
+        modifier = barModifier,
     ) { lookaheadScope ->
+        // Keyed so the per-tab reveal animation cannot migrate to another tab when the visible
+        // destination list changes (proxy reveal, layout switch).
         tabs.forEach { destination ->
-            val proxyItemAlpha by
-            animateFloatAsState(
-                targetValue =
-                    if (destination != BottomBarDestination.Proxy || revealProxyDestination) 1f
-                    else 0f,
-                animationSpec =
-                    tween(
-                        durationMillis = ProxyDestinationRevealDurationMillis,
-                        easing = AnimationSpecs.EmphasizedDecelerate,
-                    ),
-                label = "bottom_bar_proxy_item_alpha",
-            )
-            BottomBarTab(
-                destination = destination,
-                selected = tabs.getOrNull(page - 1) == destination,
-                enabled = bottomBarVisible,
-                selectedColor = selectedColor,
-                unselectedColor = unselectedColor,
-                onClick = { onItemClick(destination) },
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .graphicsLayer {
-                            alpha = proxyItemAlpha
-                            scaleX =
-                                if (destination == BottomBarDestination.Proxy)
-                                    0.82f + proxyItemAlpha * 0.18f
-                                else 1f
-                            scaleY =
-                                if (destination == BottomBarDestination.Proxy)
-                                    0.82f + proxyItemAlpha * 0.18f
-                                else 1f
-                        }
-                        .animateBounds(
-                            lookaheadScope = lookaheadScope,
-                            boundsTransform = { _, _ ->
-                                tween(
-                                    durationMillis = BottomBarLayoutAnimationDurationMillis,
-                                    easing = AnimationSpecs.EmphasizedDecelerate,
-                                )
-                            },
+            key(destination) {
+                val isProxy = destination == BottomBarDestination.Proxy
+                val proxyItemAlpha by
+                animateFloatAsState(
+                    targetValue = if (!isProxy || proxyTabRevealed) 1f else 0f,
+                    animationSpec =
+                        tween(
+                            durationMillis = ProxyDestinationRevealDurationMillis,
+                            easing = AnimationSpecs.EmphasizedDecelerate,
                         ),
-            )
+                    label = "bottom_bar_proxy_item_alpha",
+                )
+                val selected = tabs.getOrNull(tabIndex) == destination
+                // The proxy tab grows from 82% as it is revealed instead of fading in alone.
+                val proxyScale = 0.82f + proxyItemAlpha * 0.18f
+                BottomBarTab(
+                    destination = destination,
+                    selected = selected,
+                    enabled = bottomBarVisible,
+                    color = if (selected) selectedColor else unselectedColor,
+                    onClick = { onItemClick(destination) },
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .graphicsLayer {
+                                alpha = proxyItemAlpha
+                                scaleX = if (isProxy) proxyScale else 1f
+                                scaleY = if (isProxy) proxyScale else 1f
+                            }
+                            .animateBounds(
+                                lookaheadScope = lookaheadScope,
+                                boundsTransform = { _, _ ->
+                                    tween(
+                                        durationMillis = BottomBarLayoutAnimationDurationMillis,
+                                        easing = AnimationSpecs.EmphasizedDecelerate,
+                                    )
+                                },
+                            ),
+                )
+            }
         }
     }
 }
@@ -460,29 +335,38 @@ private fun BottomBarTab(
     destination: BottomBarDestination,
     selected: Boolean,
     enabled: Boolean,
-    selectedColor: Color,
-    unselectedColor: Color,
+    color: Color,
     onClick: () -> Unit,
     modifier: Modifier,
 ) {
-    val itemColor = if (selected) selectedColor else unselectedColor
-    LegacyBottomNavigationTabItem(
-        modifier = modifier,
-        enabled = enabled,
-        onClick = onClick,
+    Column(
+        modifier =
+            modifier
+                .clip(Capsule())
+                .clickable(
+                    enabled = enabled,
+                    interactionSource = null,
+                    indication = null,
+                    role = Role.Tab,
+                    onClick = onClick,
+                )
+                .fillMaxHeight()
+                .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(UiDp.dp2, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(modifier = Modifier.size(UiDp.dp24), contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = destination.icon,
                 contentDescription = destination.label,
-                tint = itemColor,
+                tint = color,
             )
         }
         BasicText(
             text = destination.label,
             style =
                 TextStyle(
-                    color = itemColor,
+                    color = color,
                     fontSize = 11.sp,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                 ),
@@ -491,7 +375,7 @@ private fun BottomBarTab(
 }
 
 @Composable
-private fun LegacyBottomNavigationBar(
+private fun BottomNavigationBar(
     indicatorProgress: Float,
     tabsCount: Int,
     isLightTheme: Boolean,
@@ -562,7 +446,7 @@ private fun LegacyBottomNavigationBar(
         contentAlignment = Alignment.CenterStart,
     ) {
         if (tabWidthPx > 0f) {
-            LegacyBottomNavigationIndicator(
+            BottomNavigationIndicator(
                 modifier = Modifier
                     .padding(UiDp.dp4)
                     .align(Alignment.CenterStart),
@@ -589,7 +473,7 @@ private fun LegacyBottomNavigationBar(
 }
 
 @Composable
-private fun LegacyBottomNavigationIndicator(
+private fun BottomNavigationIndicator(
     modifier: Modifier = Modifier,
     indicatorOffsetPx: Float,
     indicatorWidthPx: Float,
@@ -603,32 +487,6 @@ private fun LegacyBottomNavigationIndicator(
                 .width(with(density) { indicatorWidthPx.toDp() })
                 .height(UiDp.dp48)
                 .background(indicatorContainerColor, Capsule())
-    )
-}
-
-@Composable
-private fun LegacyBottomNavigationTabItem(
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Column(
-        modifier =
-            modifier
-                .clip(Capsule())
-                .clickable(
-                    enabled = enabled,
-                    interactionSource = null,
-                    indication = null,
-                    role = Role.Tab,
-                    onClick = onClick,
-                )
-                .fillMaxHeight()
-                .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(UiDp.dp2, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        content = content,
     )
 }
 

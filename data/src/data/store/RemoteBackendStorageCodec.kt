@@ -35,9 +35,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** Persistence boundary that keeps controller secrets out of MMKV plaintext. */
-internal class RemoteBackendStorageCodec(
-    private val cipher: RemoteBackendSecretCipher = RemoteBackendSecretCipher,
-) {
+internal class RemoteBackendStorageCodec {
     fun decode(
         json: Json,
         encoded: String,
@@ -52,7 +50,7 @@ internal class RemoteBackendStorageCodec(
                 secret =
                     when {
                         stored.secretCiphertext.isNotBlank() -> {
-                            runCatching { cipher.decrypt(stored.secretCiphertext) }
+                            runCatching { RemoteBackendSecretCipher.decrypt(stored.secretCiphertext) }
                                 .onFailure { error ->
                                     Timber.e(
                                         error,
@@ -84,7 +82,7 @@ internal class RemoteBackendStorageCodec(
                     secretCiphertext =
                         backend.secret
                             .takeIf(String::isNotBlank)
-                            ?.let(cipher::encrypt)
+                            ?.let(RemoteBackendSecretCipher::encrypt)
                             .orEmpty(),
                 )
             },
@@ -103,13 +101,7 @@ internal class RemoteBackendStorageCodec(
     )
 }
 
-internal interface RemoteBackendSecretCipherContract {
-    fun encrypt(plaintext: String): String
-
-    fun decrypt(ciphertext: String): String
-}
-
-internal object RemoteBackendSecretCipher : RemoteBackendSecretCipherContract {
+internal object RemoteBackendSecretCipher {
     private const val KEYSTORE = "AndroidKeyStore"
     private const val KEY_ALIAS = "yumebox.remote-controller.secret.v1"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
@@ -118,7 +110,7 @@ internal object RemoteBackendSecretCipher : RemoteBackendSecretCipherContract {
     private const val PAYLOAD_VERSION: Byte = 1
     private val keyLock = Any()
 
-    override fun encrypt(plaintext: String): String {
+    fun encrypt(plaintext: String): String {
         if (plaintext.isEmpty()) return ""
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey())
@@ -127,7 +119,7 @@ internal object RemoteBackendSecretCipher : RemoteBackendSecretCipherContract {
         return Base64.encodeToString(payload, Base64.NO_WRAP)
     }
 
-    override fun decrypt(ciphertext: String): String {
+    fun decrypt(ciphertext: String): String {
         if (ciphertext.isEmpty()) return ""
         val payload = Base64.decode(ciphertext, Base64.NO_WRAP)
         require(payload.size > 1 + IV_BYTES) { "Remote controller secret payload is truncated" }

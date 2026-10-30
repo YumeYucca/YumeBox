@@ -1,7 +1,6 @@
 package com.github.yumeyucca.yumebox.core.locale
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.lyricist.Lyricist
@@ -3318,6 +3317,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun EmptyJavaScript(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Override.Import.EmptyJavaScript else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Override.Import.EmptyJavaScript, *args)
+            public val TooLarge: String
+                get() = YumeLocaleManager.activeStrings.Override.Import.TooLarge
+            @androidx.compose.runtime.Composable
+            public fun TooLarge(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Override.Import.TooLarge else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Override.Import.TooLarge, *args)
         }
         public object Export {
             public val Failed: String

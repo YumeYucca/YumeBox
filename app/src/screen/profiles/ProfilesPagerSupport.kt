@@ -23,43 +23,16 @@
 package com.github.yumeyucca.yumebox.screen.profiles
 
 
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import java.io.File
 
-internal fun openProfileConfigPreview(
-    targetFile: File,
-    missingMessage: String,
-    editable: Boolean,
-    onReadFailed: (String) -> Unit,
-    onPreviewPrepared: (String, (suspend (String) -> Unit)?) -> Unit,
-) {
-    if (!targetFile.exists()) {
-        onReadFailed(missingMessage)
-        return
-    }
-
-    val configContent = runCatching {
-        targetFile.readText()
-    }
-        .getOrElse {
-            onReadFailed(it.message ?: "Failed to read profile")
-            return
+/**
+ * Reads a profile's config file for the editor, or reports why it cannot be read — [missingMessage]
+ * when the file is gone, the I/O error otherwise. Blocking: call it from an IO dispatcher.
+ */
+internal fun readProfileConfigFile(targetFile: File, missingMessage: String): Result<String> {
+    if (!targetFile.exists()) return Result.failure(IllegalStateException(missingMessage))
+    return runCatching { targetFile.readText() }
+        .recoverCatching { error ->
+            throw IllegalStateException(error.message ?: "Failed to read profile", error)
         }
-
-    val saveCallback =
-        if (editable) {
-            { updatedContent: String ->
-                runCatching { targetFile.writeText(updatedContent) }
-                    .getOrElse {
-                        throw IllegalStateException(
-                            it.message ?: YumeTxt.ProfilesPage.SettingsDialog.SaveFailed,
-                            it,
-                        )
-                    }
-            }
-        } else {
-            null
-        }
-
-    onPreviewPrepared(configContent, saveCallback)
 }

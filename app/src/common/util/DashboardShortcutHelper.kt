@@ -21,6 +21,7 @@
 package com.github.yumeyucca.yumebox.common.util
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
@@ -31,6 +32,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object DashboardShortcutHelper {
+    /** Largest edge kept for a shortcut icon; launchers never draw it any bigger. */
+    private const val MAX_ICON_EDGE_PX = 192
+
     suspend fun createPanelShortcut(
         context: Context,
         url: String,
@@ -58,12 +62,37 @@ object DashboardShortcutHelper {
 
     private fun loadIconFromUri(context: Context, uri: Uri): IconCompat? {
         return runCatching {
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                val bmp = android.graphics.BitmapFactory.decodeStream(input) ?: return null
-                IconCompat.createWithBitmap(bmp)
+            val resolver = context.contentResolver
+            // A picked image can be a multi-megapixel photo; decoding it whole allocates tens of
+            // megabytes and an OutOfMemoryError is an Error, so [runCatching] would not absorb it.
+            // Measure first, then decode again with a power-of-two sample size.
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                null
+            } else {
+                val options =
+                    BitmapFactory.Options().apply {
+                        inSampleSize = iconSampleSize(bounds.outWidth, bounds.outHeight)
+                    }
+                resolver.openInputStream(uri)?.use { input ->
+                    BitmapFactory.decodeStream(input, null, options)
+                        ?.let(IconCompat::createWithBitmap)
+                }
             }
         }
             .getOrNull()
+    }
+
+    private fun iconSampleSize(width: Int, height: Int): Int {
+        var sampleSize = 1
+        while (
+            width / (sampleSize * 2) >= MAX_ICON_EDGE_PX &&
+                height / (sampleSize * 2) >= MAX_ICON_EDGE_PX
+        ) {
+            sampleSize *= 2
+        }
+        return sampleSize
     }
 
     private fun fetchFavicon(context: Context, url: String): IconCompat {
@@ -76,12 +105,18 @@ object DashboardShortcutHelper {
                     readTimeout = 5000
                     instanceFollowRedirects = true
                 }
-            conn.inputStream.use { input ->
-                val bytes = input.readBytes()
-                val bmp =
-                    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                        ?: return@runCatching null
-                IconCompat.createWithBitmap(bmp)
+            try {
+                conn.inputStream.use { input ->
+                    val bytes = input.readBytes()
+                    val bmp =
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                            ?: return@runCatching null
+                    IconCompat.createWithBitmap(bmp)
+                }
+            } finally {
+                // Closing the stream alone leaves a failed (non-2xx) response's error stream queued
+                // until the connection is collected; disconnect() releases the socket right away.
+                conn.disconnect()
             }
         }
             .getOrNull() ?: IconCompat.createWithResource(context, R.mipmap.ic_launcher)

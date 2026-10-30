@@ -22,23 +22,19 @@
 
 package com.github.yumeyucca.yumebox.feature.editor.screen
 
-
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import com.github.yumeyucca.yumebox.feature.editor.editor.CodeEditor
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.feature.editor.component.EditorExitGuard
+import com.github.yumeyucca.yumebox.feature.editor.component.EditorSurface
 import com.github.yumeyucca.yumebox.feature.editor.editor.rememberConfiguredCodeEditorState
-import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.feature.editor.viewmodel.ConfigEditorViewModel
 import com.github.yumeyucca.yumebox.feature.editor.viewmodel.ConfigType
-import com.github.yumeyucca.yumebox.presentation.component.AppDialog
-import com.github.yumeyucca.yumebox.presentation.component.DialogButtonRow
+import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 
 @Composable
@@ -55,9 +51,7 @@ fun ConfigEditorScreen(
         rememberConfiguredCodeEditorState(
             initialContent = initialContent,
             language = language,
-            readOnly = false,
         )
-    val showDiscardDialog = remember { mutableStateOf(false) }
     val scrollBehavior = MiuixScrollBehavior()
 
     LaunchedEffect(configId) {
@@ -74,14 +68,6 @@ fun ConfigEditorScreen(
         }
     }
 
-    BackHandler {
-        if (session.isDirty || editorState.isModified) {
-            showDiscardDialog.value = true
-        } else {
-            navigator.navigateUp()
-        }
-    }
-
     GlassScaffold(
         topBar = {
             TopBar(
@@ -94,37 +80,16 @@ fun ConfigEditorScreen(
             )
         }
     ) { paddingValues ->
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .consumeWindowInsets(paddingValues)
-                    .imePadding()
-        ) {
-            CodeEditor(
-                state = editorState,
-                modifier = Modifier.fillMaxSize(),
-                onTextChange = { content -> viewModel.updateDraft(content) },
-            )
-        }
+        EditorSurface(
+            state = editorState,
+            onTextChange = { content -> viewModel.updateDraft(content) },
+            paddingValues = paddingValues,
+        )
 
-        AppDialog(
-            show = showDiscardDialog.value,
-            title = YumeTxt.Editor.Discard.Title,
-            summary = YumeTxt.Editor.Discard.Summary,
-            onDismissRequest = { showDiscardDialog.value = false },
-        ) {
-            DialogButtonRow(
-                onCancel = { showDiscardDialog.value = false },
-                onConfirm = {
-                    showDiscardDialog.value = false
-                    viewModel.discardDraft()
-                    navigator.navigateUp()
-                },
-                cancelText = YumeTxt.Component.Button.Cancel,
-                confirmText = YumeTxt.Editor.Discard.Confirm,
-            )
-        }
+        EditorExitGuard(
+            hasUnsavedChanges = session.isDirty || editorState.isModified,
+            onNavigateUp = navigator::navigateUp,
+            onDiscard = viewModel::discardDraft,
+        )
     }
 }

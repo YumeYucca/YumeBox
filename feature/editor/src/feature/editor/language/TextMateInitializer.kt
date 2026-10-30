@@ -24,6 +24,7 @@ package com.github.yumeyucca.yumebox.feature.editor.language
 
 
 import android.content.Context
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import io.github.rosemoe.sora.langs.textmate.TextMateLanguage
 import io.github.rosemoe.sora.langs.textmate.registry.FileProviderRegistry
 import io.github.rosemoe.sora.langs.textmate.registry.GrammarRegistry
@@ -123,15 +124,26 @@ object TextMateInitializer {
         Timber.tag(TAG).d("Loading grammars...")
         try {
             val definitions = LanguageDefinitionReader.read("textmate/languages.json")
+            // A language whose display name is missing from languages.json keeps plain-text
+            // editing instead of failing the whole load: one gap must not cost every other
+            // language its highlighting for the rest of the process.
+            val missing = mutableListOf<String>()
             grammarDefinitions =
                 LanguageScope.entries
                     .filterNot { it == LanguageScope.Text }
-                    .associateWith { language ->
-                        definitions.firstOrNull {
-                            it.name.equals(language.displayName, ignoreCase = true)
-                        } ?: error("Grammar definition not found: ${language.displayName}")
+                    .mapNotNull { language ->
+                        definitions
+                            .firstOrNull { it.name.equals(language.displayName, ignoreCase = true) }
+                            ?.let { definition -> language to definition }
+                            ?: run {
+                                missing += language.displayName
+                                null
+                            }
                     }
-            check(grammarDefinitions.isNotEmpty()) { "No TextMate grammar definitions found" }
+                    .toMap()
+            if (missing.isNotEmpty()) {
+                Timber.tag(TAG).w("No grammar definition for: ${missing.joinToString()}")
+            }
             Timber.tag(TAG).d("Grammar definitions loaded successfully")
         } catch (error: Exception) { // fault barrier: TextMate/tm4e throws unspecified exceptions
             Timber.e(error, "Failed to load grammars")

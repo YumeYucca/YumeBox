@@ -20,6 +20,7 @@
 
 package com.github.yumeyucca.yumebox.feature.meta.presentation.util
 
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -61,8 +62,8 @@ data class OverridePresetTemplateSelection(
     val urlTestRegions: Set<OverridePresetRegion> = emptySet(),
     val fallbackRegions: Set<OverridePresetRegion> = emptySet(),
     val enabledItems: Set<OverridePresetItem> = defaultEnabledPresetItems(),
-    val enableUrlTestGroup: Boolean = true,
-    val enableFallbackGroup: Boolean = false,
+    val healthCheckGroups: Set<OfficialMrsHealthCheckGroupType> =
+        setOf(OfficialMrsHealthCheckGroupType.UrlTest),
 )
 
 data class OverridePresetTemplateContentAnalysis(
@@ -71,29 +72,41 @@ data class OverridePresetTemplateContentAnalysis(
 )
 
 enum class OverridePresetRegion(definition: RegionDefinition) {
-    HK(region("HK", "香港自动组", "香港|HK|Hong Kong|\\x{1F1ED}\\x{1F1F0}")),
-    TW(region("TW", "台湾自动组", "台湾|TW|Taiwan|\\x{1F1F9}\\x{1F1FC}")),
-    JP(region("JP", "日本自动组", "日本|JP|Japan|东京|大阪|\\x{1F1EF}\\x{1F1F5}")),
-    SG(region("SG", "新加坡自动组", "新加坡|SG|Singapore|狮城|\\x{1F1F8}\\x{1F1EC}")),
-    US(region("US", "美国自动组", "美国|US|United States|America|洛杉矶|硅谷|\\x{1F1FA}\\x{1F1F8}")),
+    HK(region("HK", "香港|HK|Hong Kong|\\x{1F1ED}\\x{1F1F0}")),
+    TW(region("TW", "台湾|TW|Taiwan|\\x{1F1F9}\\x{1F1FC}")),
+    JP(region("JP", "日本|JP|Japan|东京|大阪|\\x{1F1EF}\\x{1F1F5}")),
+    SG(region("SG", "新加坡|SG|Singapore|狮城|\\x{1F1F8}\\x{1F1EC}")),
+    US(region("US", "美国|US|United States|America|洛杉矶|硅谷|\\x{1F1FA}\\x{1F1F8}")),
     Other(
         region(
             label = "Other",
-            displayName = "冷门地区自动组",
-            specId = "other",
             iconName = "XD",
         )
     ),
     ;
 
-    val specId: String = definition.specId
-    val displayName: String = definition.displayName
     val groupName: String = definition.groupName
     val fallbackGroupName: String = definition.fallbackGroupName
     val filter: String? = definition.keywords?.let(::regionFilter)
     val excludeFilter: String?
         get() = if (this == Other) popularExclude else null
     val icon: String = OfficialMrs.catalogIconUrl(definition.iconName).orEmpty()
+
+    /**
+     * Human label. A lambda, not a string: [YumeTxt] values read the locale that is active right
+     * now, so evaluating one while this enum initialises would freeze that language for good.
+     */
+    val label: () -> String = {
+        when (this) {
+            HK -> YumeTxt.MetaFeature.CustomRouting.Region.HongKong
+            TW -> YumeTxt.MetaFeature.CustomRouting.Region.Taiwan
+            JP -> YumeTxt.MetaFeature.CustomRouting.Region.Japan
+            SG -> YumeTxt.MetaFeature.CustomRouting.Region.Singapore
+            US -> YumeTxt.MetaFeature.CustomRouting.Region.UnitedStates
+            Other -> YumeTxt.MetaFeature.CustomRouting.Region.Other
+        }
+    }
+
     private val keywords: String? = definition.keywords
 
     private companion object {
@@ -212,11 +225,41 @@ enum class OverridePresetItem(definition: PresetItemDefinition) {
     val groupName: String? = definition.groupName
     val providers: List<OfficialMrsProviderSpec> = definition.providers
     val detectionRules: List<String> = definition.detectionRules
+
+    /**
+     * Human label, same lambda rule as [OverridePresetRegion.label]. The routing entries are
+     * localized; a service item keeps its brand title, which reads the same in every locale.
+     */
+    val label: () -> String = {
+        when (this) {
+            Proxy -> YumeTxt.MetaFeature.CustomRouting.Item.Proxy
+            Ads -> YumeTxt.MetaFeature.CustomRouting.Item.Ads
+            Cn -> YumeTxt.MetaFeature.CustomRouting.Item.China
+            GeolocationNotCn -> YumeTxt.MetaFeature.CustomRouting.Item.Global
+            Match -> YumeTxt.MetaFeature.CustomRouting.Item.Match
+            else -> title
+        }
+    }
 }
 
-internal enum class OfficialMrsHealthCheckGroupType(val wireName: String) {
-    UrlTest("url-test"),
-    Fallback("fallback"),
+enum class OfficialMrsHealthCheckGroupType(
+    val wireName: String,
+    val groupName: String,
+    private val iconName: String,
+) {
+    UrlTest("url-test", OfficialMrs.autoGroupName, "Urltest"),
+    Fallback("fallback", OfficialMrs.fallbackGroupName, "Available"),
+    ;
+
+    val icon: String = OfficialMrs.catalogIconUrl(iconName).orEmpty()
+
+    /** Human label; see [OverridePresetRegion.label] for why this is a lambda. */
+    val label: () -> String = {
+        when (this) {
+            UrlTest -> YumeTxt.MetaFeature.CustomRouting.GroupTypeUrlTest
+            Fallback -> YumeTxt.MetaFeature.CustomRouting.GroupTypeFallback
+        }
+    }
 }
 
 enum class OfficialMrsRuleBehavior(val wireName: String) {
@@ -233,7 +276,7 @@ data class OfficialMrsProviderSpec(
 internal val orderedRegions = OverridePresetRegion.entries.toList()
 internal val orderedItems = OverridePresetItem.entries.toList()
 internal val orderedServiceItems = orderedItems.filter(OverridePresetItem::isService)
-private val orderedBaseItems = orderedItems.filterNot(OverridePresetItem::isService)
+internal val orderedBaseItems = orderedItems.filterNot(OverridePresetItem::isService)
 internal val templateProviderIds =
     orderedItems.flatMap(OverridePresetItem::providers).map(OfficialMrsProviderSpec::id).toSet()
 internal val serviceGroupNames =
@@ -277,39 +320,10 @@ internal val templateRules = orderedItems.flatMap(OverridePresetItem::detectionR
 fun defaultEnabledPresetItems(): Set<OverridePresetItem> =
     defaultEnabledItems.toCollection(linkedSetOf())
 
-fun orderedPresetRegions(): List<OverridePresetRegion> = orderedRegions
-
-fun orderedBasePresetItems(): List<OverridePresetItem> = orderedBaseItems
-
-fun orderedServicePresetItems(): List<OverridePresetItem> = orderedServiceItems
-
-fun presetGroupTypeIconUrl(type: String): String? =
-    when (type) {
-        "urltest" -> OfficialMrs.catalogIconUrl("Urltest")
-        "fallback" -> OfficialMrs.catalogIconUrl("Available")
-        else -> null
-    }
-
-fun sortPresetRegions(regions: Collection<OverridePresetRegion>): List<OverridePresetRegion> {
-    val selectedIds = regions.map(OverridePresetRegion::specId).toSet()
-    return orderedRegions.filter { it.specId in selectedIds }
-}
-
-fun sortPresetItems(items: Collection<OverridePresetItem>): List<OverridePresetItem> {
-    val selectedIds = items.map(OverridePresetItem::id).toSet()
-    return orderedItems.filter { it.id in selectedIds }
-}
-
 fun defaultOverridePresetTemplateSelection(): OverridePresetTemplateSelection =
-    OverridePresetTemplateSelection(
-        enabledItems = defaultEnabledPresetItems(),
-        enableUrlTestGroup = true,
-        enableFallbackGroup = false,
-    )
+    OverridePresetTemplateSelection(enabledItems = defaultEnabledPresetItems())
 
 private class RegionDefinition(
-    val specId: String,
-    val displayName: String,
     val groupName: String,
     val fallbackGroupName: String,
     val keywords: String?,
@@ -318,14 +332,10 @@ private class RegionDefinition(
 
 private fun region(
     label: String,
-    displayName: String,
     keywords: String? = null,
-    specId: String = label.lowercase(),
     iconName: String = label,
 ): RegionDefinition =
     RegionDefinition(
-        specId = specId,
-        displayName = displayName,
         groupName = "$label Auto",
         fallbackGroupName = "$label Fallback",
         keywords = keywords,

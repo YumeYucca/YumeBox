@@ -23,40 +23,41 @@
 package com.github.yumeyucca.yumebox
 
 import android.app.Activity
-import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.*
+import timber.log.Timber
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import com.github.yumeyucca.yumebox.common.util.buildRemotePanelUrl
 import com.github.yumeyucca.yumebox.common.util.requiresLocalNetworkPermission
+import com.github.yumeyucca.yumebox.data.model.SubStorePanel
 import com.github.yumeyucca.yumebox.data.store.FeatureStore
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.presentation.component.*
+import com.github.yumeyucca.yumebox.presentation.navigation.DeepLink
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
+import com.github.yumeyucca.yumebox.presentation.navigation.rememberMainPageModel
 import com.github.yumeyucca.yumebox.presentation.screen.ProxyPager
 import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
-import com.github.yumeyucca.yumebox.presentation.webview.WebViewUtils
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import com.github.yumeyucca.yumebox.screen.moe.LocalUseSystemWallpaper
 import com.github.yumeyucca.yumebox.screen.moe.MoeHomePage
-import com.github.yumeyucca.yumebox.screen.moe.calculateHomeVisibility
 import com.github.yumeyucca.yumebox.screen.profiles.ProfilesPager
+import com.github.yumeyucca.yumebox.screen.rules.RulesProvidersTab
 import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import com.github.yumeyucca.yumebox.presentation.navigation.PaneRestingRoute
 
 @Composable
 fun MainScreen(
     navigator: Navigator,
-    initialPage: Int = 0,
-    onMainPageChanged: (Int) -> Unit = {},
+    initialDestination: BottomBarDestination,
+    onDestinationSettled: (BottomBarDestination) -> Unit,
+    detailNavigator: Navigator,
 ) {
     val context = LocalContext.current
     val windowLayoutMode = rememberWindowLayoutMode()
@@ -64,48 +65,14 @@ fun MainScreen(
     val homeViewModel = koinViewModel<HomeViewModel>()
     val featureStore = koinInject<FeatureStore>()
     val remoteControllerStore = koinInject<RemoteControllerStore>()
-    var pendingLocalNetworkAction by remember { mutableStateOf<(() -> Unit)?>(null) }
-    val localNetworkPermissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            pendingLocalNetworkAction?.takeIf { granted }?.invoke()
-            pendingLocalNetworkAction = null
-        }
+    val localNetworkGate = rememberLocalNetworkGate()
     val nodeSession by homeViewModel.nodeSession.collectAsState()
-    val initialDestination =
-        BottomBarDestination.entries.getOrElse(
-            initialPage.coerceIn(0, BottomBarDestination.entries.lastIndex),
-        ) {
-            BottomBarDestination.Home
-        }
-    // Providers is opened above a freshly-created Main(Proxy) route on compact layouts.
-    val initialProxyRequested = remember { initialDestination == BottomBarDestination.Proxy }
-    var proxyDestinationCommitted by remember { mutableStateOf(initialProxyRequested) }
-    var pendingDestination by remember { mutableStateOf<BottomBarDestination?>(null) }
-    val visibleDestinations =
-        remember(proxyDestinationCommitted) {
-            BottomBarDestination.entries.filter { destination ->
-                destination != BottomBarDestination.Proxy || proxyDestinationCommitted
-            }
-        }
-    val initialMainPage =
-        visibleDestinations.indexOf(initialDestination).takeIf { it >= 0 } ?: 0
-    val pagerState =
-        rememberPagerState(
-            initialPage = initialMainPage,
-            pageCount = { visibleDestinations.size },
+    val pageModel =
+        rememberMainPageModel(
+            initialDestination = initialDestination,
+            everReady = nodeSession.everReady,
         )
-    val mainPagerState = rememberMainPagerState(pagerState)
-    var previousDestinations by remember { mutableStateOf(visibleDestinations) }
-    var settledDestination by remember { mutableStateOf(visibleDestinations[initialMainPage]) }
-
-    LaunchedEffect(nodeSession.everReady, mainPagerState.pagerState.isScrollInProgress) {
-        // Insert the proxy page only after the first node load and after a swipe has settled.
-        if (!nodeSession.everReady && !initialProxyRequested) {
-            proxyDestinationCommitted = false
-        } else if (!mainPagerState.pagerState.isScrollInProgress) {
-            proxyDestinationCommitted = true
-        }
-    }
+    val mainPagerState = pageModel.pager
 
     val bottomBarAutoHideEnabled by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
     // Glass backdrop feeding the floating bottom bar's frosted capsule — force-enabled:
@@ -113,16 +80,7 @@ fun MainScreen(
     // legacy blur toggle no longer gates it. The capture draws an opaque surface first so
     // translucent pages don't bleed through (miuix-blur pattern); keyed on the surface color
     // so a theme switch re-records with the right base.
-    val glassBackdrop =
-        run {
-            val surfaceColor = MiuixTheme.colorScheme.surface
-            key(surfaceColor) {
-                rememberLayerBackdrop {
-                    drawRect(surfaceColor)
-                    drawContent()
-                }
-            }
-        }
+    val glassBackdrop = rememberSurfaceBackdrop(MiuixTheme.colorScheme.surface)
     val splitLeftFraction by appSettingsViewModel.splitLeftRatio.state.collectAsState()
     val moeWallpaperUri by appSettingsViewModel.moeWallpaperUri.state.collectAsState()
     val moeWallpaperZoom by appSettingsViewModel.moeWallpaperZoom.state.collectAsState()
@@ -133,95 +91,30 @@ fun MainScreen(
     val panelProtocol by featureStore.panelProtocol.state.collectAsState()
     val panelUrl =
         remember(selectedPanelType, panelProtocol) {
-            WebViewUtils.getPanelUrl(selectedPanelType, panelProtocol)
+            SubStorePanel.fromIndex(selectedPanelType)?.url(panelProtocol).orEmpty()
         }
-    val openNetworkPanel: () -> Unit = {
-        panelUrl.takeIf { it.isNotBlank() }?.let { panel ->
-            val backend = remoteControllerStore.activeBackend()
-            val targetUrl = backend?.let { buildRemotePanelUrl(panel, it) } ?: panel
-            val openPanel = { WebViewActivity.start(context, targetUrl) }
-            if (
-                backend != null &&
-                Build.VERSION.SDK_INT >= 37 &&
-                backend.requiresLocalNetworkPermission() &&
-                ContextCompat.checkSelfPermission(
-                    context,
-                    "android.permission.ACCESS_LOCAL_NETWORK",
-                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-            ) {
-                pendingLocalNetworkAction = openPanel
-                localNetworkPermissionLauncher.launch("android.permission.ACCESS_LOCAL_NETWORK")
-            } else {
-                openPanel()
+    // Remembered so the lambda keeps its identity: `MainRootPageState` is `@Immutable` and compares
+    // by value, so a fresh lambda on every recomposition would make it always differ.
+    val openNetworkPanel: () -> Unit =
+        remember(panelUrl, context, remoteControllerStore, localNetworkGate) {
+            {
+                panelUrl.takeIf { it.isNotBlank() }?.let { panel ->
+                    val backend = remoteControllerStore.activeBackend()
+                    val targetUrl = backend?.let { buildRemotePanelUrl(panel, it) } ?: panel
+                    localNetworkGate.run(
+                        requiresPermission = backend?.requiresLocalNetworkPermission() == true,
+                        action = { WebViewActivity.start(context, targetUrl) },
+                    )
+                }
             }
         }
-    }
     val bottomBarScrollBehavior =
         rememberBottomBarScrollBehavior(autoHideEnabled = bottomBarAutoHideEnabled)
-    val selectedDestination by
-        remember(mainPagerState, visibleDestinations) {
-            derivedStateOf {
-                if (previousDestinations != visibleDestinations) {
-                    previousDestinations.getOrNull(mainPagerState.selectedPage) ?: settledDestination
-                } else {
-                    visibleDestinations.getOrElse(mainPagerState.selectedPage) {
-                        BottomBarDestination.Home
-                    }
-                }
-            }
-        }
-    val homeVisibility by
-        remember(mainPagerState) {
-            derivedStateOf {
-                calculateHomeVisibility(
-                    currentPage = mainPagerState.pagerState.currentPage,
-                    currentPageOffsetFraction = mainPagerState.pagerState.currentPageOffsetFraction,
-                )
-            }
-        }
-    // Floating nav bar (with the proxy FAB) shows on every page except the home, which has its
-    // own chrome; it also stays hidden while a swipe towards home has selected but not settled.
-    val bottomBarVisible by
-        remember(settledDestination, selectedDestination) {
-            derivedStateOf {
-                selectedDestination != BottomBarDestination.Home &&
-                    settledDestination != BottomBarDestination.Home
-            }
-        }
-
-    LaunchedEffect(visibleDestinations) {
-        val pending = pendingDestination
-        val currentDestination =
-            pending?.takeIf { it in visibleDestinations }
-                ?: previousDestinations.getOrNull(mainPagerState.pagerState.currentPage)
-                ?: settledDestination
-        val targetDestination =
-            currentDestination.takeIf { it in visibleDestinations } ?: BottomBarDestination.Config
-        val targetPage = visibleDestinations.indexOf(targetDestination)
-        if (mainPagerState.pagerState.currentPage != targetPage) {
-            mainPagerState.pagerState.requestScrollToPage(targetPage)
-        }
-        mainPagerState.syncPage()
-        settledDestination = targetDestination
-        previousDestinations = visibleDestinations
-        if (pending == targetDestination) pendingDestination = null
-    }
-
-    LaunchedEffect(mainPagerState.pagerState.currentPage) { mainPagerState.syncPage() }
-
-    LaunchedEffect(settledDestination) { onMainPageChanged(settledDestination.ordinal) }
-
-    LaunchedEffect(
-        mainPagerState.pagerState.currentPage,
-        mainPagerState.pagerState.isScrollInProgress,
-    ) {
-        if (!mainPagerState.pagerState.isScrollInProgress) {
-            settledDestination =
-                visibleDestinations.getOrElse(mainPagerState.pagerState.currentPage) {
-                    BottomBarDestination.Home
-                }
-        }
-    }
+    // A bound reference is a new object per recomposition, and the host compares its arguments.
+    val onSplitLeftFractionChange: (Float) -> Unit =
+        remember(appSettingsViewModel) { appSettingsViewModel::onSplitLeftRatioChange }
+    val settledDestination = pageModel.settled
+    val bottomBarVisible = pageModel.bottomBarVisible
 
     val vpnPermissionLauncher =
         rememberLauncherForActivityResult(
@@ -230,93 +123,70 @@ fun MainScreen(
             homeViewModel.onVpnPermissionResult(result.resultCode == Activity.RESULT_OK)
         }
 
-    LaunchedEffect(homeViewModel) {
-        homeViewModel.vpnPrepareIntent.collect { intent -> vpnPermissionLauncher.launch(intent) }
+    val vpnPrepareIntent by homeViewModel.vpnPrepareIntent.collectAsState()
+    LaunchedEffect(vpnPrepareIntent) {
+        val intent = vpnPrepareIntent ?: return@LaunchedEffect
+        // A stripped build can ship without the consent activity, and an exception out of the
+        // launcher would escape this effect and take the composition down with it.
+        val shown =
+            runCatching { vpnPermissionLauncher.launch(intent) }
+                .onFailure { Timber.e(it, "Could not show the VPN consent prompt") }
+                .isSuccess
+        homeViewModel.consumeVpnPrepareIntent()
+        if (!shown) homeViewModel.onVpnPermissionResult(false)
     }
 
-    val handlePageChange: (BottomBarDestination) -> Unit =
-        remember(mainPagerState, visibleDestinations) {
-            { destination ->
-                if (destination !in visibleDestinations) {
-                    pendingDestination = destination
-                } else {
-                    pendingDestination = null
-                }
-                val targetDestination =
-                    destination.takeIf { it in visibleDestinations } ?: BottomBarDestination.Config
-                mainPagerState.animateToPage(visibleDestinations.indexOf(targetDestination))
-            }
-        }
+    val handlePageChange: (BottomBarDestination) -> Unit = remember(pageModel) { pageModel::show }
 
     val usesSplitShell = windowLayoutMode.usesSplitShell
-    val detailNavigator = remember { Navigator(listOf(Route.About)) }
-    val detailBackStack = detailNavigator.backStack
 
-    // Leaving the proxy tab should not leave routing details stuck on the right pane.
+    // The right pane shows the current tab's side content: whatever the user opened there belongs to
+    // the tab they opened it from, so leaving that tab takes the pane back to its resting route
+    // instead of pinning a page across every other tab. The proxy tab keeps its pane, because the
+    // pane is that tab's own content. Only a real tab change counts — the stack outlives this screen,
+    // so a pane restored after a rotation or after returning from a pushed route survives the first
+    // run of the effect.
     LaunchedEffect(settledDestination) {
+        // Write-back happens on every settled destination, including the first one; the pane reset
+        // below only on a real tab change, which is what [MainPageModel.previousSettled] answers.
+        onDestinationSettled(settledDestination)
+        if (pageModel.previousSettled == settledDestination) return@LaunchedEffect
+        // Read here, not in the composition body: a pane push must not recompose the shell, and the
+        // question only has to be answered when the tab actually changes.
         if (
             settledDestination != BottomBarDestination.Proxy &&
-            (detailBackStack.lastOrNull() is Route.Providers ||
-                detailBackStack.lastOrNull() is Route.Rules)
+            detailNavigator.backStack.lastOrNull() != PaneRestingRoute
         ) {
-            detailNavigator.replaceAll(listOf(Route.About))
+            detailNavigator.replaceAll(listOf(PaneRestingRoute))
         }
     }
 
     val pendingDeepLink by MainActivity.pendingDeepLink.collectAsState()
     LaunchedEffect(pendingDeepLink) {
-        val uri = pendingDeepLink?.toUri() ?: return@LaunchedEffect
-        when (uri.host) {
-            "page" -> {
-                when (uri.lastPathSegment) {
-                    "home" -> handlePageChange(BottomBarDestination.Home)
-                    "proxy" -> handlePageChange(BottomBarDestination.Proxy)
-                    "profiles" -> handlePageChange(BottomBarDestination.Config)
-                    "settings" -> {
-                        if (usesSplitShell) {
-                            detailNavigator.replaceAll(listOf(Route.Settings))
-                        } else {
-                            navigator.push(Route.Settings)
-                        }
-                    }
-                }
-            }
-
-            "screen" -> {
-                val route: Route? =
-                    when (uri.lastPathSegment) {
-                        "appsettings" -> Route.AppSettings
-                        "network" -> Route.NetworkSettings
-                        "about" -> Route.About
-                        "access" -> Route.AccessControl
-                        "traffic" -> Route.TrafficStatistics
-                        "connection" -> Route.Connection
-                        "log" -> Route.Log
-                        "override" -> Route.Override
-                        "providers" -> Route.Providers
-                        else -> null
-                    }
-                route?.let { target ->
-                    if (usesSplitShell) {
-                        detailNavigator.replaceAll(listOf(target))
-                    } else {
-                        navigator.push(target)
-                    }
-                }
-            }
+        val pending = pendingDeepLink ?: return@LaunchedEffect
+        when (pending) {
+            is DeepLink.Page -> handlePageChange(pending.destination)
+            // The pane renders a route for as long as one is open, even on the proxy tab (that tab
+            // only draws nodes while its pane sits at the resting route), so the link is visible
+            // without switching tabs first.
+            is DeepLink.Screen ->
+                navigator.openRoute(pending.route, detailNavigator.takeIf { usesSplitShell })
         }
-        MainActivity.clearPendingDeepLink()
+        MainActivity.clearPendingDeepLink(pending)
     }
 
     MainScreenBackHandler(
         mainPagerState = mainPagerState,
-        canPopRoute = navigator.backStack.size > 1,
+        navigator = navigator,
+        detailNavigator = detailNavigator,
+        splitShell = usesSplitShell,
+        onPopDetail = { detailNavigator.pop() },
     )
 
+    // `LocalNavigator` is provided once by the route stack that hosts this screen; only the
+    // right-pane navigator is page-specific, so it is the one thing installed here.
     CompositionLocalProvider(
-        LocalNavigator provides navigator,
         LocalDetailNavigator provides if (usesSplitShell) detailNavigator else null,
-        LocalPagerState provides mainPagerState.pagerState,
         LocalMainPagerState provides mainPagerState,
         LocalHandlePageChange provides handlePageChange,
         LocalBottomBarScrollBehavior provides bottomBarScrollBehavior,
@@ -324,23 +194,21 @@ fun MainScreen(
         LocalUseSystemWallpaper provides useSystemWallpaper,
     ) {
         MainContentHost(
-            usesSplitShell = usesSplitShell,
             windowLayoutMode = windowLayoutMode,
             mainPagerState = mainPagerState,
-            visibleDestinations = visibleDestinations,
-            previousDestinations = previousDestinations,
-            settledDestination = settledDestination,
+            tabs = pageModel.tabs,
             bottomBarVisible = bottomBarVisible,
-            moeWallpaperUri = moeWallpaperUri,
-            moeWallpaperZoom = moeWallpaperZoom,
-            moeWallpaperBiasX = moeWallpaperBiasX,
-            moeWallpaperBiasY = moeWallpaperBiasY,
-            homeVisibility = homeVisibility,
-            navigator = navigator,
-            detailBackStack = detailBackStack,
+            home =
+                MoeHomeFrame(
+                    wallpaperUri = moeWallpaperUri,
+                    wallpaperZoom = moeWallpaperZoom,
+                    wallpaperBiasX = moeWallpaperBiasX,
+                    wallpaperBiasY = moeWallpaperBiasY,
+                    pageProgress = pageModel.homeVisibility,
+                ),
             detailNavigator = detailNavigator,
             splitLeftFraction = splitLeftFraction,
-            onSplitLeftFractionChange = appSettingsViewModel::onSplitLeftRatioChange,
+            onSplitLeftFractionChange = onSplitLeftFractionChange,
             onOpenPanel = openNetworkPanel,
         )
     }
@@ -349,46 +217,68 @@ fun MainScreen(
 @Composable
 private fun MainScreenBackHandler(
     mainPagerState: MainPagerState,
-    canPopRoute: Boolean,
+    navigator: Navigator,
+    detailNavigator: Navigator,
+    splitShell: Boolean,
+    onPopDetail: () -> Unit,
 ) {
-    val canReturnHome by
-        remember(mainPagerState, canPopRoute) {
-            derivedStateOf { mainPagerState.selectedPage != 0 && !canPopRoute }
+    // Both stacks are read behind derived states so a push inside a pane only invalidates this
+    // handler instead of the whole shell.
+    val canPopRoute by remember(navigator) { derivedStateOf { navigator.backStack.size > 1 } }
+    val canPopDetail by
+        remember(detailNavigator, splitShell) {
+            derivedStateOf { splitShell && detailNavigator.backStack.size > 1 }
         }
-    androidx.activity.compose.BackHandler(enabled = canReturnHome) { mainPagerState.animateToPage(0) }
+    val canReturnHome = mainPagerState.selectedPage != 0 && !canPopRoute && !canPopDetail
+    // A route the split shell pushed into the detail pane closes before back is allowed to leave the
+    // page, so the two handlers are never enabled at the same time.
+    BackHandler(enabled = canReturnHome) { mainPagerState.animateToPage(0) }
+    BackHandler(enabled = canPopDetail) { onPopDetail() }
 }
 
+/**
+ * One frame of the Moe home's animated chrome: the wallpaper transform plus the page progress
+ * that fades it in. These values always travel together, so the pager hosts forward them as a
+ * single value instead of one parameter each.
+ */
+@Immutable
+internal data class MoeHomeFrame(
+    val wallpaperUri: String,
+    val wallpaperZoom: Float,
+    val wallpaperBiasX: Float,
+    val wallpaperBiasY: Float,
+    val pageProgress: State<Float>,
+)
+
+@Immutable
 internal data class MainRootPageState(
     val destination: BottomBarDestination,
     val mainInnerPadding: PaddingValues,
-    val moeWallpaperUri: String,
-    val moeWallpaperZoom: Float,
-    val moeWallpaperBiasX: Float,
-    val moeWallpaperBiasY: Float,
-    val navigator: Navigator,
-    val homePageProgress: Float,
-    val selectedDestination: BottomBarDestination,
+    val home: MoeHomeFrame,
+    val isActive: Boolean,
     val windowLayoutMode: WindowLayoutMode,
     val onOpenPanel: () -> Unit,
 )
 
 @Composable
 internal fun MainRootPageContent(state: MainRootPageState) {
+    val navigator = LocalNavigator.current
     val detailNavigator = LocalDetailNavigator.current
     val openRoutingFromProxy: () -> Unit = {
-        detailNavigator?.replaceAll(listOf(Route.Rules))
-            ?: state.navigator.push(Route.Rules)
+        navigator.openRoute(
+            Route.RulesAndProviders(RulesProvidersTab.Rules),
+            detailNavigator,
+        )
     }
     when (state.destination) {
         BottomBarDestination.Home -> {
             MoeHomePage(
-                mainInnerPadding = state.mainInnerPadding,
-                wallpaperUri = state.moeWallpaperUri,
-                wallpaperZoom = state.moeWallpaperZoom,
-                wallpaperBiasX = state.moeWallpaperBiasX,
-                wallpaperBiasY = state.moeWallpaperBiasY,
-                isActive = state.selectedDestination == BottomBarDestination.Home,
-                pageProgress = state.homePageProgress,
+                wallpaperUri = state.home.wallpaperUri,
+                wallpaperZoom = state.home.wallpaperZoom,
+                wallpaperBiasX = state.home.wallpaperBiasX,
+                wallpaperBiasY = state.home.wallpaperBiasY,
+                isActive = state.isActive,
+                pageProgress = state.home.pageProgress,
                 onOpenPanel = state.onOpenPanel,
                 windowLayoutMode = state.windowLayoutMode,
             )
@@ -398,13 +288,12 @@ internal fun MainRootPageContent(state: MainRootPageState) {
             ProxyPager(
                 mainInnerPadding = state.mainInnerPadding,
                 onOpenRouting = openRoutingFromProxy,
-                isActive = state.selectedDestination == BottomBarDestination.Proxy,
-                windowLayoutMode = state.windowLayoutMode,
+                isActive = state.isActive,
             )
         }
 
         BottomBarDestination.Config -> {
-            ProfilesPager(state.mainInnerPadding, state.windowLayoutMode)
+            ProfilesPager(state.mainInnerPadding)
         }
     }
 }

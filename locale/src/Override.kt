@@ -59,6 +59,7 @@ internal val ZhHansYumeStrings_Override: YumeStrings_Override = YumeStrings_Over
         HttpError = "HTTP 请求失败：%d",
         UnsupportedType = "仅支持 YAML 或 JS",
         EmptyJavaScript = "JS 文件为空",
+        TooLarge = "导入文件过大（上限 %d MB）",
     ),
     Export = YumeStrings_Override_Export(
         Failed = "导出失败：%s",
@@ -154,6 +155,7 @@ internal val ZhYumeStrings_Override: YumeStrings_Override = YumeStrings_Override
         HttpError = "HTTP 請求失敗：%d",
         UnsupportedType = "僅支援 YAML 或 JS",
         EmptyJavaScript = "JS 檔案為空",
+        TooLarge = "匯入檔案過大（上限 %d MB）",
     ),
     Export = YumeStrings_Override_Export(
         Failed = "匯出失敗：%s",
@@ -249,6 +251,7 @@ internal val EnYumeStrings_Override: YumeStrings_Override = YumeStrings_Override
         HttpError = "HTTP request failed: %d",
         UnsupportedType = "Only YAML or JS is supported",
         EmptyJavaScript = "JS file is empty",
+        TooLarge = "Import file is too large (limit %d MB)",
     ),
     Export = YumeStrings_Override_Export(
         Failed = "Export failed: %s",
@@ -344,6 +347,7 @@ internal val JaYumeStrings_Override: YumeStrings_Override = YumeStrings_Override
         HttpError = "HTTP 要求に失敗しました: %d",
         UnsupportedType = "YAML または JS のみ対応",
         EmptyJavaScript = "JS ファイルが空です",
+        TooLarge = "インポートするファイルが大きすぎます（上限 %d MB）",
     ),
     Export = YumeStrings_Override_Export(
         Failed = "書き出しに失敗しました: %s",
@@ -439,6 +443,7 @@ internal val RuYumeStrings_Override: YumeStrings_Override = YumeStrings_Override
         HttpError = "HTTP-запрос не удался: %d",
         UnsupportedType = "Поддерживаются только YAML или JS",
         EmptyJavaScript = "JS-файл пуст",
+        TooLarge = "Файл импорта слишком большой (лимит %d MB)",
     ),
     Export = YumeStrings_Override_Export(
         Failed = "Экспорт не удался: %s",

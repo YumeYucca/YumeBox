@@ -23,13 +23,11 @@
 package com.github.yumeyucca.yumebox.presentation.theme
 
 import androidx.compose.foundation.background
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurColors
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
@@ -57,42 +55,21 @@ val LocalGlassBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 val LocalTopBarBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 
 /**
+ * The backdrop an anchored glass surface should sample: the page's shared backdrop when the host
+ * provides one, else the top bar's. Floating menus ask this instead of spelling the fallback
+ * themselves, so "page backdrop first, bar backdrop second" stays one rule.
+ */
+@Composable
+fun glassSurfaceBackdrop(): LayerBackdrop? =
+    LocalGlassBackdrop.current ?: LocalTopBarBackdrop.current
+
+/**
  * Blur & glass plumbing on top of `miuix-blur`. Device without RuntimeShader (Android < 33)
  * render every glass surface as its solid fallback — never raw see-through.
  */
 object YumeBlur {
     /** Default glass blur radius (dp-as-float, miuix-blur convention, clamped to 150). */
     const val GlassBlurRadius = 26f
-
-    /** NexioSchedule-aligned height of a sheet's top gradient fade band. */
-    val SheetTopFadeHeight = 76.dp
-
-    /**
-     * Progressive top scrim mapped onto the top bar itself. Depth matched to the user's reference
-     * screenshot (title crisp, scrolled content under the bar washed to near-illegible): near-solid
-     * at the status-bar edge, held strong across the bar body, with the fade concentrated in the
-     * last ~10% so it still reads progressive. The fade runs **strictly inside the bar bounds** —
-     * transparent exactly at the bar's bottom edge, nothing drawn below it. User-approved depth
-     * (2026-10): near-opaque hold, deeper than the original tuning.
-     */
-    fun Modifier.hyperOsTopScrim(color: Color): Modifier = drawBehind {
-        if (size.height <= 0f) return@drawBehind
-        drawRect(
-            brush =
-                Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0.0f to color.copy(alpha = 0.99f),
-                        0.78f to color.copy(alpha = 0.99f),
-                        0.89f to color.copy(alpha = 0.96f),
-                        0.95f to color.copy(alpha = 0.55f),
-                        1.0f to color.copy(alpha = 0f),
-                    ),
-                    startY = 0f,
-                    endY = size.height,
-                ),
-        )
-    }
-
 
     /**
      * Frosted-glass surface blurring the page behind [backdrop]; solid [fallbackColor] when the
@@ -121,20 +98,4 @@ object YumeBlur {
         } else {
             background(fallbackColor, shape)
         }
-
-    /**
-     * NexioSchedule sheet-top fade: full sheet color at the very top fading to transparent over
-     * [SheetTopFadeHeight]. Overlay it above content that scrolls under the sheet header
-     * (zIndex) — the HyperOS "content sinks into the surface" look.
-     */
-    fun sheetTopFadeBrush(sheetColor: Color): Brush =
-        Brush.verticalGradient(
-            colorStops = arrayOf(
-                0.0f to sheetColor,
-                0.2f to sheetColor.copy(alpha = 0.95f),
-                0.5f to sheetColor.copy(alpha = 0.8f),
-                0.8f to sheetColor.copy(alpha = 0.45f),
-                1.0f to sheetColor.copy(alpha = 0f),
-            ),
-        )
 }

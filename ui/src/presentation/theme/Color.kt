@@ -22,11 +22,11 @@
 
 package com.github.yumeyucca.yumebox.presentation.theme
 
-
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.darkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme
 
@@ -54,17 +54,6 @@ private data class ThemePalette(
 )
 
 const val DEFAULT_THEME_SEED_ARGB: Long = 0xFF016888L
-const val DEFAULT_CUSTOM_THEME_SEED_ARGB: Long = 0xFF016888L
-
-data class TrafficColors(
-    val download: Color = Color(0xFF5B8FF9),
-    val upload: Color = Color(0xFF5AD8A6),
-    val unattributed: Color = Color(0xFFD97706),
-    val other: Color = Color(0xFF94A3B8),
-    val unknown: Color = Color(0xFF64748B),
-    val donutTrackForeground: Color = Color(0x1F8A94A6),
-    val donutTrackBackground: Color = Color(0x148A94A6),
-)
 
 data class LogLevelColors(
     val debug: Color = Color(0xFF9E9E9E),
@@ -92,10 +81,7 @@ data class ConnectionColors(
     val chainArrow: Color = Color(0xFF6B7280),
     val chainInactiveText: Color = Color(0xFF6B7280),
     val chainActive: Color = Color(0xFF00BFA5),
-) {
-    val chainInactive: Color
-        get() = chainInactiveText
-}
+)
 
 data class StatusColors(
     val destructive: Color = Color(0xFFFF3B30),
@@ -103,9 +89,17 @@ data class StatusColors(
 )
 
 data class StateColors(
-    val danger: Color = Color(0xFFFF3B30),
     val subtleDivider: Color = Color(0xFFC7C7CC),
     val neutralPlaceholderBackground: Color = Color(0xFFE0E0E0),
+    /** Neutral container behind selectable profile / node chrome. */
+    val inactiveSurface: ToneColors =
+        ToneColors(light = Color(0xFFF7F7F7), dark = Color(0xFF131415)),
+)
+
+/** A palette entry that resolves to a different colour per theme brightness. */
+data class ToneColors(
+    val light: Color,
+    val dark: Color,
 )
 
 data class MoeColors(
@@ -113,45 +107,48 @@ data class MoeColors(
     val pingWarning: Color = Color(0xFFB87900),
 )
 
+/**
+ * Colours the text-selection action menu paints over the code surface. The editor's own
+ * syntax/background palette lives in `feature/editor` (CursorPalette); do not mirror it here.
+ */
 data class EditorColors(
-    val darkBackground: Color = Color(0xFF1E1E1E),
-    val darkText: Color = Color(0xFFD4D4D4),
-    val darkLineNumber: Color = Color(0xFF858585),
-    val darkLineNumberBackground: Color = Color(0xFF1E1E1E),
-    val darkCurrentLine: Color = Color(0xFF2D2D2D),
-    val darkSelectionBackground: Color = Color(0xFF264F78),
     val darkTextActionBackground: Color = Color(0xFF2D2D2D),
     val darkTextActionIcon: Color = Color(0xFFD4D4D4),
-    val lightBackground: Color = Color.White,
-    val lightText: Color = Color(0xFF1E1E1E),
-    val lightLineNumber: Color = Color(0xFF6E6E6E),
-    val lightLineNumberBackground: Color = Color(0xFFF0F0F0),
-    val lightCurrentLine: Color = Color(0xFFF5F5F5),
-    val lightSelectionBackground: Color = Color(0xFFADD6FF),
     val lightTextActionBackground: Color = Color(0xFFF0F0F0),
     val lightTextActionIcon: Color = Color(0xFF333333),
-    val accent: Color = Color(0xFF007ACC),
-    val delimiterDark: Color = Color(0xFF569CD6),
-    val delimiterLight: Color = Color(0xFF0000FF),
-    val delimiterBackground: Color = Color(0x2646A2D4),
 )
 
 data class AppColors(
-    val traffic: TrafficColors = TrafficColors(),
     val logLevel: LogLevelColors = LogLevelColors(),
     val latency: LatencyColors = LatencyColors(),
     val protocol: ProtocolColors = ProtocolColors(),
     val connection: ConnectionColors = ConnectionColors(),
     val status: StatusColors = StatusColors(),
     val state: StateColors = StateColors(),
+    val title: ToneColors = ToneColors(light = Color(0xFF636363), dark = Color(0xFF9E9E9E)),
     val moe: MoeColors = MoeColors(),
     val editor: EditorColors = EditorColors(),
-) {
-    val neutralPlaceholderBackground: Color
-        get() = state.neutralPlaceholderBackground
-}
+)
 
-val LocalAppColors = staticCompositionLocalOf { AppColors() }
+/** 当前主题是否处于暗色模式（以背景亮度为准）。 */
+@Composable
+fun isDarkTheme(): Boolean = isDarkSurface(MiuixTheme.colorScheme.background)
+
+/**
+ * 绘制在 [color] 上的内容是否需要浅色前景。
+ *
+ * 用于任意表面色（例如用户选定的强调色、壁纸推导色、首页内容底色）。若该颜色本身就是主题背景，
+ * 请改用 [isDarkTheme]。
+ */
+fun isDarkSurface(color: Color): Boolean = color.luminance() < 0.5f
+
+/** 按当前主题明暗取用该调色板条目。 */
+@Composable
+fun ToneColors.resolve(): Color = if (isDarkTheme()) dark else light
+
+/** 可选卡片（配置 / 节点）共用的中性底色。 */
+@Composable
+fun inactiveSurfaceColor(): Color = AppTheme.colors.state.inactiveSurface.resolve()
 
 private fun ThemeColors.toLightScheme() =
     lightColorScheme(
@@ -191,8 +188,8 @@ private fun ThemeColors.toDarkScheme() =
         onBackgroundVariant = onBackgroundVariant,
     )
 
-private fun ThemePalette.toColorScheme(isDark: Boolean) =
-    if (isDark) dark.toDarkScheme() else light.toLightScheme()
+private fun ThemeColors.toColorScheme(isDark: Boolean) =
+    if (isDark) toDarkScheme() else toLightScheme()
 
 private val basePalette =
     ThemePalette(
@@ -235,30 +232,16 @@ private val basePalette =
     )
 
 fun colorSchemeFromSeed(seed: Color, isDark: Boolean, invertOnPrimaryColors: Boolean = false) =
-    derivePaletteFromSeed(seed = seed, invertOnPrimaryColors = invertOnPrimaryColors)
-        .toColorScheme(isDark)
+    deriveThemeColors(
+        base = if (isDark) basePalette.dark else basePalette.light,
+        seed = seed,
+        dark = isDark,
+        invertOnPrimaryColors = invertOnPrimaryColors,
+    ).toColorScheme(isDark)
 
 fun colorFromArgb(argb: Long): Color = Color(argb.toInt())
 
 fun colorToArgbLong(color: Color): Long = color.toArgb().toLong()
-
-private fun derivePaletteFromSeed(seed: Color, invertOnPrimaryColors: Boolean): ThemePalette =
-    ThemePalette(
-        light =
-            deriveThemeColors(
-                base = basePalette.light,
-                seed = seed,
-                dark = false,
-                invertOnPrimaryColors = invertOnPrimaryColors,
-            ),
-        dark =
-            deriveThemeColors(
-                base = basePalette.dark,
-                seed = seed,
-                dark = true,
-                invertOnPrimaryColors = invertOnPrimaryColors,
-            ),
-    )
 
 private fun deriveThemeColors(
     base: ThemeColors,

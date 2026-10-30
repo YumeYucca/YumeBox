@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -33,10 +32,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
@@ -48,15 +47,14 @@ import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.glass.GlassBottomSheet
 import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.layout.BottomSheetDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 object AppBottomSheetDefaults {
 
-    val insideMargin = DpSize(UiDp.dp24, UiDp.dp16)
+    val InsideMargin = DpSize(UiDp.dp24, UiDp.dp16)
 
-    val outsideMargin = DpSize(UiDp.dp0, UiDp.dp0)
+    val OutsideMargin = DpSize(UiDp.dp0, UiDp.dp0)
 
     /**
      * Top inset for content that scrolls under the floating 76dp title band, so the first row
@@ -139,62 +137,45 @@ fun AppBottomSheetConfirmAction(
     )
 }
 
+/**
+ * 通用底部弹窗:76dp 浮动标题带 + 标题栏 42dp 图标按钮 + 自滚动内容列。
+ *
+ * [content] 始终渲染在 `Column(verticalScroll(rememberScrollState()))` 内(带 [insideMargin] 水平内缩
+ * 与 [AppBottomSheetDefaults.ContentTopGap] 顶部留白),因此内容里不能放高度不受限的懒加载列表:
+ * `LazyColumn` 套在 `verticalScroll` 里会抛
+ * "Vertically scrollable component was measured with an infinity maximum height constraints"。
+ * 需要列表时给列表一个上界,例如 `Modifier.heightIn(max = 360.dp)`(WifiAutomationSheets 的用法)。
+ *
+ * [startAction] 默认就是关闭按钮(`AppBottomSheetCloseAction([onDismissRequest])`);需要别的起始动作
+ * (ProxySheetContent 的“面板切换”)才传自己的 lambda,完全不需要时传 `null`。
+ *
+ * 这里刻意不再透传 `GlassBottomSheet` 的尺寸/退场参数(容器色、圆角、最大宽、外边距、拖拽条颜色、
+ * 遮罩、`allowDismiss`、嵌套滚动、`renderInRootScaffold`):没有任何调用点需要它们,而透传只会让
+ * 每个弹窗各自决定外观。确实需要这些选项时直接用 `GlassBottomSheet`。
+ */
 @Composable
 fun AppActionBottomSheet(
     show: Boolean,
     title: String,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    startAction: (@Composable (() -> Unit))? = null,
-    endAction: (@Composable (() -> Unit))? = null,
-    backgroundColor: Color = Color.Unspecified,
-    enableWindowDim: Boolean = true,
-    cornerRadius: androidx.compose.ui.unit.Dp = BottomSheetDefaults.cornerRadius,
-    sheetMaxWidth: androidx.compose.ui.unit.Dp = BottomSheetDefaults.maxWidth,
+    startAction: (@Composable () -> Unit)? = { AppBottomSheetCloseAction(onClick = onDismissRequest) },
+    endAction: (@Composable () -> Unit)? = null,
     onDismissFinished: (() -> Unit)? = null,
-    outsideMargin: DpSize = AppBottomSheetDefaults.outsideMargin,
-    insideMargin: DpSize = AppBottomSheetDefaults.insideMargin,
+    insideMargin: DpSize = AppBottomSheetDefaults.InsideMargin,
     defaultWindowInsetsPadding: Boolean = true,
-    dragHandleColor: Color = Color.Unspecified,
-    allowDismiss: Boolean = true,
-    enableNestedScroll: Boolean = true,
-    renderInRootScaffold: Boolean? = null,
-    scrollableContent: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val resolvedBackgroundColor =
-        if (backgroundColor == Color.Unspecified) {
-            AppBottomSheetDefaults.backgroundColor()
-        } else {
-            backgroundColor
-        }
-    val resolvedDragHandleColor =
-        if (dragHandleColor == Color.Unspecified) {
-            AppBottomSheetDefaults.dragHandleColor()
-        } else {
-            dragHandleColor
-        }
+    val sheetColor = AppBottomSheetDefaults.backgroundColor()
     // Dual-pane shell: each pane has its own root Scaffold. Rendering in that root lets sheets
     // cover the floating bottom bar while staying inside the left (or right) pane bounds.
-    val inSplitShell = LocalDetailNavigator.current.isSplitShell
-    val resolvedRenderInRoot = renderInRootScaffold ?: true
-    val resolvedSheetMaxWidth =
-        if (inSplitShell && sheetMaxWidth == BottomSheetDefaults.maxWidth) {
-            // Fill the pane Scaffold width rather than a centered phone card.
-            androidx.compose.ui.unit.Dp.Infinity
-        } else {
-            sheetMaxWidth
-        }
+    val inSplitShell = LocalDetailNavigator.current != null
+    // Fill the pane Scaffold width rather than a centered phone card.
+    val sheetMaxWidth = if (inSplitShell) Dp.Infinity else BottomSheetDefaults.maxWidth
 
-    // Sample the sheet body plus its content: without the base colour the side actions read as
-    // bare icons at rest and only show their glass once content scrolls underneath.
-    val sheetContentBackdrop =
-        key(resolvedBackgroundColor) {
-            rememberLayerBackdrop {
-                drawRect(resolvedBackgroundColor)
-                drawContent()
-            }
-        }
+    // Without the base colour the side actions read as bare icons at rest and only show their
+    // glass once content scrolls underneath.
+    val sheetContentBackdrop = rememberSurfaceBackdrop(containerColor = sheetColor)
     // miuix-glass bottom sheet. The panel does not sample the page (backdrop = null): it paints
     // the opaque container colour, which is what the reference sheet does ("弹窗本体不做壁纸
     // 玻璃模糊，纯实色").
@@ -210,51 +191,39 @@ fun AppActionBottomSheet(
         show = show,
         modifier = modifier,
         backdrop = null,
-        containerColor = resolvedBackgroundColor,
+        containerColor = sheetColor,
         title = null,
-        enableWindowDim = enableWindowDim,
-        cornerRadius = cornerRadius,
-        sheetMaxWidth = resolvedSheetMaxWidth,
+        cornerRadius = BottomSheetDefaults.cornerRadius,
+        sheetMaxWidth = sheetMaxWidth,
         onDismissRequest = onDismissRequest,
         onDismissFinished = onDismissFinished,
-        outsideMargin = outsideMargin,
+        outsideMargin = AppBottomSheetDefaults.OutsideMargin,
         insideMargin = DpSize(0.dp, insideMargin.height),
         defaultWindowInsetsPadding = defaultWindowInsetsPadding,
-        dragHandleColor = resolvedDragHandleColor,
-        allowDismiss = allowDismiss,
-        enableNestedScroll = enableNestedScroll,
-        renderInRootScaffold = resolvedRenderInRoot,
+        dragHandleColor = AppBottomSheetDefaults.dragHandleColor(),
         content = {
             CompositionLocalProvider(LocalGlassBackdrop provides sheetContentBackdrop) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Box(modifier = Modifier.fillMaxWidth().layerBackdrop(sheetContentBackdrop)) {
-                        if (scrollableContent) {
-                            // The content column scrolls itself and wraps up to the sheet's max height. The
-                            // sheet column is not scrollable, so a tall non-lazy form (add profile, settings)
-                            // would otherwise be clipped with no way to reach the cut-off fields — especially
-                            // with the IME consuming half the window.
-                            Column(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .verticalScroll(rememberScrollState())
-                                        .padding(horizontal = insideMargin.width),
-                            ) {
-                                Spacer(modifier = Modifier.height(AppBottomSheetDefaults.ContentTopGap))
-                                content()
-                            }
-                        } else {
-                            // Self-scrolling content (LazyColumn): the caller pads its own top with
-                            // AppBottomSheetDefaults.ContentTopGap so the first row starts under the band.
-                            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = insideMargin.width)) {
-                                content()
-                            }
+                        // The content column scrolls itself and wraps up to the sheet's max height. The
+                        // sheet column is not scrollable, so a tall non-lazy form (add profile, settings)
+                        // would otherwise be clipped with no way to reach the cut-off fields — especially
+                        // with the IME consuming half the window.
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = insideMargin.width),
+                        ) {
+                            Spacer(modifier = Modifier.height(AppBottomSheetDefaults.ContentTopGap))
+                            content()
                         }
                     }
                     FloatingSheetHeader(
                         backdrop = sheetContentBackdrop,
                         title = title,
-                        sheetColor = resolvedBackgroundColor,
+                        sheetColor = sheetColor,
                         startAction = startAction,
                         endAction = endAction,
                     )

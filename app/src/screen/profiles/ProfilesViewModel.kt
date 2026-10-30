@@ -26,7 +26,7 @@ package com.github.yumeyucca.yumebox.screen.profiles
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
-import com.github.yumeyucca.yumebox.core.presentation.AndroidContractStateViewModel
+import com.github.yumeyucca.yumebox.presentation.base.AndroidContractStateViewModel
 import com.github.yumeyucca.yumebox.data.store.LinkOpenMode
 import com.github.yumeyucca.yumebox.data.store.Preference
 import com.github.yumeyucca.yumebox.data.store.ProfileLink
@@ -50,7 +50,7 @@ class ProfilesViewModel(
     private val profilesRepository: ProfilesRepository,
     profileLinksStorage: ProfileLinksStore,
 ) :
-    AndroidContractStateViewModel<ProfilesUiState, ProfilesUiEffect>(
+    AndroidContractStateViewModel<ProfilesUiState, Nothing>(
         application,
         ProfilesUiState(),
     ) {
@@ -58,15 +58,10 @@ class ProfilesViewModel(
     val links: Preference<List<ProfileLink>> = profileLinksStorage.links
     val defaultLinkId: Preference<String> = profileLinksStorage.defaultLinkId
 
-    fun setOpenMode(mode: LinkOpenMode) = linkOpenMode.set(mode)
-
     private val _profiles = MutableStateFlow<List<Profile>>(emptyList())
     val profiles: StateFlow<List<Profile>> = _profiles.asStateFlow()
 
     private var refreshGeneration = 0
-
-    private val _activeProfile = MutableStateFlow<Profile?>(null)
-    val activeProfile: StateFlow<Profile?> = _activeProfile.asStateFlow()
 
     private val _downloadProgress = MutableStateFlow<DownloadProgress?>(null)
     val downloadProgress: StateFlow<DownloadProgress?> = _downloadProgress.asStateFlow()
@@ -83,11 +78,9 @@ class ProfilesViewModel(
             try {
                 setLoading(true)
                 val allProfiles = profilesRepository.queryAllProfiles()
-                val active = profilesRepository.queryActiveProfile()
 
                 if (generation != refreshGeneration) return@launch
                 _profiles.value = allProfiles
-                _activeProfile.value = active
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 if (generation != refreshGeneration) return@launch
@@ -116,6 +109,10 @@ class ProfilesViewModel(
             var createdUuid: UUID? = null
             try {
                 setLoading(true)
+                // Set before the first suspend call: the sheet derives "an import is running" from
+                // this value, so it has to flip in the same frame as the tap, not one IPC later.
+                _downloadProgress.value =
+                    DownloadProgress(message = YumeTxt.ProfilesVM.Progress.Preparing)
                 // File imports must persist the content/file URI as source so ProfileProcessor can
                 // re-materialize config.yaml and prefetch proxy/rule providers on update.
                 val resolvedSource =
@@ -125,9 +122,6 @@ class ProfilesViewModel(
                 val uuid =
                     profilesRepository.createProfile(type, name, resolvedSource, ageSecretKey)
                 createdUuid = uuid
-
-                _downloadProgress.value =
-                    DownloadProgress(percent = 0, message = YumeTxt.ProfilesVM.Progress.Preparing)
 
                 val observer = FetchObserver { status ->
                     _downloadProgress.value = status.toDownloadProgress()
@@ -140,7 +134,6 @@ class ProfilesViewModel(
                 val report = profilesRepository.updateProfile(uuid, observer)
                 _downloadProgress.value =
                     DownloadProgress(
-                        percent = 100,
                         message = YumeTxt.ProfilesVM.Progress.ImportComplete,
                         isCompleted = true,
                     )
@@ -154,32 +147,15 @@ class ProfilesViewModel(
                 createdUuid?.let { uuid ->
                     runCatching { profilesRepository.deleteProfile(uuid) }
                         .onFailure { deleteError ->
+                            // Cancellation during the rollback is not a rollback failure, and must
+                            // not let the error banner below run after the job was cancelled.
+                            if (deleteError is CancellationException) throw deleteError
                             Timber.w(deleteError, "Failed to rollback profile creation: $uuid")
                         }
                 }
                 refreshProfiles()
                 showError(YumeTxt.ProfilesVM.Message.AddFailed.format(error.message ?: "Unknown"))
                 _downloadProgress.value = null
-            } finally {
-                setLoading(false)
-            }
-        }
-    }
-
-    // Fault barrier: any clone failure is surfaced as UI error state (CE rethrown).
-    @Suppress("TooGenericExceptionCaught")
-    fun cloneProfile(uuid: UUID) {
-        viewModelScope.launch {
-            try {
-                setLoading(true)
-                val newUuid = profilesRepository.cloneProfile(uuid)
-                showMessage(YumeTxt.ProfilesVM.Message.ProfileAdded.format("Clone"))
-                refreshProfiles()
-                Timber.i("Profile cloned: from=$uuid to=$newUuid")
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-                Timber.e(error, "Failed to clone profile")
-                showError(YumeTxt.ProfilesVM.Message.AddFailed.format(error.message ?: "Unknown"))
             } finally {
                 setLoading(false)
             }
@@ -208,28 +184,6 @@ class ProfilesViewModel(
         }
     }
 
-    // Fault barrier: any activate failure is surfaced as UI error state (CE rethrown).
-    @Suppress("TooGenericExceptionCaught")
-    fun activateProfile(uuid: UUID) {
-        viewModelScope.launch {
-            try {
-                setLoading(true)
-                profilesRepository.setActiveProfile(uuid)
-                showMessage(YumeTxt.ProfilesVM.Message.ProfileUpdated.format("Active"))
-                refreshProfiles()
-                Timber.i("Profile activated: $uuid")
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-                Timber.e(error, "Failed to activate profile")
-                showError(
-                    YumeTxt.ProfilesVM.Message.ToggleFailed.format(error.message ?: "Unknown")
-                )
-            } finally {
-                setLoading(false)
-            }
-        }
-    }
-
     // Fault barrier: any update/fetch failure is surfaced as UI error state (CE rethrown).
     @Suppress("TooGenericExceptionCaught")
     fun updateProfile(uuid: UUID) {
@@ -237,7 +191,7 @@ class ProfilesViewModel(
             try {
                 setLoading(true)
                 _downloadProgress.value =
-                    DownloadProgress(percent = 0, message = YumeTxt.ProfilesVM.Progress.Preparing)
+                    DownloadProgress(message = YumeTxt.ProfilesVM.Progress.Preparing)
 
                 val observer = FetchObserver { status ->
                     _downloadProgress.value = status.toDownloadProgress()
@@ -247,7 +201,6 @@ class ProfilesViewModel(
 
                 _downloadProgress.value =
                     DownloadProgress(
-                        percent = 100,
                         message = YumeTxt.ProfilesVM.Progress.ImportComplete,
                         isCompleted = true,
                     )
@@ -289,10 +242,6 @@ class ProfilesViewModel(
                 setLoading(false)
             }
         }
-    }
-
-    fun importProfileFromFile(uri: Uri, name: String) {
-        createProfile(type = Profile.Type.File, name = name, fileUri = uri)
     }
 
     // Fault barrier: any reorder failure logs and re-syncs the list from storage (CE rethrown).
@@ -365,9 +314,6 @@ class ProfilesViewModel(
                             else -> item
                         }
                     }
-                _activeProfile.value =
-                    if (active) profile.copy(active = true) else null
-
                 showMessage(YumeTxt.ProfilesVM.Message.ProfileUpdated.format(profile.name))
                 refreshProfiles()
                 Timber.d("Profile active set: $uuid, active=$active")
@@ -424,11 +370,7 @@ class ProfilesViewModel(
         }
     }
 
-    private fun showError(message: String) {
-        postError(message, ProfilesUiEffect.ShowError(message))
-    }
+    private fun showError(message: String) = postError(message)
 
-    private fun showMessage(message: String) {
-        postMessage(message, ProfilesUiEffect.ShowMessage(message))
-    }
+    private fun showMessage(message: String) = postMessage(message)
 }

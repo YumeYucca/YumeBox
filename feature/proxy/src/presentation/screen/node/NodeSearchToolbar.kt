@@ -48,7 +48,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * Node page search field. The delay-test / sort / locate actions used to live beside it; they now
- * sit in the top bar's glass pill+circle chrome (see [NodeListPage] callers and ProxyTopBar).
+ * sit in the top bar's glass pill+circle chrome (see [com.github.yumeyucca.yumebox.presentation.screen.ProxyNodePage]
+ * and ProxyTopBar).
  */
 @Composable
 internal fun NodeSearchToolbar(

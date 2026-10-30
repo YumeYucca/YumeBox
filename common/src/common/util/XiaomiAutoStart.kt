@@ -20,7 +20,6 @@
 
 package com.github.yumeyucca.yumebox.common.util
 
-import android.app.Activity
 import android.app.AppOpsManager
 import android.content.ComponentName
 import android.content.Context
@@ -148,14 +147,6 @@ object XiaomiAutoStart {
             appOps.checkOpNoThrow(MIUI_OP_AUTO_START_NAME, Process.myUid(), packageName)
         }.getOrDefault(AppOpsManager.MODE_ERRORED)
     }
-
-    private fun Context.startActivitySafely(intent: Intent): Boolean =
-        runCatching {
-            if (this !is Activity) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
-        }.isSuccess
 
     private fun systemProperty(key: String): String =
         runCatching {

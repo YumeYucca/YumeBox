@@ -51,6 +51,7 @@ import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Repeat
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import com.github.yumeyucca.yumebox.presentation.theme.isDarkTheme
 import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
 import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.glassSurface
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
@@ -72,15 +73,15 @@ internal fun MoeSidebarDecoration(
 ) {
     val spacing = AppTheme.spacing
     val surface = MiuixTheme.colorScheme.surface
-    val isDarkSurface = surface.luminance() < 0.5f
+    val darkSurface = isDarkTheme()
     val glassGradientStart =
-        if (isDarkSurface) {
+        if (darkSurface) {
             Color.Black.copy(alpha = 0.36f)
         } else {
             surface.copy(alpha = 0.23f)
         }
     val glassGradientEnd =
-        if (isDarkSurface) {
+        if (darkSurface) {
             surface.copy(alpha = 0.18f)
         } else {
             surface.copy(alpha = 0.16f)
@@ -92,10 +93,10 @@ internal fun MoeSidebarDecoration(
             Modifier.glassSurface(
                 backdrop = backdrop,
                 shape = RectangleShape,
-                fallbackColor = surface.copy(alpha = if (isDarkSurface) 0.78f else 0.88f),
+                fallbackColor = surface.copy(alpha = if (darkSurface) 0.78f else 0.88f),
                 blurRadius = blurRadius.value,
                 tint =
-                    if (isDarkSurface) {
+                    if (darkSurface) {
                         Color.Black.copy(alpha = 0.24f)
                     } else {
                         surface.copy(alpha = 0.13f)
@@ -185,7 +186,7 @@ internal fun MoeLaunchControls(
 @Composable
 private fun moeLaunchButtonBorderColor(): Color {
     val onBackground = MiuixTheme.colorScheme.onBackground
-    val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
+    val isDark = isDarkTheme()
     return onBackground.copy(alpha = if (isDark) 0.22f else 0.08f)
 }
 

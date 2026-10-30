@@ -66,9 +66,7 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     init {
         migrateLegacyHomeKeys()
         resetHomePreviewGuideForWallpaperUpdate()
-        if (!mmkv.containsKey("useSystemWallpaper") &&
-            mmkv.decodeString("moeWallpaperUri").orEmpty().isNotBlank()
-        ) {
+        if (!mmkv.containsKey("useSystemWallpaper") && moeWallpaperUri.value.isNotBlank()) {
             mmkv.encode("useSystemWallpaper", false)
         }
     }

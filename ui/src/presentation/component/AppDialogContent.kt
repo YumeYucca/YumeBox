@@ -22,15 +22,17 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -56,23 +58,87 @@ internal fun AppDialogMessage(message: String, modifier: Modifier = Modifier) {
     )
 }
 
+/**
+ * Returns a stable "dismiss the keyboard" action.
+ *
+ * Dialogs that host a text field must drop focus *and* hide the IME before they leave
+ * composition, otherwise the keyboard stays up over the next screen.
+ */
 @Composable
-internal fun AppConfirmDialogContent(
-    message: String,
-    onCancel: () -> Unit,
+internal fun rememberInputHider(): () -> Unit {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    return remember(focusManager, keyboardController) {
+        {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+        }
+    }
+}
+
+/**
+ * The shell every input dialog shares: the [AppDialog] chrome, the caller's fields, the validation
+ * message and the cancel/confirm row.
+ *
+ * It exists so the keyboard dismissal cannot drift: every way out of the dialog (cancel, confirm,
+ * scrim tap, IME action) has to clear focus and hide the keyboard before the fields leave
+ * composition, otherwise the keyboard stays up over the next screen.
+ *
+ * @param content the dialog's own fields; it receives [rememberInputHider]'s action so an IME
+ *   action can dismiss the keyboard the same way the buttons do.
+ */
+@Composable
+internal fun AppInputDialog(
+    show: Boolean,
+    title: String,
+    onDismissRequest: () -> Unit,
     onConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
+    summary: String? = null,
+    error: String? = null,
+    confirmEnabled: Boolean = true,
     cancelText: String = YumeTxt.Component.Button.Cancel,
     confirmText: String = YumeTxt.Component.Button.Confirm,
-    confirmEnabled: Boolean = true,
+    onDismissFinished: (() -> Unit)? = null,
+    content: @Composable (dismissInput: () -> Unit) -> Unit,
 ) {
-    AppDialogColumn {
-        AppDialogMessage(message = message)
-        DialogButtonRow(
-            onCancel = onCancel,
-            onConfirm = onConfirm,
-            cancelText = cancelText,
-            confirmText = confirmText,
-            confirmEnabled = confirmEnabled,
-        )
+    val hideInput = rememberInputHider()
+
+    AppDialog(
+        show = show,
+        modifier = modifier,
+        title = title,
+        summary = summary,
+        onDismissRequest = {
+            hideInput()
+            onDismissRequest()
+        },
+        onDismissFinished = onDismissFinished,
+    ) {
+        AppDialogColumn {
+            content(hideInput)
+            error
+                ?.takeIf { it.isNotBlank() }
+                ?.let { message ->
+                    Text(
+                        text = message,
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.error,
+                    )
+                }
+            DialogButtonRow(
+                onCancel = {
+                    hideInput()
+                    onDismissRequest()
+                },
+                onConfirm = {
+                    hideInput()
+                    onConfirm()
+                },
+                cancelText = cancelText,
+                confirmText = confirmText,
+                confirmEnabled = confirmEnabled,
+            )
+        }
     }
 }

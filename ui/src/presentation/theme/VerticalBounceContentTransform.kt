@@ -21,7 +21,6 @@
 package com.github.yumeyucca.yumebox.presentation.theme
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -39,27 +38,19 @@ fun verticalBounceContentTransform(forward: Boolean): ContentTransform {
             dampingRatio = 0.92f,
             stiffness = 280f,
         )
-    val fadeInSpec = tween<Float>(durationMillis = 340, easing = FastOutSlowInEasing)
-    val fadeOutSpec = tween<Float>(durationMillis = 260, easing = FastOutSlowInEasing)
-    val transform =
-        if (forward) {
-            (slideInVertically(animationSpec = enterSpring) { fullHeight ->
-                fullHeight / 10
-            } + fadeIn(animationSpec = fadeInSpec)) togetherWith
-                    (slideOutVertically(animationSpec = exitSpring) { fullHeight ->
-                        -fullHeight / 14
-                    } + fadeOut(animationSpec = fadeOutSpec))
-        } else {
-            (slideInVertically(animationSpec = enterSpring) { fullHeight ->
-                -fullHeight / 10
-            } + fadeIn(animationSpec = fadeInSpec)) togetherWith
-                    (slideOutVertically(animationSpec = exitSpring) { fullHeight ->
-                        fullHeight / 14
-                    } + fadeOut(animationSpec = fadeOutSpec))
-        }
+    val fadeInSpec = tween<Float>(durationMillis = 340, easing = AnimationSpecs.StandardEasing)
+    val fadeOutSpec = tween<Float>(durationMillis = 260, easing = AnimationSpecs.StandardEasing)
+    // Forward enters from below and leaves upwards; backward mirrors both by the same factor.
+    val direction = if (forward) 1 else -1
     return ContentTransform(
-        targetContentEnter = transform.targetContentEnter,
-        initialContentExit = transform.initialContentExit,
+        targetContentEnter =
+            slideInVertically(animationSpec = enterSpring) { fullHeight ->
+                direction * fullHeight / 10
+            } + fadeIn(animationSpec = fadeInSpec),
+        initialContentExit =
+            slideOutVertically(animationSpec = exitSpring) { fullHeight ->
+                -direction * fullHeight / 14
+            } + fadeOut(animationSpec = fadeOutSpec),
         sizeTransform = SizeTransform(clip = false),
     )
 }

@@ -18,8 +18,6 @@
  *
  */
 
-@file:Suppress("UnusedSymbol", "RedundantSuspendModifier")
-
 package com.github.yumeyucca.yumebox.data.controller
 
 import com.github.yumeyucca.yumebox.core.model.OverrideSpec
@@ -27,52 +25,28 @@ import com.github.yumeyucca.yumebox.data.model.OverrideMetadata
 import com.github.yumeyucca.yumebox.data.model.ProfileBinding
 import com.github.yumeyucca.yumebox.data.store.OverrideConfigStore
 import com.github.yumeyucca.yumebox.data.store.ProfileBindingProvider
-import java.util.*
 
 class OverrideResolver(
     private val configStore: OverrideConfigStore,
     private val bindingProvider: ProfileBindingProvider,
 ) {
-    suspend fun resolveIds(profileId: UUID): List<String> {
-        val binding = bindingProvider.getBinding(profileId.toString())
-        return resolveBindingIds(binding)
+    suspend fun resolveIds(profileId: String): List<String> =
+        resolveBindingIds(bindingProvider.getBinding(profileId))
+
+    suspend fun resolveSpecs(overrideIds: List<String>): List<OverrideSpec> {
+        // Plain loop rather than mapNotNull: resolving a spec reads the override's file path off
+        // disk, and a collection lambda cannot suspend.
+        val specs = mutableListOf<OverrideSpec>()
+        for (overrideId in overrideIds) {
+            val config = configStore.getById(overrideId) ?: continue
+            val file = configStore.getConfigFilePath(overrideId) ?: continue
+            specs += OverrideSpec(path = file.absolutePath, ext = config.contentType.extension)
+        }
+        return specs
     }
-
-    suspend fun resolveIds(profileId: String): List<String> {
-        val binding = bindingProvider.getBinding(profileId)
-        return resolveBindingIds(binding)
-    }
-
-    suspend fun resolveSpecs(overrideIds: List<String>): List<OverrideSpec> =
-        resolveOrderedSpecs(overrideIds)
-
-    suspend fun getProfilesUsingOverride(overrideId: String): List<String> =
-        bindingProvider.getProfilesUsingOverride(overrideId)
-
-    suspend fun isOverrideInUse(overrideId: String): Boolean =
-        bindingProvider.isOverrideInUse(overrideId)
 
     suspend fun getOverrideUsageCount(overrideId: String): Int =
         bindingProvider.getOverrideUsageCount(overrideId)
-
-    suspend fun getBinding(profileId: String) = bindingProvider.getBinding(profileId)
-
-    suspend fun bindOverride(profileId: String, overrideId: String, index: Int? = null) {
-        bindingProvider.addOverride(profileId, overrideId, index)
-    }
-
-    suspend fun setOverrides(profileId: String, overrideIds: List<String>) {
-        val binding = bindingProvider.getBinding(profileId)
-        if (binding != null) {
-            bindingProvider.setBinding(binding.setOverrides(overrideIds))
-        } else {
-            bindingProvider.setBinding(ProfileBinding.withOverrides(profileId, overrideIds))
-        }
-    }
-
-    suspend fun clearBinding(profileId: String) {
-        bindingProvider.removeBinding(profileId)
-    }
 
     private fun resolveBindingIds(binding: ProfileBinding?): List<String> {
         if (binding == null) {
@@ -84,21 +58,10 @@ class OverrideResolver(
         return binding.overrideIds
             .asSequence()
             .filterNot { overrideId ->
-                isLegacyPresetOverrideId(overrideId) ||
+                OverrideMetadata.isLegacyPresetId(overrideId) ||
                         OverrideConfigStore.isInternalRuntimeConfig(overrideId)
             }
             .distinct()
             .toList()
     }
-
-    private suspend fun resolveOrderedSpecs(overrideIds: List<String>): List<OverrideSpec> {
-        return overrideIds.mapNotNull { overrideId ->
-            val config = configStore.getById(overrideId) ?: return@mapNotNull null
-            val file = configStore.getConfigFilePath(overrideId) ?: return@mapNotNull null
-            OverrideSpec(path = file.absolutePath, ext = config.contentType.extension)
-        }
-    }
-
-    private fun isLegacyPresetOverrideId(overrideId: String): Boolean =
-        overrideId.startsWith(OverrideMetadata.LEGACY_SYSTEM_PREFIX)
 }

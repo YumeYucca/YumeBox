@@ -1142,6 +1142,7 @@ public data class YumeStrings_Override_Import(
     public val HttpError: String,
     public val UnsupportedType: String,
     public val EmptyJavaScript: String,
+    public val TooLarge: String,
 )
 
 public data class YumeStrings_Override_Export(

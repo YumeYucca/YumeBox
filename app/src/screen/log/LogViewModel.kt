@@ -25,6 +25,7 @@ package com.github.yumeyucca.yumebox.screen.log
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumeyucca.yumebox.common.util.formatDateTime
 import com.github.yumeyucca.yumebox.core.model.LogMessage
 import com.github.yumeyucca.yumebox.runtime.api.LogObserver
 import com.github.yumeyucca.yumebox.runtime.api.LogSubscription
@@ -32,22 +33,36 @@ import com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
-import java.text.SimpleDateFormat
-import java.util.Locale
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.collections.ArrayDeque
 
 /**
- * Minimum log level shown in the UI. [All] keeps every entry; other values keep that level and
- * anything more severe (Debug < Info < Warning < Error).
+ * Minimum log level shown in the UI. [All] keeps every entry; every other value keeps its own level
+ * and anything more severe (Debug < Info < Warning < Error).
  */
-enum class LogLevelFilter {
-    All,
-    Debug,
-    Info,
-    Warning,
-    Error,
+enum class LogLevelFilter(private val minimumLevel: LogMessage.Level?) {
+    All(null),
+    Debug(LogMessage.Level.Debug),
+    Info(LogMessage.Level.Info),
+    Warning(LogMessage.Level.Warning),
+    Error(LogMessage.Level.Error);
+
+    /** Whether an entry logged at [level] belongs in the filtered list. */
+    fun keeps(level: LogMessage.Level): Boolean =
+        minimumLevel == null || level.rank >= minimumLevel.rank
 }
+
+/** Severity rank; levels without one rank below every filter except [LogLevelFilter.All]. */
+private val LogMessage.Level.rank: Int
+    get() =
+        when (this) {
+            LogMessage.Level.Debug -> 0
+            LogMessage.Level.Info -> 1
+            LogMessage.Level.Warning -> 2
+            LogMessage.Level.Error -> 3
+            LogMessage.Level.Silent,
+            LogMessage.Level.Unknown -> -1
+        }
 
 data class LiveLogEntry(
     val id: Long,
@@ -62,8 +77,9 @@ enum class LogConnectionState {
     Retrying,
 }
 
+private const val LogTimePattern = "HH:mm:ss.SSS"
+
 class LogViewModel(private val appContext: Context) : ViewModel() {
-    private val timeFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
     private val nextId = AtomicLong(0L)
     private val pendingLock = Any()
     private val pendingEntries = ArrayDeque<LiveLogEntry>()
@@ -76,12 +92,13 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
     private var logSubscription: LogSubscription? = null
     private var connectJob: Job? = null
 
-    val levelFilter: StateFlow<LogLevelFilter> = _levelFilter.asStateFlow()
-    val connectionState: StateFlow<LogConnectionState> = _connectionState.asStateFlow()
-    val filteredLogEntries: StateFlow<List<LiveLogEntry>> =
+    private val levelFilter: StateFlow<LogLevelFilter> = _levelFilter.asStateFlow()
+    private val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    private val connectionState: StateFlow<LogConnectionState> = _connectionState.asStateFlow()
+    private val filteredLogEntries: StateFlow<List<LiveLogEntry>> =
         combine(_entries, _levelFilter, _searchQuery) { entries, filter, query ->
             entries.filter { entry ->
-                entry.level.passes(filter) &&
+                filter.keeps(entry.level) &&
                         (query.isBlank() ||
                                 entry.message.contains(query, ignoreCase = true) ||
                                 entry.level.name.contains(query, ignoreCase = true))
@@ -100,14 +117,21 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
             }
 
             override fun onError(error: Throwable) {
+                Timber.e(error, "Live log subscription failed")
                 _connectionState.value = LogConnectionState.Retrying
+                // A subscription that reported an error is dead, but the retry loop in [connect]
+                // only starts a new one while nothing is assigned: dropping the reference here is
+                // what lets it run again. [close] is deliberately not called, because this runs on
+                // the failed subscription's own callback.
+                logSubscription = null
+                connect()
             }
 
             override fun newItem(log: LogMessage) {
                 val entry =
                     LiveLogEntry(
                         id = nextId.incrementAndGet(),
-                        time = synchronized(timeFormat) { timeFormat.format(log.time) },
+                        time = formatDateTime(log.time.time, LogTimePattern),
                         level = log.level,
                         message = log.message,
                     )
@@ -117,6 +141,13 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
                 }
             }
         }
+
+    data class LogScreenState(
+        val filteredEntries: List<LiveLogEntry> = emptyList(),
+        val levelFilter: LogLevelFilter = LogLevelFilter.All,
+        val searchQuery: String = "",
+        val connectionState: LogConnectionState = LogConnectionState.Connecting,
+    )
 
     init {
         viewModelScope.launch(Dispatchers.Default) {
@@ -139,17 +170,17 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
         }
     }
 
-    data class LogScreenState(
-        val filteredEntries: List<LiveLogEntry> = emptyList(),
-        val levelFilter: LogLevelFilter = LogLevelFilter.All,
-        val connectionState: LogConnectionState = LogConnectionState.Connecting,
-    )
-
     val screenState: StateFlow<LogScreenState> =
-        combine(filteredLogEntries, levelFilter, connectionState) { entries, filter, connection ->
+        combine(
+            filteredLogEntries,
+            levelFilter,
+            searchQuery,
+            connectionState,
+        ) { entries, filter, query, connection ->
             LogScreenState(
                 filteredEntries = entries,
                 levelFilter = filter,
+                searchQuery = query,
                 connectionState = connection,
             )
         }
@@ -177,7 +208,9 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
                         logSubscription = RuntimeAccess.core().subscribeLogs(observer)
                     } catch (error: CancellationException) {
                         throw error
-                    } catch (error: Throwable) {
+                    } catch (error: Exception) {
+                        // Exception, not Throwable: the loop retries forever, so an Error must
+                        // escape instead of being folded into another attempt.
                         Timber.w(error, "Failed to subscribe to live logs; retrying")
                         firstAttempt = false
                         delay(retryDelay)
@@ -200,27 +233,6 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
         connectJob = null
         logSubscription?.close()
         logSubscription = null
-    }
-
-    private fun LogMessage.Level.passes(filter: LogLevelFilter): Boolean {
-        val rank =
-            when (this) {
-                LogMessage.Level.Debug -> 0
-                LogMessage.Level.Info -> 1
-                LogMessage.Level.Warning -> 2
-                LogMessage.Level.Error -> 3
-                LogMessage.Level.Silent,
-                LogMessage.Level.Unknown -> return filter == LogLevelFilter.All
-            }
-        val min =
-            when (filter) {
-                LogLevelFilter.All -> return true
-                LogLevelFilter.Debug -> 0
-                LogLevelFilter.Info -> 1
-                LogLevelFilter.Warning -> 2
-                LogLevelFilter.Error -> 3
-            }
-        return rank >= min
     }
 
     private companion object {

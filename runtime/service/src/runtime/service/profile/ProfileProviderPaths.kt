@@ -25,11 +25,11 @@ import com.github.yumeyucca.yumebox.core.bridge.Compiler
 import com.github.yumeyucca.yumebox.core.model.CompileRequest
 import com.github.yumeyucca.yumebox.core.model.CompileResult
 import com.github.yumeyucca.yumebox.core.util.PROXY_PROVIDER_SCOPE
+import com.github.yumeyucca.yumebox.core.util.PersistedJson
 import com.github.yumeyucca.yumebox.core.util.RULE_PROVIDER_SCOPE
 import com.github.yumeyucca.yumebox.core.util.YamlCodec
 import com.github.yumeyucca.yumebox.core.util.profileProviderScopeDir
 import com.github.yumeyucca.yumebox.runtime.service.session.CompiledConfigPipeline
-import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.io.File
 import java.security.MessageDigest
@@ -49,13 +49,6 @@ internal data class ProviderDiscovery(
     /** Age-encrypted or liboverride failure — path map fell back to source paths. */
     val pathMapSourceFallback: Boolean,
 )
-
-private val compilerJson =
-    Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        coerceInputValues = true
-    }
 
 private val providerPathPrefixes =
     setOf("providers", "provider", "clash", "ruleset", "rules", "proxies")
@@ -101,10 +94,10 @@ internal fun loadLiboverrideProviderPaths(
                         ageSecretKey = null,
                     )
                 val result =
-                    compilerJson.decodeFromString(
+                    PersistedJson.decodeFromString(
                         CompileResult.serializer(),
                         Compiler.nativeCompile(
-                            compilerJson.encodeToString(CompileRequest.serializer(), request)
+                            PersistedJson.encodeToString(CompileRequest.serializer(), request)
                         ),
                     )
                 check(result.success) {

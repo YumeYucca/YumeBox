@@ -81,12 +81,16 @@ class ProxyTileService : TileService() {
     override fun onClick() {
         super.onClick()
         val state = RuntimeCoordinator.state.value
-        // A second tap while a start is still coming up cancels it.
+        // A second tap while a start is still coming up supersedes it; any other in-flight toggle
+        // absorbs the tap. The superseded job is cancelled so the two cannot interleave.
         if (toggleJob?.isActive == true && state.phase != RuntimePhase.Starting) return
+        toggleJob?.cancel()
 
         toggleJob = scope.launch {
             if (RemoteControllerStore.isActive()) {
-                showTile(active = true, YumeTxt.Service.Tile.ClickToStopProxy)
+                // The remote controller owns the runtime, so this tile has nothing it can stop.
+                // Flipping the label to "click to stop" promised an action nothing performed.
+                Timber.i("Tile tap ignored: the remote controller owns the runtime")
                 return@launch
             }
             try {

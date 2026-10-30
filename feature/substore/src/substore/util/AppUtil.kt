@@ -22,47 +22,33 @@ package com.github.yumeyucca.yumebox.substore.util
 
 import com.github.yumeyucca.yumebox.core.Global
 import com.github.yumeyucca.yumebox.substore.SubStorePaths
+import timber.log.Timber
 import java.io.File
 
 object AppUtil {
     fun initFirstOpen() {
         SubStorePaths.ensureStructure()
         createRootJson()
-        extractBackendFile()
+        guarded("Extract backend bundle failed") {
+            copyAsset("backend/sub-store.bundle.js", SubStorePaths.backendBundle)
+        }
         extractFrontendDist()
     }
 
     private fun createRootJson() {
-        runCatching {
+        guarded("Create root.json failed") {
             val rootJsonFile = File(SubStorePaths.dataDir, "root.json")
             rootJsonFile.parentFile?.mkdirs()
             if (!rootJsonFile.exists()) rootJsonFile.writeText("{}")
         }
-            .onFailure { error -> timber.log.Timber.e(error, "Create root.json failed") }
-    }
-
-    private fun extractBackendFile() {
-        runCatching {
-            val assetManager = Global.application.assets
-            SubStorePaths.backendDir.mkdirs()
-            assetManager.open("backend/sub-store.bundle.js").use { inputStream ->
-                SubStorePaths.backendBundle.outputStream().use { outputStream ->
-                    inputStream.copyTo(outputStream)
-                }
-            }
-        }
-            .onFailure { error -> timber.log.Timber.e(error, "Extract backend bundle failed") }
     }
 
     private fun extractFrontendDist() {
-        runCatching {
-            val assetManager = Global.application.assets
+        guarded("Extract frontend assets failed") {
             val cacheDir = Global.application.cacheDir
 
             val zipPath = File(cacheDir, "substore_frontend.zip")
-            assetManager.open("frontend/dist.zip").use { inputStream ->
-                zipPath.outputStream().use { outputStream -> inputStream.copyTo(outputStream) }
-            }
+            copyAsset("frontend/dist.zip", zipPath)
 
             val stagingDir =
                 File(cacheDir, "substore_frontend_stage").apply {
@@ -72,7 +58,7 @@ object AppUtil {
 
             val unzipSuccess = ArchiveUtil.unzipZip(zipPath, stagingDir)
             if (!unzipSuccess) {
-                throw IllegalStateException("Sub-Store 前端资源解压失败")
+                throw IllegalStateException("Failed to extract the bundled Sub-Store frontend")
             }
 
             val extractedRoot = File(stagingDir, "dist").takeIf { it.exists() } ?: stagingDir
@@ -86,6 +72,17 @@ object AppUtil {
             stagingDir.deleteRecursively()
             zipPath.delete()
         }
-            .onFailure { error -> timber.log.Timber.e(error, "Extract frontend assets failed") }
+    }
+
+    private fun copyAsset(assetPath: String, targetFile: File) {
+        targetFile.parentFile?.mkdirs()
+        Global.application.assets.open(assetPath).use { input ->
+            targetFile.outputStream().use { output -> input.copyTo(output) }
+        }
+    }
+
+    /** First-open asset installation is best effort: a failure only costs a log line. */
+    private inline fun guarded(message: String, block: () -> Unit) {
+        runCatching(block).onFailure { error -> Timber.e(error, message) }
     }
 }

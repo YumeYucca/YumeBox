@@ -79,6 +79,16 @@ internal class CoreControllerLogStream(
         }
     }
 
+    /** Ends the retry loop and any live subscription, so a discarded controller stops retrying. */
+    fun close() {
+        synchronized(this) {
+            sink.set(null)
+            job?.cancel()
+            job = null
+        }
+        scope.cancel()
+    }
+
     private suspend fun streamOnce(sink: LogSink) {
         client
             .prepareGet(logUrl()) {

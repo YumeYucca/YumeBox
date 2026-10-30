@@ -25,6 +25,7 @@ package com.github.yumeyucca.yumebox.di
 
 import com.github.yumeyucca.yumebox.data.store.TrafficStatisticsStore
 import com.github.yumeyucca.yumebox.feature.meta.presentation.util.CustomRoutingBootstrapper
+import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionDetailViewModel
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionViewModel
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.CustomRoutingViewModel
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.TrafficStatisticsViewModel
@@ -35,6 +36,7 @@ import org.koin.dsl.module
 val featureMetaViewModelModule = module {
     single { CustomRoutingBootstrapper(get()) }
     viewModel { ConnectionViewModel(androidContext()) }
+    viewModel { ConnectionDetailViewModel(androidContext()) }
     viewModel { TrafficStatisticsViewModel(get<TrafficStatisticsStore>()) }
     viewModel { CustomRoutingViewModel(get(), get(), get()) }
 }

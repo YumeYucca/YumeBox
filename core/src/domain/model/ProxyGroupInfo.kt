@@ -82,13 +82,7 @@ fun List<ProxyGroupInfo>.displayedSelectionDelay(group: ProxyGroupInfo): Int =
 
 /**
  * Copies group members so each nested group row carries the delay a direct tap would show.
- * Leaf rows stay as they are.
- */
-fun ProxyGroupInfo.resolveMemberDelays(allGroups: List<ProxyGroupInfo>): ProxyGroupInfo =
-    allGroups.resolveMemberDelays().firstOrNull { it.name == name } ?: this
-
-/**
- * Batch form of [resolveMemberDelays]. Builds the lookup index once instead of once per group,
+ * Leaf rows stay as they are. Builds the lookup index once instead of once per group,
  * which is what a delay-test publish needs to stay off the main thread's critical path.
  */
 fun List<ProxyGroupInfo>.resolveMemberDelays(): List<ProxyGroupInfo> {

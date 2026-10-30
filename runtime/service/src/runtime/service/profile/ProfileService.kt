@@ -32,20 +32,13 @@ import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
 import com.github.yumeyucca.yumebox.runtime.service.util.directoryLastModified
 import com.github.yumeyucca.yumebox.runtime.service.util.importedDir
 import com.github.yumeyucca.yumebox.runtime.service.util.sendProfileChanged
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.FileNotFoundException
 import java.util.*
 
-class ProfileService(private val context: Context) :
-    ProfileApi, CoroutineScope by CoroutineScope(Dispatchers.IO) {
+class ProfileService(private val context: Context) : ProfileApi {
     private val store = ServiceStore()
-
-    init {
-        launch { context.importedDir.mkdirs() }
-    }
 
     override suspend fun create(
         type: Profile.Type,

@@ -20,6 +20,7 @@
 
 package com.github.yumeyucca.yumebox.screen.settings.backup
 
+import com.github.yumeyucca.yumebox.core.util.PrettyPersistedJson
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.InputStream
@@ -29,11 +30,7 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 class BackupArchiveManager(
-    private val json: Json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        prettyPrint = true
-    }
+    private val json: Json = PrettyPersistedJson,
 ) {
     data class BackupFiles(
         val importedDir: File,

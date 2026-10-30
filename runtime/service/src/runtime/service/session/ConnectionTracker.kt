@@ -26,11 +26,13 @@ import com.github.yumeyucca.yumebox.core.util.AppVisibilityTracker
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
 import com.github.yumeyucca.yumebox.runtime.service.core.CoreProcess
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 /**
  * Feeds [ConnectionHistoryManager] from `/connections`, but only while an activity is visible:
@@ -49,9 +51,14 @@ internal class ConnectionTracker(
                 AppVisibilityTracker.isForeground.collectLatest { foreground ->
                     if (!foreground) return@collectLatest
                     PollingTimers.ticks(PollingTimerSpecs.SessionConnectionTracking).collect {
+                        // A failed poll must not end the tick loop; cancellation must still
+                        // tear the loop down.
                         runCatching {
                             val snapshot = CoreProcess.controller(context).queryConnections()
                             ConnectionHistoryManager.updateConnections(snapshot.connections)
+                        }.onFailure { error ->
+                            if (error is CancellationException) throw error
+                            Timber.d(error, "connection poll failed")
                         }
                     }
                 }

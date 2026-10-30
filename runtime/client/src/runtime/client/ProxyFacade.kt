@@ -22,13 +22,13 @@
 
 package com.github.yumeyucca.yumebox.runtime.client
 
-
 import android.content.Context
 import com.github.yumeyucca.yumebox.core.model.*
 import com.github.yumeyucca.yumebox.core.util.AppVisibilityTracker
 import com.github.yumeyucca.yumebox.data.store.MMKVProvider
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
+import com.github.yumeyucca.yumebox.domain.model.ProxyDelayStore
 import com.github.yumeyucca.yumebox.domain.model.ProxyDelayTestProgressCallback
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.toInfo
@@ -38,7 +38,6 @@ import com.github.yumeyucca.yumebox.runtime.client.session.RuntimeCoreOps
 import com.github.yumeyucca.yumebox.runtime.client.session.RuntimeGroupHub
 import com.github.yumeyucca.yumebox.runtime.client.session.RuntimeSession
 import com.github.yumeyucca.yumebox.runtime.client.session.RuntimeSessionDeps
-import com.github.yumeyucca.yumebox.domain.model.ProxyDelayStore
 import com.github.yumeyucca.yumebox.runtime.service.preview.PreviewRuntimeManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -48,6 +47,33 @@ enum class ProxyGroupSyncPriority {
     OFF,
     SLOW,
     FAST,
+    ;
+
+    /**
+     * The more urgent of the two. The constants are declared in ascending urgency, so the ordering
+     * lives here instead of in a call-site `ordinal` comparison that a reordering would silently flip.
+     */
+    fun max(other: ProxyGroupSyncPriority): ProxyGroupSyncPriority =
+        if (ordinal >= other.ordinal) this else other
+}
+
+/**
+ * Who currently wants proxy groups synced. Requests are merged per source: the highest requested
+ * [ProxyGroupSyncPriority] wins, and OFF drops that source's entry so a screen that went away
+ * cannot leave a stale FAST behind.
+ */
+enum class ProxyGroupSyncSource {
+    /** The app-wide subscription (home screen). */
+    Home,
+
+    /** The proxy page, or the left pane of the phone split view. */
+    Page,
+
+    /** The node list in the right pane of the phone split view. */
+    Detail,
+
+    /** The proxy sheet overlay. */
+    Sheet,
 }
 
 /** The controller that produced the current node snapshot. Preview data is read-only. */
@@ -78,7 +104,6 @@ class ProxyFacade(
 ) {
     private companion object {
         const val RUNTIME_PAYLOAD_REFRESH_TICKS = 15
-        const val DEFAULT_SYNC_PRIORITY_SOURCE = "default"
     }
 
     private val appContext: Context = context.appContextOrSelf
@@ -89,11 +114,10 @@ class ProxyFacade(
     private val groups: RuntimeGroupHub
     private val preview = PreviewRuntimeManager(appContext, delayStore)
     private val _nodeSession = MutableStateFlow(NodeSessionState())
-    private var lastNodeSource: NodeDataSource? = null
 
     private var previewWarmupJob: Job? = null
     private val syncPriorityRequests =
-        MutableStateFlow<Map<String, ProxyGroupSyncPriority>>(emptyMap())
+        MutableStateFlow<Map<ProxyGroupSyncSource, ProxyGroupSyncPriority>>(emptyMap())
 
     val runtimeSnapshot: StateFlow<RuntimeSnapshot>
     val isRunning: StateFlow<Boolean>
@@ -148,7 +172,10 @@ class ProxyFacade(
                 delayStore = delayStore,
             )
         runtimeSnapshot = session.runtimeSnapshot
-        isRunning = session.isRunning
+        isRunning =
+            session.runtimeSnapshot
+                .map { snapshot -> snapshot.running }
+                .stateIn(scope, SharingStarted.Eagerly, false)
         isConfigReloading = session.isConfigReloading
         currentProfile = session.currentProfile
         trafficNow = session.trafficNow
@@ -173,7 +200,7 @@ class ProxyFacade(
 
     fun setProxyGroupSyncPriority(
         priority: ProxyGroupSyncPriority,
-        source: String = DEFAULT_SYNC_PRIORITY_SOURCE,
+        source: ProxyGroupSyncSource = ProxyGroupSyncSource.Home,
     ) {
         syncPriorityRequests.update { current ->
             if (priority == ProxyGroupSyncPriority.OFF) {
@@ -203,7 +230,9 @@ class ProxyFacade(
     }
 
     suspend fun startProxy(request: RuntimeStartRequest) {
-        preview.stop()
+        // Stopping the inspect-only process kills and reaps a real process, and this is called from
+        // the UI scope while the node list is on screen.
+        withContext(Dispatchers.IO) { preview.stop() }
         try {
             session.start(request)
         } catch (error: Throwable) {
@@ -235,27 +264,38 @@ class ProxyFacade(
     suspend fun healthCheck(
         group: String,
         onProgress: ProxyDelayTestProgressCallback? = null,
-    ) {
-        when (nodeSession.value.source) {
-            NodeDataSource.Active -> groups.healthCheck(group, onProgress)
-            NodeDataSource.Preview -> preview.healthCheck(group, onProgress)
-            NodeDataSource.None -> Unit
-        }
-    }
+    ) = onNodeOwner(
+        onActive = { groups.healthCheck(group, onProgress) },
+        onPreview = { preview.healthCheck(group, onProgress) },
+        onNone = {},
+    )
 
-    suspend fun healthCheckAll(onProgress: ProxyDelayTestProgressCallback? = null) {
-        when (nodeSession.value.source) {
-            NodeDataSource.Active -> groups.healthCheckAll(onProgress)
-            NodeDataSource.Preview -> preview.healthCheckAll(onProgress)
-            NodeDataSource.None -> Unit
-        }
-    }
+    suspend fun healthCheckAll(onProgress: ProxyDelayTestProgressCallback? = null) = onNodeOwner(
+        onActive = { groups.healthCheckAll(onProgress) },
+        onPreview = { preview.healthCheckAll(onProgress) },
+        onNone = {},
+    )
 
     suspend fun healthCheckProxy(proxyName: String): Int =
-        when (nodeSession.value.source) {
-            NodeDataSource.Active -> groups.healthCheckProxy(proxyName)
-            NodeDataSource.Preview -> preview.healthCheckProxy(proxyName)
-            NodeDataSource.None -> 0
+        onNodeOwner(
+            onActive = { groups.healthCheckProxy(proxyName) },
+            onPreview = { preview.healthCheckProxy(proxyName) },
+            onNone = { 0 },
+        )
+
+    /**
+     * Sends a node operation to whichever backend currently publishes the node list: the real
+     * runtime, or the preview runtime that stands in while the real one is down.
+     */
+    private inline fun <T> onNodeOwner(
+        onActive: () -> T,
+        onPreview: () -> T,
+        onNone: () -> T,
+    ): T =
+        when (_nodeSession.value.source) {
+            NodeDataSource.Active -> onActive()
+            NodeDataSource.Preview -> onPreview()
+            NodeDataSource.None -> onNone()
         }
 
     suspend fun queryConnections(): ConnectionSnapshot {
@@ -292,14 +332,10 @@ class ProxyFacade(
             session.setCurrentProfile(null)
             return
         }
-        runCatching {
+        bestEffort("Failed to refresh current profile") {
             session.connectBackend()
             session.setCurrentProfile(RuntimeAccess.profile().queryActive())
         }
-            .onFailure { error ->
-                if (error is CancellationException) throw error
-                Timber.e(error, "Failed to refresh current profile")
-            }
     }
 
     suspend fun refreshAll() {
@@ -310,31 +346,19 @@ class ProxyFacade(
     }
 
     private fun launchPreviewWarmup(): Job = scope.launch {
-        runCatching { refreshProxyGroups() }
-            .onFailure { error ->
-                if (error is CancellationException) throw error
-                Timber.d(error, "Warm up proxy groups skipped")
-            }
+        bestEffort("Warm up proxy groups skipped") { refreshProxyGroups() }
     }
 
     private suspend fun refreshAllSafely() {
         if (!session.snapshotValue().servesNodes) return
-        runCatching { refreshAll() }
-            .onFailure { error ->
-                if (error is CancellationException) throw error
-                Timber.d(error, "Refresh runtime data skipped")
-            }
+        bestEffort("Refresh runtime data skipped") { refreshAll() }
     }
 
     private suspend fun refreshPreviewStateSafely() {
-        runCatching {
+        bestEffort("Refresh preview data skipped") {
             refreshCurrentProfile()
             resumePreviewWhenEligible()
         }
-            .onFailure { error ->
-                if (error is CancellationException) throw error
-                Timber.d(error, "Refresh preview data skipped")
-            }
     }
 
     private fun observeProxyGroupSyncPriority() {
@@ -348,6 +372,17 @@ class ProxyFacade(
                 }
                 .distinctUntilChanged()
                 .collect { priority -> session.startGroupPolling(priority) }
+        }
+    }
+
+    /**
+     * Runs a best-effort runtime step. Cancellation always propagates; every other failure is logged
+     * with [message] and dropped, because the next tick or the next visibility change retries it.
+     */
+    private inline fun bestEffort(message: String, block: () -> Unit) {
+        runCatching(block).onFailure { error ->
+            if (error is CancellationException) throw error
+            Timber.w(error, message)
         }
     }
 
@@ -376,15 +411,13 @@ class ProxyFacade(
                     val realCoreOwnsRuntime =
                         snapshot.phase.isActiveOrStopping ||
                             snapshot.owner == RuntimeOwner.RemoteController
+                    // The profile probe is a SQLite read; keep it off whatever thread published the
+                    // snapshot, since this loop also runs while the node page is on screen.
+                    val hasActiveProfile = withContext(Dispatchers.IO) { preview.hasActiveProfile() }
                     when {
-                        !foreground || realCoreOwnsRuntime -> preview.stop()
-                        !preview.hasActiveProfile() -> preview.reset()
-                        else ->
-                            runCatching { preview.ensureRunning() }
-                                .onFailure { error ->
-                                    if (error is CancellationException) throw error
-                                    Timber.d(error, "Preview runtime unavailable")
-                                }
+                        !foreground || realCoreOwnsRuntime -> withContext(Dispatchers.IO) { preview.stop() }
+                        !hasActiveProfile -> preview.reset()
+                        else -> bestEffort("Preview runtime unavailable") { preview.ensureRunning() }
                     }
                 }
         }
@@ -422,16 +455,22 @@ class ProxyFacade(
         }
     }
 
-    /** The first node refresh happens before [NodeDataSource.Preview] can be published. */
-    private fun shouldUsePreviewRuntime(): Boolean =
+    /**
+     * Whether the node list should be served by the inspect-only process.
+     *
+     * The profile check is a SQLite read, and every caller is a UI coroutine, so it hops to IO
+     * instead of trusting the caller's dispatcher.
+     */
+    private suspend fun shouldUsePreviewRuntime(): Boolean =
         !session.snapshotValue().phase.isActiveOrStopping &&
             !session.isRemoteControllerActive() &&
-            preview.hasActiveProfile()
+            withContext(Dispatchers.IO) { preview.hasActiveProfile() }
 
     /** Callers only publish non-empty groups. */
     private fun publishNodeSession(source: NodeDataSource, nodeGroups: List<ProxyGroupInfo>) {
-        if (source != lastNodeSource) {
-            lastNodeSource = source
+        // Compared against the published session itself: a mirror field survives the reset below and
+        // then skips a first publish after the session comes back with the same source.
+        if (source != _nodeSession.value.source) {
             delayStore.publish(nodeGroups)
         }
         _nodeSession.value =
@@ -448,10 +487,10 @@ class ProxyFacade(
 
     private fun resolveEffectiveProxyGroupSyncPriority(
         snapshot: RuntimeSnapshot,
-        requests: Map<String, ProxyGroupSyncPriority>,
+        requests: Map<ProxyGroupSyncSource, ProxyGroupSyncPriority>,
         isForeground: Boolean,
     ): ProxyGroupSyncPriority {
         if (!isForeground || !snapshot.servesNodes) return ProxyGroupSyncPriority.OFF
-        return requests.values.maxByOrNull { it.ordinal } ?: ProxyGroupSyncPriority.OFF
+        return requests.values.reduceOrNull(ProxyGroupSyncPriority::max) ?: ProxyGroupSyncPriority.OFF
     }
 }

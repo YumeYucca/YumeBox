@@ -29,6 +29,7 @@ import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
 import com.github.yumeyucca.yumebox.runtime.service.util.importedDir
 import com.github.yumeyucca.yumebox.substore.SubStorePaths
 import com.github.yumeyucca.yumebox.substore.SubStoreServiceController
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -182,7 +183,10 @@ class BackupRepository internal constructor(
     }
 
     private suspend fun stopRuntimeBeforeRestore() {
+        // Swallowing cancellation here would let the restore carry on overwriting files after the
+        // caller was cancelled; only a genuine stop failure is best-effort.
         runCatching { proxyFacade.stopProxy() }
+            .onFailure { error -> if (error is CancellationException) throw error }
         runCatching { SubStoreServiceController.stopService(application) }
     }
 
@@ -196,6 +200,7 @@ class BackupRepository internal constructor(
                 .setPackage(application.packageName)
         )
         runCatching { proxyFacade.reconcileRuntimeState() }
+            .onFailure { error -> if (error is CancellationException) throw error }
     }
 
     private fun currentFiles(): BackupArchiveManager.BackupFiles =

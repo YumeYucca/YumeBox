@@ -26,14 +26,8 @@ import com.github.yumeyucca.yumebox.runtime.api.RuntimePhase
 import com.github.yumeyucca.yumebox.runtime.api.RuntimeSnapshot
 
 object RuntimeStateMapper {
-    fun isRunningOrStarting(snapshot: RuntimeSnapshot): Boolean =
-        snapshot.phase == RuntimePhase.Starting || snapshot.phase == RuntimePhase.Running
-
-    fun isActuallyRunning(snapshot: RuntimeSnapshot): Boolean =
-        snapshot.phase == RuntimePhase.Running
-
     fun resolveDisplayMode(snapshot: RuntimeSnapshot, configuredMode: RunMode): RunMode =
-        if (isRunningOrStarting(snapshot)) snapshot.runMode else configuredMode
+        if (snapshot.phase.active) snapshot.runMode else configuredMode
 
     fun idleSnapshot(
         configuredMode: RunMode,

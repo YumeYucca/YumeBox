@@ -63,36 +63,48 @@ class PreviewRuntimeManager(
     private var proxyToGroupIndex: Map<String, List<Int>> = emptyMap()
     val state: StateFlow<PreviewNodeState> = _state.asStateFlow()
 
-    /** Local storage only: preview must not depend on the service/controller backend being alive. */
+    /**
+     * Local storage only: preview must not depend on the service/controller backend being alive.
+     *
+     * Not a cheap flag though — it reads the persisted active profile through [ImportedDao], so a
+     * main-thread caller has to hop to IO first.
+     */
     fun hasActiveProfile(): Boolean =
         serviceStore.activeProfile?.let(ImportedDao::queryByUUID) != null
 
-    suspend fun ensureRunning() {
-        val requestGeneration = generation.get()
-        mutex.withLock {
-            if (generation.get() != requestGeneration) return@withLock
-            // Startup, the home page, and the node page can request the first snapshot together.
-            // Compile under the same transaction as launch/readiness so they reuse one result.
-            val compiled = pipeline.compile(factory.createPreviewSpec())
-            if (generation.get() != requestGeneration) return@withLock
-            // Several UI surfaces ask for the initial node snapshot at once. Keep the launch and
-            // first controller read in one transaction: otherwise a second caller can replace a
-            // still-booting PID before it has created preview.sock.
-            if (process.isAlive() && _state.value.ready && _state.value.fingerprint == compiled.fingerprint) {
-                return@withLock
-            }
-            if (!process.isAlive() || _state.value.fingerprint != compiled.fingerprint) {
-                delayOverlay.clear()
-                process.start(compiled.finalYaml)
-            }
-            val groups = awaitGroups(requestGeneration)
-            if (generation.get() == requestGeneration && process.isAlive()) {
-                _state.value =
-                    PreviewNodeState(fingerprint = compiled.fingerprint, groups = groups, ready = true)
-                delayStore.publishProxyGroups(groups)
+    /**
+     * Compiles the preview config and forks the inspect-only process. Every caller is a UI
+     * coroutine, and all of it blocks: file IO, `PackageManager`, `Process.start` and socket
+     * writes, queued behind the lifecycle lock. Running that on Main is an ANR waiting for a
+     * slow `su`.
+     */
+    suspend fun ensureRunning() =
+        withContext(Dispatchers.IO) {
+            val requestGeneration = generation.get()
+            mutex.withLock {
+                if (generation.get() != requestGeneration) return@withLock
+                // Startup, the home page, and the node page can request the first snapshot together.
+                // Compile under the same transaction as launch/readiness so they reuse one result.
+                val compiled = pipeline.compile(factory.createPreviewSpec())
+                if (generation.get() != requestGeneration) return@withLock
+                // Several UI surfaces ask for the initial node snapshot at once. Keep the launch and
+                // first controller read in one transaction: otherwise a second caller can replace a
+                // still-booting PID before it has created preview.sock.
+                if (process.isAlive() && _state.value.ready && _state.value.fingerprint == compiled.fingerprint) {
+                    return@withLock
+                }
+                if (!process.isAlive() || _state.value.fingerprint != compiled.fingerprint) {
+                    delayOverlay.clear()
+                    process.start(compiled.finalYaml)
+                }
+                val groups = awaitGroups(requestGeneration)
+                if (generation.get() == requestGeneration && process.isAlive()) {
+                    _state.value =
+                        PreviewNodeState(fingerprint = compiled.fingerprint, groups = groups, ready = true)
+                    delayStore.publishProxyGroups(groups)
+                }
             }
         }
-    }
 
     /** Never wait for config compilation or a controller readiness retry on the real-core handoff. */
     fun stop() {
@@ -146,7 +158,7 @@ class PreviewRuntimeManager(
     }
 
     private suspend fun refreshGroups(previewGeneration: Long) {
-        val incoming = process.controller().queryAllProxyGroups(false)
+        val incoming = process.controller().queryAllProxyGroups()
         if (!isCurrentGeneration(previewGeneration)) {
             return
         }
@@ -283,7 +295,10 @@ class PreviewRuntimeManager(
                 if (generation.get() != requestGeneration || !process.isAlive()) {
                     throw CancellationException("preview handoff requested")
                 }
-                groups = runCatching { process.controller().queryAllProxyGroups(false) }.getOrNull()
+                groups =
+                    runCatching { process.controller().queryAllProxyGroups() }
+                        .onFailure { error -> if (error is CancellationException) throw error }
+                        .getOrNull()
                 if (groups == null) delay(CONTROLLER_RETRY_MS)
             }
             groups

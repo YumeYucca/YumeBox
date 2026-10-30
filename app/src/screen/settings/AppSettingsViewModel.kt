@@ -37,7 +37,6 @@ import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
 import com.github.yumeyucca.yumebox.data.store.FeatureStore
 import com.github.yumeyucca.yumebox.data.store.Preference
-import com.github.yumeyucca.yumebox.presentation.theme.DEFAULT_CUSTOM_THEME_SEED_ARGB
 import com.github.yumeyucca.yumebox.runtime.service.notification.HyperOsIsland
 import com.github.yumeyucca.yumebox.runtime.service.shizuku.ShizukuManager
 import kotlinx.coroutines.Dispatchers
@@ -186,33 +185,6 @@ class AppSettingsViewModel(
         val useSystemWallpaper: Boolean,
     )
 
-    data class ServiceSectionState(
-        val showTrafficNotification: Boolean = false,
-        val exitUiWhenBackground: Boolean = false,
-        val superIslandEnabled: Boolean = false,
-    )
-
-    val serviceSectionState: StateFlow<ServiceSectionState> =
-        combine(
-            showTrafficNotification.state,
-            exitUiWhenBackground.state,
-            superIslandEnabled.state,
-        ) { traffic, exitUi, island ->
-            ServiceSectionState(
-                showTrafficNotification = traffic,
-                exitUiWhenBackground = exitUi,
-                superIslandEnabled = island,
-            )
-        }
-            .stateInWhileSubscribed(
-                viewModelScope,
-                ServiceSectionState(
-                    showTrafficNotification = showTrafficNotification.value,
-                    exitUiWhenBackground = exitUiWhenBackground.value,
-                    superIslandEnabled = superIslandEnabled.value,
-                ),
-            )
-
     /** Live Shizuku / Super Island access for the service section. */
     data class ShizukuAccessState(
         val islandSupported: Boolean = false,
@@ -340,13 +312,9 @@ class AppSettingsViewModel(
 
     fun onAppLanguageChange(language: AppLanguage) = controller.applyAppLanguage(language)
 
-    fun onColorThemeChange(theme: AppColorTheme) = colorTheme.set(theme)
-
     fun onThemeSeedColorChange(argb: Long) = themeSeedColorArgb.set(argb)
 
     fun onInvertOnPrimaryColorsChange(enabled: Boolean) = invertOnPrimaryColors.set(enabled)
-
-    fun resetThemeSeedColor() = themeSeedColorArgb.set(DEFAULT_CUSTOM_THEME_SEED_ARGB)
 
     fun onBottomBarAutoHideChange(enabled: Boolean) = bottomBarAutoHide.set(enabled)
 
@@ -357,11 +325,7 @@ class AppSettingsViewModel(
 
     fun onPredictiveBackEnabledChange(enabled: Boolean) = predictiveBackEnabled.set(enabled)
 
-    fun onClassicHomeEnabledChange(enabled: Boolean) = classicHomeEnabled.set(enabled)
-
     fun onUseSystemWallpaperChange(enabled: Boolean) = useSystemWallpaper.set(enabled)
-
-    fun onMoeWallpaperUriChange(uri: String) = moeWallpaperUri.set(uri)
 
     /**
      * Persists the selected Moe wallpaper by copying [sourceUri] into the app-private files dir and
@@ -430,7 +394,6 @@ class AppSettingsViewModel(
         autoUpdateCurrentProfileOnStart.set(enabled)
 
 
-
     fun onExcludeFromRecentsChange(exclude: Boolean) = excludeFromRecents.set(exclude)
 
     fun onShowTrafficNotificationChange(show: Boolean) = showTrafficNotification.set(show)
@@ -446,8 +409,6 @@ class AppSettingsViewModel(
     fun onNotificationSecondLineTextChange(text: String) = notificationSecondLineText.set(text)
 
     fun onSuperIslandEnabledChange(enabled: Boolean) = superIslandEnabled.set(enabled)
-
-    fun onExitUiWhenBackgroundChange(enabled: Boolean) = exitUiWhenBackground.set(enabled)
 
     fun applyCustomUserAgent(userAgent: String) = controller.applyCustomUserAgent(userAgent)
 }

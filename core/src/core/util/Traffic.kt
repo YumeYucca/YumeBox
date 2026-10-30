@@ -18,22 +18,7 @@
  *
  */
 
-@file:Suppress("UnusedSymbol")
-
 package com.github.yumeyucca.yumebox.core.util
-
-
-import android.annotation.SuppressLint
-import com.github.yumeyucca.yumebox.core.model.Traffic
-
-private val IEC_UNITS = arrayOf("Bytes", "KiB", "MiB", "GiB")
-
-@SuppressLint("DefaultLocale")
-private fun trafficString(scaled: Long): String {
-    val s = scaleBytes(scaled, maxRank = 3)
-    return if (s.rank == 0) "$scaled Bytes"
-    else String.format("%.2f %s", s.value, IEC_UNITS[s.rank])
-}
 
 fun decodeTrafficValue(value: Long): Long {
     val type = (value ushr 30) and 0x3
@@ -61,17 +46,4 @@ fun encodeTrafficValue(bytes: Long): Long {
         else -> // type 3: GiB/100
             (3L shl 30) or ((value * 100L / (1024L * 1024L * 1024L)).coerceAtMost(0x3FFFFFFFL))
     }
-}
-
-private fun scaleTraffic(value: Long): Long = decodeTrafficValue(value)
-
-fun Traffic.trafficUpload(): String = trafficString(scaleTraffic(this ushr 32))
-
-fun Traffic.trafficDownload(): String = trafficString(scaleTraffic(this and 0xFFFFFFFFL))
-
-fun Traffic.trafficTotal(): String {
-    val upload = scaleTraffic(this ushr 32)
-    val download = scaleTraffic(this and 0xFFFFFFFFL)
-
-    return trafficString(upload + download)
 }

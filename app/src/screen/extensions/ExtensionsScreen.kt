@@ -36,10 +36,8 @@ import com.github.yumeyucca.yumebox.common.util.requiresLocalNetworkPermission
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.RemoteBackend
 import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
-import com.github.yumeyucca.yumebox.presentation.component.ScreenLazyColumn
+import com.github.yumeyucca.yumebox.presentation.component.StandalonePageList
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
-import com.github.yumeyucca.yumebox.presentation.component.combinePaddingValues
-import com.github.yumeyucca.yumebox.presentation.component.rememberStandalonePageMainPadding
 import com.github.yumeyucca.yumebox.screen.feature.RemoteControllerSection
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 
@@ -73,10 +71,9 @@ fun ExtensionsScreen() {
     GlassScaffold(
         topBar = { TopBar(title = YumeTxt.Settings.Section.Extensions, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
-        val mainLikePadding = rememberStandalonePageMainPadding()
-        ScreenLazyColumn(
+        StandalonePageList(
             scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
+            scaffoldPadding = innerPadding,
         ) {
             item {
                 RemoteControllerSection(

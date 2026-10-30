@@ -19,7 +19,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.screen
 
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -82,10 +81,6 @@ internal class ProxyTabScrollState internal constructor() {
         distanceFromTopPx = if (isAtTop) 0f else OffscreenPx
     }
 
-    fun resetToTop() {
-        distanceFromTopPx = 0f
-    }
-
     private companion object {
         const val OffscreenPx = 10_000f
     }
@@ -111,7 +106,11 @@ internal fun rememberProxyGroupPagerState(
         )
     val latestOnGroupSelected by rememberUpdatedState(onGroupSelected)
 
-    LaunchedEffect(pagerState.currentPage, groups) {
+    // Keyed on the page only: a refreshed group list keeps the same page index, and if the list
+    // was re-ordered the group at that index is no longer the one the user picked. Re-selecting
+    // here would overwrite the user's choice with whatever now sits at that index; the effect
+    // below is what realigns the pager after a list change.
+    LaunchedEffect(pagerState.currentPage) {
         groups.getOrNull(pagerState.currentPage)?.let(latestOnGroupSelected)
     }
     LaunchedEffect(selectedGroupName, groups, pagerState.isScrollInProgress) {
@@ -162,37 +161,13 @@ internal fun ProxyGroupTabPager(
 }
 
 @Composable
-internal fun ProxyTabStrip(
-    tabs: List<String>,
-    selectedTabIndex: Int,
-    onTabSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-    scrollable: Boolean = true,
-    scrollState: ScrollState? = null,
-) {
-    if (tabs.isEmpty()) return
-    SegmentedTabRow(
-        tabs = tabs,
-        selectedTabIndex = selectedTabIndex.coerceIn(0, tabs.lastIndex),
-        onTabSelected = onTabSelected,
-        modifier = modifier.fillMaxWidth(),
-        tabHeight = UiDp.dp42,
-        backdrop = LocalTopBarBackdrop.current,
-        scrollable = scrollable,
-        scrollState = scrollState,
-    )
-}
-
-@Composable
 internal fun ProxyCollapsingTabs(
     tabs: List<String>,
     selectedTabIndex: Int,
     onTabSelected: (Int) -> Unit,
     topPadding: Dp,
     collapseState: ProxyTabScrollState,
-    modifier: Modifier = Modifier,
     scrollable: Boolean = false,
-    tabScrollState: ScrollState? = null,
 ) {
     if (tabs.isEmpty()) return
     val density = LocalDensity.current
@@ -200,19 +175,21 @@ internal fun ProxyCollapsingTabs(
 
     Box(
         modifier =
-            modifier
+            Modifier
                 .fillMaxWidth()
                 .graphicsLayer {
                     translationY = restTopPx - collapseState.collapsedPx
                 }
                 .padding(start = UiDp.dp12, end = UiDp.dp12, bottom = UiDp.dp4)
     ) {
-        ProxyTabStrip(
+        SegmentedTabRow(
             tabs = tabs,
-            selectedTabIndex = selectedTabIndex,
+            selectedTabIndex = selectedTabIndex.coerceIn(0, tabs.lastIndex),
             onTabSelected = onTabSelected,
+            modifier = Modifier.fillMaxWidth(),
+            tabHeight = UiDp.dp42,
+            backdrop = LocalTopBarBackdrop.current,
             scrollable = scrollable,
-            scrollState = tabScrollState,
         )
     }
 }

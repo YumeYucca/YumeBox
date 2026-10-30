@@ -37,8 +37,10 @@ object HyperOsIsland {
     private const val EXTRA_PARAM = "miui.focus.param"
     private const val PIC_APP_ICON = "miui.focus.pic_app_icon"
     private const val PIC_APP_ICON_DARK = "miui.focus.pic_app_icon_dark"
-    private const val PIC_SMALL = "miui.focus.pic_small"
-    private const val PIC_SMALL_DARK = "miui.focus.pic_small_dark"
+
+    /** Also referenced by the island payload's small-area picInfo, so both stay in sync. */
+    internal const val PIC_SMALL = "miui.focus.pic_small"
+    internal const val PIC_SMALL_DARK = "miui.focus.pic_small_dark"
 
     /** Read once: the property is fixed for the lifetime of the process. */
     private val supported: Boolean by lazy {

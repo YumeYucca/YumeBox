@@ -46,12 +46,6 @@ enum class ProxyDisplayMode {
                 DOUBLE_DETAILED -> YumeTxt.Proxy.DisplayMode.DoubleDetailed
                 DOUBLE_SIMPLE -> YumeTxt.Proxy.DisplayMode.DoubleSimple
             }
-
-    val isSingleColumn: Boolean
-        get() = this == SINGLE_DETAILED || this == SINGLE_SIMPLE
-
-    val showDetail: Boolean
-        get() = this == SINGLE_DETAILED || this == DOUBLE_DETAILED
 }
 
 enum class ProxySortMode {

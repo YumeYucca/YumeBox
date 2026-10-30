@@ -24,119 +24,61 @@ package com.github.yumeyucca.yumebox.screen.connection
 
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.unit.Dp
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.platform.LocalDensity
 import com.github.yumeyucca.yumebox.core.model.ConnectionInfo
 import com.github.yumeyucca.yumebox.feature.meta.presentation.component.ConnectionCard
-import com.github.yumeyucca.yumebox.feature.meta.presentation.component.TabRowWithContour
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionTab
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionViewModel
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import com.github.yumeyucca.yumebox.presentation.component.rememberCollapsedTopPadding
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
+
+/** Tab label, listed in [ConnectionTab] order; the segmented row indexes tabs by ordinal. */
+private val ConnectionTab.label: String
+    get() =
+        when (this) {
+            ConnectionTab.ACTIVE -> YumeTxt.Connection.Tab.Active
+            ConnectionTab.CLOSED -> YumeTxt.Connection.Tab.Closed
+        }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ConnectionScreen(navigator: Navigator) {
-    val density = LocalDensity.current
     val viewModel = koinViewModel<ConnectionViewModel>()
     val screen by viewModel.screenState.collectAsState()
-    val state = screen.state
-    val filteredConnections = screen.filteredConnections
-    val spacing = AppTheme.spacing
-    val mainLikePadding = rememberStandalonePageMainPadding()
-
+    val search = rememberSearchPagerState()
     val scrollBehavior = MiuixScrollBehavior()
-
-    val tabs = listOf(YumeTxt.Connection.Tab.Active, YumeTxt.Connection.Tab.Closed)
-    var selectedTabIndex by
-    rememberSaveable(state.selectedTab) {
-        mutableIntStateOf(
-            when (state.selectedTab) {
-                ConnectionTab.ACTIVE -> 0
-                ConnectionTab.CLOSED -> 1
-            }
-        )
-    }
-    val emptyStateText =
-        when {
-            state.isLoading -> YumeTxt.Connection.Loading
-            state.searchQuery.isNotEmpty() -> YumeTxt.Connection.NoResults
-            else -> YumeTxt.Connection.Empty
-        }
-
     val mainListState = rememberLazyListState()
-    var searchStatus by remember {
-        mutableStateOf(
-            SearchStatus(
-                label = YumeTxt.Connection.SearchHint,
-                searchText = state.searchQuery,
-            )
-        )
-    }
-    val dynamicTopPadding by remember {
-        derivedStateOf { spacing.space12 * (1f - scrollBehavior.state.collapsedFraction) }
-    }
-    val listStartPadding = spacing.screenHorizontal
-    val listEndPadding = spacing.screenHorizontal
-    val currentSearchStatus =
-        remember(searchStatus, filteredConnections, state.searchQuery) {
-            searchStatus.copy(
-                resultStatus =
-                    when {
-                        searchStatus.searchText.isBlank() -> SearchStatus.ResultStatus.DEFAULT
-                        filteredConnections.isEmpty() -> SearchStatus.ResultStatus.EMPTY
-                        else -> SearchStatus.ResultStatus.SHOW
-                    }
-            )
-        }
-
-    LaunchedEffect(selectedTabIndex) {
-        val tab = if (selectedTabIndex == 0) ConnectionTab.ACTIVE else ConnectionTab.CLOSED
-        viewModel.setTab(tab)
-    }
-
-    LaunchedEffect(searchStatus.searchText) {
-        if (searchStatus.searchText != state.searchQuery) {
-            viewModel.setSearchQuery(searchStatus.searchText)
-        }
-    }
-
-    LaunchedEffect(state.searchQuery) {
-        if (searchStatus.searchText != state.searchQuery) {
-            searchStatus = searchStatus.copy(searchText = state.searchQuery)
-        }
-    }
+    val mainLikePadding = rememberStandalonePageMainPadding()
 
     LaunchedEffect(Unit) { viewModel.startPolling() }
 
     fun openConnectionDetail(connection: ConnectionInfo) {
         // Collapse search first so the expand gesture never races the detail push.
-        if (!currentSearchStatus.isCollapsed()) {
-            searchStatus = currentSearchStatus.copy(current = SearchStatus.Status.COLLAPSING)
-        }
-        ConnectionDetailHolder.setup(
-            info = connection,
-            canInterrupt = state.selectedTab == ConnectionTab.ACTIVE,
+        search.collapse()
+        ConnectionDetailHolder.setup(info = connection)
+        navigator.push(
+            Route.ConnectionDetail(
+                connectionId = connection.id,
+                canInterrupt = screen.state.selectedTab == ConnectionTab.ACTIVE,
+            )
         )
-        navigator.push(Route.ConnectionDetail(connectionId = connection.id))
     }
 
     /*
@@ -152,188 +94,172 @@ fun ConnectionScreen(navigator: Navigator) {
      * Detail is a real navigation page so it never competes with search expand.
      */
     Box(modifier = Modifier.fillMaxSize()) {
-        GlassScaffold(
-            topBar = {
-                currentSearchStatus.TopAppBarAnim {
-                    TopBar(
-                        title = YumeTxt.Connection.Title,
-                        scrollBehavior = scrollBehavior,
-                        bottomContent = {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .alpha(
-                                            if (currentSearchStatus.isCollapsed()) 1f else 0f
-                                        )
-                                        .onGloballyPositioned { coordinates ->
-                                            with(density) {
-                                                val collapsedBarOffset =
-                                                    coordinates.positionInWindow().y.toDp()
-                                                if (
-                                                    currentSearchStatus.offsetY !=
-                                                    collapsedBarOffset
-                                                ) {
-                                                    searchStatus =
-                                                        currentSearchStatus.copy(
-                                                            offsetY = collapsedBarOffset
-                                                        )
-                                                }
-                                            }
-                                        }
-                                        .then(
-                                            if (currentSearchStatus.isCollapsed()) {
-                                                Modifier.pointerInput(currentSearchStatus.current) {
-                                                    detectTapGestures {
-                                                        searchStatus =
-                                                            currentSearchStatus.copy(
-                                                                current =
-                                                                    SearchStatus.Status.EXPANDING
-                                                            )
-                                                    }
-                                                }
-                                            } else {
-                                                Modifier
-                                            }
-                                        )
-                            ) {
-                                CollapsedSearchBar(
-                                    label = currentSearchStatus.label,
-                                    topPadding = dynamicTopPadding,
-                                    startPadding = listStartPadding,
-                                    endPadding = listEndPadding,
-                                )
-                            }
-                        },
-                    )
-                }
-            }
-        ) { innerPadding ->
-            // Keep list during COLLAPSING so it is already under the fading overlay.
-            if (currentSearchStatus.shouldCollapse()) {
-                val combinedInnerPadding = combinePaddingValues(innerPadding, mainLikePadding)
-                ScreenLazyColumn(
-                    scrollBehavior = scrollBehavior,
-                    innerPadding = combinedInnerPadding,
-                    lazyListState = mainListState,
-                    contentPadding =
-                        PaddingValues(
-                            start = listStartPadding,
-                            end = listEndPadding,
-                            top = combinedInnerPadding.calculateTopPadding(),
-                            bottom =
-                                combinedInnerPadding.calculateBottomPadding() + spacing.space12,
-                        ),
-                ) {
-                    // 吸附 tab:列表滚动时钉在内容区顶部,底色与页面一致避免内容透出。
-                    stickyHeader(key = "__connection_tabs__") {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .background(MiuixTheme.colorScheme.surface)
-                                    .padding(vertical = spacing.space4),
-                        ) {
-                            TabRowWithContour(
-                                tabs = tabs,
-                                selectedTabIndex = selectedTabIndex,
-                                onTabSelected = { selectedTabIndex = it },
-                            )
-                        }
-                    }
+        ConnectionListScaffold(
+            screen = screen,
+            search = search,
+            scrollBehavior = scrollBehavior,
+            listState = mainListState,
+            onTabSelected = { viewModel.setTab(it) },
+            onOpenConnection = { openConnectionDetail(it) },
+        )
 
-                    if (filteredConnections.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(spacing.space32),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = emptyStateText,
-                                    style = MiuixTheme.textStyles.body2,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                )
-                            }
-                        }
-                    } else {
-                        items(
-                            items = filteredConnections,
-                            key = { it.id },
-                            contentType = { "connection" },
-                        ) { connection ->
-                            ConnectionCard(
-                                connectionInfo = connection,
-                                onClick = { openConnectionDetail(connection) },
-                                modifier = Modifier.padding(vertical = spacing.space6),
-                            )
-                        }
-                    }
-                }
+        ConnectionSearchOverlay(
+            screen = screen,
+            search = search,
+            scrollBehavior = scrollBehavior,
+            bottomPadding = mainLikePadding.calculateBottomPadding(),
+            onQueryChange = viewModel::setSearchQuery,
+            onOpenConnection = { openConnectionDetail(it) },
+        )
+    }
+}
+
+/** Collapsed-search chrome plus the connection list itself. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ConnectionListScaffold(
+    screen: ConnectionViewModel.ConnectionScreenState,
+    search: SearchPagerState,
+    scrollBehavior: ScrollBehavior,
+    listState: LazyListState,
+    onTabSelected: (ConnectionTab) -> Unit,
+    onOpenConnection: (ConnectionInfo) -> Unit,
+) {
+    val spacing = AppTheme.spacing
+    val listStartPadding = spacing.screenHorizontal
+    val listEndPadding = spacing.screenHorizontal
+    val tabs = ConnectionTab.entries.map { it.label }
+    val emptyText =
+        when {
+            screen.state.isLoading -> YumeTxt.Connection.Loading
+            screen.state.searchQuery.isNotEmpty() -> YumeTxt.Connection.NoResults
+            else -> YumeTxt.Connection.Empty
+        }
+    val dynamicTopPadding by rememberCollapsedTopPadding(scrollBehavior)
+
+    GlassScaffold(
+        topBar = {
+            search.TopAppBarAnim {
+                TopBar(
+                    title = YumeTxt.Connection.Title,
+                    scrollBehavior = scrollBehavior,
+                    bottomContent = {
+                        search.CollapsedBar(
+                            label = YumeTxt.Connection.SearchHint,
+                            topPadding = dynamicTopPadding,
+                            startPadding = listStartPadding,
+                            endPadding = listEndPadding,
+                        )
+                    },
+                )
             }
         }
-
-        currentSearchStatus.SearchPager(
-            onSearchStatusChange = { searchStatus = it },
-            padding =
-                SearchBarPadding(
-                    top = dynamicTopPadding,
-                    start = listStartPadding,
-                    end = listEndPadding,
-                ),
-            emptyResult = {
-                ConnectionSearchEmptyState(
-                    text = YumeTxt.Connection.NoResults,
-                    modifier = Modifier.padding(bottom = mainLikePadding.calculateBottomPadding()),
-                )
-            },
-        ) {
-            val searchListState = rememberLazyListState()
-            val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
-
-            LaunchedEffect(currentSearchStatus.searchText) {
-                if (currentSearchStatus.searchText.isNotBlank()) {
-                    searchListState.scrollToItem(0)
-                }
-            }
-
-            LazyColumn(
-                state = searchListState,
-                modifier = Modifier.fillMaxSize(),
+    ) { innerPadding ->
+        // Keep list during COLLAPSING so it is already under the fading overlay.
+        if (search.keepsPageMounted) {
+            val combinedInnerPadding = standalonePageInnerPadding(innerPadding)
+            ScreenLazyColumn(
+                scrollBehavior = scrollBehavior,
+                innerPadding = combinedInnerPadding,
+                lazyListState = listState,
                 contentPadding =
                     PaddingValues(
                         start = listStartPadding,
                         end = listEndPadding,
-                        top = spacing.space6,
-                        bottom =
-                            maxOf(
-                                mainLikePadding.calculateBottomPadding(),
-                                imeBottomPadding,
-                            ),
+                        top = combinedInnerPadding.calculateTopPadding(),
+                        bottom = combinedInnerPadding.calculateBottomPadding() + spacing.space12,
                     ),
             ) {
-                items(
-                    items = filteredConnections,
-                    key = { it.id },
-                    contentType = { "connection" },
-                ) { connection ->
-                    ConnectionCard(
-                        connectionInfo = connection,
-                        onClick = { openConnectionDetail(connection) },
-                        modifier = Modifier.padding(vertical = spacing.space6),
-                    )
+                stickySegmentedTabs(
+                    key = "__connection_tabs__",
+                    tabs = tabs,
+                    selectedTabIndex = screen.state.selectedTab.ordinal,
+                    onTabSelected = { index -> onTabSelected(ConnectionTab.entries[index]) },
+                    tabRowPadding = UiDp.dp0,
+                )
+
+                if (screen.filteredConnections.isEmpty()) {
+                    item {
+                        ConnectionEmptyText(
+                            text = emptyText,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                } else {
+                    connectionItems(screen.filteredConnections, onOpenConnection)
                 }
             }
         }
     }
 }
 
+/** Full-window search page; only meaningful while [search] is expanded. */
 @Composable
-private fun ConnectionSearchEmptyState(text: String, modifier: Modifier = Modifier) {
+private fun ConnectionSearchOverlay(
+    screen: ConnectionViewModel.ConnectionScreenState,
+    search: SearchPagerState,
+    scrollBehavior: ScrollBehavior,
+    bottomPadding: Dp,
+    onQueryChange: (String) -> Unit,
+    onOpenConnection: (ConnectionInfo) -> Unit,
+) {
+    val spacing = AppTheme.spacing
+    val listStartPadding = spacing.screenHorizontal
+    val listEndPadding = spacing.screenHorizontal
+    val dynamicTopPadding by rememberCollapsedTopPadding(scrollBehavior)
+
+    search.SearchPager(
+        label = YumeTxt.Connection.SearchHint,
+        query = screen.state.searchQuery,
+        onQueryChange = onQueryChange,
+        hasResults = screen.filteredConnections.isNotEmpty(),
+        padding =
+            SearchBarPadding(
+                top = dynamicTopPadding,
+                start = listStartPadding,
+                end = listEndPadding,
+            ),
+        emptyResult = {
+            ConnectionEmptyText(
+                text = YumeTxt.Connection.NoResults,
+                modifier = Modifier.fillMaxSize().padding(bottom = bottomPadding),
+            )
+        },
+    ) {
+        search.SearchResults(
+            query = screen.state.searchQuery,
+            start = listStartPadding,
+            end = listEndPadding,
+            bottom = bottomPadding,
+        ) {
+            connectionItems(screen.filteredConnections, onOpenConnection)
+        }
+    }
+}
+
+/** One definition of a connection row's list identity and spacing. */
+private fun LazyListScope.connectionItems(
+    connections: List<ConnectionInfo>,
+    onConnectionClick: (ConnectionInfo) -> Unit,
+) {
+    items(
+        items = connections,
+        key = { it.id },
+        contentType = { "connection" },
+    ) { connection ->
+        ConnectionCard(
+            connectionInfo = connection,
+            onClick = { onConnectionClick(connection) },
+            modifier = Modifier.padding(vertical = AppTheme.spacing.space6),
+        )
+    }
+}
+
+/** The slice's one quiet, centered empty-state line. */
+@Composable
+internal fun ConnectionEmptyText(text: String, modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(AppTheme.spacing.space32),
+        modifier = modifier.padding(AppTheme.spacing.space32),
         contentAlignment = Alignment.Center,
     ) {
         Text(

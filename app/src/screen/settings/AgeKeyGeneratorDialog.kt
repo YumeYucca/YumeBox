@@ -52,7 +52,6 @@ fun AgeKeyGeneratorDialog(
     show: Boolean,
     hybrid: Boolean,
     onDismiss: () -> Unit,
-    onDismissFinished: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val spacing = AppTheme.spacing
@@ -67,7 +66,6 @@ fun AgeKeyGeneratorDialog(
             if (hybrid) YumeTxt.MetaFeature.AgeKey.HybridTitle
             else YumeTxt.MetaFeature.AgeKey.X25519Title,
         onDismissRequest = onDismiss,
-        onDismissFinished = onDismissFinished,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),

@@ -37,6 +37,7 @@ import androidx.core.view.WindowCompat
 import com.github.yumeyucca.yumebox.common.util.AppLanguageManager
 import com.github.yumeyucca.yumebox.presentation.webview.WebViewScreen
 import com.github.yumeyucca.yumebox.core.locale.ProvideYumeStrings
+import timber.log.Timber
 
 class WebViewActivity : ComponentActivity() {
     companion object {
@@ -110,8 +111,34 @@ class WebViewActivity : ComponentActivity() {
         }
 
         val initialUrl =
-            intent.getStringExtra(EXTRA_INITIAL_URL) ?: "file://$filesDir/frontend/index.html"
+            intent.getStringExtra(EXTRA_INITIAL_URL).toLoadableUrl()
+                ?: "file://$filesDir/frontend/index.html"
 
         setContent { ProvideYumeStrings { WebViewScreen(initialUrl = initialUrl) } }
+    }
+
+    // This activity is exported so pinned shortcuts can reopen it, which means any installed app
+    // can hand it a URL. Only web links and the bundled frontend document may be loaded: anything
+    // else (another file:// path, content://, javascript:) would run inside this app's WebView with
+    // its privileges.
+    private fun String?.toLoadableUrl(): String? {
+        val url = this?.trim().orEmpty()
+        if (url.isEmpty()) return null
+        val scheme = url.substringBefore(':', missingDelimiterValue = "").lowercase()
+        if (scheme == "http" || scheme == "https") return url
+        if (scheme == "file" && url.startsWith("file://$filesDir/frontend/", ignoreCase = true)) {
+            return url
+        }
+        Timber.w("Refusing to load unsupported URL from an external intent: %s", url)
+        return null
+    }
+
+    override fun onDestroy() {
+        // The picker result can never arrive once this instance is gone, and a pending callback keeps
+        // the WebView (and through it this Activity) reachable. Answering with null aborts the page's
+        // outstanding <input type=file> request exactly as the user cancelling the picker would.
+        runCatching { filePathCallback?.onReceiveValue(null) }
+        filePathCallback = null
+        super.onDestroy()
     }
 }

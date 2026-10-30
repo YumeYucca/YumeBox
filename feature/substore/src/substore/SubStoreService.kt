@@ -31,18 +31,17 @@ import timber.log.Timber
 class SubStoreService : Service() {
     private var caseEngine: CaseEngine? = null
     private var activeRequest: SubStoreServiceRequest? = null
-    private var isRunning = false
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onBind(intent: Intent): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val request = SubStoreServiceController.requestFrom(intent)
-        if (isRunning && activeRequest == request) {
+        if (caseEngine != null && activeRequest == request) {
             SubStoreServiceController.markRunning()
             return START_STICKY
         }
-        if (isRunning) {
+        if (caseEngine != null) {
             cleanupService()
         }
 
@@ -51,32 +50,30 @@ class SubStoreService : Service() {
                 NetworkUtil.isPortInUse(request.frontendPort) ||
                 NetworkUtil.isPortInUse(request.backendPort)
             ) {
-                error("端口 ${request.frontendPort} 或 ${request.backendPort} 已被占用")
+                error("Port ${request.frontendPort} or ${request.backendPort} is already in use")
             }
 
             if (!ensureJavetLibraryLoaded()) {
-                error("Javet native 库加载失败")
+                error("Failed to load the Javet native library")
             }
 
-            lateinit var engine: CaseEngine
-            engine =
+            val engine =
                 CaseEngine(
                     backendPort = request.backendPort,
                     frontendPort = request.frontendPort,
                     allowLan = request.allowLan,
-                    onTerminated = {
-                        mainHandler.post { handleEngineTermination(engine, startId) }
+                    onTerminated = { terminated ->
+                        mainHandler.post { handleEngineTermination(terminated, startId) }
                     },
                 )
             caseEngine = engine
 
             if (!engine.isInitialized()) {
-                error("CaseEngine 初始化失败")
+                error("Failed to initialize CaseEngine")
             }
 
             engine.startServer()
             activeRequest = request
-            isRunning = true
             SubStoreServiceController.markRunning()
 
             START_STICKY
@@ -96,18 +93,15 @@ class SubStoreService : Service() {
 
     private fun ensureJavetLibraryLoaded(): Boolean = runCatching {
         NativeLibraryManager.initialize(applicationContext)
-        val javetLibBaseName = NativeLibraryManager.JAVET_LIBRARY_NAME
 
-        if (!NativeLibraryManager.isLibraryAvailable(javetLibBaseName)) {
+        if (!NativeLibraryManager.isLibraryAvailable()) {
             Timber.e("Javet library is not downloaded")
             return false
         }
 
-        val loaded = NativeLibraryManager.loadJniLibrary(javetLibBaseName)
+        val loaded = NativeLibraryManager.loadJniLibrary()
         if (!loaded) {
-            Timber.e(
-                "Javet load failed: ${NativeLibraryManager.getLibraryStatus(javetLibBaseName)}"
-            )
+            Timber.e("Javet load failed: ${NativeLibraryManager.getLibraryStatus()}")
         }
         loaded
     }
@@ -118,19 +112,19 @@ class SubStoreService : Service() {
 
     private fun handleEngineTermination(engine: CaseEngine, startId: Int) {
         if (caseEngine !== engine) return
-        caseEngine = null
-        activeRequest = null
-        isRunning = false
-        SubStoreServiceController.markStopped()
+        resetState()
         stopSelfResult(startId)
     }
 
     private fun cleanupService() {
         runCatching { caseEngine?.stopServer() }
             .onFailure { error -> Timber.e(error, "Failed to stop Sub-Store service") }
+        resetState()
+    }
+
+    private fun resetState() {
         caseEngine = null
         activeRequest = null
-        isRunning = false
         SubStoreServiceController.markStopped()
     }
 }

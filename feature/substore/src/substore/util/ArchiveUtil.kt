@@ -18,8 +18,6 @@
  *
  */
 
-@file:Suppress("DuplicatedCode", "RedundantIf")
-
 package com.github.yumeyucca.yumebox.substore.util
 
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
@@ -31,91 +29,74 @@ import java.io.InputStream
 import java.util.zip.ZipInputStream
 
 object ArchiveUtil {
-    fun unzipZip(zipFile: File, destination: File): Boolean {
-        if (!zipFile.isFile) return false
+    fun unzipZip(zipFile: File, destination: File): Boolean =
+        extractArchive(zipFile, destination) { input ->
+            ZipInputStream(input).use { zip ->
+                generateSequence { zip.nextEntry }.forEach { entry ->
+                    handleEntry(destination, entry.name, entry.isDirectory) { writeEntry(zip, it) }
+                }
+            }
+        }
+
+    fun untar(tarFile: File, destination: File): Boolean =
+        extractArchive(tarFile, destination) { input ->
+            TarArchiveInputStream(input).use { tar ->
+                generateSequence { tar.nextEntry }.forEach { entry ->
+                    handleEntry(destination, entry.name, entry.isDirectory) { writeEntry(tar, it) }
+                }
+            }
+        }
+
+    fun untarGz(tarGzFile: File, destination: File): Boolean =
+        extractArchive(tarGzFile, destination) { input ->
+            GzipCompressorInputStream(input).use { gzip ->
+                TarArchiveInputStream(gzip).use { tar ->
+                    generateSequence { tar.nextEntry }.forEach { entry ->
+                        handleEntry(destination, entry.name, entry.isDirectory) {
+                            writeEntry(tar, it)
+                        }
+                    }
+                }
+            }
+        }
+
+    private inline fun extractArchive(
+        archiveFile: File,
+        destination: File,
+        readEntries: (InputStream) -> Unit,
+    ): Boolean {
+        if (!archiveFile.isFile) return false
 
         return runCatching {
             prepareDestination(destination)
-
-            ZipInputStream(FileInputStream(zipFile)).use { zis ->
-                generateSequence { zis.nextEntry }
-                    .forEach { entry ->
-                        val outFile = resolveEntryTarget(destination, entry.name)
-
-                        if (entry.isDirectory) {
-                            ensureDirectory(outFile)
-                        } else {
-                            writeEntry(zis, outFile)
-                        }
-                    }
-            }
+            FileInputStream(archiveFile).use(readEntries)
             true
         }
             .getOrDefault(false)
     }
 
-    fun untar(tarFile: File, destination: File): Boolean {
-        if (!tarFile.isFile) return false
-
-        return runCatching {
-            prepareDestination(destination)
-
-            TarArchiveInputStream(FileInputStream(tarFile)).use { tis ->
-                var entry = tis.nextEntry
-                while (entry != null) {
-                    val outFile = resolveEntryTarget(destination, entry.name)
-
-                    if (entry.isDirectory) {
-                        ensureDirectory(outFile)
-                    } else {
-                        writeEntry(tis, outFile)
-                    }
-
-                    entry = tis.nextEntry
-                }
-            }
-            true
+    private inline fun handleEntry(
+        destination: File,
+        entryName: String,
+        isDirectory: Boolean,
+        write: (File) -> Unit,
+    ) {
+        val target = resolveEntryTarget(destination, entryName)
+        if (isDirectory) {
+            ensureDirectory(target)
+        } else {
+            write(target)
         }
-            .getOrDefault(false)
-    }
-
-    fun untarGz(tarGzFile: File, destination: File): Boolean {
-        if (!tarGzFile.isFile) return false
-
-        return runCatching {
-            prepareDestination(destination)
-
-            FileInputStream(tarGzFile).use { fis ->
-                GzipCompressorInputStream(fis).use { gzip ->
-                    TarArchiveInputStream(gzip).use { tis ->
-                        var entry = tis.nextEntry
-                        while (entry != null) {
-                            val outFile = resolveEntryTarget(destination, entry.name)
-
-                            if (entry.isDirectory) {
-                                ensureDirectory(outFile)
-                            } else {
-                                writeEntry(tis, outFile)
-                            }
-
-                            entry = tis.nextEntry
-                        }
-                    }
-                }
-            }
-            true
-        }
-            .getOrDefault(false)
     }
 
     private fun prepareDestination(destination: File) {
         if (!destination.exists()) {
             if (!destination.mkdirs()) {
-                throw IllegalStateException("无法创建目录: ${destination.absolutePath}")
+                throw IllegalStateException("Cannot create directory: ${destination.absolutePath}")
             }
         }
         if (!destination.isDirectory) {
-            throw IllegalStateException("目标不是目录: ${destination.absolutePath}")
+            throw IllegalStateException("Destination is not a directory: ${destination.absolutePath}")
         }
     }
 
@@ -123,7 +104,7 @@ object ArchiveUtil {
         val canonicalDestination = destination.canonicalFile
         val canonicalTarget = File(canonicalDestination, entryName).canonicalFile
         if (!canonicalTarget.toPath().startsWith(canonicalDestination.toPath())) {
-            throw SecurityException("检测到路径遍历: $entryName")
+            throw SecurityException("Path traversal detected: $entryName")
         }
         return canonicalTarget
     }
@@ -131,10 +112,10 @@ object ArchiveUtil {
     private fun ensureDirectory(directory: File) {
         if (directory.exists()) {
             if (!directory.isDirectory) {
-                throw IllegalStateException("路径已存在但不是目录: ${directory.absolutePath}")
+                throw IllegalStateException("Path exists but is not a directory: ${directory.absolutePath}")
             }
         } else if (!directory.mkdirs()) {
-            throw IllegalStateException("无法创建目录: ${directory.absolutePath}")
+            throw IllegalStateException("Cannot create directory: ${directory.absolutePath}")
         }
     }
 

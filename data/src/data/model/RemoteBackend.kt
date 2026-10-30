@@ -54,6 +54,10 @@ data class RemoteBackend(
     val normalizedBaseUrl: String
         get() = baseUrl.trimEnd('/')
 
+    /** Human-facing label: the user's own name, or `host:port` when they never gave one. */
+    val displayName: String
+        get() = name.ifBlank { "$host:$port" }
+
     companion object {
         fun newId(): String =
             java.util.UUID

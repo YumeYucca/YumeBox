@@ -25,35 +25,46 @@ package com.github.yumeyucca.yumebox.presentation.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.github.yumeyucca.yumebox.core.locale.ProvideYumeStrings
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal val LocalPlatformSystemUiEffect =
     compositionLocalOf<@Composable (isDark: Boolean) -> Unit> { {} }
+
+/**
+ * Whether this mode resolves to a dark colour scheme.
+ *
+ * [ThemeMode.Auto] follows the system; the explicit modes pin the answer so a user who picked
+ * "Light" keeps a light UI even when the system is dark. Every surface that needs to know
+ * (theme, moe home, system UI) asks this one question instead of re-deriving the mapping.
+ */
+@Composable
+fun ThemeMode.isDark(): Boolean = when (this) {
+    ThemeMode.Auto -> isSystemInDarkTheme()
+    ThemeMode.Light -> false
+    ThemeMode.Dark -> true
+}
+
+/** Display label of the mode, resolved against the current locale on every read. */
+val ThemeMode.label: String
+    get() = when (this) {
+        ThemeMode.Auto -> YumeTxt.AppSettings.Interface.ThemeModeSystem
+        ThemeMode.Light -> YumeTxt.AppSettings.Interface.ThemeModeLight
+        ThemeMode.Dark -> YumeTxt.AppSettings.Interface.ThemeModeDark
+    }
 
 @Composable
 fun YumeTheme(
     themeMode: ThemeMode? = null,
     themeSeedColorArgb: Long = DEFAULT_THEME_SEED_ARGB,
     invertOnPrimaryColors: Boolean = false,
-    spacing: Spacing = Spacing(),
-    radii: Radii = Radii(),
-    sizes: Sizes = Sizes(),
-    opacity: Opacity = Opacity(),
-    appColors: AppColors = AppColors(),
     content: @Composable () -> Unit,
 ) = ProvideYumeStrings {
-    val effectiveThemeMode = themeMode ?: ThemeMode.Auto
-    val isDark =
-        when (effectiveThemeMode) {
-            ThemeMode.Auto -> isSystemInDarkTheme()
-            ThemeMode.Light -> false
-            ThemeMode.Dark -> true
-        }
+    val isDark = (themeMode ?: ThemeMode.Auto).isDark()
     val systemUiEffect = LocalPlatformSystemUiEffect.current
     systemUiEffect(isDark)
     val colorScheme =
@@ -65,13 +76,5 @@ fun YumeTheme(
             )
         }
 
-    CompositionLocalProvider(
-        LocalSpacing provides spacing,
-        LocalRadii provides radii,
-        LocalSizes provides sizes,
-        LocalOpacity provides opacity,
-        LocalAppColors provides appColors,
-    ) {
-        MiuixTheme(colors = colorScheme) { content() }
-    }
+    MiuixTheme(colors = colorScheme) { content() }
 }

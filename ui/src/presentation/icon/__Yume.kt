@@ -23,31 +23,5 @@
 package com.github.yumeyucca.yumebox.presentation.icon
 
 
-import androidx.compose.ui.graphics.vector.ImageVector
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Github
-import kotlin.collections.List as ____KtList
-import kotlin.collections.Map as ____KtMap
-
+/** Receiver for the generated `yume` icon extensions in the `icon/yume/` package. */
 object Yume
-
-private var __AllIcons: ____KtList<ImageVector>? = null
-
-val Yume.AllIcons: ____KtList<ImageVector>
-    get() {
-        if (__AllIcons != null) {
-            return __AllIcons!!
-        }
-        __AllIcons = listOf(Github)
-        return __AllIcons!!
-    }
-
-private var __AllIconsNamed: ____KtMap<String, ImageVector>? = null
-
-val Yume.AllIconsNamed: ____KtMap<String, ImageVector>
-    get() {
-        if (__AllIconsNamed != null) {
-            return __AllIconsNamed!!
-        }
-        __AllIconsNamed = mapOf("github" to Github)
-        return __AllIconsNamed!!
-    }

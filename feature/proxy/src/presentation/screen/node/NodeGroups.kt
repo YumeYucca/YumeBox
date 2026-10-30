@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.screen.node
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -31,8 +30,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,16 +52,13 @@ import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.chevron
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.theme.inactiveSurfaceColor
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.SinkFeedback
 import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
-
-private data class GroupBadge(val label: String)
-
-private fun groupBadge(type: String): GroupBadge = GroupBadge(type)
 
 internal fun LazyListScope.nodeGroupItems(
     groups: List<ProxyGroupInfo>,
@@ -94,7 +88,7 @@ internal fun LazyListScope.nodeGroupItems(
 @Composable
 internal fun NodeGroupCard(
     group: ProxyGroupInfo,
-    allGroups: List<ProxyGroupInfo> = listOf(group),
+    allGroups: List<ProxyGroupInfo>,
     isDelayTesting: Boolean,
     onClick: (ProxyGroupInfo) -> Unit,
     onTestClick: (ProxyGroupInfo) -> Unit,
@@ -128,7 +122,6 @@ internal fun NodeGroupCard(
         remember(group.now, allGroups) {
             allGroups.displayedSelectionDelay(group)
         }
-    val badge = remember(group.type) { groupBadge(group.type) }
 
     Column(
         modifier =
@@ -185,7 +178,7 @@ internal fun NodeGroupCard(
                     )
                     val primary = MiuixTheme.colorScheme.primary
                     Text(
-                        text = badge.label,
+                        text = group.type,
                         style = MiuixTheme.textStyles.footnote1.copy(fontSize = 10.sp),
                         color = primary,
                         modifier =
@@ -201,7 +194,7 @@ internal fun NodeGroupCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(UiDp.dp14))
-                        .background(nodeInactiveContainerColor())
+                        .background(inactiveSurfaceColor())
                         .padding(horizontal = UiDp.dp10, vertical = UiDp.dp6),
                 ) {
                     Row(
@@ -245,19 +238,15 @@ internal fun NodeGroupCard(
 
 @Composable
 private fun GroupDelayLabel(proxyName: String, fallbackDelay: Int) {
-    val delayProvider = LocalProxyDelayFlow.current
-    val delayFlow = remember(proxyName, delayProvider) { delayProvider(proxyName) }
-    val liveDelay by delayFlow.collectAsState()
     // The group card keeps its navigation chevron until a real delay is available. The number is
     // the selected node's measurement, including a copy published on another group.
-    val delay = liveDelay ?: fallbackDelay
-    val delayLabel = if (delay != 0) nodeLatencyLabel(delay) else null
-    if (delayLabel != null) {
-        val (delayText, delayColor) = delayLabel
+    val delay = rememberLiveNodeDelay(proxyName, fallbackDelay)
+    val latency = if (delay != 0) nodeLatencyLabel(delay) else null
+    if (latency != null) {
         Text(
-            text = delayText,
+            text = latency.text,
             style = MiuixTheme.textStyles.footnote1,
-            color = delayColor,
+            color = latency.color,
         )
     } else {
         Icon(
@@ -269,12 +258,18 @@ private fun GroupDelayLabel(proxyName: String, fallbackDelay: Int) {
     }
 }
 
+/** `scheme:` prefixes the app should keep as written instead of guessing a web host. */
+private val SchemeUriRegex = Regex("^[a-zA-Z][a-zA-Z\\d+.-]*:.*$")
+
+/** Bare `host.domain/path` inputs that are really https URLs missing their scheme. */
+private val BareHostUriRegex = Regex("^[^/\\s]+\\.[^/\\s]+(?:/.*)?$")
+
 private fun normalizeNodeGroupIconUri(raw: String): String {
     val normalized = raw.trim()
     if (normalized.startsWith("//")) return "https:$normalized"
     if (normalized.startsWith("www.", ignoreCase = true)) return "https://$normalized"
-    if (normalized.matches(Regex("^[a-zA-Z][a-zA-Z\\d+.-]*:.*$"))) return normalized
-    if (normalized.matches(Regex("^[^/\\s]+\\.[^/\\s]+(?:/.*)?$"))) return "https://$normalized"
+    if (normalized.matches(SchemeUriRegex)) return normalized
+    if (normalized.matches(BareHostUriRegex)) return "https://$normalized"
     return normalized
 }
 

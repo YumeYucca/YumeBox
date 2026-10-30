@@ -23,56 +23,52 @@
 package com.github.yumeyucca.yumebox.screen.profiles
 
 
-import android.net.Uri
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
-import com.github.yumeyucca.yumebox.common.util.formatBytes
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.App
-import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Check
+import com.github.yumeyucca.yumebox.common.util.formatDateTime
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Edit
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Eye
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
-import com.github.yumeyucca.yumebox.presentation.util.OverrideEditorStore
+import com.github.yumeyucca.yumebox.presentation.navigation.LocalConfigPreviewSlot
+import com.github.yumeyucca.yumebox.presentation.navigation.ConfigPreviewRequest
+import com.github.yumeyucca.yumebox.presentation.navigation.ConfigPreviewSlot
 import com.github.yumeyucca.yumebox.presentation.util.readDisplaySize
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import com.github.yumeyucca.yumebox.runtime.client.ProfilePatch
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * Standalone "编辑配置" page: profile fields and config-file facts only.
  *
  * Override selection moved to [ProfileOverrideScreen]; this page keeps the same label/value input
  * rows as the add-subscription sheet, plus the config file's update time and size.
+ *
+ * The page is a renderer: [rememberProfileEditDraft] owns the edit-in-progress copy and the loads
+ * that fill it, so nothing here writes an editable field directly.
  */
 @Composable
 fun ProfileEditScreen(navigator: Navigator, profileId: String) {
     val profilesViewModel = koinViewModel<ProfilesViewModel>()
     val homeViewModel = koinViewModel<HomeViewModel>()
     val context = LocalContext.current
+    val configPreviewSlot = LocalConfigPreviewSlot.current
     val scope = rememberCoroutineScope()
     val scrollBehavior = MiuixScrollBehavior()
     val pageListState = rememberLazyListState()
@@ -83,141 +79,11 @@ fun ProfileEditScreen(navigator: Navigator, profileId: String) {
         profiles.firstOrNull { it.uuid.toString() == profileId }
     }
 
-    var editName by remember(profileId) { mutableStateOf(TextFieldValue()) }
-    var editSource by remember(profileId) { mutableStateOf(TextFieldValue()) }
-    var editAgeSecretKey by remember(profileId) { mutableStateOf(TextFieldValue()) }
-    var ageSecretKeyEdited by remember(profileId) { mutableStateOf(false) }
-    var ageSecretVisible by remember(profileId) { mutableStateOf(false) }
-    var isSaving by remember(profileId) { mutableStateOf(false) }
-    var replacementFileUri by remember(profileId) { mutableStateOf<Uri?>(null) }
-    var replacementFileSize by remember(profileId) { mutableStateOf(0L) }
+    val draft = rememberProfileEditDraft(profileId = profileId, profile = profile)
+    val pickConfigFile = rememberProfileEditFilePicker(context = context, draft = draft)
 
-    val fileLaunchers =
-        rememberProfileImportLaunchers(
-            context = context,
-            onFileSelected = { uri, _ ->
-                replacementFileUri = uri
-                replacementFileSize = readDisplaySize(context, uri)
-            },
-            onUnsupportedFile = {
-                context.toast(YumeTxt.ProfilesPage.Validation.YamlOnly)
-            },
-            onQrDecoded = {},
-        )
-
-    // Seed the editable fields once the profile arrives; keyed on the id only so a list refresh
-    // emitting an equal profile cannot wipe edits in progress.
-    LaunchedEffect(profile?.uuid) {
-        val target = profile ?: return@LaunchedEffect
-        editName = TextFieldValue(target.name, TextRange(target.name.length))
-        if (target.type == Profile.Type.Url) {
-            editSource = TextFieldValue(target.source, TextRange(target.source.length))
-        }
-    }
-
-    var configFileSize by remember(profile?.uuid, profile?.updatedAt) {
-        mutableStateOf<Long?>(null)
-    }
-    LaunchedEffect(profile?.uuid, profile?.updatedAt) {
-        val target = profile
-        configFileSize =
-            if (target == null) {
-                null
-            } else {
-                withContext(Dispatchers.IO) {
-                    runCatching {
-                        importedConfigFile(target).takeIf { it.exists() }?.length()
-                    }.getOrNull()
-                }
-            }
-    }
     val updatedAtText = remember(profile?.updatedAt) {
         formatUpdatedAt(profile?.updatedAt ?: -1L)
-    }
-    val configFileSizeText = remember(configFileSize) {
-        configFileSize?.let(::formatBytes) ?: "—"
-    }
-    val fileRowSizeText = remember(replacementFileUri, replacementFileSize, configFileSize) {
-        val size =
-            if (replacementFileUri != null) replacementFileSize else configFileSize ?: 0L
-        if (size > 0L) formatBytes(size) else ""
-    }
-
-    val openConfigInEditor = {
-        val target = profile
-        if (target != null) {
-            val configFile = importedConfigFile(target)
-            openProfileConfigPreview(
-                targetFile = configFile,
-                missingMessage =
-                    YumeTxt.ProfilesPage.SettingsDialog.ConfigMissing.format(
-                        configFile.absolutePath
-                    ),
-                editable = true,
-                onReadFailed = context::toast,
-            ) { content, callback ->
-                OverrideEditorStore.setupConfigPreview(
-                    title = target.name,
-                    content = content,
-                    language = LanguageScope.Yaml,
-                    callback = callback,
-                )
-                navigator.push(Route.OverrideConfigPreview)
-            }
-        }
-    }
-
-    val saveSettings = {
-        if (!isSaving) {
-            scope.launch {
-                val target = profile
-                if (target == null) {
-                    navigator.pop()
-                    return@launch
-                }
-                isSaving = true
-                runCatching {
-                    val trimmedName = editName.text.trim()
-                    val trimmedSource = editSource.text.trim()
-                    val trimmedAgeSecretKey = editAgeSecretKey.text.trim()
-                    val replacementUri = replacementFileUri
-                    val targetSource =
-                        when {
-                            target.type == Profile.Type.Url && trimmedSource.isNotEmpty() ->
-                                trimmedSource
-                            target.type == Profile.Type.File && replacementUri != null ->
-                                replacementUri.toString()
-                            else -> target.source
-                        }
-                    val hasMetaChanges =
-                        trimmedName != target.name ||
-                                targetSource != target.source ||
-                                ageSecretKeyEdited
-                    if (trimmedName.isNotEmpty() && targetSource.isNotEmpty() && hasMetaChanges) {
-                        if (target.type == Profile.Type.File && replacementUri != null) {
-                            App.instance.copyProfileImport(replacementUri, target.uuid)
-                        }
-                        profilesViewModel.patchProfile(
-                            uuid = target.uuid,
-                            patch =
-                                ProfilePatch(
-                                    name = trimmedName,
-                                    source = targetSource,
-                                    interval = target.interval,
-                                    updateAgeSecretKey = ageSecretKeyEdited,
-                                    ageSecretKey =
-                                        if (ageSecretKeyEdited) trimmedAgeSecretKey else null,
-                                ),
-                        )
-                    }
-                }
-                    .onSuccess { navigator.pop() }
-                    .onFailure { error ->
-                        context.toast(error.message ?: YumeTxt.Util.Error.UnknownError)
-                    }
-                isSaving = false
-            }
-        }
     }
 
     val setProfileActive = { active: Boolean ->
@@ -231,166 +97,253 @@ fun ProfileEditScreen(navigator: Navigator, profileId: String) {
             }
         }
     }
+    val openConfigInEditor: () -> Unit = {
+        openProfileConfigInEditor(profile, context, scope, configPreviewSlot, navigator)
+    }
+    val saveSettings: () -> Unit = {
+        saveProfileEdits(draft, profile, scope, context, navigator, profilesViewModel)
+    }
 
-    GlassScaffold(
-        topBar = {
-            TopBar(
-                title = YumeTxt.ProfilesPage.SettingsDialog.EditProfile,
-                scrollBehavior = scrollBehavior,
-                actions = {
-                    GlassTopActionPill(
-                        actions =
-                            listOf(
-                                GlassTopAction(
-                                    icon = Yume.Edit,
-                                    contentDescription =
-                                        YumeTxt.ProfilesPage.SettingsDialog.OpenConfig,
-                                    onClick = openConfigInEditor,
-                                ),
-                                GlassTopAction(
-                                    icon = Yume.Check,
-                                    contentDescription = YumeTxt.ProfilesPage.Button.Confirm,
-                                    onClick = saveSettings,
-                                ),
-                            ),
-                        backdrop = LocalTopBarBackdrop.current,
-                    )
-                },
-            )
+    ProfileSettingsPage(
+        title = YumeTxt.ProfilesPage.SettingsDialog.EditProfile,
+        scrollBehavior = scrollBehavior,
+        listState = pageListState,
+        actions = { ProfileEditTopActions(openConfigInEditor, saveSettings) },
+    ) {
+        item(key = "profile-edit-status") { ProfileStatusSection(profile, setProfileActive) }
+        item(key = "profile-edit-info") {
+            ProfileIdentitySection(profile?.type, draft, pickConfigFile)
         }
-    ) { paddingValues ->
-        val mainLikePadding = rememberStandalonePageMainPadding()
-        ScreenLazyColumn(
-            scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(paddingValues, mainLikePadding),
-            lazyListState = pageListState,
-        ) {
-            item(key = "profile-edit-status") {
-                Title(YumeTxt.ProfilesPage.SettingsDialog.ProfileStatus)
-                AppCard {
-                    SwitchPreference(
-                        title = YumeTxt.ProfilesPage.SettingsDialog.ProfileEnabled,
-                        checked = profile?.active == true,
-                        enabled = profile != null,
-                        onCheckedChange = { active -> setProfileActive(active) },
-                    )
-                }
-            }
-
-            item(key = "profile-edit-info") {
-                Title(YumeTxt.ProfilesPage.SettingsDialog.ProfileInfo)
-                AppCard {
-                    Column {
-                        AppTextFieldRow(
-                            label = YumeTxt.ProfilesPage.Input.ProfileName,
-                            value = editName,
-                            onValueChange = { editName = it },
-                        )
-
-                        when (profile?.type) {
-                            Profile.Type.Url ->
-                                AppTextFieldRow(
-                                    label = YumeTxt.ProfilesPage.Input.SubscriptionUrl,
-                                    value = editSource,
-                                    onValueChange = { editSource = it },
-                                    keyboardOptions =
-                                        KeyboardOptions(keyboardType = KeyboardType.Uri),
-                                )
-                            Profile.Type.File ->
-                                ArrowPreference(
-                                    title = YumeTxt.ProfilesPage.Input.SelectFile,
-                                    endActions = {
-                                        if (fileRowSizeText.isNotEmpty()) {
-                                            Text(
-                                                text = fileRowSizeText,
-                                                style = MiuixTheme.textStyles.body2,
-                                                color =
-                                                    MiuixTheme.colorScheme
-                                                        .onSurfaceVariantSummary,
-                                                maxLines = 1,
-                                            )
-                                        }
-                                    },
-                                    onClick = fileLaunchers.pickFile,
-                                )
-                            else -> Unit
-                        }
-                    }
-                }
-            }
-
-            item(key = "profile-edit-age") {
-                Title(YumeTxt.ProfilesPage.SettingsDialog.AgeSection)
-                AppCard {
-                    Column {
-                        AppTextFieldRow(
-                            label = YumeTxt.ProfilesPage.Input.AgeSecretKey,
-                            value = editAgeSecretKey,
-                            onValueChange = {
-                                editAgeSecretKey = it
-                                ageSecretKeyEdited = true
-                            },
-                            keyboardOptions =
-                                KeyboardOptions(
-                                    keyboardType =
-                                        if (ageSecretVisible) {
-                                            KeyboardType.Text
-                                        } else {
-                                            KeyboardType.Password
-                                        },
-                                ),
-                            trailingIcon = {
-                                AppTextFieldRowIcon(
-                                    icon = Yume.Eye,
-                                    contentDescription =
-                                        YumeTxt.ProfilesPage.Input.AgeSecretKey,
-                                    tint =
-                                        if (ageSecretVisible) {
-                                            MiuixTheme.colorScheme.primary
-                                        } else {
-                                            Color.Unspecified
-                                        },
-                                    onClick = { ageSecretVisible = !ageSecretVisible },
-                                )
-                            },
-                        )
-                    }
-                }
-                SectionSummary(YumeTxt.ProfilesPage.SettingsDialog.AgeSecretKeySummary)
-            }
-
-            item(key = "profile-edit-file") {
-                Title(YumeTxt.ProfilesPage.SettingsDialog.ConfigFile)
-                AppCard {
-                    Column {
-                        BasicComponent(
-                            title = YumeTxt.ProfilesPage.SettingsDialog.UpdatedAt,
-                            endActions = {
-                                Text(
-                                    text = updatedAtText,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                )
-                            },
-                        )
-                        BasicComponent(
-                            title = YumeTxt.ProfilesPage.SettingsDialog.ConfigFileSize,
-                            endActions = {
-                                Text(
-                                    text = configFileSizeText,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                )
-                            },
-                        )
-                    }
-                }
-            }
+        item(key = "profile-edit-age") { ProfileAgeSection(draft) }
+        item(key = "profile-edit-file") {
+            ProfileConfigFileSection(updatedAtText, draft.configFileSizeText)
         }
     }
 }
 
-private fun formatUpdatedAt(timestamp: Long): String =
-    if (timestamp <= 0L) {
-        "—"
-    } else {
-        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(timestamp))
+/** The top-bar actions of this page: open the config in the editor, then save the draft. */
+@Composable
+private fun ProfileEditTopActions(onOpenConfig: () -> Unit, onSave: () -> Unit) {
+    GlassTopActionPill(
+        actions =
+            listOf(
+                GlassTopAction(
+                    icon = Yume.Edit,
+                    contentDescription = YumeTxt.ProfilesPage.SettingsDialog.OpenConfig,
+                    onClick = onOpenConfig,
+                ),
+                GlassTopAction(
+                    icon = Yume.Check,
+                    contentDescription = YumeTxt.ProfilesPage.Button.Confirm,
+                    onClick = onSave,
+                ),
+            ),
+        backdrop = LocalTopBarBackdrop.current,
+    )
+}
+
+/** The profile's on/off switch; [profile] stays null until the list has the row. */
+@Composable
+private fun ProfileStatusSection(profile: Profile?, onActiveChange: (Boolean) -> Unit) {
+    Title(YumeTxt.ProfilesPage.SettingsDialog.ProfileStatus)
+    AppCard {
+        PreferenceSwitchItem(
+            title = YumeTxt.ProfilesPage.SettingsDialog.ProfileEnabled,
+            checked = profile?.active == true,
+            enabled = profile != null,
+            onCheckedChange = { active -> onActiveChange(active) },
+        )
     }
+}
+
+/**
+ * The name and source rows.
+ *
+ * [draft] is this page's own state holder, handed over instead of its seven separate fields so the
+ * section stays inside the parameter budget; every write still goes through the holder's operations.
+ */
+@Composable
+private fun ProfileIdentitySection(
+    sourceType: Profile.Type?,
+    draft: ProfileEditDraft,
+    onPickFile: () -> Unit,
+) {
+    Title(YumeTxt.ProfilesPage.SettingsDialog.ProfileInfo)
+    AppCard {
+        Column {
+            ProfileNameField(
+                value = draft.name,
+                onValueChange = draft::onNameChange,
+            )
+
+            ProfileSourceField(
+                sourceType = sourceType,
+                urlValue = draft.source,
+                onUrlChange = draft::onSourceChange,
+                fileSizeText = draft.fileRowSizeText,
+                onPickFile = onPickFile,
+            )
+        }
+    }
+}
+
+/** The age-secret row; [draft] holds the key and whether it is revealed. */
+@Composable
+private fun ProfileAgeSection(draft: ProfileEditDraft) {
+    Title(YumeTxt.ProfilesPage.SettingsDialog.AgeSection)
+    AppCard {
+        Column {
+            ProfileAgeSecretField(
+                value = draft.ageSecretKey,
+                onValueChange = draft::onAgeSecretKeyChange,
+                visible = draft.ageSecretVisible,
+                onVisibilityChange = draft::onAgeSecretVisibilityChange,
+            )
+        }
+    }
+    SectionSummary(YumeTxt.ProfilesPage.SettingsDialog.AgeSecretKeySummary)
+}
+
+/** The config file's read-only facts: when it last updated, and how large it is. */
+@Composable
+private fun ProfileConfigFileSection(updatedAtText: String, sizeText: String) {
+    Title(YumeTxt.ProfilesPage.SettingsDialog.ConfigFile)
+    AppCard {
+        Column {
+            ProfileInfoRow(
+                title = YumeTxt.ProfilesPage.SettingsDialog.UpdatedAt,
+                value = updatedAtText,
+            )
+            ProfileInfoRow(
+                title = YumeTxt.ProfilesPage.SettingsDialog.ConfigFileSize,
+                value = sizeText,
+            )
+        }
+    }
+}
+
+/**
+ * The config-file picker of this page: a picked YAML becomes [draft]'s replacement source, an
+ * unsupported file is toasted instead.
+ */
+@Composable
+private fun rememberProfileEditFilePicker(
+    context: Context,
+    draft: ProfileEditDraft,
+): () -> Unit =
+    rememberProfileConfigFilePicker(
+        context = context,
+        onFileSelected = { uri, _ ->
+            draft.setReplacementFile(uri, readDisplaySize(context, uri))
+        },
+        onUnsupportedFile = {
+            context.toast(YumeTxt.ProfilesPage.Validation.YamlOnly)
+        },
+    )
+
+/** Opens the profile's config file in the editor. */
+private fun openProfileConfigInEditor(
+    profile: Profile?,
+    context: Context,
+    scope: CoroutineScope,
+    configPreviewSlot: ConfigPreviewSlot,
+    navigator: Navigator,
+) {
+    // The config file lives on disk: read it off the main thread, then hand it to the editor.
+    val target = profile
+    if (target != null) {
+        val configFile = importedConfigFile(target)
+        scope.launch {
+            val content =
+                withContext(Dispatchers.IO) {
+                    readProfileConfigFile(
+                        targetFile = configFile,
+                        missingMessage =
+                            YumeTxt.ProfilesPage.SettingsDialog.ConfigMissing.format(
+                                configFile.absolutePath
+                            ),
+                    )
+                }
+                    .getOrElse { error ->
+                        context.toast(error.message.orEmpty())
+                        return@launch
+                    }
+            val previewId =
+                configPreviewSlot.put(
+                    ConfigPreviewRequest(
+                        title = target.name,
+                        content = content,
+                        language = LanguageScope.Yaml,
+                        onSave = { updatedContent ->
+                            runCatching { configFile.writeText(updatedContent) }
+                                .getOrElse { error ->
+                                    throw IllegalStateException(
+                                        error.message
+                                            ?: YumeTxt.ProfilesPage.SettingsDialog.SaveFailed,
+                                        error,
+                                    )
+                                }
+                        },
+                    )
+                )
+            navigator.push(Route.OverrideConfigPreview(previewId))
+        }
+    }
+}
+
+/**
+ * Saves [draft]'s patch for [profile] and pops the page.
+ *
+ * [profilesViewModel] is only the patch sink: the draft still decides what the patch is, and a
+ * cancelled save is rethrown instead of being reported as a failure.
+ */
+private fun saveProfileEdits(
+    draft: ProfileEditDraft,
+    profile: Profile?,
+    scope: CoroutineScope,
+    context: Context,
+    navigator: Navigator,
+    profilesViewModel: ProfilesViewModel,
+) {
+    if (!draft.isSaving) {
+        scope.launch {
+            val target = profile
+            if (target == null) {
+                navigator.pop()
+                return@launch
+            }
+            draft.beginSave()
+            runCatching {
+                val replacement = draft.replacementFile
+                val patch = draft.patchFor(target)
+                if (patch != null) {
+                    if (target.type == Profile.Type.File && replacement != null) {
+                        App.instance.copyProfileImport(replacement.uri, target.uuid)
+                    }
+                    profilesViewModel.patchProfile(uuid = target.uuid, patch = patch)
+                }
+            }
+                .onSuccess { navigator.pop() }
+                .onFailure { error ->
+                    // Leaving the screen cancels the save; that is not a save failure.
+                    if (error is CancellationException) throw error
+                    context.toast(error.message ?: YumeTxt.Util.Error.UnknownError)
+                }
+            draft.endSave()
+        }
+    }
+}
+
+/** One read-only "label — value" row of the profile's config file card. */
+@Composable
+private fun ProfileInfoRow(title: String, value: String) {
+    BasicComponent(
+        title = title,
+        endActions = {
+            Text(text = value, color = MiuixTheme.colorScheme.onSurfaceVariantActions)
+        },
+    )
+}
+
+private fun formatUpdatedAt(timestamp: Long): String =
+    if (timestamp <= 0L) "—" else formatDateTime(timestamp, "yyyy-MM-dd HH:mm")

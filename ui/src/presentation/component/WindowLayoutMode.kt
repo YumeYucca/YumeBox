@@ -7,8 +7,6 @@
  * License.
  */
 
-@file:Suppress("UnusedSymbol")
-
 package com.github.yumeyucca.yumebox.presentation.component
 
 
@@ -25,6 +23,9 @@ import androidx.compose.ui.platform.LocalConfiguration
  *
  * Module-level master/detail inside a tab is intentionally not used anymore; tablet detail always
  * goes through [LocalDetailNavigator] in the shell right pane.
+ *
+ * Note this ranks windows for layout, not devices: a landscape phone earns [TwoPane] by its width
+ * while staying a phone for [isTabletWidth].
  */
 enum class WindowLayoutMode {
     Compact,
@@ -34,13 +35,26 @@ enum class WindowLayoutMode {
     /** Tablet dual-pane shell should be used (left pager + right detail). */
     val usesSplitShell: Boolean
         get() = this != Compact
+}
 
-    /** @deprecated Prefer [usesSplitShell]; kept for existing call sites. */
-    val usesNavigationRail: Boolean
-        get() = usesSplitShell
+/** Smallest-side width from which a window counts as tablet-sized (Android's `sw600dp` rule). */
+const val TabletWidthBreakpointDp = 600
 
-    val usesTwoPanes: Boolean
-        get() = this == TwoPane
+/** Shortest side from which a landscape phone also earns the two-pane shell. */
+private const val TwoPaneBreakpointDp = 700
+
+/**
+ * Whether this window is tablet-sized, i.e. its shortest side clears [TabletWidthBreakpointDp].
+ *
+ * Deliberately not `rememberWindowLayoutMode() != Compact`: that answers "which shell should this
+ * window use", which a landscape phone also earns by width alone. This answers "what kind of
+ * device is this", which only the shortest side can tell (a tall phone would otherwise pass on
+ * height alone).
+ */
+@Composable
+fun isTabletWidth(): Boolean {
+    val configuration = LocalConfiguration.current
+    return minOf(configuration.screenWidthDp, configuration.screenHeightDp) >= TabletWidthBreakpointDp
 }
 
 @Composable
@@ -54,9 +68,9 @@ fun rememberWindowLayoutMode(): WindowLayoutMode {
     val widthDp = configuration.screenWidthDp
     return remember(shortestSideDp, widthDp) {
         when {
-            shortestSideDp >= 700 -> WindowLayoutMode.TwoPane
-            shortestSideDp >= 600 -> WindowLayoutMode.RailSingle
-            widthDp >= 700 -> WindowLayoutMode.TwoPane
+            shortestSideDp >= TwoPaneBreakpointDp -> WindowLayoutMode.TwoPane
+            shortestSideDp >= TabletWidthBreakpointDp -> WindowLayoutMode.RailSingle
+            widthDp >= TwoPaneBreakpointDp -> WindowLayoutMode.TwoPane
             else -> WindowLayoutMode.Compact
         }
     }

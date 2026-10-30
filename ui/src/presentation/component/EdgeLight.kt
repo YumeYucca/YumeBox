@@ -23,7 +23,7 @@
 package com.github.yumeyucca.yumebox.presentation.component
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
@@ -49,31 +49,32 @@ fun Modifier.edgeLight(
     width: Dp,
     blurRadius: Dp = EdgeLightDefaults.BlurRadius,
     blendMode: BlendMode = BlendMode.Plus,
-): Modifier = drawWithContent {
-    drawContent()
-    val outline = shape.createOutline(size, layoutDirection, this)
-    val strokeWidthPx = width.toPx() * 2f
-    if (strokeWidthPx <= 0f) return@drawWithContent
-    // Strokes straddle the outline centerline; clipping to the outline keeps only the inner
-    // half, so the visible rim width equals [width].
-    val rimClipPath = outline.toClipPath()
-    val canvas = drawContext.canvas
-    clipPath(rimClipPath) {
-        canvas.drawOutline(
-            outline,
-            paint =
-                strokePaint(
-                    color = color.copy(alpha = color.alpha * HaloAlphaFactor),
-                    strokeWidth = strokeWidthPx + blurRadius.toPx() * 4f,
-                    blendMode = blendMode,
-                ),
-        )
-        canvas.drawOutline(
-            outline,
-            paint = strokePaint(color = color, strokeWidth = strokeWidthPx, blendMode = blendMode),
-        )
+): Modifier =
+    // Cached rather than drawn from scratch: the outline, its clip path and both paints depend only
+    // on the size and the parameters, so building them in the draw block allocated two Paints and
+    // a Path on every frame.
+    drawWithCache {
+        val outline = shape.createOutline(size, layoutDirection, this)
+        val strokeWidthPx = width.toPx() * 2f
+        // Strokes straddle the outline centerline; clipping to the outline keeps only the inner
+        // half, so the visible rim width equals [width].
+        val rimClipPath = outline.toClipPath()
+        val haloPaint =
+            strokePaint(
+                color = color.copy(alpha = color.alpha * HaloAlphaFactor),
+                strokeWidth = strokeWidthPx + blurRadius.toPx() * 4f,
+                blendMode = blendMode,
+            )
+        val rimPaint = strokePaint(color = color, strokeWidth = strokeWidthPx, blendMode = blendMode)
+        onDrawWithContent {
+            drawContent()
+            if (strokeWidthPx <= 0f) return@onDrawWithContent
+            clipPath(rimClipPath) {
+                drawContext.canvas.drawOutline(outline, paint = haloPaint)
+                drawContext.canvas.drawOutline(outline, paint = rimPaint)
+            }
+        }
     }
-}
 
 private fun strokePaint(color: Color, strokeWidth: Float, blendMode: BlendMode): Paint =
     Paint().apply {

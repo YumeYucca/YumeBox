@@ -20,17 +20,18 @@
 
 package com.github.yumeyucca.yumebox.presentation.navigation
 
-import kotlinx.serialization.Serializable
+import com.github.yumeyucca.yumebox.screen.rules.RulesProvidersTab
 
 /**
  * Navigation keys for the whole app, replacing compose-destinations' generated `*Destination`
  * objects. The arg-carrying screens are data classes, the rest are objects.
+ *
+ * Routes are never serialised — the shell keeps them in a retained component and builds the stack
+ * with `serializer = null` — so they may carry arguments a serialiser would reject.
  */
 sealed interface Route {
-    @Serializable
-    data class Main(val initialPage: Int = 0) : Route
+    data object Main : Route
 
-    @Serializable
     data class MoeWallpaperCrop(
         val wallpaperUri: String,
         val initialZoom: Float = 1f,
@@ -38,90 +39,68 @@ sealed interface Route {
         val initialBiasY: Float = 0f,
     ) : Route
 
-    @Serializable
     data object AppSettings : Route
 
-    @Serializable
     data object NotificationSettings : Route
 
     /** Settings master list (SettingPager) hosted as a standalone pushed page. */
-    @Serializable
     data object Settings : Route
 
-    @Serializable
     data object NetworkSettings : Route
 
-    @Serializable
     data object VpnServiceOptions : Route
 
-    @Serializable
     data object TunServiceOptions : Route
 
     data object EbpfServiceOptions : Route
 
-    @Serializable
     data object AccessControl : Route
 
-    @Serializable
     data object AccessControlAppList : Route
 
-    @Serializable
     data object MetaFeature : Route
 
-    @Serializable
     data object Connection : Route
 
-    @Serializable
-    data class ConnectionDetail(val connectionId: String) : Route
+    data class ConnectionDetail(
+        val connectionId: String,
+        /** Whether the row came from the active list, i.e. whether it can still be closed. */
+        val canInterrupt: Boolean = false,
+    ) : Route
 
-    @Serializable
     data object TrafficStatistics : Route
 
-    @Serializable
     data object Log : Route
 
-    /** Runtime rules from GET /rules (not custom routing). */
-    @Serializable
-    data object Rules : Route
+    /** Routing rules and outbound providers: runtime rules from GET /rules (not custom routing). */
+    data class RulesAndProviders(val tab: RulesProvidersTab = RulesProvidersTab.Rules) : Route
 
-    @Serializable
     data object About : Route
 
-    @Serializable
     data object OpenSourceLicenses : Route
 
-    @Serializable
     data object Override : Route
 
-    @Serializable
-    data object OverrideConfigPreview : Route
+    /**
+     * The config editor, showing the handoff [previewId] from the stack's config-preview slot.
+     *
+     * The id is what makes two consecutive openings two different routes: as a singleton route the
+     * second opening was indistinguishable from the first and could be dropped, leaving the editor
+     * unopenable until its page was left and re-entered.
+     */
+    data class OverrideConfigPreview(val previewId: Long) : Route
 
     /** "编辑配置" page for one profile: profile fields and config-file facts. */
-    @Serializable
     data class ProfileEdit(val profileId: String) : Route
 
     /** "覆写" page for one profile: custom routing and override selection. */
-    @Serializable
     data class ProfileOverride(val profileId: String) : Route
 
-    @Serializable
-    data object Providers : Route
-
-    @Serializable
     data object Feature : Route
 
-    @Serializable
     data object Extensions : Route
 
-    @Serializable
     data object BackupRestore : Route
 
-    @Serializable
     data object CustomRouting : Route
-
-    @Serializable
-    data object StringListEditor : Route
-
-    @Serializable
-    data object KeyValueEditor : Route
 }

@@ -22,12 +22,13 @@
 
 package com.github.yumeyucca.yumebox.feature.meta.presentation.component
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,13 +38,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumeyucca.yumebox.common.util.formatBytes
+import com.github.yumeyucca.yumebox.common.util.ByteFormatter
 import com.github.yumeyucca.yumebox.core.model.ConnectionInfo
+import com.github.yumeyucca.yumebox.feature.meta.presentation.util.displayTarget
+import com.github.yumeyucca.yumebox.feature.meta.presentation.util.hostPort
+import com.github.yumeyucca.yumebox.feature.meta.presentation.util.networkName
+import com.github.yumeyucca.yumebox.feature.meta.presentation.util.stringOrEmpty
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.component.Title
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import java.time.DateTimeException
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
@@ -52,6 +58,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private const val CONNECTION_LEADING_ICON_BITMAP_SIZE = 96
+private const val EmptyDurationText = "00:00:00"
 
 /**
  * Full-page connection detail body. Mirrors the settings-style label/value rows (screenshot
@@ -97,16 +104,16 @@ fun ConnectionDetailContent(
             }
             DetailValueRow(
                 title = YumeTxt.Connection.Detail.Label.Duration,
-                value = state.duration,
+                value = rememberElapsedDuration(connectionInfo.start),
             )
             DetailValueRow(
                 title = YumeTxt.Connection.Detail.Label.Upload,
-                value = formatBytes(connectionInfo.upload),
+                value = ByteFormatter.format(connectionInfo.upload),
                 valueColor = AppTheme.colors.protocol.tcp,
             )
             DetailValueRow(
                 title = YumeTxt.Connection.Detail.Label.Download,
-                value = formatBytes(connectionInfo.download),
+                value = ByteFormatter.format(connectionInfo.download),
                 valueColor = AppTheme.colors.protocol.udp,
             )
         }
@@ -314,42 +321,45 @@ internal data class ConnectionDetailState(
     val process: String,
     val sourceAddress: String,
     val destinationAddress: String,
-    val duration: String,
 )
 
 internal fun ConnectionInfo.toDetailState(): ConnectionDetailState {
-    val host = metadata.stringOrEmpty("host")
-    val network = metadata.stringOrEmpty("network").ifEmpty { "TCP" }
     val process = metadata.stringOrEmpty("process")
     val destinationPort = metadata.stringOrEmpty("destinationPort")
     val sourceIP = metadata.stringOrEmpty("sourceIP")
     val sourcePort = metadata.stringOrEmpty("sourcePort")
     val destinationIP = metadata.stringOrEmpty("destinationIP")
 
-    val displayHost =
-        when {
-            host.isNotEmpty() && destinationPort.isNotEmpty() -> "$host:$destinationPort"
-            host.isNotEmpty() -> host
-            sourceIP.isNotEmpty() -> "$sourceIP:$sourcePort"
-            else -> ""
-        }
-
     return ConnectionDetailState(
         metadata = metadata,
-        displayHost = displayHost,
-        network = network,
+        displayHost = displayTarget(),
+        network = networkName(),
         process = process,
-        sourceAddress = "$sourceIP:$sourcePort",
-        destinationAddress =
-            destinationIP.takeIf(String::isNotEmpty)?.let { "$it:$destinationPort" }.orEmpty(),
-        duration = start.takeIf(String::isNotEmpty)?.let(::calculateDuration) ?: "00:00:00",
+        sourceAddress = hostPort(sourceIP, sourcePort),
+        destinationAddress = hostPort(destinationIP, destinationPort),
     )
 }
 
-private fun calculateDuration(start: String): String {
-    if (start.isEmpty()) return "00:00:00"
+/**
+ * Elapsed time of a live connection, recomputed on every second so the row is not frozen at the
+ * moment the detail page opened.
+ */
+@Composable
+private fun rememberElapsedDuration(start: String): String {
+    val ticks = remember(start) { mutableIntStateOf(0) }
+    LaunchedEffect(start) {
+        while (true) {
+            delay(1_000L)
+            ticks.intValue += 1
+        }
+    }
+    return remember(start, ticks.intValue) {
+        if (start.isEmpty()) EmptyDurationText else calculateDuration(start)
+    }
+}
 
-    return try {
+private fun calculateDuration(start: String): String =
+    try {
         val startTime = java.time.OffsetDateTime.parse(start).toInstant()
         val now = java.time.Instant.now()
         val duration = java.time.Duration.between(startTime, now)
@@ -359,10 +369,6 @@ private fun calculateDuration(start: String): String {
         val seconds = duration.seconds % 60
 
         "%02d:%02d:%02d".format(hours, minutes, seconds)
-    } catch (_: java.time.DateTimeException) {
+    } catch (_: DateTimeException) {
         "00:00:00"
     }
-}
-
-private fun JsonObject.stringOrEmpty(key: String): String =
-    get(key)?.jsonPrimitive?.content.orEmpty()

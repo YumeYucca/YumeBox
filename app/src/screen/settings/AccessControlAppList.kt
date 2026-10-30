@@ -25,21 +25,15 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.core.graphics.drawable.toBitmap
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
+import com.github.yumeyucca.yumebox.presentation.component.rememberAppIconBitmap
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme.spacing
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Text
@@ -57,12 +51,6 @@ internal fun LazyListScope.accessControlAppItems(
             onSelectionChange = { checked ->
                 viewModel.onAppSelectionChange(app.packageName, checked)
             },
-            onClick = {
-                viewModel.onAppSelectionChange(
-                    app.packageName,
-                    app.packageName !in uiState.selectedPackages,
-                )
-            },
         )
     }
 }
@@ -72,7 +60,6 @@ private fun AccessControlAppCard(
     app: AccessControlViewModel.AppInfo,
     selected: Boolean,
     onSelectionChange: (Boolean) -> Unit,
-    onClick: () -> Unit,
 ) {
     val spacing = spacing
     val componentSizes = AppTheme.sizes
@@ -95,7 +82,7 @@ private fun AccessControlAppCard(
                     onClick = { onSelectionChange(!selected) },
                 )
             },
-            onClick = onClick,
+            onClick = { onSelectionChange(!selected) },
         ) {
             Text(
                 text = app.label,
@@ -124,22 +111,7 @@ private fun AccessControlAppIcon(
     bitmapSize: Int,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    val iconBitmap by
-    produceState<ImageBitmap?>(initialValue = null, key1 = packageName, key2 = bitmapSize) {
-        value =
-            withContext(Dispatchers.IO) {
-                runCatching {
-                    context.packageManager
-                        .getApplicationIcon(packageName)
-                        .toBitmap(width = bitmapSize, height = bitmapSize)
-                        .asImageBitmap()
-                }
-                    .getOrNull()
-            }
-    }
-
-    val bitmap = iconBitmap ?: return
+    val bitmap = rememberAppIconBitmap(packageName, bitmapSize) ?: return
     Image(
         bitmap = bitmap,
         contentDescription = contentDescription,

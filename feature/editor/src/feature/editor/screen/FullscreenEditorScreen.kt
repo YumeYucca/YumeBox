@@ -22,28 +22,23 @@
 
 package com.github.yumeyucca.yumebox.feature.editor.screen
 
-
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.common.util.toast
-import com.github.yumeyucca.yumebox.feature.editor.editor.CodeEditor
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.feature.editor.component.EditorExitGuard
+import com.github.yumeyucca.yumebox.feature.editor.component.EditorSurface
 import com.github.yumeyucca.yumebox.feature.editor.editor.rememberConfiguredCodeEditorState
-import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
-import com.github.yumeyucca.yumebox.presentation.component.AppDialog
-import com.github.yumeyucca.yumebox.presentation.component.DialogButtonRow
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
+import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Atom
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Save
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -57,25 +52,18 @@ fun FullscreenEditorScreen(
     onSave: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
-    val showDiscardDialog = remember { mutableStateOf(false) }
 
     val editorState =
         rememberConfiguredCodeEditorState(
             initialContent = initialContent,
             language = language,
-            readOnly = false,
         )
     val scrollBehavior = MiuixScrollBehavior()
 
-    fun handleBack() {
-        if (editorState.isModified) {
-            showDiscardDialog.value = true
-        } else {
-            navigator.navigateUp()
-        }
-    }
-
-    BackHandler { handleBack() }
+    EditorExitGuard(
+        hasUnsavedChanges = editorState.isModified,
+        onNavigateUp = navigator::navigateUp,
+    )
 
     GlassScaffold(
         topBar = {
@@ -115,36 +103,11 @@ fun FullscreenEditorScreen(
             )
         }
     ) { paddingValues ->
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .consumeWindowInsets(paddingValues)
-                    .imePadding()
-        ) {
-            CodeEditor(
-                state = editorState,
-                modifier = Modifier.fillMaxSize(),
-                onTextChange = { newContent -> editorState.syncContentFromEditor() },
-            )
-        }
-    }
-
-    AppDialog(
-        show = showDiscardDialog.value,
-        title = YumeTxt.Editor.Discard.Title,
-        summary = YumeTxt.Editor.Discard.Summary,
-        onDismissRequest = { showDiscardDialog.value = false },
-    ) {
-        DialogButtonRow(
-            onCancel = { showDiscardDialog.value = false },
-            onConfirm = {
-                showDiscardDialog.value = false
-                navigator.navigateUp()
-            },
-            cancelText = YumeTxt.Component.Button.Cancel,
-            confirmText = YumeTxt.Editor.Discard.Confirm,
+        EditorSurface(
+            state = editorState,
+            onTextChange = { editorState.syncContentFromEditor() },
+            paddingValues = paddingValues,
         )
     }
+
 }

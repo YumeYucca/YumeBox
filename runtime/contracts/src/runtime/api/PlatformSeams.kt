@@ -39,7 +39,7 @@ data class RuntimeState(
     val generation: Long = 0L,
 ) {
     val active: Boolean
-        get() = phase == RuntimePhase.Starting || phase == RuntimePhase.Running
+        get() = phase.active
 }
 
 enum class RuntimeStartSource {

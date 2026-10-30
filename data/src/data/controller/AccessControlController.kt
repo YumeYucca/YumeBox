@@ -24,6 +24,10 @@ import com.github.yumeyucca.yumebox.core.model.RunMode
 import com.github.yumeyucca.yumebox.data.model.AccessControlMode
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import kotlinx.coroutines.CancellationException
+import timber.log.Timber
+
+/** Merges a burst of package/mode edits into a single proxy restart. */
+private const val AccessControlApplyDebounceMillis = 350L
 
 class AccessControlController(
     private val store: NetworkSettingsStore,
@@ -35,7 +39,7 @@ class AccessControlController(
     private val restarter =
         DebouncedProxyRestarter(
             timerName = "access_control_apply_packages",
-            debounceMillis = 350L,
+            debounceMillis = AccessControlApplyDebounceMillis,
             isRunning = isRunning,
         )
 
@@ -51,21 +55,21 @@ class AccessControlController(
         scheduleApply()
     }
 
-    @Suppress("TooGenericExceptionCaught")
     private fun scheduleApply() {
         restarter.schedule {
             val targetMode = resolveActiveMode() ?: store.runMode.value
+            // Accept-all has no uid list to hand over, so nothing is applied here: the running
+            // session keeps the spec it was started with until it is restarted.
             if (store.accessControlMode.value == AccessControlMode.ALLOW_ALL) return@schedule
 
             try {
                 beforeRestart(targetMode)
                 restartProxy(targetMode)
-            } catch (
-                error:
-                Exception
-            ) { // best-effort restart: any failure keeps the current session
-                // running
-                if (error is CancellationException) throw error
+            } catch (error: CancellationException) {
+                throw error
+            } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+                // Best-effort restart: a failed apply keeps the current session running.
+                Timber.e(error, "Access control change could not be applied")
             }
         }
     }

@@ -22,11 +22,10 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.horizontalPadding
 import top.yukonga.miuix.kmp.basic.CardColors
@@ -37,19 +36,21 @@ import top.yukonga.miuix.kmp.basic.Card as MiuixCard
 @Composable
 fun AppCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Int = 24,
+    cornerRadius: Dp = UiDp.dp24,
     insideMargin: PaddingValues = PaddingValues(UiDp.dp0),
     applyHorizontalPadding: Boolean = true,
-    colors: CardColors = CardDefaults.defaultColors(),
     onClick: (() -> Unit)? = null,
+    colors: CardColors = CardDefaults.defaultColors(),
     pressFeedbackType: PressFeedbackType = PressFeedbackType.None,
     content: @Composable () -> Unit,
 ) {
     val resolvedModifier = if (applyHorizontalPadding) modifier.horizontalPadding() else modifier
+    // Miuix ships two Card overloads (inert and pressable). Calling the pressable one without
+    // onClick would be ambiguous at the call site, so the branch stays.
     if (onClick == null) {
         MiuixCard(
             modifier = resolvedModifier,
-            cornerRadius = cornerRadius.dp,
+            cornerRadius = cornerRadius,
             insideMargin = insideMargin,
             colors = colors,
             content = { content() },
@@ -57,10 +58,10 @@ fun AppCard(
     } else {
         MiuixCard(
             modifier = resolvedModifier,
-            cornerRadius = cornerRadius.dp,
+            cornerRadius = cornerRadius,
             insideMargin = insideMargin,
-            colors = colors,
             onClick = onClick,
+            colors = colors,
             pressFeedbackType = pressFeedbackType,
             content = { content() },
         )

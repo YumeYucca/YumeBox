@@ -24,7 +24,9 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -43,7 +45,13 @@ class BackupRestoreViewModel(
     private val _uiState = MutableStateFlow(BackupRestoreUiState())
     val uiState: StateFlow<BackupRestoreUiState> = _uiState.asStateFlow()
 
-    private val _events = MutableSharedFlow<BackupRestoreEvent>()
+    // Buffered, so an event raised while the screen is not collecting (the user left the page
+    // mid-restore) parks here instead of suspending the operation that raised it.
+    private val _events =
+        MutableSharedFlow<BackupRestoreEvent>(
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
     val events: SharedFlow<BackupRestoreEvent> = _events.asSharedFlow()
 
     fun defaultBackupFileName(): String = repository.defaultBackupFileName()
@@ -66,19 +74,27 @@ class BackupRestoreViewModel(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught")
     private fun launchBusy(block: suspend () -> Unit) {
         if (_uiState.value.isBusy) return
         viewModelScope.launch {
             _uiState.update { it.copy(isBusy = true) }
-            runCatching { withContext(Dispatchers.IO) { block() } }
-                .onFailure { error ->
-                    emitMessage(
-                        YumeTxt.Feature.BackupRestore.Error.OperationFailed.format(
-                            error.message ?: YumeTxt.Util.Error.UnknownError
-                        )
+            try {
+                withContext(Dispatchers.IO) { block() }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (
+                error: Exception
+            ) { // fault barrier: a failed operation becomes a message, never a crash
+                emitMessage(
+                    YumeTxt.Feature.BackupRestore.Error.OperationFailed.format(
+                        error.message ?: YumeTxt.Util.Error.UnknownError
                     )
-                }
-            _uiState.update { it.copy(isBusy = false) }
+                )
+            } finally {
+                // Also on cancellation, so a cancelled operation cannot leave the screen busy.
+                _uiState.update { it.copy(isBusy = false) }
+            }
         }
     }
 

@@ -23,6 +23,7 @@
 package com.github.yumeyucca.yumebox.data.store
 
 
+import com.github.yumeyucca.yumebox.core.util.LenientJson
 import com.github.yumeyucca.yumebox.core.util.enumByNameOrNull
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -111,14 +112,6 @@ import kotlin.reflect.KProperty
  *
  * ### Simple (non-reactive):
  * - `bool(default)` → Boolean
- * - `str(default)` → String
- * - `int(default)` → Int
- * - `long(default)` → Long
- * - `float(default)` → Float
- * - `double(default)` → Double
- * - `enum<T>(default)` → T (where T : Enum<T>)
- * - `byteArray(default)` → ByteArray
- * - `stringSet(default)` → Set<String>
  *
  * ### Reactive (StateFlow):
  * - `boolFlow(default)` → Preference<Boolean>
@@ -126,7 +119,6 @@ import kotlin.reflect.KProperty
  * - `intFlow(default)` → Preference<Int>
  * - `longFlow(default)` → Preference<Long>
  * - `floatFlow(default)` → Preference<Float>
- * - `doubleFlow(default)` → Preference<Double>
  * - `enumFlow<T>(default)` → Preference<T>
  * - `stringSetFlow(default)` → Preference<Set<String>>
  * - `stringListFlow(default)` → Preference<List<String>>
@@ -170,92 +162,7 @@ abstract class MMKVPreference(
             setter = { key, value -> mmkv.encode(key, value) },
         )
 
-    protected fun str(default: String = "") =
-        MMKVProperty(
-            default = default,
-            getter = { key, def -> mmkv.decodeString(key) ?: def },
-            setter = { key, value -> mmkv.encode(key, value) },
-        )
-
-    protected fun int(default: Int = 0) =
-        MMKVProperty(
-            default = default,
-            getter = { key, def -> mmkv.decodeInt(key, def) },
-            setter = { key, value -> mmkv.encode(key, value) },
-        )
-
-    protected fun long(default: Long = 0L) =
-        MMKVProperty(
-            default = default,
-            getter = { key, def -> mmkv.decodeLong(key, def) },
-            setter = { key, value -> mmkv.encode(key, value) },
-        )
-
-    protected fun float(default: Float = 0f) =
-        MMKVProperty(
-            default = default,
-            getter = { key, def -> mmkv.decodeFloat(key, def) },
-            setter = { key, value -> mmkv.encode(key, value) },
-        )
-
-    protected fun double(default: Double = 0.0) =
-        MMKVProperty(
-            default = default,
-            getter = { key, def -> mmkv.decodeDouble(key, def) },
-            setter = { key, value -> mmkv.encode(key, value) },
-        )
-
-    protected inline fun <reified T : Enum<T>> enum(default: T) =
-        MMKVProperty(
-            default = default,
-            getter = { key, def -> enumByNameOrNull<T>(mmkv.decodeString(key)) ?: def },
-            setter = { key, value -> mmkv.encode(key, value.name) },
-        )
-
-    protected fun byteArray(default: ByteArray = ByteArray(0)) =
-        MMKVProperty(
-            default = default,
-            getter = { key, def -> mmkv.decodeBytes(key) ?: def },
-            setter = { key, value -> mmkv.encode(key, value) },
-        )
-
-    protected fun stringSet(default: Set<String> = emptySet()) =
-        MMKVProperty(
-            default = default,
-            getter = { key, def -> mmkv.decodeStringSet(key) ?: def },
-            setter = { key, value -> mmkv.encode(key, value) },
-            skipEqualityCheck = true,
-        )
-
-    protected fun stringList(default: List<String> = emptyList()) =
-        jsonList(
-            default = default,
-            decode = { str -> decodeFromString<List<String>>(str) },
-            encode = { value -> encodeToString(value) },
-        )
-
-    protected fun intList(default: List<Int> = emptyList()) =
-        jsonList(
-            default = default,
-            decode = { str -> decodeFromString<List<Int>>(str) },
-            encode = { value -> encodeToString(value) },
-        )
-
-    private val json = Json { ignoreUnknownKeys = true }
-
-    protected fun <T> jsonList(
-        default: List<T> = emptyList(),
-        decode: Json.(String) -> List<T>,
-        encode: Json.(List<T>) -> String,
-    ) =
-        MMKVProperty(
-            default = default,
-            getter = { key, def ->
-                runCatching { mmkv.decodeString(key)?.let { json.decode(it) } ?: def }
-                    .getOrDefault(def)
-            },
-            setter = { key, value -> mmkv.encode(key, json.encode(value)) },
-        )
+    private val json = LenientJson
 
     protected fun boolFlow(default: Boolean = false) =
         MMKVFlowProperty(
@@ -289,13 +196,6 @@ abstract class MMKVPreference(
         MMKVFlowProperty(
             default = default,
             getter = { key, def -> mmkv.decodeFloat(key, def) },
-            setter = { key, value -> mmkv.encode(key, value) },
-        )
-
-    protected fun doubleFlow(default: Double = 0.0) =
-        MMKVFlowProperty(
-            default = default,
-            getter = { key, def -> mmkv.decodeDouble(key, def) },
             setter = { key, value -> mmkv.encode(key, value) },
         )
 
@@ -409,11 +309,3 @@ data class Preference<T>(
     fun invalidate() = refresh()
 }
 
-fun Preference<Boolean>.toggle() = set(!value)
-
-fun <T> Preference<List<T>>.add(item: T) = set(value + item)
-
-fun <T> Preference<List<T>>.remove(predicate: (T) -> Boolean) = set(value.filterNot(predicate))
-
-fun <T> Preference<List<T>>.update(predicate: (T) -> Boolean, transform: (T) -> T) =
-    set(value.map { if (predicate(it)) transform(it) else it })

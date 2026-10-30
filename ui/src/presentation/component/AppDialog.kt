@@ -22,30 +22,9 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.DpSize
-import top.yukonga.miuix.kmp.layout.DialogDefaults
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
-
-object AppDialogDefaults {
-    @Composable
-    fun titleColor(): Color = DialogDefaults.titleColor()
-
-    @Composable
-    fun summaryColor(): Color = DialogDefaults.summaryColor()
-
-    @Composable
-    fun backgroundColor(): Color = DialogDefaults.backgroundColor()
-
-    val outsideMargin: DpSize
-        get() = DialogDefaults.outsideMargin
-
-    val insideMargin: DpSize
-        get() = DialogDefaults.insideMargin
-}
 
 @Composable
 fun AppDialog(
@@ -53,33 +32,19 @@ fun AppDialog(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     title: String = "",
-    titleColor: Color = AppDialogDefaults.titleColor(),
     summary: String? = null,
-    summaryColor: Color = AppDialogDefaults.summaryColor(),
-    backgroundColor: Color = AppDialogDefaults.backgroundColor(),
-    enableWindowDim: Boolean = true,
     onDismissFinished: (() -> Unit)? = null,
-    outsideMargin: DpSize = AppDialogDefaults.outsideMargin,
-    insideMargin: DpSize = AppDialogDefaults.insideMargin,
-    defaultWindowInsetsPadding: Boolean = true,
-    renderInRootScaffold: Boolean = true,
     content: @Composable () -> Unit,
 ) {
+    // Colours, margins and dimming stay at the library defaults here: a dialog that needs to look
+    // different is a different component, not this function with six more arguments.
     OverlayDialog(
         show = show,
         modifier = modifier,
         title = title,
-        titleColor = titleColor,
         summary = summary,
-        summaryColor = summaryColor,
-        backgroundColor = backgroundColor,
-        enableWindowDim = enableWindowDim,
         onDismissRequest = onDismissRequest,
         onDismissFinished = onDismissFinished,
-        outsideMargin = outsideMargin,
-        insideMargin = insideMargin,
-        defaultWindowInsetsPadding = defaultWindowInsetsPadding,
-        renderInRootScaffold = renderInRootScaffold,
         content = content,
     )
 }

@@ -33,7 +33,7 @@ class CaseEngine(
     backendPort: Int,
     frontendPort: Int,
     allowLan: Boolean,
-    private val onTerminated: () -> Unit = {},
+    private val onTerminated: (CaseEngine) -> Unit = {},
 ) : Closeable {
     val host = if (allowLan) "0.0.0.0" else "127.0.0.1"
 
@@ -125,7 +125,7 @@ class CaseEngine(
                     Timber.e(error, "CaseEngine run failed")
                 } finally {
                     cleanup()
-                    runCatching(onTerminated)
+                    runCatching { onTerminated(this@CaseEngine) }
                         .onFailure { Timber.e(it, "CaseEngine termination callback failed") }
                 }
             }

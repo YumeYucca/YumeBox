@@ -25,13 +25,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Color
 import com.github.yumeyucca.yumebox.common.util.AppLanguageManager
-import com.github.yumeyucca.yumebox.presentation.theme.ProvideAndroidPlatformTheme
-import com.github.yumeyucca.yumebox.presentation.theme.YumeTheme
-import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
-import org.koin.androidx.compose.koinViewModel
+import com.github.yumeyucca.yumebox.presentation.component.YumeAppShell
 import top.yukonga.miuix.kmp.basic.Scaffold
 
 class ProxySheetActivity : ComponentActivity() {
@@ -45,33 +41,21 @@ class ProxySheetActivity : ComponentActivity() {
         @Suppress("DEPRECATION") overridePendingTransition(0, 0)
 
         setContent {
-            val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
-            val themeMode = appSettingsViewModel.themeMode.state.collectAsState().value
-            val themeSeedColorArgb =
-                appSettingsViewModel.themeSeedColorArgb.state.collectAsState().value
-            val invertOnPrimaryColors =
-                appSettingsViewModel.invertOnPrimaryColors.state.collectAsState().value
-            ProvideAndroidPlatformTheme {
-                YumeTheme(
-                    themeMode = themeMode,
-                    themeSeedColorArgb = themeSeedColorArgb,
-                    invertOnPrimaryColors = invertOnPrimaryColors,
-                ) {
-                    // GlassBottomSheet hosts itself in a Scaffold's dialog host, and this activity
-                    // had none — the sheet composited nothing. A fully transparent, inset-less
-                    // Scaffold gives it (and the sheet's popups) their host without painting
-                    // anything over the activity's transparent window.
-                    Scaffold(
-                        containerColor = Color.Transparent,
-                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                    ) { _ ->
-                        ProxySheetContent(
-                            onDismiss = {
-                                finish()
-                                @Suppress("DEPRECATION") overridePendingTransition(0, 0)
-                            }
-                        )
-                    }
+            YumeAppShell {
+                // GlassBottomSheet hosts itself in a Scaffold's dialog host, and this activity
+                // had none — the sheet composited nothing. A fully transparent, inset-less
+                // Scaffold gives it (and the sheet's popups) their host without painting
+                // anything over the activity's transparent window.
+                Scaffold(
+                    containerColor = Color.Transparent,
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                ) { _ ->
+                    ProxySheetContent(
+                        onDismiss = {
+                            finish()
+                            @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+                        }
+                    )
                 }
             }
         }

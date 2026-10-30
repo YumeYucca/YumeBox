@@ -20,14 +20,13 @@
 
 package com.github.yumeyucca.yumebox.runtime.service.notification
 
-import com.github.yumeyucca.yumebox.common.util.formatBytes
-import com.github.yumeyucca.yumebox.common.util.formatSpeed
+import com.github.yumeyucca.yumebox.common.util.ByteFormatter
+import com.github.yumeyucca.yumebox.common.util.formatEpochDate
 import com.github.yumeyucca.yumebox.data.model.NotificationDisplaySettings
 import com.github.yumeyucca.yumebox.data.model.NotificationLineValues
 import com.github.yumeyucca.yumebox.data.model.resolve
+import com.github.yumeyucca.yumebox.domain.model.TrafficData
 import com.github.yumeyucca.yumebox.runtime.service.profile.Imported
-import java.time.Instant
-import java.time.ZoneId
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 /** What the ongoing notification renders. */
@@ -72,13 +71,13 @@ internal object NotificationPresentationFactory {
                 profileName = profileName,
                 currentNode = node,
                 liveTraffic = speedLine,
-                usedTraffic = formatBytes(used),
+                usedTraffic = ByteFormatter.format(used),
                 sessionTraffic = buildSessionTrafficLine(trafficTotal),
-                totalTraffic = if (total > 0L) formatBytes(total) else "—",
+                totalTraffic = if (total > 0L) ByteFormatter.format(total) else "—",
                 remainingTraffic =
-                    if (total > 0L) formatBytes((total - used).coerceAtLeast(0L)) else "—",
-                subscriptionUsage = buildUsageLine(profile),
-                expiryDate = expire?.let(::expireDate) ?: "—",
+                    if (total > 0L) ByteFormatter.format((total - used).coerceAtLeast(0L)) else "—",
+                subscriptionUsage = buildUsageLine(used, total, expire),
+                expiryDate = expire?.let(::formatEpochDate) ?: "—",
                 status = YumeTxt.Service.Notification.Running,
             )
         val title =
@@ -111,56 +110,37 @@ internal object NotificationPresentationFactory {
     /**
      * Values only, no labels, so the island can render it: `1.2 GB / 100 GB | 2026-08-31`.
      */
-    private fun buildUsageLine(profile: Imported?): String {
-        val used = profile?.let { (it.upload + it.download).coerceAtLeast(0L) } ?: 0L
-        val total = profile?.total ?: 0L
+    private fun buildUsageLine(used: Long, total: Long, expire: Long?): String {
         val usage =
             when {
-                total > 0L -> "${formatBytes(used)} / ${formatBytes(total)}"
-                used > 0L -> formatBytes(used)
+                total > 0L -> "${ByteFormatter.format(used)} / ${ByteFormatter.format(total)}"
+                used > 0L -> ByteFormatter.format(used)
                 else -> ""
             }
-        val expire = profile?.expire?.takeIf { it > 0L }?.let { expireDate(it) }
-        return listOfNotNull(usage.takeIf { it.isNotEmpty() }, expire)
+        val expiry = expire?.let(::formatEpochDate)
+        return listOfNotNull(usage.takeIf { it.isNotEmpty() }, expiry)
             .joinToString(" | ")
             .ifBlank { "—" }
     }
 
-    private fun expireDate(expireAt: Long): String =
-        Instant.ofEpochMilli(expireAt).atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
     private fun buildCompactTrafficLine(trafficNow: Long): String {
-        val upNow = decodeTrafficHalf(trafficNow ushr 32)
-        val downNow = decodeTrafficHalf(trafficNow and 0xFFFFFFFFL)
-        return formatSpeed((upNow + downNow).coerceAtLeast(0L))
+        val traffic = TrafficData.from(trafficNow)
+        return ByteFormatter.formatSpeed((traffic.upload + traffic.download).coerceAtLeast(0L))
     }
 
     private fun buildSpeedLine(trafficNow: Long): String {
-        val upNow = decodeTrafficHalf(trafficNow ushr 32)
-        val downNow = decodeTrafficHalf(trafficNow and 0xFFFFFFFFL)
+        val traffic = TrafficData.from(trafficNow)
         return YumeTxt.Service.Notification.SpeedLine.format(
-            formatSpeed(downNow),
-            formatSpeed(upNow),
+            ByteFormatter.formatSpeed(traffic.download),
+            ByteFormatter.formatSpeed(traffic.upload),
         )
     }
 
     private fun buildSessionTrafficLine(trafficTotal: Long): String {
-        val upTotal = decodeTrafficHalf(trafficTotal ushr 32)
-        val downTotal = decodeTrafficHalf(trafficTotal and 0xFFFFFFFFL)
+        val traffic = TrafficData.from(trafficTotal)
         return YumeTxt.Service.Notification.TotalTraffic.format(
-            formatBytes((upTotal + downTotal).coerceAtLeast(0L)),
+            ByteFormatter.format((traffic.upload + traffic.download).coerceAtLeast(0L)),
         )
-    }
-
-    private fun decodeTrafficHalf(encoded: Long): Long {
-        val type = (encoded ushr 30) and 0x3L
-        val payload = encoded and 0x3FFFFFFFL
-        return when (type.toInt()) {
-            0 -> payload
-            1 -> (payload * 1024L) / 100L
-            2 -> (payload * 1024L * 1024L) / 100L
-            3 -> (payload * 1024L * 1024L * 1024L) / 100L
-            else -> 0L
-        }
     }
 }

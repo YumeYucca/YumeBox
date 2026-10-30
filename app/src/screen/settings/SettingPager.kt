@@ -22,77 +22,48 @@
 
 package com.github.yumeyucca.yumebox.screen.settings
 
-
-import android.annotation.SuppressLint
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.BuildInfo
-import com.github.yumeyucca.yumebox.WebViewActivity
-import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.*
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.viewmodel.SettingEvent
-import com.github.yumeyucca.yumebox.presentation.viewmodel.SettingViewModel
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.Archive
 import io.github.yumeyucca.lucide.lucide.Feather
 import io.github.yumeyucca.lucide.lucide.FileBracesCorner
 import io.github.yumeyucca.lucide.lucide.ShieldCheck
 import io.github.yumeyucca.lucide.lucide.WifiPen
-import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-@SuppressLint("LocalContextResourcesRead")
+/** Gutter of every master-list section; the last section drops the bottom gap. */
+private val SettingsSectionModifier =
+    Modifier.padding(
+        start = UiDp.dp16,
+        end = UiDp.dp16,
+        bottom = UiDp.dp13,
+    )
+private val SettingsSectionModifierFlush = Modifier.padding(start = UiDp.dp16, end = UiDp.dp16)
+
 @Composable
-fun SettingPager(
-    mainInnerPadding: PaddingValues,
-    @Suppress("UNUSED_PARAMETER") windowLayoutMode: WindowLayoutMode = WindowLayoutMode.Compact,
-) {
-    val viewModel = koinViewModel<SettingViewModel>()
+fun SettingPager() {
     val scrollBehavior = MiuixScrollBehavior()
     val rootNavigator = LocalNavigator.current
     val detailNavigator = LocalDetailNavigator.current
-    val context = LocalContext.current
     val versionInfo = "v${BuildInfo.BASE_VERSION}"
 
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is SettingEvent.OpenWebView -> {
-                    runCatching { WebViewActivity.start(context, event.url) }
-                        .getOrElse { throwable ->
-                            context.toast(
-                                YumeTxt.Settings.Error.WebviewFailed.format(throwable.message)
-                            )
-                        }
-                }
-            }
-        }
-    }
-
-    // Phone: push on root navigator. Tablet shell: replace right pane.
     // No persistent selected highlight on the list — opens should not leave a tint.
-    val openRoot: (Route) -> Unit = { route ->
-        if (detailNavigator != null) {
-            detailNavigator.replaceAll(listOf(route))
-        } else {
-            rootNavigator.push(route)
-        }
-    }
+    val openRoot: (Route) -> Unit = { route -> rootNavigator.openRoute(route, detailNavigator) }
 
     SettingsMasterList(
-        mainInnerPadding = mainInnerPadding,
         scrollBehavior = scrollBehavior,
         versionInfo = versionInfo,
         onOpen = openRoot,
@@ -101,27 +72,21 @@ fun SettingPager(
 
 @Composable
 private fun SettingsMasterList(
-    mainInnerPadding: PaddingValues,
-    scrollBehavior: top.yukonga.miuix.kmp.basic.ScrollBehavior,
+    scrollBehavior: ScrollBehavior,
     versionInfo: String,
     onOpen: (Route) -> Unit,
 ) {
     Scaffold(
         topBar = { SmallTopBar(title = YumeTxt.Settings.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
-        ScreenLazyColumn(
+        StandalonePageList(
             scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
+            scaffoldPadding = innerPadding,
         ) {
             item {
                 Title(YumeTxt.Settings.Section.UiSettings, topPadding = UiDp.dp0)
                 SettingsSegmentedColumn(
-                    modifier =
-                        Modifier.padding(
-                            start = UiDp.dp16,
-                            end = UiDp.dp16,
-                            bottom = UiDp.dp13,
-                        ),
+                    modifier = SettingsSectionModifier,
                     content =
                         listOf(
                             {
@@ -151,12 +116,7 @@ private fun SettingsMasterList(
             item {
                 Title(YumeTxt.Settings.Section.Extensions)
                 SettingsSegmentedColumn(
-                    modifier =
-                        Modifier.padding(
-                            start = UiDp.dp16,
-                            end = UiDp.dp16,
-                            bottom = UiDp.dp13,
-                        ),
+                    modifier = SettingsSectionModifier,
                     content =
                         listOf(
                             {
@@ -186,12 +146,7 @@ private fun SettingsMasterList(
             item {
                 Title(YumeTxt.Settings.Section.More)
                 SettingsSegmentedColumn(
-                    modifier =
-                        Modifier.padding(
-                            start = UiDp.dp16,
-                            end = UiDp.dp16,
-                            bottom = UiDp.dp13,
-                        ),
+                    modifier = SettingsSectionModifier,
                     content =
                         listOf(
                             {
@@ -214,7 +169,7 @@ private fun SettingsMasterList(
             item {
                 Title(YumeTxt.Settings.Section.About)
                 SettingsSegmentedColumn(
-                    modifier = Modifier.padding(start = UiDp.dp16, end = UiDp.dp16),
+                    modifier = SettingsSectionModifierFlush,
                     content =
                         listOf {
                             SettingsListItem(

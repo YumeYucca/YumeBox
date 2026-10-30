@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,12 +30,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun AppFormDialog(
@@ -54,65 +49,34 @@ fun AppFormDialog(
     onDismissFinished: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    fun hideInput() {
-        focusManager.clearFocus(force = true)
-        keyboardController?.hide()
-    }
-
-    AppDialog(
+    AppInputDialog(
         show = show,
-        modifier = modifier,
         title = title,
+        onDismissRequest = onDismissRequest,
+        onConfirm = onConfirm,
+        modifier = modifier,
         summary = summary,
-        onDismissRequest = {
-            hideInput()
-            onDismissRequest()
-        },
+        error = error,
+        confirmEnabled = confirmEnabled,
+        cancelText = cancelText,
+        confirmText = confirmText,
         onDismissFinished = onDismissFinished,
     ) {
-        val contentModifier =
-            Modifier.fillMaxWidth().let {
-                if (scrollable) {
-                    it
-                        .heightIn(max = UiDp.dp420)
-                        .verticalScroll(rememberScrollState())
-                } else {
-                    it
-                }
-            }
-
-        AppDialogColumn {
-            Column(
-                modifier = contentModifier,
-                verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
-            ) {
-                content()
-            }
-            error
-                ?.takeIf { it.isNotBlank() }
-                ?.let { message ->
-                    Text(
-                        text = message,
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.error,
-                    )
-                }
-            DialogButtonRow(
-                onCancel = {
-                    hideInput()
-                    onDismissRequest()
-                },
-                onConfirm = {
-                    hideInput()
-                    onConfirm()
-                },
-                cancelText = cancelText,
-                confirmText = confirmText,
-                confirmEnabled = confirmEnabled,
-            )
+        // A form can be taller than the screen, so its fields scroll while the button row stays put.
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .let { base ->
+                        if (scrollable) {
+                            base.heightIn(max = UiDp.dp420).verticalScroll(rememberScrollState())
+                        } else {
+                            base
+                        }
+                    },
+            verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
+        ) {
+            content()
         }
     }
 }

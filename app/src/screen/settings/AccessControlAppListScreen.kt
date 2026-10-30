@@ -22,42 +22,30 @@
 
 package com.github.yumeyucca.yumebox.screen.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.data.model.AccessControlSortMode
 import com.github.yumeyucca.yumebox.presentation.component.*
-import com.github.yumeyucca.yumebox.presentation.component.GlassTopActionDefaults
-import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Bolt
-import com.github.yumeyucca.yumebox.presentation.icon.yume.Copy
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ListChevronsUpDown
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import org.koin.androidx.compose.koinViewModel
-import top.yukonga.miuix.kmp.glass.glassPopupAnchor
-import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
-import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.Search
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import com.github.yumeyucca.yumebox.presentation.component.rememberCollapsedTopPadding
 
 @Composable
 fun AccessControlAppListScreen() {
-    val density = LocalDensity.current
     val scrollBehavior = MiuixScrollBehavior()
     val spacing = AppTheme.spacing
     val mainLikePadding = rememberStandalonePageMainPadding()
@@ -68,355 +56,326 @@ fun AccessControlAppListScreen() {
     LaunchedEffect(viewModel) { viewModel.refreshSelection() }
 
     val mainListState = rememberLazyListState()
-    var showActionsMenu by remember { mutableStateOf(false) }
-    val actionsMenuAnchor = rememberGlassPopupAnchor()
-    var showSortMenu by remember { mutableStateOf(false) }
-    val sortMenuAnchor = rememberGlassPopupAnchor()
     val backdrop = LocalTopBarBackdrop.current
-    var searchStatus by remember {
-        mutableStateOf(
-            SearchStatus(
-                label = YumeTxt.AccessControl.Search.Placeholder,
-                searchText = uiState.searchQuery,
-            )
-        )
-    }
-    val dynamicTopPadding by remember {
-        derivedStateOf { spacing.space12 * (1f - scrollBehavior.state.collapsedFraction) }
-    }
+    val search = rememberSearchPagerState()
+    val dynamicTopPadding by rememberCollapsedTopPadding(scrollBehavior)
     val listStartPadding = spacing.screenHorizontal
     val listEndPadding = spacing.screenHorizontal
-    val currentSearchStatus =
-        remember(searchStatus, filteredApps) {
-            searchStatus.copy(
-                resultStatus =
-                    when {
-                        searchStatus.searchText.isBlank() -> SearchStatus.ResultStatus.DEFAULT
-                        filteredApps.isEmpty() -> SearchStatus.ResultStatus.EMPTY
-                        else -> SearchStatus.ResultStatus.SHOW
-                    }
-            )
-        }
-    val permissionLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission(),
-            onResult = { isGranted ->
-                if (isGranted) {
-                    viewModel.onPermissionResult()
-                }
-            },
-        )
 
-    LaunchedEffect(uiState.needsMiuiPermission) {
-        if (uiState.needsMiuiPermission) {
-            permissionLauncher.launch("com.android.permission.GET_INSTALLED_APPS")
-        }
-    }
+    InstalledAppsPermissionRequest(
+        needsPermission = uiState.needsMiuiPermission,
+        onGranted = viewModel::onPermissionResult,
+    )
 
-    LaunchedEffect(searchStatus.searchText) {
-        if (searchStatus.searchText != uiState.searchQuery) {
-            viewModel.onSearchQueryChange(searchStatus.searchText)
-        }
-    }
-
-    LaunchedEffect(uiState.searchQuery) {
-        if (searchStatus.searchText != uiState.searchQuery) {
-            searchStatus = searchStatus.copy(searchText = uiState.searchQuery)
-        }
-    }
-
-    // Jump the main list back to the top whenever the order changes (sort mode, selected-first,
-    // or re-entry refresh of initial selection). LazyColumn keeps the previous viewport anchor
-    // when keyed items reorder, so without this the selected-first rows can be at the top while
-    LaunchedEffect(
-        uiState.sortMode,
-        uiState.selectedFirst,
-        uiState.initialSelectedPackages,
-        uiState.isLoading,
-    ) {
-        if (uiState.isLoading) return@LaunchedEffect
-        mainListState.scrollToItem(0)
-        // LazyColumn may re-apply its key-based scroll anchor on the next layout pass.
-        withFrameNanos {}
-        mainListState
-            .takeUnless { it.firstVisibleItemIndex == 0 && it.firstVisibleItemScrollOffset == 0 }
-            ?.scrollToItem(0)
-    }
+    AccessControlAppListScrollToTopEffect(
+        listState = mainListState,
+        sortMode = uiState.sortMode,
+        selectedFirst = uiState.selectedFirst,
+        initialSelectedPackages = uiState.initialSelectedPackages,
+        isLoading = uiState.isLoading,
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                currentSearchStatus.TopAppBarAnim {
-                    TopBar(
-                        title = YumeTxt.AccessControl.AppList.ScreenTitle,
-                        scrollBehavior = scrollBehavior,
-                        actions = {
-                            // 与节点页一致：剩余两个操作收进同一枚玻璃胶囊。
-                            GlassTopActionPill(
-                                actions =
-                                    listOf(
-                                        GlassTopAction(
-                                            icon = Yume.ListChevronsUpDown,
-                                            contentDescription =
-                                                YumeTxt.AccessControl.Settings.SortMode,
-                                            onClick = { showSortMenu = !showSortMenu },
-                                            modifier =
-                                                Modifier.glassPopupAnchor(
-                                                    anchor = sortMenuAnchor,
-                                                    cornerRadius =
-                                                        GlassTopActionDefaults.IconSize / 2,
-                                                    floating = true,
-                                                ),
-                                            iconModifier =
-                                                Modifier.glassPopupAnchorContent(sortMenuAnchor),
-                                        ),
-                                        GlassTopAction(
-                                            icon = Yume.Bolt,
-                                            contentDescription =
-                                                YumeTxt.AccessControl.Settings.Title,
-                                            onClick = { showActionsMenu = !showActionsMenu },
-                                            modifier =
-                                                Modifier.glassPopupAnchor(
-                                                    anchor = actionsMenuAnchor,
-                                                    cornerRadius =
-                                                        GlassTopActionDefaults.IconSize / 2,
-                                                    floating = true,
-                                                ),
-                                            iconModifier =
-                                                Modifier.glassPopupAnchorContent(
-                                                    actionsMenuAnchor
-                                                ),
-                                        ),
-                                    ),
-                                popupAnchors = listOf(sortMenuAnchor, actionsMenuAnchor),
-                                backdrop = backdrop,
-                                actionOverlay = { index ->
-                                    when (index) {
-                                        0 ->
-                                            AccessControlSortMenu(
-                                                show = showSortMenu,
-                                                onDismiss = { showSortMenu = false },
-                                                sortMode = uiState.sortMode,
-                                                onSortSelected = viewModel::onSortModeChange,
-                                                anchor = sortMenuAnchor,
-                                                anchorContent = {
-                                                    Icon(
-                                                        imageVector = Yume.ListChevronsUpDown,
-                                                        contentDescription = null,
-                                                        modifier =
-                                                            Modifier.size(
-                                                                GlassTopActionDefaults.IconSize
-                                                            ),
-                                                        tint = MiuixTheme.colorScheme.onSurface,
-                                                    )
-                                                },
-                                            )
-                                        1 ->
-                                            AccessControlOperationsMenu(
-                                                showPopup = showActionsMenu,
-                                                onShowPopupChange = { showActionsMenu = it },
-                                                anchor = actionsMenuAnchor,
-                                                uiState = uiState,
-                                                actions =
-                                                    remember(viewModel) {
-                                                        AccessControlMenuActions(
-                                                            onShowSystemAppsChange =
-                                                                viewModel::onShowSystemAppsChange,
-                                                            onSelectedFirstChange =
-                                                                viewModel::onSelectedFirstChange,
-                                                            onSelectAll = viewModel::selectAll,
-                                                            onDeselectAll =
-                                                                viewModel::deselectAll,
-                                                            onInvertSelection =
-                                                                viewModel::invertSelection,
-                                                            onSelectChinaApps =
-                                                                viewModel::
-                                                                    selectChinaAppsInCurrentList,
-                                                            onSelectNonChinaApps =
-                                                                viewModel::
-                                                                    selectNonChinaAppsInCurrentList,
-                                                        )
-                                                    },
-                                                anchorContent = {
-                                                    Icon(
-                                                        imageVector = Yume.Bolt,
-                                                        contentDescription = null,
-                                                        modifier =
-                                                            Modifier.size(
-                                                                GlassTopActionDefaults.IconSize
-                                                            ),
-                                                        tint = MiuixTheme.colorScheme.onSurface,
-                                                    )
-                                                },
-                                            )
-                                    }
-                                },
-                            )
-                        },
-                        bottomContent = {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .alpha(
-                                            if (currentSearchStatus.isCollapsed()) 1f else 0f
-                                        )
-                                        .onGloballyPositioned { coordinates ->
-                                            with(density) {
-                                                val collapsedBarOffset =
-                                                    coordinates.positionInWindow().y.toDp()
-                                                if (
-                                                    currentSearchStatus.offsetY !=
-                                                    collapsedBarOffset
-                                                ) {
-                                                    searchStatus =
-                                                        currentSearchStatus.copy(
-                                                            offsetY = collapsedBarOffset
-                                                        )
-                                                }
-                                            }
-                                        }
-                                        .then(
-                                            if (currentSearchStatus.isCollapsed()) {
-                                                Modifier.pointerInput(currentSearchStatus.current) {
-                                                    detectTapGestures {
-                                                        searchStatus =
-                                                            currentSearchStatus.copy(
-                                                                current =
-                                                                    SearchStatus.Status.EXPANDING
-                                                            )
-                                                    }
-                                                }
-                                            } else {
-                                                Modifier
-                                            }
-                                        )
-                            ) {
-                                AccessControlCollapsedSearchBar(
-                                    label = currentSearchStatus.label,
-                                    topPadding = dynamicTopPadding,
-                                    startPadding = listStartPadding,
-                                    endPadding = listEndPadding,
-                                )
-                            }
-                        },
-                    )
-                }
-            }
-        ) { innerPadding ->
-            val combinedInnerPadding = combinePaddingValues(innerPadding, mainLikePadding)
-            val listBottomPadding = combinedInnerPadding.calculateBottomPadding()
+        AccessControlAppListScaffold(
+            search = search, scrollBehavior = scrollBehavior, uiState = uiState,
+            viewModel = viewModel, backdrop = backdrop, topPadding = dynamicTopPadding,
+            apps = filteredApps, listState = mainListState,
+        )
 
-            if (uiState.isLoading) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(
-                                top = combinedInnerPadding.calculateTopPadding(),
-                                start = listStartPadding,
-                                end = listEndPadding,
-                                bottom = listBottomPadding,
-                            ),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    InfiniteProgressIndicator(color = MiuixTheme.colorScheme.onSurface)
-                }
-            } else if (currentSearchStatus.shouldCollapse()) {
-                // Render the list during COLLAPSING too (not just at the COLLAPSED end state) so it
-                // is
-                // already settled underneath the fading search overlay — otherwise it pops in on
-                // the
-                // final frame and looks like a refresh flash.
-                ScreenLazyColumn(
-                    scrollBehavior = scrollBehavior,
-                    innerPadding = combinedInnerPadding,
-                    lazyListState = mainListState,
-                    contentPadding =
-                        PaddingValues(
-                            top = combinedInnerPadding.calculateTopPadding() + spacing.space6,
-                            bottom = listBottomPadding,
-                            start = listStartPadding,
-                            end = listEndPadding,
-                        ),
-                ) {
-                    accessControlAppItems(filteredApps, uiState, viewModel)
-                }
-            }
-        }
+        AccessControlAppListSearch(
+            search = search,
+            query = uiState.searchQuery,
+            onQueryChange = viewModel::onSearchQueryChange,
+            hasResults = filteredApps.isNotEmpty(),
+            topPadding = dynamicTopPadding,
+            startPadding = listStartPadding,
+            endPadding = listEndPadding,
+            bottomPadding = mainLikePadding.calculateBottomPadding(),
+            apps = filteredApps,
+            uiState = uiState,
+            viewModel = viewModel,
+        )
+    }
+}
 
-        currentSearchStatus.SearchPager(
-            onSearchStatusChange = { searchStatus = it },
-            padding =
-                SearchBarPadding(
-                    top = dynamicTopPadding,
-                    start = listStartPadding,
-                    end = listEndPadding,
-                ),
-            emptyResult = {
-                AccessControlSearchEmptyState(
-                    text = YumeTxt.AccessControl.Search.Empty,
-                    modifier = Modifier.padding(bottom = mainLikePadding.calculateBottomPadding()),
-                )
-            },
-        ) {
-            val searchListState = rememberLazyListState()
-            val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+/** The page scaffold: the animated top bar and the loading-or-list body beneath it. */
+@Composable
+private fun AccessControlAppListScaffold(
+    search: SearchPagerState,
+    scrollBehavior: ScrollBehavior,
+    uiState: AccessControlViewModel.UiState,
+    viewModel: AccessControlViewModel,
+    backdrop: LayerBackdrop?,
+    topPadding: Dp,
+    apps: List<AccessControlViewModel.AppInfo>,
+    listState: LazyListState,
+) {
+    val startPadding = AppTheme.spacing.screenHorizontal
+    val endPadding = AppTheme.spacing.screenHorizontal
 
-            LaunchedEffect(currentSearchStatus.searchText) {
-                if (currentSearchStatus.searchText.isNotBlank()) {
-                    searchListState.scrollToItem(0)
-                }
-            }
+    Scaffold(
+        topBar = {
+            AccessControlAppListTopBar(
+                search = search,
+                scrollBehavior = scrollBehavior,
+                uiState = uiState,
+                viewModel = viewModel,
+                backdrop = backdrop,
+                topPadding = topPadding,
+                startPadding = startPadding,
+                endPadding = endPadding,
+            )
+        },
+    ) { innerPadding ->
+        val combinedInnerPadding = standalonePageInnerPadding(innerPadding)
 
-            LazyColumn(
-                state = searchListState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding =
-                    PaddingValues(
-                        start = listStartPadding,
-                        end = listEndPadding,
-                        top = spacing.space6,
-                        bottom = maxOf(mainLikePadding.calculateBottomPadding(), imeBottomPadding),
-                    ),
-            ) {
-                accessControlAppItems(filteredApps, uiState, viewModel)
-            }
+        if (uiState.isLoading) {
+            AccessControlAppListLoading(
+                topPadding = combinedInnerPadding.calculateTopPadding(),
+                bottomPadding = combinedInnerPadding.calculateBottomPadding(),
+                startPadding = startPadding,
+                endPadding = endPadding,
+            )
+        } else if (search.keepsPageMounted) {
+            // Render the list during COLLAPSING too (not just at the COLLAPSED end state) so it
+            // is already settled underneath the fading search overlay — otherwise it pops in on
+            // the final frame and looks like a refresh flash.
+            AccessControlAppListContent(
+                scrollBehavior = scrollBehavior,
+                innerPadding = combinedInnerPadding,
+                listState = listState,
+                startPadding = startPadding,
+                endPadding = endPadding,
+                apps = apps,
+                uiState = uiState,
+                viewModel = viewModel,
+            )
         }
     }
 }
 
+/** The animated top bar: title, the two glass top actions and the collapsed search bar. */
 @Composable
-private fun AccessControlCollapsedSearchBar(
-    label: String,
-    topPadding: androidx.compose.ui.unit.Dp,
-    startPadding: androidx.compose.ui.unit.Dp,
-    endPadding: androidx.compose.ui.unit.Dp,
+private fun AccessControlAppListTopBar(
+    search: SearchPagerState,
+    scrollBehavior: ScrollBehavior,
+    uiState: AccessControlViewModel.UiState,
+    viewModel: AccessControlViewModel,
+    backdrop: LayerBackdrop?,
+    topPadding: Dp,
+    startPadding: Dp,
+    endPadding: Dp,
 ) {
-    val spacing = AppTheme.spacing
-    InputField(
-        query = "",
-        onQueryChange = {},
-        label = label,
-        leadingIcon = {
-            Icon(
-                imageVector = MiuixIcons.Basic.Search,
-                contentDescription = YumeTxt.Component.Editor.Action.Search,
-                modifier =
-                    Modifier
-                        .size(AppTheme.sizes.searchIconTouchTarget)
-                        .padding(start = spacing.space16, end = spacing.space8),
-                tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-        },
+    search.TopAppBarAnim {
+        TopBar(
+            title = YumeTxt.AccessControl.AppList.ScreenTitle,
+            scrollBehavior = scrollBehavior,
+            actions = {
+                AccessControlAppListTopActions(
+                    uiState = uiState,
+                    viewModel = viewModel,
+                    backdrop = backdrop,
+                )
+            },
+            bottomContent = {
+                search.CollapsedBar(
+                    label = YumeTxt.AccessControl.Search.Placeholder,
+                    topPadding = topPadding,
+                    startPadding = startPadding,
+                    endPadding = endPadding,
+                )
+            },
+        )
+    }
+}
+
+/**
+ * Sort and batch-operation buttons, sharing one glass pill.
+ *
+ * The two popup flags and their anchors belong to the menus they open, so they are remembered here
+ * instead of by the screen.
+ */
+@Composable
+private fun AccessControlAppListTopActions(
+    uiState: AccessControlViewModel.UiState,
+    viewModel: AccessControlViewModel,
+    backdrop: LayerBackdrop?,
+) {
+    var showActionsMenu by remember { mutableStateOf(false) }
+    val actionsMenuAnchor = rememberGlassPopupAnchor()
+    var showSortMenu by remember { mutableStateOf(false) }
+    val sortMenuAnchor = rememberGlassPopupAnchor()
+
+    // 与节点页一致：剩余两个操作收进同一枚玻璃胶囊。
+    GlassTopActionPill(
+        actions =
+            listOf(
+                GlassTopAction(
+                    icon = Yume.ListChevronsUpDown,
+                    contentDescription = YumeTxt.AccessControl.Settings.SortMode,
+                    onClick = { showSortMenu = !showSortMenu },
+                    anchor = sortMenuAnchor,
+                    popup = {
+                        AccessControlSortMenu(
+                            show = showSortMenu,
+                            onDismiss = { showSortMenu = false },
+                            sortMode = uiState.sortMode,
+                            onSortSelected = viewModel::onSortModeChange,
+                            anchor = sortMenuAnchor,
+                        )
+                    },
+                ),
+                GlassTopAction(
+                    icon = Yume.Bolt,
+                    contentDescription = YumeTxt.AccessControl.Settings.Title,
+                    onClick = { showActionsMenu = !showActionsMenu },
+                    anchor = actionsMenuAnchor,
+                    popup = {
+                        AccessControlOperationsMenu(
+                            showPopup = showActionsMenu,
+                            onShowPopupChange = { showActionsMenu = it },
+                            anchor = actionsMenuAnchor,
+                            uiState = uiState,
+                            actions =
+                                remember(viewModel) {
+                                    AccessControlMenuActions(
+                                        onShowSystemAppsChange =
+                                            viewModel::onShowSystemAppsChange,
+                                        onSelectedFirstChange = viewModel::onSelectedFirstChange,
+                                        onSelectAll = viewModel::selectAll,
+                                        onDeselectAll = viewModel::deselectAll,
+                                        onInvertSelection = viewModel::invertSelection,
+                                        onSelectChinaApps = viewModel::selectChinaAppsInCurrentList,
+                                        onSelectNonChinaApps =
+                                            viewModel::selectNonChinaAppsInCurrentList,
+                                    )
+                                },
+                        )
+                    },
+                ),
+            ),
+        backdrop = backdrop,
+    )
+}
+
+/** Re-anchors the main list at its top whenever the row order changes. */
+@Composable
+private fun AccessControlAppListScrollToTopEffect(
+    listState: LazyListState,
+    sortMode: AccessControlSortMode,
+    selectedFirst: Boolean,
+    initialSelectedPackages: Set<String>,
+    isLoading: Boolean,
+) {
+    // Jump the main list back to the top whenever the order changes (sort mode, selected-first,
+    // or re-entry refresh of initial selection). LazyColumn keeps the previous viewport anchor
+    // when keyed items reorder, so without this the selected-first rows can be at the top while
+    LaunchedEffect(sortMode, selectedFirst, initialSelectedPackages, isLoading) {
+        if (isLoading) return@LaunchedEffect
+        listState.scrollToItem(0)
+        // LazyColumn may re-apply its key-based scroll anchor on the next layout pass.
+        withFrameNanos {}
+        listState
+            .takeUnless { it.firstVisibleItemIndex == 0 && it.firstVisibleItemScrollOffset == 0 }
+            ?.scrollToItem(0)
+    }
+}
+
+/** Centered progress indicator filling the page area while the app list is being read. */
+@Composable
+private fun AccessControlAppListLoading(
+    topPadding: Dp,
+    bottomPadding: Dp,
+    startPadding: Dp,
+    endPadding: Dp,
+) {
+    Column(
         modifier =
             Modifier
-                .fillMaxWidth()
-                .padding(start = startPadding, end = endPadding)
-                .padding(top = topPadding, bottom = AppTheme.sizes.searchBarBottomPadding),
-        onSearch = {},
-        enabled = false,
-        expanded = false,
-        onExpandedChange = {},
-    )
+                .fillMaxSize()
+                .padding(
+                    top = topPadding,
+                    start = startPadding,
+                    end = endPadding,
+                    bottom = bottomPadding,
+                ),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        InfiniteProgressIndicator(color = MiuixTheme.colorScheme.onSurface)
+    }
+}
+
+/** The paged row list, scrolled by the page's own scroll behavior. */
+@Composable
+private fun AccessControlAppListContent(
+    scrollBehavior: ScrollBehavior,
+    innerPadding: PaddingValues,
+    listState: LazyListState,
+    startPadding: Dp,
+    endPadding: Dp,
+    apps: List<AccessControlViewModel.AppInfo>,
+    uiState: AccessControlViewModel.UiState,
+    viewModel: AccessControlViewModel,
+) {
+    val spacing = AppTheme.spacing
+
+    ScreenLazyColumn(
+        scrollBehavior = scrollBehavior,
+        innerPadding = innerPadding,
+        lazyListState = listState,
+        contentPadding =
+            PaddingValues(
+                top = innerPadding.calculateTopPadding() + spacing.space6,
+                bottom = innerPadding.calculateBottomPadding(),
+                start = startPadding,
+                end = endPadding,
+            ),
+    ) {
+        accessControlAppItems(apps, uiState, viewModel)
+    }
+}
+
+/** The search overlay and the result list it reveals, both driven by the caller's query. */
+@Composable
+private fun AccessControlAppListSearch(
+    search: SearchPagerState,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    hasResults: Boolean,
+    topPadding: Dp,
+    startPadding: Dp,
+    endPadding: Dp,
+    bottomPadding: Dp,
+    apps: List<AccessControlViewModel.AppInfo>,
+    uiState: AccessControlViewModel.UiState,
+    viewModel: AccessControlViewModel,
+) {
+    search.SearchPager(
+        label = YumeTxt.AccessControl.Search.Placeholder,
+        query = query,
+        onQueryChange = onQueryChange,
+        hasResults = hasResults,
+        padding =
+            SearchBarPadding(
+                top = topPadding,
+                start = startPadding,
+                end = endPadding,
+            ),
+        emptyResult = {
+            AccessControlSearchEmptyState(
+                text = YumeTxt.AccessControl.Search.Empty,
+                modifier = Modifier.padding(bottom = bottomPadding),
+            )
+        },
+    ) {
+        search.SearchResults(
+            query = query,
+            start = startPadding,
+            end = endPadding,
+            bottom = bottomPadding,
+        ) {
+            accessControlAppItems(apps, uiState, viewModel)
+        }
+    }
 }

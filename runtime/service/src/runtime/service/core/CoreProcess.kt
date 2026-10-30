@@ -27,7 +27,6 @@ import android.content.Context
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
-import android.os.SystemClock
 import android.system.Os
 import com.github.yumeyucca.yumebox.core.bridge.Channel
 import com.github.yumeyucca.yumebox.core.bridge.NativeProcess
@@ -35,6 +34,7 @@ import com.github.yumeyucca.yumebox.core.util.runtimeHomeDir
 import com.github.yumeyucca.yumebox.runtime.api.CoreApi
 import com.github.yumeyucca.yumebox.runtime.service.controller.CoreController
 import com.github.yumeyucca.yumebox.runtime.service.util.SocketOwnerResolver
+import com.github.yumeyucca.yumebox.runtime.service.util.awaitProcessGone
 import com.topjohnwu.superuser.Shell
 import timber.log.Timber
 import java.io.File
@@ -84,16 +84,11 @@ class CoreProcess(private val context: Context) {
         config: String,
         stack: String,
     ): CoreEndpoint {
-        val home = context.runtimeHomeDir.apply { mkdirs() }
-        prepareSelectorCache(home)
-        // Fresh core.log for this launch (libcompat redirects stdout/stderr there after chdir).
-        File(home, CORE_LOG).delete()
-        // Drop any leftover controller node so readiness probes cannot hit a dead socket.
-        File(home, SOCK).delete()
+        val home = prepareHome(clearCoreLog = true)
         val sock = File(home, SOCK).absolutePath
         // Keep the controller secret out of argv (visible to other processes / root shell).
         // Profiles often omit `secret:`; mint one so REST auth and readiness stay consistent.
-        val (runtimeConfig, secret) = ensureControllerSecret(config)
+        val controllerConfig = ensureControllerSecret(config)
 
         val args =
             arrayOf(
@@ -123,7 +118,7 @@ class CoreProcess(private val context: Context) {
                 val channel = Channel(proc.channelFd)
                 var ownershipRpcStarted = false
                 try {
-                    val bytes = runtimeConfig.toByteArray(Charsets.UTF_8)
+                    val bytes = controllerConfig.yaml.toByteArray(Charsets.UTF_8)
                     var offset = 0
                     while (offset < bytes.size) {
                         val len = minOf(CHUNK, bytes.size - offset)
@@ -148,7 +143,7 @@ class CoreProcess(private val context: Context) {
             throw IllegalStateException("config/fd handoff failed", error)
         }
 
-        return CoreEndpoint(sock, secret).also { current = it }
+        return CoreEndpoint(sock, controllerConfig.secret).also { current = it }
     }
 
     private fun startOwnerQueryLoop(channel: Channel) {
@@ -241,11 +236,9 @@ class CoreProcess(private val context: Context) {
     }
 
     private fun launchRoot(mode: String, config: String): CoreEndpoint {
-        val home = context.runtimeHomeDir.apply { mkdirs() }
-        prepareSelectorCache(home)
-        File(home, SOCK).delete()
+        val home = prepareHome(clearCoreLog = false)
         val sock = File(home, SOCK).absolutePath
-        val (runtimeConfig, secret) = ensureControllerSecret(config)
+        val controllerConfig = ensureControllerSecret(config)
 
         // A detached `su` daemon can't inherit the config socketpair the VPN core streams over, so
         // hand the compiled config (proxy secrets) through a named pipe instead of a file: the core
@@ -281,7 +274,7 @@ class CoreProcess(private val context: Context) {
         val writer = Thread {
             runCatching {
                     FileOutputStream(fifo).use {
-                        it.write(runtimeConfig.toByteArray(Charsets.UTF_8))
+                        it.write(controllerConfig.yaml.toByteArray(Charsets.UTF_8))
                     }
                 }
                 .onFailure { Timber.tag(TAG).w(it, "root config pipe write failed") }
@@ -302,14 +295,28 @@ class CoreProcess(private val context: Context) {
         val record =
             RootDaemonState.Record(
                 pid = pid,
-                secret = secret,
+                secret = controllerConfig.secret,
                 mode = mode,
                 startTimeTicks = RootDaemonProbe.startTimeTicks(pid) ?: 0L,
                 launchedAt = System.currentTimeMillis(),
             )
         RootDaemonProbe.commit(record)
         Timber.tag(TAG).i("root core launched, pid=%d mode=%s", pid, mode)
-        return CoreEndpoint(sock, secret).also { current = it }
+        return CoreEndpoint(sock, controllerConfig.secret).also { current = it }
+    }
+
+    /**
+     * Clear a previous core's leftovers before a new one is written into [home]: a stale
+     * controller socket makes readiness probes hit a dead daemon, and a stale selector cache owned
+     * by another uid fails mihomo's BoltDB open. [clearCoreLog] is false for the root daemon, whose
+     * launcher appends to the log the core already opened.
+     */
+    private fun prepareHome(clearCoreLog: Boolean): File {
+        val home = context.runtimeHomeDir.apply { mkdirs() }
+        prepareSelectorCache(home)
+        if (clearCoreLog) File(home, CORE_LOG).delete()
+        File(home, SOCK).delete()
+        return home
     }
 
     /**
@@ -403,21 +410,8 @@ class CoreProcess(private val context: Context) {
      * Guarantee a non-empty controller bearer for local REST. Reuses the profile secret when
      * present; otherwise mints one and patches the runtime config.
      */
-    private fun ensureControllerSecret(config: String): Pair<String, String> {
-        secretFromConfig(config)?.let {
-            return config to it
-        }
-        val secret = UUID.randomUUID().toString().replace("-", "")
-        val line = "secret: \"$secret\""
-        val lines = config.lineSequence().toMutableList()
-        val idx = lines.indexOfFirst { it.trimStart().startsWith("secret:") }
-        if (idx >= 0) {
-            lines[idx] = line
-        } else {
-            lines.add(0, line)
-        }
-        return lines.joinToString("\n") to secret
-    }
+    private fun ensureControllerSecret(config: String): ControllerConfig =
+        secretFromConfig(config)?.let { ControllerConfig(config, it) } ?: patchControllerSecret(config)
 
     /** The top-level `secret:` from the compiled config, or null if the profile sets none. */
     private fun secretFromConfig(config: String): String? {
@@ -474,13 +468,8 @@ class CoreProcess(private val context: Context) {
          */
         @Volatile private var running: NativeProcess? = null
 
-        private fun waitVpnExit(pid: Int, timeoutMs: Long): Boolean {
-            val deadline = SystemClock.elapsedRealtime() + timeoutMs
-            while (isVpnProcessAlive(pid) && SystemClock.elapsedRealtime() < deadline) {
-                Thread.sleep(VPN_STOP_POLL_MS)
-            }
-            return !isVpnProcessAlive(pid)
-        }
+        private fun waitVpnExit(pid: Int, timeoutMs: Long): Boolean =
+            awaitProcessGone(timeoutMs, VPN_STOP_POLL_MS) { isVpnProcessAlive(pid) }
 
         private fun isVpnProcessAlive(pid: Int): Boolean =
             runCatching {

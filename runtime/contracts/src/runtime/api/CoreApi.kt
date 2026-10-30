@@ -34,7 +34,7 @@ interface CoreApi {
 
     suspend fun queryConnections(): ConnectionSnapshot
 
-    suspend fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup>
+    suspend fun queryAllProxyGroups(): List<ProxyGroup>
 
     suspend fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup
 

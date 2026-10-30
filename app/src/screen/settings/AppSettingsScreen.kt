@@ -18,11 +18,12 @@
  *
  */
 
-@file:Suppress("FunctionName", "ConvertLongToDuration")
+@file:Suppress("FunctionName")
 
 package com.github.yumeyucca.yumebox.screen.settings
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.os.PowerManager
 import android.provider.Settings
@@ -31,21 +32,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.core.net.toUri
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.common.util.startActivitySafely
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.runtime.api.Intents
 import com.github.yumeyucca.yumebox.screen.settings.component.ThemeColorPickerItem
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import com.github.yumeyucca.yumebox.presentation.theme.label
 
 @Composable
 fun AppSettingsScreen(navigator: Navigator) {
@@ -55,10 +55,10 @@ fun AppSettingsScreen(navigator: Navigator) {
     GlassScaffold(
         topBar = { TopBar(title = YumeTxt.AppSettings.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
-        val mainLikePadding = rememberStandalonePageMainPadding()
-        ScreenLazyColumn(
+
+        StandalonePageList(
             scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(innerPadding, mainLikePadding),
+            scaffoldPadding = innerPadding,
         ) {
             item { AppBehaviorSettingsSection(viewModel) }
             item { AppThemeModeSettingsSection(viewModel) }
@@ -68,9 +68,7 @@ fun AppSettingsScreen(navigator: Navigator) {
                     onOpenNotificationSettings = { navigator.push(Route.NotificationSettings) },
                 )
             }
-            item {
-                AppInterfaceSettingsSection(viewModel)
-            }
+            item { AppInterfaceSettingsSection(viewModel) }
             item { AppNavigationSettingsSection(viewModel) }
             item { AppPrivacySettingsSection(viewModel) }
             item { AppServiceSettingsSection(viewModel) }
@@ -82,19 +80,17 @@ fun AppSettingsScreen(navigator: Navigator) {
 @Composable
 private fun AppBehaviorSettingsSection(viewModel: AppSettingsViewModel) {
     val section by viewModel.behaviorSectionState.collectAsState()
-    val automaticRestart = section.automaticRestart
-    val autoUpdateCurrentProfileOnStart = section.autoUpdateCurrentProfileOnStart
 
     Title(YumeTxt.AppSettings.Section.Behavior)
     AppCard {
         PreferenceSwitchItem(
             title = YumeTxt.AppSettings.Behavior.AutoStartTitle,
-            checked = automaticRestart,
+            checked = section.automaticRestart,
             onCheckedChange = viewModel::onAutomaticRestartChange,
         )
         PreferenceSwitchItem(
             title = YumeTxt.AppSettings.Behavior.AutoUpdateOnStartTitle,
-            checked = autoUpdateCurrentProfileOnStart,
+            checked = section.autoUpdateCurrentProfileOnStart,
             onCheckedChange = viewModel::onAutoUpdateCurrentProfileOnStartChange,
         )
     }
@@ -102,7 +98,7 @@ private fun AppBehaviorSettingsSection(viewModel: AppSettingsViewModel) {
 }
 
 @Composable
-private fun AppThemeModeSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
+private fun AppThemeModeSettingsSection(viewModel: AppSettingsViewModel) {
     val section by viewModel.interfaceSectionState.collectAsState()
 
     Title(YumeTxt.AppSettings.Interface.ThemeModeTitle)
@@ -110,21 +106,16 @@ private fun AppThemeModeSettingsSection(viewModel: AppSettingsViewModel = koinVi
         PreferenceEnumItem(
             title = YumeTxt.AppSettings.Interface.ThemeModeTitle,
             currentValue = section.themeMode,
-            items =
-                listOf(
-                    YumeTxt.AppSettings.Interface.ThemeModeSystem,
-                    YumeTxt.AppSettings.Interface.ThemeModeLight,
-                    YumeTxt.AppSettings.Interface.ThemeModeDark,
-                ),
             values = ThemeMode.entries,
             onValueChange = viewModel::onThemeModeChange,
+            label = { mode -> mode.label },
         )
     }
     SectionSummary(YumeTxt.AppSettings.Appearance.ThemeSummary)
 }
 
 @Composable
-private fun AppThemeColorSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
+private fun AppThemeColorSettingsSection(viewModel: AppSettingsViewModel) {
     val section by viewModel.interfaceSectionState.collectAsState()
 
     Title(YumeTxt.AppSettings.Interface.ColorThemeTitle)
@@ -154,7 +145,7 @@ private fun AppNotificationSettingsSection(onOpenNotificationSettings: () -> Uni
 }
 
 @Composable
-private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
+private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
     val section by viewModel.interfaceSectionState.collectAsState()
 
     Title(YumeTxt.AppSettings.Section.Interface)
@@ -162,17 +153,18 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel = koinVi
         PreferenceEnumItem(
             title = YumeTxt.AppSettings.Interface.LanguageTitle,
             currentValue = section.appLanguage,
-            items =
-                listOf(
-                    YumeTxt.AppSettings.Interface.LanguageSystem,
-                    YumeTxt.AppSettings.Interface.LanguageChinese,
-                    YumeTxt.AppSettings.Interface.LanguageChineseTraditional,
-                    YumeTxt.AppSettings.Interface.LanguageEnglish,
-                    YumeTxt.AppSettings.Interface.LanguageJapanese,
-                    YumeTxt.AppSettings.Interface.LanguageRussian,
-                ),
             values = AppLanguage.entries,
             onValueChange = viewModel::onAppLanguageChange,
+            label = { language ->
+                when (language) {
+                    AppLanguage.System -> YumeTxt.AppSettings.Interface.LanguageSystem
+                    AppLanguage.Zh -> YumeTxt.AppSettings.Interface.LanguageChinese
+                    AppLanguage.ZhHant -> YumeTxt.AppSettings.Interface.LanguageChineseTraditional
+                    AppLanguage.En -> YumeTxt.AppSettings.Interface.LanguageEnglish
+                    AppLanguage.Ja -> YumeTxt.AppSettings.Interface.LanguageJapanese
+                    AppLanguage.Ru -> YumeTxt.AppSettings.Interface.LanguageRussian
+                }
+            },
         )
         PreferenceSwitchItem(
             title = YumeTxt.AppSettings.Interface.AutoHideNavbarTitle,
@@ -193,7 +185,7 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel = koinVi
 }
 
 @Composable
-private fun AppNavigationSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
+private fun AppNavigationSettingsSection(viewModel: AppSettingsViewModel) {
     val context = LocalContext.current
     val predictiveBackEnabled by viewModel.predictiveBackEnabled.state.collectAsState()
     val predictiveBackMaxProgress by viewModel.predictiveBackMaxProgress.state.collectAsState()
@@ -232,7 +224,7 @@ private fun AppPrivacySettingsSection(viewModel: AppSettingsViewModel) {
 }
 
 @Composable
-private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel = koinViewModel()) {
+private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
     val context = LocalContext.current
 
     Title(YumeTxt.AppSettings.Section.Service)
@@ -243,7 +235,7 @@ private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel = koinView
                 if (isBatteryOptimizationIgnored(context)) {
                     context.toast(YumeTxt.AppSettings.ServiceSection.BatteryOptimizationAlreadyDisabled)
                 } else {
-                    context.startActivity(
+                    context.startActivitySafely(
                         Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                             data = "package:${context.packageName}".toUri()
                         }
@@ -270,28 +262,26 @@ private fun AppNetworkSettingsSection(viewModel: AppSettingsViewModel) {
 }
 
 @SuppressLint("BatteryLife")
-private fun isBatteryOptimizationIgnored(context: android.content.Context): Boolean {
+private fun isBatteryOptimizationIgnored(context: Context): Boolean {
     val powerManager = context.getSystemService(PowerManager::class.java) ?: return false
     return powerManager.isIgnoringBatteryOptimizations(context.packageName)
 }
 
-
 @Composable
 private fun PageScalePreferenceItem(pageScale: Float, onApply: (Float) -> Unit) {
     var pageScaleLocal by remember(pageScale) { mutableFloatStateOf(pageScale) }
-    val pageScalePercentText = remember(pageScaleLocal) { "${(pageScaleLocal * 100).toInt()}%" }
-    val showPageScaleDialogState = remember { mutableStateOf(false) }
+    var showPageScaleDialog by remember { mutableStateOf(false) }
 
     PreferenceArrowItem(
         title = YumeTxt.AppSettings.Interface.PageScaleTitle,
         endActions = {
             Text(
-                text = pageScalePercentText,
+                text = "${(pageScaleLocal * 100).toInt()}%",
                 color = MiuixTheme.colorScheme.onSurfaceVariantActions,
             )
         },
-        onClick = { showPageScaleDialogState.value = true },
-        holdDownState = showPageScaleDialogState.value,
+        onClick = { showPageScaleDialog = true },
+        holdDownState = showPageScaleDialog,
         bottomAction = {
             Slider(
                 value = pageScaleLocal,
@@ -305,11 +295,50 @@ private fun PageScalePreferenceItem(pageScale: Float, onApply: (Float) -> Unit) 
     )
 
     PageScaleDialog(
-        show = showPageScaleDialogState.value,
+        show = showPageScaleDialog,
         pageScale = pageScaleLocal,
-        onPageScaleChange = { pageScaleLocal = it },
-        onApply = onApply,
-        onDismissRequest = { showPageScaleDialogState.value = false },
+        onApply = { scale ->
+            pageScaleLocal = scale
+            onApply(scale)
+        },
+        onDismissRequest = { showPageScaleDialog = false },
+    )
+}
+
+@Composable
+private fun PageScaleDialog(
+    show: Boolean,
+    pageScale: Float,
+    onApply: (Float) -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    var scaleText by
+        remember(show, pageScale) { mutableStateOf((pageScale * 100).toInt().toString()) }
+
+    AppTextFieldDialog(
+        show = show,
+        title = YumeTxt.AppSettings.Interface.PageScaleTitle,
+        value = scaleText,
+        onValueChange = { value ->
+            if (value.isEmpty() || value.all(Char::isDigit)) {
+                scaleText = value
+            }
+        },
+        onDismissRequest = onDismissRequest,
+        onConfirm = {
+            val percent = (scaleText.toFloatOrNull() ?: (pageScale * 100)).coerceIn(80f, 120f)
+            onApply(percent / 100f)
+            onDismissRequest()
+        },
+        summary = YumeTxt.AppSettings.Interface.PageScaleDialogSummary,
+        singleLine = true,
+        trailingIcon = {
+            Text(
+                text = "%",
+                modifier = Modifier.padding(horizontal = UiDp.dp16),
+                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+            )
+        },
     )
 }
 
@@ -319,13 +348,12 @@ private fun PredictiveBackProgressPreferenceItem(
     onApply: (Float) -> Unit,
 ) {
     var localProgress by remember(progress) { mutableFloatStateOf(progress) }
-    val progressText = remember(localProgress) { "${localProgress.toInt()}%" }
 
     PreferenceArrowItem(
         title = YumeTxt.AppSettings.Interface.PredictiveBackProgressTitle,
         endActions = {
             Text(
-                text = progressText,
+                text = "${localProgress.toInt()}%",
                 color = MiuixTheme.colorScheme.onSurfaceVariantActions,
             )
         },
@@ -346,93 +374,38 @@ private fun PredictiveBackProgressPreferenceItem(
 @Composable
 private fun CustomUserAgentPreferenceItem(customUserAgent: String, onConfirm: (String) -> Unit) {
     val customUserAgentSummary =
-        remember(customUserAgent) {
-            customUserAgent.ifEmpty { YumeTxt.AppSettings.Network.CustomUserAgentSummaryDefault }
-        }
-    val showEditCustomUserAgentDialog = remember { mutableStateOf(false) }
+        customUserAgent.ifEmpty { YumeTxt.AppSettings.Network.CustomUserAgentSummaryDefault }
     val focusManager = LocalFocusManager.current
-    var localTextFieldValue by remember {
-        mutableStateOf(
-            TextFieldValue(text = customUserAgent, selection = TextRange(customUserAgent.length))
-        )
+    var showEditDialog by remember { mutableStateOf(false) }
+    var draft by remember { mutableStateOf(customUserAgent) }
+
+    fun applyDraft() {
+        onConfirm(draft)
+        focusManager.clearFocus()
+        showEditDialog = false
     }
 
     PreferenceArrowItem(
         title = YumeTxt.AppSettings.Network.CustomUserAgentTitle,
         summary = customUserAgentSummary,
         onClick = {
-            localTextFieldValue =
-                TextFieldValue(
-                    text = customUserAgent,
-                    selection = TextRange(customUserAgent.length),
-                )
-            showEditCustomUserAgentDialog.value = true
+            draft = customUserAgent
+            showEditDialog = true
         },
-        holdDownState = showEditCustomUserAgentDialog.value,
+        holdDownState = showEditDialog,
     )
 
     AppTextFieldDialog(
-        show = showEditCustomUserAgentDialog.value,
+        show = showEditDialog,
         title = YumeTxt.AppSettings.EditDialog.UserAgentTitle,
-        textFieldValue = localTextFieldValue,
-        onTextFieldValueChange = { updatedTextFieldValue ->
-            localTextFieldValue = updatedTextFieldValue
-        },
+        value = draft,
+        onValueChange = { draft = it },
         onDismissRequest = {
-            showEditCustomUserAgentDialog.value = false
+            showEditDialog = false
             focusManager.clearFocus()
         },
-        onConfirm = {
-            onConfirm(localTextFieldValue.text)
-            focusManager.clearFocus()
-            showEditCustomUserAgentDialog.value = false
-        },
+        onConfirm = ::applyDraft,
         singleLine = true,
-        onImeAction = {
-            onConfirm(localTextFieldValue.text)
-            focusManager.clearFocus()
-            showEditCustomUserAgentDialog.value = false
-        },
-    )
-}
-
-@Composable
-private fun PageScaleDialog(
-    show: Boolean,
-    pageScale: Float,
-    onPageScaleChange: (Float) -> Unit,
-    onApply: (Float) -> Unit,
-    onDismissRequest: () -> Unit,
-) {
-    var scaleText by
-    remember(show, pageScale) { mutableStateOf((pageScale * 100).toInt().toString()) }
-
-    AppTextFieldDialog(
-        show = show,
-        title = YumeTxt.AppSettings.Interface.PageScaleTitle,
-        value = scaleText,
-        onValueChange = { value ->
-            if (value.isEmpty() || value.all(Char::isDigit)) {
-                scaleText = value
-            }
-        },
-        onDismissRequest = onDismissRequest,
-        onConfirm = {
-            val parsedPercent = scaleText.toFloatOrNull() ?: (pageScale * 100)
-            val clampedScale = parsedPercent.coerceIn(80f, 120f) / 100f
-            onPageScaleChange(clampedScale)
-            onApply(clampedScale)
-            onDismissRequest()
-        },
-        summary = YumeTxt.AppSettings.Interface.PageScaleDialogSummary,
-        renderInRootScaffold = true,
-        singleLine = true,
-        trailingIcon = {
-            Text(
-                text = "%",
-                modifier = Modifier.padding(horizontal = UiDp.dp16),
-                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-            )
-        },
+        onImeAction = ::applyDraft,
     )
 }

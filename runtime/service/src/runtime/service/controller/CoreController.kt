@@ -24,6 +24,7 @@ package com.github.yumeyucca.yumebox.runtime.service.controller
 
 import com.github.yumeyucca.yumebox.core.bridge.UnixSocketFactory
 import com.github.yumeyucca.yumebox.core.model.*
+import com.github.yumeyucca.yumebox.core.util.LenientJson
 import com.github.yumeyucca.yumebox.core.util.encodeTrafficValue
 import com.github.yumeyucca.yumebox.data.model.RemoteBackend
 import com.github.yumeyucca.yumebox.runtime.api.CoreApi
@@ -54,7 +55,7 @@ class CoreController(
     /** Local controller endpoint: fixed socket path, secret read per request. */
     class Local(val socketPath: String, val secret: () -> String)
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = LenientJson
 
     @Volatile private var trafficSampleCache: TimedTrafficSample? = null
 
@@ -63,10 +64,10 @@ class CoreController(
     @Volatile private var providerSnapshotCache: TimedProviderSnapshot? = null
     @Volatile private var providerSnapshotJob: Deferred<ProviderSnapshot>? = null
 
-    private val client: HttpClient by lazy {
+    private val clientDelegate = lazy {
         HttpClient(OkHttp) {
             expectSuccess = true
-            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+            install(ContentNegotiation) { json(LenientJson) }
             install(HttpTimeout) {
                 connectTimeoutMillis = CONNECT_TIMEOUT_MS
                 socketTimeoutMillis = REQUEST_TIMEOUT_MS
@@ -77,14 +78,29 @@ class CoreController(
             }
         }
     }
+    private val client: HttpClient by clientDelegate
 
-    private val logStream by lazy {
+    private val logStreamDelegate = lazy {
         CoreControllerLogStream(
             client = client,
             json = json,
             logUrl = { buildUrl("logs", query = LOG_QUERY) },
             applyAuth = { applyAuth() },
         )
+    }
+    private val logStream by logStreamDelegate
+
+    /**
+     * Releases the background scopes and the HTTP engine. Only the owner of a short-lived controller
+     * (one per preview session) calls this; the shared local and remote controllers live for the
+     * whole process.
+     */
+    internal fun close() {
+        providerSnapshotJob?.cancel()
+        providerSnapshotJob = null
+        providerScope.cancel()
+        if (logStreamDelegate.isInitialized()) logStream.close()
+        if (clientDelegate.isInitialized()) client.close()
     }
 
     /** Active target secret (local token or remote backend). */
@@ -209,6 +225,7 @@ class CoreController(
                         line?.let { json.decodeFromString<RawTraffic>(it) }
                     }
             }
+            .onFailure { error -> if (error is CancellationException) throw error }
             .getOrNull()
             ?.also { sample ->
                 trafficSampleCache = TimedTrafficSample(sample, System.nanoTime())
@@ -227,12 +244,10 @@ class CoreController(
                 json.decodeFromString<ConnectionSnapshot>(line)
             }
 
-    override suspend fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> =
+    override suspend fun queryAllProxyGroups(): List<ProxyGroup> =
         withGroupQueryTimeout {
             val nodes = fetchProxies()
-            orderGroups(fetchGroups(), nodes)
-                .filter { !excludeNotSelectable || it.type in Proxy.Type.manuallySelectable }
-                .map { buildGroup(it, nodes, ProxySort.Default) }
+            orderGroups(fetchGroups(), nodes).map { buildGroup(it, nodes, ProxySort.Default) }
         }
 
     private suspend fun <T> withGroupQueryTimeout(block: suspend () -> T): T =
@@ -321,6 +336,7 @@ class CoreController(
                         providerSnapshotCache = TimedProviderSnapshot(it, System.nanoTime())
                     }
                     .onFailure { error ->
+                        if (error is CancellationException) throw error
                         Timber.d(error, "provider node snapshot unavailable")
                     }
                     .getOrElse {
@@ -363,7 +379,8 @@ class CoreController(
     override suspend fun patchSelector(group: String, name: String): Boolean =
         try {
             request(HttpMethod.Put, "proxies", group, body = SelectBody(name)).status.isSuccess()
-        } catch (_: Throwable) { // fault barrier: remote REST call must degrade to "not selected"
+        } catch (error: Throwable) { // fault barrier: remote REST call must degrade to "not selected"
+            if (error is CancellationException) throw error
             false
         }
 
@@ -371,7 +388,8 @@ class CoreController(
     override suspend fun closeConnection(id: String): Boolean =
         try {
             request(HttpMethod.Delete, "connections", id).status.isSuccess()
-        } catch (_: Throwable) { // fault barrier: remote REST call must degrade to "not closed"
+        } catch (error: Throwable) { // fault barrier: remote REST call must degrade to "not closed"
+            if (error is CancellationException) throw error
             false
         }
 
@@ -399,7 +417,10 @@ class CoreController(
                 .bodyAsText()
                 .let { raw -> json.decodeFromString<Map<String, Int>>(raw) }
         }
-            .onFailure { error -> Timber.d(error, "Group delay test failed: %s", group) }
+            .onFailure { error ->
+                if (error is CancellationException) throw error
+                Timber.d(error, "Group delay test failed: %s", group)
+            }
             .getOrDefault(emptyMap())
 
     override suspend fun healthCheckProxy(proxyName: String): Int {
@@ -429,7 +450,8 @@ class CoreController(
             } else {
                 null
             }
-        } catch (_: Throwable) { // fault barrier: remote REST delay test degrades to "no result"
+        } catch (error: Throwable) { // fault barrier: remote REST delay test degrades to "no result"
+            if (error is CancellationException) throw error
             null
         }
 
@@ -441,6 +463,9 @@ class CoreController(
         val rules = runCatching {
             fetchProviders(category = "rules", type = Provider.Type.Rule)
         }
+        // A cancelled probe is not a provider outage: never degrade cancellation to an empty list.
+        (proxies.exceptionOrNull() ?: rules.exceptionOrNull())
+            ?.let { error -> if (error is CancellationException) throw error }
         if (proxies.isFailure && rules.isFailure) {
             throw requireNotNull(proxies.exceptionOrNull()).also { proxyError ->
                 rules.exceptionOrNull()?.let(proxyError::addSuppressed)
@@ -489,7 +514,11 @@ class CoreController(
 
     private fun parseUpdatedAtMillis(raw: String?): Long {
         if (raw.isNullOrBlank()) return 0L
-        return runCatching { Instant.parse(raw).toEpochMilli() }.getOrDefault(0L)
+        // A core build that reports a malformed timestamp must not be mistaken for "updated in 1970";
+        // keep the 0 sentinel the UI already renders, but leave a trace of what the core actually said.
+        return runCatching { Instant.parse(raw).toEpochMilli() }
+            .onFailure { Timber.w(it, "Unparsable provider updatedAt: %s", raw) }
+            .getOrDefault(0L)
     }
 
     override suspend fun updateProvider(type: Provider.Type, name: String) {

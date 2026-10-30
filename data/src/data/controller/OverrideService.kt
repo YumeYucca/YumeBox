@@ -24,6 +24,7 @@ import android.content.Context
 import android.content.Intent
 import com.github.yumeyucca.yumebox.runtime.api.Intents
 import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
+import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 
 class OverrideService(
@@ -63,6 +64,7 @@ class OverrideService(
         } catch (
             error: Exception
         ) { // fault barrier: any resolver/broadcast failure degrades to false
+            if (error is CancellationException) throw error
             Timber.e(error, "Failed to apply override for profile: %s", profileId)
             false
         }

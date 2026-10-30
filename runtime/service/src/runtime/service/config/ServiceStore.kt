@@ -23,10 +23,11 @@
 package com.github.yumeyucca.yumebox.runtime.service.config
 
 
-import com.github.yumeyucca.yumebox.core.model.TunDnsMode
+import com.github.yumeyucca.yumebox.core.util.LenientJson
+import com.github.yumeyucca.yumebox.data.model.TunStack
 import com.tencent.mmkv.MMKV
-import kotlinx.serialization.json.Json
 import java.util.*
+import timber.log.Timber
 
 class ServiceStore {
     private val store = Store(MMKV.mmkvWithID("service", MMKV.MULTI_PROCESS_MODE).asStoreProvider())
@@ -44,12 +45,6 @@ class ServiceStore {
                 networkSettings.decodeString(newKey, defaultValue) ?: defaultValue
 
             else -> store.provider.getString(legacyKey, defaultValue)
-        }
-
-    private fun readInt(newKey: String, legacyKey: String, defaultValue: Int): Int =
-        when {
-            networkSettings.containsKey(newKey) -> networkSettings.decodeInt(newKey, defaultValue)
-            else -> store.provider.getInt(legacyKey, defaultValue)
         }
 
     private fun readStringSet(
@@ -71,22 +66,8 @@ class ServiceStore {
                     json.decodeFromString<List<String>>(it)
                 } ?: defaultValue
             }
+            .onFailure { Timber.w(it, "Unreadable %s in the service store, falling back to defaults", newKey) }
             .getOrDefault(defaultValue)
-    }
-
-    private fun readIntList(newKey: String, defaultValue: List<Int>): List<Int> {
-        if (!networkSettings.containsKey(newKey)) return defaultValue
-        return runCatching {
-                networkSettings.decodeString(newKey)?.let { json.decodeFromString<List<Int>>(it) }
-                    ?: defaultValue
-            }
-            .getOrDefault(defaultValue)
-    }
-
-    private inline fun <reified T : Enum<T>> readEnum(newKey: String, defaultValue: T): T {
-        if (!networkSettings.containsKey(newKey)) return defaultValue
-        val raw = networkSettings.decodeString(newKey, defaultValue.name) ?: defaultValue.name
-        return runCatching { enumValueOf<T>(raw) }.getOrDefault(defaultValue)
     }
 
     var activeProfile: UUID? by
@@ -115,21 +96,23 @@ class ServiceStore {
             store.provider.setBoolean("ebpf_bypass_cn", value)
         }
 
-    private var accessControlModeRaw: String
-        get() =
-            readString(
-                newKey = "accessControlMode",
-                legacyKey = "access_control_mode",
-                defaultValue = AccessControlMode.AcceptAll.name,
-            )
-        set(value) {
-            networkSettings.encode("accessControlMode", value)
-            store.provider.setString("access_control_mode", value)
-        }
-
-    var accessControlMode: AccessControlMode
-        get() =
-            when (accessControlModeRaw) {
+    /**
+     * The service's view of the access control mode.
+     *
+     * Read-only: the value is owned by the UI (it writes the data-layer names through
+     * `NetworkSettingsStore`), so the raw key is parsed here with both spellings accepted. A
+     * stored value this build cannot parse falls back to accept-all, which is what the core
+     * does for an unpinned state, and says so in the log instead of doing it silently.
+     */
+    val accessControlMode: AccessControlMode
+        get() {
+            val raw =
+                readString(
+                    newKey = "accessControlMode",
+                    legacyKey = "access_control_mode",
+                    defaultValue = AccessControlMode.AcceptAll.name,
+                )
+            return when (raw) {
                 AccessControlMode.AcceptAll.name,
                 "ALLOW_ALL" -> AccessControlMode.AcceptAll
 
@@ -142,10 +125,11 @@ class ServiceStore {
                 AccessControlMode.RejectSelected.name,
                 "DENY_SPECIFIC" -> AccessControlMode.RejectSelected
 
-                else -> AccessControlMode.AcceptAll
+                else -> {
+                    Timber.w("Unknown access control mode %s, assuming accept-all", raw)
+                    AccessControlMode.AcceptAll
+                }
             }
-        set(value) {
-            accessControlModeRaw = value.name
         }
 
     var accessControlPackages: Set<String>
@@ -182,52 +166,30 @@ class ServiceStore {
         }
 
     var allowIpv6: Boolean
-        get() =
-            when {
-                networkSettings.containsKey("enableIPv6") ->
-                    networkSettings.decodeBool("enableIPv6", false)
-
-                else -> store.provider.getBoolean("allow_ipv6", false)
-            }
+        get() = readBoolean(newKey = "enableIPv6", legacyKey = "allow_ipv6", defaultValue = false)
         set(value) {
             networkSettings.encode("enableIPv6", value)
             store.provider.setBoolean("allow_ipv6", value)
         }
 
-    var tunStackMode: String
+    /**
+     * The stack the user picked, written by the UI through `NetworkSettingsStore` as [TunStack.name].
+     * Read-only like [accessControlMode] because the service never owns the setting, and the legacy
+     * key held the lowercase core spelling, so both spellings are accepted here.
+     */
+    val tunStack: TunStack
         get() {
-            if (networkSettings.containsKey("tunStack")) {
-                return when (networkSettings.decodeString("tunStack", "System")) {
-                    "System",
-                    "system" -> "system"
-
-                    "GVisor",
-                    "gvisor" -> "gvisor"
-
-                    "Mixed",
-                    "mixed" -> "mixed"
-
-                    "Mips",
-                    "mips" -> "mips"
-
-                    else -> "system"
+            val raw =
+                readString(
+                    newKey = "tunStack",
+                    legacyKey = "tun_stack_mode",
+                    defaultValue = TunStack.GVisor.name,
+                )
+            return TunStack.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
+                ?: run {
+                    Timber.w("Unknown tun stack %s, assuming gvisor", raw)
+                    TunStack.GVisor
                 }
-            }
-            return store.provider.getString("tun_stack_mode", "gvisor")
-        }
-        set(value) {
-            val normalized = value.lowercase()
-            store.provider.setString("tun_stack_mode", normalized)
-            networkSettings.encode(
-                "tunStack",
-                when (normalized) {
-                    "system" -> "System"
-                    "gvisor" -> "GVisor"
-                    "mixed" -> "Mixed"
-                    "mips" -> "Mips"
-                    else -> "System"
-                },
-            )
         }
 
     var tunRouteExcludeAddress: List<String>
@@ -236,71 +198,10 @@ class ServiceStore {
             networkSettings.encode("tunRouteExcludeAddress", json.encodeToString(value))
         }
 
-    var tunIfName: String
-        get() = readString("tunIfName", "tun_if_name", "Yume")
-        set(value) {
-            networkSettings.encode("tunIfName", value)
-            store.provider.setString("tun_if_name", value)
-        }
-
-    var tunMtu: Int
-        get() = readInt("tunMtu", "tun_mtu", 1500)
-        set(value) {
-            networkSettings.encode("tunMtu", value)
-            store.provider.setInt("tun_mtu", value)
-        }
-
-    var tunAutoRoute: Boolean
-        get() = readBoolean("tunAutoRoute", "tun_auto_route", true)
-        set(value) {
-            networkSettings.encode("tunAutoRoute", value)
-            store.provider.setBoolean("tun_auto_route", value)
-        }
-
-    var tunStrictRoute: Boolean
-        get() = readBoolean("tunStrictRoute", "tun_strict_route", true)
-        set(value) {
-            networkSettings.encode("tunStrictRoute", value)
-            store.provider.setBoolean("tun_strict_route", value)
-        }
-
-    var tunAutoRedirect: Boolean
-        get() = readBoolean("tunAutoRedirect", "tun_auto_redirect", true)
-        set(value) {
-            networkSettings.encode("tunAutoRedirect", value)
-            store.provider.setBoolean("tun_auto_redirect", value)
-        }
-
-    var tunIncludeAndroidUser: List<Int>
-        get() = readIntList("tunIncludeAndroidUser", emptyList())
-        set(value) {
-            networkSettings.encode("tunIncludeAndroidUser", json.encodeToString(value))
-        }
-
-    var tunDnsMode: TunDnsMode
-        get() = readEnum("tunDnsMode", TunDnsMode.RedirHost)
-        set(value) {
-            networkSettings.encode("tunDnsMode", value.name)
-        }
-
-    var tunFakeIpRange: String
-        get() = readString("tunFakeIpRange", "tun_fake_ip_range", "198.18.0.1/16")
-        set(value) {
-            networkSettings.encode("tunFakeIpRange", value)
-            store.provider.setString("tun_fake_ip_range", value)
-        }
-
-    var tunFakeIpRange6: String
-        get() = readString("tunFakeIpRange6", "tun_fake_ip_range6", "fc00::/18")
-        set(value) {
-            networkSettings.encode("tunFakeIpRange6", value)
-            store.provider.setString("tun_fake_ip_range6", value)
-        }
-
     var showTrafficNotification by
         store.boolean(key = "show_traffic_notification", defaultValue = true)
 
     private companion object {
-        val json = Json { ignoreUnknownKeys = true }
+        val json = LenientJson
     }
 }

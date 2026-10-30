@@ -66,16 +66,6 @@ internal object OverrideMetadataIO {
     }
 
     /**
-     * Index usable for read-only display. Corrupt/missing → empty shell (does not touch disk).
-     */
-    fun loadForRead(file: File): MetadataIndex =
-        when (val loaded = load(file)) {
-            is MetadataIndexLoad.Ok -> loaded.index
-            MetadataIndexLoad.Missing,
-            is MetadataIndexLoad.Corrupt -> MetadataIndex()
-        }
-
-    /**
      * Index for mutation. Corrupt non-empty file throws so callers cannot save an empty wipe.
      */
     fun loadForMutation(file: File): MetadataIndex =

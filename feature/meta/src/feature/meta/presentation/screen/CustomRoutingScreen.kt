@@ -24,6 +24,7 @@ package com.github.yumeyucca.yumebox.feature.meta.presentation.screen
 
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.common.util.toast
@@ -32,6 +33,7 @@ import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.CustomRo
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Edit
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
@@ -46,72 +48,54 @@ fun CustomRoutingScreen(
 ) {
     val viewModel: CustomRoutingViewModel = koinViewModel()
     val presetSelection by viewModel.presetSelection.collectAsState()
-    val customRoutingContent by viewModel.customRoutingContent.collectAsState()
     val templateRoundTripSafe by viewModel.templateRoundTripSafe.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val selectedUrlTestRegions = remember { mutableStateListOf<OverridePresetRegion>() }
-    val selectedFallbackRegions = remember { mutableStateListOf<OverridePresetRegion>() }
-    val enabledItems = remember { mutableStateListOf<OverridePresetItem>() }
-    var enableUrlTestGroup by remember { mutableStateOf(true) }
-    var enableFallbackGroup by remember { mutableStateOf(false) }
-    var isDirty by remember { mutableStateOf(false) }
+
+    // One edited draft instead of four parallel lists: each card reads it and copies it back.
+    var selection by remember { mutableStateOf(defaultOverridePresetTemplateSelection()) }
+    // Derived, so no toggle path can forget to raise it and none can leave it stuck raised.
+    val isDirty = selection != presetSelection
     var isSaving by remember { mutableStateOf(false) }
     val scrollBehavior = MiuixScrollBehavior()
 
-    fun applyPresetSelection(selection: OverridePresetTemplateSelection) {
-        selectedUrlTestRegions.clear()
-        selectedUrlTestRegions.addAll(sortPresetRegions(selection.urlTestRegions))
-        selectedFallbackRegions.clear()
-        selectedFallbackRegions.addAll(sortPresetRegions(selection.fallbackRegions))
-        enabledItems.clear()
-        enabledItems.addAll(sortPresetItems(selection.enabledItems))
-        enableUrlTestGroup = selection.enableUrlTestGroup
-        enableFallbackGroup = selection.enableFallbackGroup
-        isDirty = false
-    }
-
-    fun editedPresetSelection() =
-        OverridePresetTemplateSelection(
-            urlTestRegions = selectedUrlTestRegions.toSet(),
-            fallbackRegions = selectedFallbackRegions.toSet(),
-            enabledItems = enabledItems.toSet(),
-            enableUrlTestGroup = enableUrlTestGroup,
-            enableFallbackGroup = enableFallbackGroup,
-        )
-
-    LaunchedEffect(presetSelection) { applyPresetSelection(presetSelection) }
-
-    fun saveAndExit() {
+    fun persistSelection(onSaved: () -> Unit) {
         if (isSaving) return
-        if (!isDirty) {
-            onNavigateBack()
-            return
-        }
-        if (!templateRoundTripSafe) {
-            applyPresetSelection(presetSelection)
-            context.toast(YumeTxt.MetaFeature.CustomRouting.ManualYamlPresetDiscarded)
-            onNavigateBack()
-            return
-        }
-
-        val updatedSelection = editedPresetSelection()
         scope.launch {
             isSaving = true
             viewModel
-                .savePresetSelection(updatedSelection)
-                .onSuccess {
-                    isDirty = false
-                    onNavigateBack()
-                }
+                .savePresetSelection(selection)
+                .onSuccess { onSaved() }
                 .onFailure { error ->
+                    // Leaving the screen cancels the save; that is not a save failure.
+                    if (error is CancellationException) throw error
                     context.toast(error.message ?: YumeTxt.Override.Save.Failed)
                 }
             isSaving = false
         }
     }
 
-    BackHandler { saveAndExit() }
+    // The saved preset is the baseline: a new one (save, external reload) resets the draft.
+    LaunchedEffect(presetSelection) { selection = presetSelection }
+
+    /**
+     * The single "leave with the right draft" policy: run [then] as is when clean, drop edits the
+     * YAML cannot carry when a manual edit made the preset unrepresentable, otherwise persist first.
+     */
+    fun saveThen(then: () -> Unit) {
+        if (isSaving) return
+        when {
+            !isDirty -> then()
+            !templateRoundTripSafe -> {
+                selection = presetSelection
+                context.toast(YumeTxt.MetaFeature.CustomRouting.ManualYamlPresetDiscarded)
+                then()
+            }
+            else -> persistSelection(then)
+        }
+    }
+
+    BackHandler(enabled = !isSaving) { saveThen(onNavigateBack) }
 
     GlassScaffold(
         topBar = {
@@ -122,43 +106,13 @@ fun CustomRoutingScreen(
                     IconButton(
                         enabled = !isSaving,
                         onClick = {
-                            fun openEditor(content: String) {
+                            saveThen {
                                 onOpenYamlEditor(
                                     YumeTxt.MetaFeature.CustomRouting.EditYaml,
-                                    content,
+                                    viewModel.customRoutingContent.value,
                                 ) { updatedContent ->
-                                    viewModel
-                                        .saveCustomRoutingYaml(updatedContent)
-                                        .getOrElse { throw it }
+                                    viewModel.saveCustomRoutingYaml(updatedContent).getOrThrow()
                                 }
-                            }
-
-                            when {
-                                !isDirty -> openEditor(customRoutingContent)
-                                !templateRoundTripSafe -> {
-                                    applyPresetSelection(presetSelection)
-                                    context.toast(
-                                        YumeTxt.MetaFeature.CustomRouting.ManualYamlPresetDiscarded
-                                    )
-                                    openEditor(customRoutingContent)
-                                }
-
-                                else ->
-                                    scope.launch {
-                                        isSaving = true
-                                        viewModel
-                                            .savePresetSelection(editedPresetSelection())
-                                            .onSuccess {
-                                                isDirty = false
-                                                openEditor(viewModel.customRoutingContent.value)
-                                            }
-                                            .onFailure { error ->
-                                                context.toast(
-                                                    error.message ?: YumeTxt.Override.Save.Failed
-                                                )
-                                            }
-                                        isSaving = false
-                                    }
                             }
                         },
                     ) {
@@ -171,122 +125,124 @@ fun CustomRoutingScreen(
             )
         }
     ) { paddingValues ->
-        val mainPadding = rememberStandalonePageMainPadding()
-        ScreenLazyColumn(
+
+        StandalonePageList(
             scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(paddingValues, mainPadding),
+            scaffoldPadding = paddingValues,
         ) {
-            item(key = "group-type") {
-                RoutingSwitchCard(
-                    title = YumeTxt.MetaFeature.CustomRouting.GroupTypeTitle,
-                    items = listOf("urltest", "fallback"),
-                    iconUrl = ::presetGroupTypeIconUrl,
-                    itemTitle = { type ->
-                        if (type == "urltest") {
-                            YumeTxt.MetaFeature.CustomRouting.GroupTypeUrlTest
-                        } else {
-                            YumeTxt.MetaFeature.CustomRouting.GroupTypeFallback
-                        }
-                    },
-                    isChecked = { type ->
-                        if (type == "urltest") enableUrlTestGroup else enableFallbackGroup
-                    },
-                    onCheckedChange = { type, checked ->
-                        if (type == "urltest") {
-                            enableUrlTestGroup = checked
-                        } else {
-                            enableFallbackGroup = checked
-                        }
-                        isDirty = true
-                    },
-                )
-            }
-
-            item(key = "urltest-regions") {
-                RoutingSwitchCard(
-                    title = YumeTxt.MetaFeature.CustomRouting.UrlTestRegionGroupTitle,
-                    items = orderedPresetRegions(),
-                    iconUrl = OverridePresetRegion::icon,
-                    itemTitle = OverridePresetRegion::localizedTitle,
-                    isChecked = { region -> region in selectedUrlTestRegions },
-                    onCheckedChange = { region, checked ->
-                        toggleSelection(selectedUrlTestRegions, region, checked)
-                        isDirty = true
-                    },
-                )
-            }
-
-            item(key = "fallback-regions") {
-                RoutingSwitchCard(
-                    title = YumeTxt.MetaFeature.CustomRouting.FallbackRegionGroupTitle,
-                    items = orderedPresetRegions(),
-                    iconUrl = OverridePresetRegion::icon,
-                    itemTitle = OverridePresetRegion::localizedTitle,
-                    isChecked = { region -> region in selectedFallbackRegions },
-                    onCheckedChange = { region, checked ->
-                        toggleSelection(selectedFallbackRegions, region, checked)
-                        isDirty = true
-                    },
-                )
-            }
-
-            item(key = "base-items") {
-                RoutingSwitchCard(
-                    title = YumeTxt.Override.Draft.BasicRouting,
-                    items = orderedBasePresetItems(),
-                    iconUrl = OverridePresetItem::icon,
-                    itemTitle = OverridePresetItem::localizedTitle,
-                    isChecked = { item -> item in enabledItems },
-                    onCheckedChange = { item, checked ->
-                        toggleSelection(enabledItems, item, checked)
-                        isDirty = true
-                    },
-                )
-            }
-
-            item(key = "service-items") {
-                RoutingSwitchCard(
-                    title = YumeTxt.Override.Draft.ServiceRouting,
-                    items = orderedServicePresetItems(),
-                    iconUrl = OverridePresetItem::icon,
-                    itemTitle = OverridePresetItem::localizedTitle,
-                    isChecked = { item -> item in enabledItems },
-                    onCheckedChange = { item, checked ->
-                        toggleSelection(enabledItems, item, checked)
-                        isDirty = true
-                    },
+            items(switchCardSpecs, key = { spec -> spec.key }) { spec ->
+                SwitchCard(
+                    spec = spec,
+                    selection = selection,
+                    onSelectionChange = { updated -> selection = updated },
                 )
             }
         }
     }
 }
 
-private fun OverridePresetRegion.localizedTitle(): String =
-    when (this) {
-        OverridePresetRegion.HK -> YumeTxt.MetaFeature.CustomRouting.Region.HongKong
-        OverridePresetRegion.TW -> YumeTxt.MetaFeature.CustomRouting.Region.Taiwan
-        OverridePresetRegion.JP -> YumeTxt.MetaFeature.CustomRouting.Region.Japan
-        OverridePresetRegion.SG -> YumeTxt.MetaFeature.CustomRouting.Region.Singapore
-        OverridePresetRegion.US -> YumeTxt.MetaFeature.CustomRouting.Region.UnitedStates
-        OverridePresetRegion.Other -> YumeTxt.MetaFeature.CustomRouting.Region.Other
-    }
+/**
+ * One card of the routing editor: its title, its items, and the slice of the edited preset those
+ * items toggle.
+ *
+ * The toggle is a pure `(draft, item, checked) -> draft` function, so all five cards are one list
+ * and one loop instead of five near-identical [RoutingSwitchCard] call sites.
+ */
+@Immutable
+private class SwitchCardSpec<T>(
+    val key: String,
+    val title: () -> String,
+    val items: List<T>,
+    val iconUrl: (T) -> String?,
+    val label: (T) -> String,
+    val isChecked: (OverridePresetTemplateSelection, T) -> Boolean,
+    val toggle: (OverridePresetTemplateSelection, T, Boolean) -> OverridePresetTemplateSelection,
+)
 
-private fun OverridePresetItem.localizedTitle(): String =
-    when (this) {
-        OverridePresetItem.Proxy -> YumeTxt.MetaFeature.CustomRouting.Item.Proxy
-        OverridePresetItem.Ads -> YumeTxt.MetaFeature.CustomRouting.Item.Ads
-        OverridePresetItem.Cn -> YumeTxt.MetaFeature.CustomRouting.Item.China
-        OverridePresetItem.GeolocationNotCn -> YumeTxt.MetaFeature.CustomRouting.Item.Global
-        OverridePresetItem.Match -> YumeTxt.MetaFeature.CustomRouting.Item.Match
-        else -> title
-    }
+/**
+ * The cards in display order.
+ *
+ * Titles and labels are lambdas: [YumeTxt] values are getters over the active locale, so reading
+ * them while building this list would freeze whichever language happened to be active then.
+ */
+private val switchCardSpecs: List<SwitchCardSpec<*>> =
+    listOf(
+        SwitchCardSpec(
+            key = "group-type",
+            title = { YumeTxt.MetaFeature.CustomRouting.GroupTypeTitle },
+            items = OfficialMrsHealthCheckGroupType.entries,
+            iconUrl = OfficialMrsHealthCheckGroupType::icon,
+            label = { type -> type.label() },
+            isChecked = { draft, type -> type in draft.healthCheckGroups },
+            toggle = { draft, type, checked ->
+                draft.copy(healthCheckGroups = draft.healthCheckGroups.withToggled(type, checked))
+            },
+        ),
+        SwitchCardSpec(
+            key = "urltest-regions",
+            title = { YumeTxt.MetaFeature.CustomRouting.UrlTestRegionGroupTitle },
+            items = orderedRegions,
+            iconUrl = OverridePresetRegion::icon,
+            label = { region -> region.label() },
+            isChecked = { draft, region -> region in draft.urlTestRegions },
+            toggle = { draft, region, checked ->
+                draft.copy(urlTestRegions = draft.urlTestRegions.withToggled(region, checked))
+            },
+        ),
+        SwitchCardSpec(
+            key = "fallback-regions",
+            title = { YumeTxt.MetaFeature.CustomRouting.FallbackRegionGroupTitle },
+            items = orderedRegions,
+            iconUrl = OverridePresetRegion::icon,
+            label = { region -> region.label() },
+            isChecked = { draft, region -> region in draft.fallbackRegions },
+            toggle = { draft, region, checked ->
+                draft.copy(fallbackRegions = draft.fallbackRegions.withToggled(region, checked))
+            },
+        ),
+        // Base and service routing split the item list, not the selection: both cards edit the same
+        // `enabledItems` set, so the partition stays disjoint and complete.
+        SwitchCardSpec(
+            key = "base-items",
+            title = { YumeTxt.Override.Draft.BasicRouting },
+            items = orderedBaseItems,
+            iconUrl = OverridePresetItem::icon,
+            label = { item -> item.label() },
+            isChecked = { draft, item -> item in draft.enabledItems },
+            toggle = { draft, item, checked ->
+                draft.copy(enabledItems = draft.enabledItems.withToggled(item, checked))
+            },
+        ),
+        SwitchCardSpec(
+            key = "service-items",
+            title = { YumeTxt.Override.Draft.ServiceRouting },
+            items = orderedServiceItems,
+            iconUrl = OverridePresetItem::icon,
+            label = { item -> item.label() },
+            isChecked = { draft, item -> item in draft.enabledItems },
+            toggle = { draft, item, checked ->
+                draft.copy(enabledItems = draft.enabledItems.withToggled(item, checked))
+            },
+        ),
+    )
 
-private fun <T> toggleSelection(items: MutableList<T>, item: T, checked: Boolean) {
-    if (checked) {
-        if (item !in items) {
-            items.add(item)
-        }
-    } else {
-        items.remove(item)
-    }
+@Composable
+private fun <T> SwitchCard(
+    spec: SwitchCardSpec<T>,
+    selection: OverridePresetTemplateSelection,
+    onSelectionChange: (OverridePresetTemplateSelection) -> Unit,
+) {
+    RoutingSwitchCard(
+        title = spec.title(),
+        items = spec.items,
+        iconUrl = spec.iconUrl,
+        itemTitle = spec.label,
+        isChecked = { item -> spec.isChecked(selection, item) },
+        onCheckedChange = { item, checked ->
+            onSelectionChange(spec.toggle(selection, item, checked))
+        },
+    )
 }
+
+private fun <T> Set<T>.withToggled(item: T, checked: Boolean): Set<T> =
+    if (checked) this + item else this - item

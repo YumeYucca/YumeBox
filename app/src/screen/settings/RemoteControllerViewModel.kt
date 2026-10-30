@@ -29,9 +29,6 @@ import com.github.yumeyucca.yumebox.common.util.stateInWhileSubscribed
 import com.github.yumeyucca.yumebox.data.model.RemoteBackend
 import com.github.yumeyucca.yumebox.data.model.RemoteProtocol
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
-import com.github.yumeyucca.yumebox.data.store.add
-import com.github.yumeyucca.yumebox.data.store.remove
-import com.github.yumeyucca.yumebox.data.store.update
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
 import kotlinx.coroutines.flow.*
 
@@ -96,7 +93,7 @@ class RemoteControllerViewModel(
                 port = port,
                 secret = secret.trim(),
             )
-        store.backends.add(backend)
+        store.backends.set(store.backends.value + backend)
         if (store.activeBackendId.value.isBlank()) {
             store.activeBackendId.set(backend.id)
             proxyFacade.applyRemoteControllerState()
@@ -104,7 +101,7 @@ class RemoteControllerViewModel(
     }
 
     fun updateBackend(updated: RemoteBackend) {
-        store.backends.update({ it.id == updated.id }, { updated })
+        store.backends.set(store.backends.value.map { if (it.id == updated.id) updated else it })
         if (updated.id == store.activeBackendId.value) {
             proxyFacade.applyRemoteControllerState()
         }
@@ -114,7 +111,9 @@ class RemoteControllerViewModel(
         id: String,
         protocol: RemoteProtocol,
     ) {
-        store.backends.update({ it.id == id }, { it.copy(protocol = protocol) })
+        store.backends.set(
+            store.backends.value.map { if (it.id == id) it.copy(protocol = protocol) else it },
+        )
         if (id == store.activeBackendId.value) {
             proxyFacade.applyRemoteControllerState()
         }
@@ -122,7 +121,7 @@ class RemoteControllerViewModel(
 
     fun deleteBackend(id: String) {
         val wasActive = store.activeBackendId.value == id
-        store.backends.remove { it.id == id }
+        store.backends.set(store.backends.value.filterNot { it.id == id })
         if (wasActive) {
             store.activeBackendId.set("")
             store.controllerEnabled.set(false)

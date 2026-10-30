@@ -18,38 +18,24 @@
  *
  */
 
-@file:Suppress("UnusedSymbol", "ConstPropertyName")
+@file:Suppress("ConstPropertyName")
 
 package com.github.yumeyucca.yumebox.presentation.theme
 
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 
-import androidx.compose.animation.core.*
-
+/** Shared motion vocabulary; every entry here must have a real call site. */
 object AnimationSpecs {
-    val StrongEaseOut = CubicBezierEasing(0.23f, 1.0f, 0.32f, 1.0f)
     val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
     val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
-    val Legacy = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
     val StandardEasing = FastOutSlowInEasing
-    val EnterEasing = LinearOutSlowInEasing
-    val ExitEasing = FastOutLinearInEasing
 
-    const val DURATION_INSTANT = 120
-    const val DURATION_FAST = 280
-
-    val ButtonPress: AnimationSpec<Float> = tween(DURATION_FAST, easing = StandardEasing)
-    val ButtonPressSpring: SpringSpec<Float> = spring(dampingRatio = 0.8f, stiffness = 400f)
-    val IconTransition: AnimationSpec<Float> = tween(320, easing = Legacy)
+    // FastOutSlowInEasing is exactly CubicBezierEasing(0.4, 0, 0.2, 1); the legacy sheets ask
+    // for that same curve under an older name, so alias it rather than build a second instance.
+    val Legacy = StandardEasing
 
     object Proxy {
-        const val VisibilityDuration = 180
-        const val VisibilityFadeDuration = 140
-        const val VisibilityInitialScale = 0.8f
-        const val VisibilityTargetScale = 0.8f
-
-        const val FabDuration = VisibilityDuration
-        const val FabFadeDuration = VisibilityFadeDuration
-
         const val SheetSlideInDuration = 340
         const val SheetSlideOutDuration = 300
         const val SheetFadeInDuration = 140

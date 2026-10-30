@@ -26,8 +26,8 @@ import kotlinx.serialization.Serializable
 /** Geometry for the root native-TUN run mode: the core opens its own kernel device from these. */
 @Serializable
 data class TunConfig(
-    val ifName: String = "Yume",
-    val mtu: Int = 1500,
+    val ifName: String = DefaultIfName,
+    val mtu: Int = DefaultMtu,
     val stack: String = "gvisor",
     val inet4Address: List<String> = listOf("172.19.0.1/30"),
     val inet6Address: List<String> = listOf("fdfe:dcba:9876::1/126"),
@@ -51,11 +51,22 @@ data class TunConfig(
     val routeAddress: List<String> = emptyList(),
     val routeExcludeAddress: List<String> = emptyList(),
     val dnsMode: TunDnsMode = TunDnsMode.RedirHost,
-    val fakeIpRange: String? = "198.18.0.1/16",
-    val fakeIpRange6: String? = "fc00::/18",
+    val fakeIpRange: String? = DefaultFakeIpRange,
+    val fakeIpRange6: String? = DefaultFakeIpRange6,
     val allowIpv6: Boolean = true,
     val debugLogPath: String? = null,
-)
+) {
+    companion object {
+        /**
+         * Defaults shared with the settings store, so a fresh install and a locally built config
+         * start from exactly the same values instead of two literals that have to be kept in step.
+         */
+        const val DefaultIfName: String = "Yume"
+        const val DefaultMtu: Int = 1500
+        const val DefaultFakeIpRange: String = "198.18.0.1/16"
+        const val DefaultFakeIpRange6: String = "fc00::/18"
+    }
+}
 
 @Serializable
 enum class TunDnsMode {

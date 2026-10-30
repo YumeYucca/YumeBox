@@ -23,18 +23,6 @@ package com.github.yumeyucca.yumebox.runtime.service.config
 import com.tencent.mmkv.MMKV
 
 class MMKVStoreProvider(private val mmkv: MMKV) : StoreProvider {
-    override fun getInt(key: String, defaultValue: Int): Int = mmkv.decodeInt(key, defaultValue)
-
-    override fun setInt(key: String, value: Int) {
-        mmkv.encode(key, value)
-    }
-
-    override fun getLong(key: String, defaultValue: Long): Long = mmkv.decodeLong(key, defaultValue)
-
-    override fun setLong(key: String, value: Long) {
-        mmkv.encode(key, value)
-    }
-
     override fun getString(key: String, defaultValue: String): String =
         mmkv.decodeString(key, defaultValue) ?: defaultValue
 
@@ -54,14 +42,6 @@ class MMKVStoreProvider(private val mmkv: MMKV) : StoreProvider {
 
     override fun setBoolean(key: String, value: Boolean) {
         mmkv.encode(key, value)
-    }
-
-    override fun remove(key: String) {
-        mmkv.removeValueForKey(key)
-    }
-
-    override fun clear() {
-        mmkv.clearAll()
     }
 }
 

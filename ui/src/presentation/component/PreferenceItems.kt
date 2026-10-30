@@ -22,10 +22,9 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
-import top.yukonga.miuix.kmp.basic.BasicComponent
+import androidx.compose.ui.Modifier
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 
@@ -50,14 +49,18 @@ fun PreferenceSwitchItem(
 fun PreferenceArrowItem(
     title: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     summary: String? = null,
+    enabled: Boolean = true,
     holdDownState: Boolean = false,
     endActions: @Composable (RowScope.() -> Unit)? = null,
     bottomAction: @Composable (() -> Unit)? = null,
 ) {
     ArrowPreference(
         title = title,
+        modifier = modifier,
         summary = summary,
+        enabled = enabled,
         holdDownState = holdDownState,
         endActions = endActions ?: {},
         bottomAction = bottomAction,
@@ -65,36 +68,24 @@ fun PreferenceArrowItem(
     )
 }
 
-@Composable
-fun PreferenceValueItem(
-    title: String,
-    onClick: () -> Unit,
-    summary: String? = null,
-    endActions: @Composable (RowScope.() -> Unit)? = null,
-) {
-    BasicComponent(
-        title = title,
-        summary = summary,
-        endActions = endActions,
-        onClick = onClick,
-    )
-}
-
+/**
+ * A preference row that picks one entry of [values]. Only the ordered entries and their labels are
+ * given, so a label can never drift out of step with the value it describes.
+ */
 @Composable
 fun <T> PreferenceEnumItem(
     title: String,
     currentValue: T,
-    items: List<String>,
     values: List<T>,
     onValueChange: (T) -> Unit,
+    label: (T) -> String,
     summary: String? = null,
 ) {
-    EnumSelector(
+    GlassDropdownPreference(
         title = title,
         summary = summary,
-        currentValue = currentValue,
-        items = items,
-        values = values,
-        onValueChange = onValueChange,
+        options = values.map { GlassDropdownOption(it, label(it)) },
+        selected = currentValue,
+        onSelected = onValueChange,
     )
 }

@@ -27,7 +27,6 @@ import android.content.Context
 import java.io.File
 
 const val RUNTIME_HOME_DIR_NAME = "mihomo"
-const val LEGACY_RUNTIME_HOME_DIR_NAME = "clash"
 const val PROFILE_PROVIDERS_DIR_NAME = "providers"
 const val RULE_PROVIDER_SCOPE = "rules"
 const val PROXY_PROVIDER_SCOPE = "proxies"
@@ -48,9 +47,6 @@ val Context.moeAssetsDir: File
  */
 fun Context.moeWallpaperFile(): File =
     moeAssetsDir.apply { mkdirs() }.resolve(MOE_WALLPAPER_FILE_NAME)
-
-val Context.legacyRuntimeHomeDir: File
-    get() = filesDir.resolve(LEGACY_RUNTIME_HOME_DIR_NAME)
 
 fun profileProvidersRoot(profileDir: File): File = profileDir.resolve(PROFILE_PROVIDERS_DIR_NAME)
 
