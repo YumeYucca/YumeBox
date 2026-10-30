@@ -33,6 +33,12 @@ func applyRuntime(options *option.Options, opts Options) (string, error) {
 	if opts.Secret != "" {
 		api.Secret = opts.Secret
 	}
+	// YumeBox decodes /configs.mode into an enum whose serial names are lowercase ("rule"), and
+	// its root-mode startup probe reads exactly that field. sing-box reports whatever default_mode
+	// carries, so pin the lowercase spelling instead of forcing a Kotlin-side decoder change.
+	if api.DefaultMode == "" {
+		api.DefaultMode = "rule"
+	}
 
 	if options.Log == nil {
 		options.Log = &option.LogOptions{}
