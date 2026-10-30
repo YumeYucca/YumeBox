@@ -247,7 +247,7 @@ private fun MoeCircleActionButton(
     val pressScale by
     animateFloatAsState(
         targetValue = if (isPressed) MoeUi.Button.pressedScale else 1f,
-        animationSpec = spring(dampingRatio = 0.42f, stiffness = 520f),
+        animationSpec = spring(dampingRatio = 1f, stiffness = 600f),
         label = "moe_launch_config_button_press_scale",
     )
     val contentColor = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.62f)
@@ -308,7 +308,7 @@ internal fun MoeLaunchButton(
     val pressScale by
     animateFloatAsState(
         targetValue = if (isPressed && enabled) MoeUi.Button.pressedScale else 1f,
-        animationSpec = spring(dampingRatio = 0.42f, stiffness = 520f),
+        animationSpec = spring(dampingRatio = 1f, stiffness = 600f),
         label = "moe_launch_button_press_scale",
     )
     val targetLabel =

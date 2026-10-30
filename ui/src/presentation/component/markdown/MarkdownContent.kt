@@ -141,7 +141,7 @@ private fun createWebView(
     zoomPercent: Int,
 ): WebView = WebView(context).apply {
     setBackgroundColor(AndroidColor.TRANSPARENT)
-    isVerticalScrollBarEnabled = true
+    isVerticalScrollBarEnabled = false
     isHorizontalScrollBarEnabled = false
     overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
 
