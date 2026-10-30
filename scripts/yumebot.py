@@ -91,14 +91,20 @@ def get_caption(files):
             hashes[variant] = _sha256(path)
 
     if hashes:
-        lines.extend(["", "<b>SHA-256</b>"])
-        parts = [
-            f"<code>{variant}</code> · <code>{hashes[variant]}</code>"
-            for variant in ("builtin", "external")
-            if hashes.get(variant)
-        ]
-        if parts:
-            lines.append(" ｜ ".join(parts))
+        digests = [hashes[v] for v in ("builtin", "external") if hashes.get(v)]
+        if digests:
+            # Collapsed by default so the long hex strings do not dominate the caption; expanding
+            # reveals the full hashes, which Telegram copies on tap.
+            lines.extend(
+                [
+                    "",
+                    "<b>SHA-256</b>",
+                    "<blockquote expandable>"
+                    + "\n".join(f"• <code>{digest}</code>" for digest in digests)
+                    + "</blockquote>",
+                    "Tap a hash to copy",
+                ]
+            )
 
     lines.extend(
         [
