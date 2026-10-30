@@ -45,11 +45,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.view.WindowCompat
+import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
 import com.github.yumeyucca.yumebox.domain.model.TrafficData
 import com.github.yumeyucca.yumebox.presentation.component.WindowLayoutMode
+import com.github.yumeyucca.yumebox.presentation.component.AppMarkdownDialog
 import com.github.yumeyucca.yumebox.presentation.component.BottomBarDestination
 import com.github.yumeyucca.yumebox.presentation.component.LocalDetailNavigator
 import com.github.yumeyucca.yumebox.presentation.component.LocalHandlePageChange
@@ -65,6 +67,7 @@ import com.github.yumeyucca.yumebox.presentation.theme.isDark
 import com.github.yumeyucca.yumebox.presentation.util.findActivity
 import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
+import com.github.yumeyucca.yumebox.update.AppUpdateViewModel
 import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -88,6 +91,7 @@ fun MoeHomePage(
     windowLayoutMode: WindowLayoutMode = WindowLayoutMode.Compact,
 ) {
     val homeViewModel = koinViewModel<HomeViewModel>()
+    val appUpdateViewModel = koinViewModel<AppUpdateViewModel>()
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -95,6 +99,7 @@ fun MoeHomePage(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val screen by homeViewModel.screenState.collectAsState()
+    val update by appUpdateViewModel.update.collectAsState()
     val moe by appSettingsViewModel.moeHomeSectionState.collectAsState()
     val moeHomeQuoteAuthor by appSettingsViewModel.moeHomeQuoteAuthor.state.collectAsState()
     val sidebarExpanded = moe.sidebarExpanded
@@ -111,6 +116,7 @@ fun MoeHomePage(
 
     val batteryPercent = rememberMoeBatteryPercent(context)
     var showHomeSettingsSheet by remember { mutableStateOf(false) }
+    var showUpdateDialog by remember(update) { mutableStateOf(false) }
     var wallpaperRefreshKey by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(isActive) {
@@ -122,10 +128,11 @@ fun MoeHomePage(
 
     DisposableEffect(homeViewModel) { onDispose { homeViewModel.setHomeScreenActive(false) } }
 
-    DisposableEffect(lifecycleOwner, homeViewModel) {
+    DisposableEffect(lifecycleOwner, homeViewModel, isActive) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 homeViewModel.reconcileRuntimeState()
+                if (isActive) appUpdateViewModel.refresh()
                 wallpaperRefreshKey++
             }
         }
@@ -293,6 +300,7 @@ fun MoeHomePage(
             canLaunch =
                 screen.profilesLoaded && screen.profiles.isNotEmpty() && !screen.isRemoteController,
             isRemoteController = screen.isRemoteController,
+            hasUpdate = update != null,
         )
     val actions =
         MoeHomeActions(
@@ -307,6 +315,7 @@ fun MoeHomePage(
             },
             openSettings = { showHomeSettingsSheet = true },
             toggleProxy = handleProxyAction,
+            openUpdate = { showUpdateDialog = true },
         )
     CompositionLocalProvider(LocalWallpaperRefreshKey provides wallpaperRefreshKey) {
         with(actions) { MoeHomeLayout(layoutState, homeLayout) }
@@ -335,6 +344,22 @@ fun MoeHomePage(
         },
         onDismiss = { showHomeSettingsSheet = false },
     )
+
+    update?.let { availableUpdate ->
+        AppMarkdownDialog(
+            show = showUpdateDialog,
+            title = YumeTxt.Home.Update.Title(availableUpdate.versionName),
+            markdown = availableUpdate.notes.ifBlank { YumeTxt.Home.Update.NoNotes },
+            onDismissRequest = { showUpdateDialog = false },
+            onConfirm = {
+                context.openUrl(availableUpdate.downloadUrl)
+                appUpdateViewModel.dismissForSession()
+                showUpdateDialog = false
+            },
+            confirmText = YumeTxt.Home.Update.Action,
+            dismissText = YumeTxt.Home.Update.Later,
+        )
+    }
 }
 
 /**

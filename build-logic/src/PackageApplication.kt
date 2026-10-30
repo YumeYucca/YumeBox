@@ -27,7 +27,7 @@ fun packageApplication(arguments: Array<String>) {
             else -> error("Unknown packaging argument: $argument")
         }
     }
-    val accepted = setOf("module", "build-type", "geo.bundle", "build.number", "build.hash", "build.branch", "apk.output.prefix", "apk.output.tail", "apk.output.channel", "core.branch", "core.commit", "update.channel", "update.tag", "update.metaAssetName", "api.version", "api.group", "api.githubRepository")
+    val accepted = setOf("module", "build-type", "geo.bundle", "build.number", "build.hash", "build.branch", "apk.output.prefix", "apk.output.tail", "apk.output.channel", "core.branch", "core.commit", "update.channel", "update.tag", "update.metaAssetName", "update.baseUrl", "api.version", "api.group", "api.githubRepository")
     require(options.keys.all { it in accepted }) { "Unsupported packaging options: ${options.keys - accepted}" }
     val root = generateSequence(File(System.getProperty("user.dir")).canonicalFile) { it.parentFile }
         .firstOrNull { it.resolve("product.properties").isFile && it.resolve("project.yaml").isFile }

@@ -62,7 +62,8 @@ jobs:
           set -eu
           build_type="${{ inputs.build_type }}"
           sh kotlin run --module=packaging -- --build-type="${build_type}" --compile-only \
-            -Pupdate.channel="${{ inputs.channel }}"
+            -Pupdate.channel="${{ inputs.channel }}" \
+            -Pupdate.baseUrl="${{ vars.R2_PUBLIC_BASE_URL }}"
 
       - name: Upload Toolchain artifacts
         uses: actions/upload-artifact@v7.0.2

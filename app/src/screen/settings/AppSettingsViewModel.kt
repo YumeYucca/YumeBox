@@ -91,6 +91,7 @@ class AppSettingsViewModel(
     val superIslandEnabled: Preference<Boolean> = settings.superIslandEnabled
 
     val customUserAgent: Preference<String> = settings.customUserAgent
+    val autoCheckUpdate: Preference<Boolean> = settings.autoCheckUpdate
 
     data class BehaviorSectionState(
         val automaticRestart: Boolean = false,
@@ -263,14 +264,24 @@ class AppSettingsViewModel(
                 ),
             )
 
-    data class NetworkSectionState(val customUserAgent: String = "")
+    data class NetworkSectionState(
+        val autoCheckUpdate: Boolean = true,
+        val customUserAgent: String = "",
+    )
 
     val networkSectionState: StateFlow<NetworkSectionState> =
-        customUserAgent.state
-            .map { NetworkSectionState(customUserAgent = it) }
+        combine(customUserAgent.state, autoCheckUpdate.state) { userAgent, autoCheck ->
+            NetworkSectionState(
+                autoCheckUpdate = autoCheck,
+                customUserAgent = userAgent,
+            )
+        }
             .stateInWhileSubscribed(
                 viewModelScope,
-                NetworkSectionState(customUserAgent = customUserAgent.value),
+                NetworkSectionState(
+                    autoCheckUpdate = autoCheckUpdate.value,
+                    customUserAgent = customUserAgent.value,
+                ),
             )
 
     data class MoeHomeSectionState(
@@ -411,4 +422,6 @@ class AppSettingsViewModel(
     fun onSuperIslandEnabledChange(enabled: Boolean) = superIslandEnabled.set(enabled)
 
     fun applyCustomUserAgent(userAgent: String) = controller.applyCustomUserAgent(userAgent)
+
+    fun onAutoCheckUpdateChange(enabled: Boolean) = autoCheckUpdate.set(enabled)
 }

@@ -65,6 +65,7 @@ internal class BackupStoreAdapter(
                     moeSidebarExpanded = appSettings.moeSidebarExpanded.value,
                     pageScale = appSettings.pageScale.value,
                     customUserAgent = appSettings.customUserAgent.value,
+                    autoCheckUpdate = appSettings.autoCheckUpdate.value,
                 ),
             networkSettings =
                 NetworkSettingsBackup(
@@ -184,6 +185,7 @@ internal class BackupStoreAdapter(
             appSettings.moeSidebarExpanded,
             appSettings.pageScale,
             appSettings.customUserAgent,
+            appSettings.autoCheckUpdate,
         )
         refreshAfterRawStoreClear(
             networkSettings.runMode,
@@ -263,6 +265,7 @@ internal class BackupStoreAdapter(
         appSettings.moeSidebarExpanded.set(value.moeSidebarExpanded)
         appSettings.pageScale.set(value.pageScale)
         appSettings.customUserAgent.set(value.customUserAgent)
+        appSettings.autoCheckUpdate.set(value.autoCheckUpdate)
     }
 
     private fun applyNetworkSettings(value: NetworkSettingsBackup) {

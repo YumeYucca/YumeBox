@@ -25,6 +25,7 @@ import com.github.yumeyucca.yumebox.core.model.ConnectionSnapshot
 import com.github.yumeyucca.yumebox.data.controller.*
 import com.github.yumeyucca.yumebox.data.store.*
 import com.github.yumeyucca.yumebox.data.store.room.createTrafficStatisticsDao
+import com.github.yumeyucca.yumebox.data.update.AppUpdateRepository
 import com.github.yumeyucca.yumebox.domain.model.TrafficData
 import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
 import com.github.yumeyucca.yumebox.runtime.client.ProfilesRepository
@@ -85,6 +86,7 @@ val appFoundationModule = module {
 }
 
 val appDataRuntimeModule = module {
+    single { AppUpdateRepository() }
     single { AppSettingsController(get(), applyLanguage = AppLanguageManager::apply) }
     single {
         val proxyFacade = get<ProxyFacade>()

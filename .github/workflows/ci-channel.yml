@@ -8,6 +8,9 @@ on:
       - "docs/**"
       - "website/**"
       - ".gitignore"
+  schedule:
+    # Daily nightlies at 02:00 Asia/Shanghai; push builds still publish immediately.
+    - cron: "0 18 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -161,7 +164,6 @@ jobs:
     uses: ./.github/workflows/reusable-prepare-publish.yml
     with:
       channel: pre
-      module: app
       artifact_prefix: YumeBox
       release_tag: Pre-release
       meta_asset_name: YumeBox-pre-meta.json
@@ -169,10 +171,24 @@ jobs:
       build_hash: ${{ github.sha }}
       build_branch: ${{ github.ref_name }}
       apk_name_tail: ${{ needs.build-apk-pre-app.outputs.apk_name_tail }}
+      publish_meta_artifact_name: publish-meta-pre-app
+      update_public_base_url: ${{ vars.R2_PUBLIC_BASE_URL }}
+    secrets: inherit
+
+  publish-r2-pre:
+    name: "08 · R2 (Pre)"
+    needs:
+      - prepare-publish-pre-app
+      - verify-published-apk
+    uses: ./.github/workflows/reusable-publish-r2.yml
+    with:
+      channel: nightly
+      apk_artifact_name: ${{ needs.prepare-publish-pre-app.outputs.default_apk_name }}
+      meta_artifact_name: publish-meta-pre-app
     secrets: inherit
 
   notify-pre:
-    name: "08 · Notify (Pre)"
+    name: "09 · Notify (Pre)"
     needs:
       - prepare-publish-pre-app
       - build-telegram-bot-api
@@ -207,10 +223,11 @@ jobs:
           unzip -t "${apks[0]}" >/dev/null
 
   cleanup-artifacts:
-    name: "09 · Cleanup"
+    name: "10 · Cleanup"
     needs:
       - notify-pre
       - verify-published-apk
+      - publish-r2-pre
     permissions:
       actions: write
     uses: ./.github/workflows/reusable-cleanup-artifacts.yml

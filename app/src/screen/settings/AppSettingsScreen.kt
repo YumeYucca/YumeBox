@@ -32,9 +32,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.style.TextAlign
 import androidx.core.net.toUri
-import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.common.util.SubscriptionUserAgentDefaults
 import com.github.yumeyucca.yumebox.common.util.startActivitySafely
+import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
@@ -253,6 +255,11 @@ private fun AppNetworkSettingsSection(viewModel: AppSettingsViewModel) {
 
     Title(YumeTxt.AppSettings.Section.Network)
     AppCard {
+        PreferenceSwitchItem(
+            title = YumeTxt.AppSettings.Network.AutoCheckUpdateTitle,
+            checked = section.autoCheckUpdate,
+            onCheckedChange = viewModel::onAutoCheckUpdateChange,
+        )
         CustomUserAgentPreferenceItem(
             customUserAgent = section.customUserAgent,
             onConfirm = viewModel::applyCustomUserAgent,
@@ -373,11 +380,10 @@ private fun PredictiveBackProgressPreferenceItem(
 
 @Composable
 private fun CustomUserAgentPreferenceItem(customUserAgent: String, onConfirm: (String) -> Unit) {
-    val customUserAgentSummary =
-        customUserAgent.ifEmpty { YumeTxt.AppSettings.Network.CustomUserAgentSummaryDefault }
     val focusManager = LocalFocusManager.current
     var showEditDialog by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf(customUserAgent) }
+    val effectiveUserAgent = customUserAgent.ifBlank { SubscriptionUserAgentDefaults.DEFAULT }
 
     fun applyDraft() {
         onConfirm(draft)
@@ -386,8 +392,15 @@ private fun CustomUserAgentPreferenceItem(customUserAgent: String, onConfirm: (S
     }
 
     PreferenceArrowItem(
-        title = YumeTxt.AppSettings.Network.CustomUserAgentTitle,
-        summary = customUserAgentSummary,
+        title = YumeTxt.AppSettings.Network.UserAgentTitle,
+        endActions = {
+            Text(
+                text = effectiveUserAgent,
+                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f),
+            )
+        },
         onClick = {
             draft = customUserAgent
             showEditDialog = true

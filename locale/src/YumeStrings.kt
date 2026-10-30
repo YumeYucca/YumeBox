@@ -253,8 +253,8 @@ public data class YumeStrings_AppSettings_ServiceSection(
 )
 
 public data class YumeStrings_AppSettings_Network(
-    public val CustomUserAgentTitle: String,
-    public val CustomUserAgentSummaryDefault: String,
+    public val AutoCheckUpdateTitle: String,
+    public val UserAgentTitle: String,
 )
 
 public data class YumeStrings_AppSettings_WarningDialog(
@@ -708,6 +708,14 @@ public data class YumeStrings_Home_PreviewGuide(
     public val AddDescription: String,
 )
 
+public data class YumeStrings_Home_Update(
+    public val Title: String,
+    public val Action: String,
+    public val Later: String,
+    public val IconDescription: String,
+    public val NoNotes: String,
+)
+
 public data class YumeStrings_Home(
     public val Message: YumeStrings_Home_Message,
     public val Control: YumeStrings_Home_Control,
@@ -716,6 +724,7 @@ public data class YumeStrings_Home(
     public val Status: YumeStrings_Home_Status,
     public val Settings: YumeStrings_Home_Settings,
     public val PreviewGuide: YumeStrings_Home_PreviewGuide,
+    public val Update: YumeStrings_Home_Update,
 )
 
 // ==================== Log ====================
@@ -1599,7 +1608,7 @@ public data class YumeStrings_Settings_UiSettings(
     public val OverrideSummary: String,
     public val MetaFeatures: String,
     public val MetaFeaturesSummary: String,
-    public val AppAppearance: String,
+    public val AppSettingsEntry: String,
     public val OverrideScript: String,
     public val RemoteControl: String,
     public val RemoteControlSummary: String,

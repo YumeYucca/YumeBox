@@ -35,6 +35,11 @@ dependencies:
   - $libs.lucide.compose
   - $libs.miuix.squircle
   - $libs.material.kolor.utilities
+  - $libs.commonmark
+  - $libs.commonmark.ext.gfm.tables
+  - $libs.commonmark.ext.gfm.strikethrough
+  - $libs.commonmark.ext.autolink
+  - $libs.commonmark.ext.task.list.items
 
 
 

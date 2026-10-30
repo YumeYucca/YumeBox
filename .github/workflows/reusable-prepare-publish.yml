@@ -6,9 +6,6 @@ on:
       channel:
         required: true
         type: string
-      module:
-        required: true
-        type: string
       artifact_prefix:
         required: true
         type: string
@@ -28,6 +25,16 @@ on:
         type: string
       publish_artifact_name:
         description: "When non-empty, also upload one aggregate artifact with all publish APKs (only the stable release pipeline consumes it via the publish-<channel>-* pattern)."
+        required: false
+        type: string
+        default: ""
+      publish_meta_artifact_name:
+        description: "When non-empty, upload the generated update manifest as an artifact for R2 publishing."
+        required: false
+        type: string
+        default: ""
+      update_public_base_url:
+        description: "Public base URL used in the update manifest download links (for example https://dl.example.com)."
         required: false
         type: string
         default: ""
@@ -179,14 +186,13 @@ jobs:
           fi
 
           export CHANNEL="${{ inputs.channel }}"
-          export MODULE="${{ inputs.module }}"
           export ARTIFACT_PREFIX="${{ inputs.artifact_prefix }}"
-          export RELEASE_TAG="${{ inputs.release_tag }}"
           export META_ASSET_NAME="${{ inputs.meta_asset_name }}"
           export VERSION_NAME="${version_name}"
           export VERSION_CODE="${version_code}"
           export RELEASE_URL="${release_url}"
           export PUBLISHED_AT="${publish_time}"
+          export UPDATE_PUBLIC_BASE_URL="${{ inputs.update_public_base_url }}"
 
           python3 - <<'PY'
           import hashlib
@@ -196,59 +202,82 @@ jobs:
 
           publish_dir = Path("publish")
           release_notes_path = Path("publish/meta/release-notes.txt")
-          channel = os.environ["CHANNEL"]
-          module = os.environ["MODULE"]
+          channel_raw = os.environ["CHANNEL"]
+          if channel_raw == "stable":
+              channel = "stable"
+          elif channel_raw == "pre":
+              channel = "nightly"
+          else:
+              raise SystemExit(f"Unsupported update channel: {channel_raw}")
           artifact_prefix = os.environ["ARTIFACT_PREFIX"]
-          release_tag = os.environ["RELEASE_TAG"]
           meta_asset_name = os.environ["META_ASSET_NAME"]
-          repo = os.environ["GITHUB_REPOSITORY"]
           sha = os.environ["GITHUB_SHA"]
           version_name = os.environ["VERSION_NAME"]
           version_code = int(os.environ["VERSION_CODE"])
           release_url = os.environ["RELEASE_URL"]
           published_at = os.environ["PUBLISHED_AT"]
-          release_notes = release_notes_path.read_text(encoding="utf-8").strip() if release_notes_path.exists() else ""
+          public_base = os.environ["UPDATE_PUBLIC_BASE_URL"].strip().rstrip("/")
+          release_notes = (
+              release_notes_path.read_text(encoding="utf-8").strip()
+              if release_notes_path.exists()
+              else ""
+          )
 
-          packages = []
+          external_packages = []
           for apk in sorted(publish_dir.glob("*.apk")):
               name = apk.name
               geo_bundled = name.startswith(f"{artifact_prefix}-builtin-")
-              abi = "arm64-v8a"
+              if geo_bundled:
+                  continue
 
               h = hashlib.sha256()
               with apk.open("rb") as f:
                   for chunk in iter(lambda: f.read(1024 * 1024), b""):
                       h.update(chunk)
 
-              packages.append({
-                  "abi": abi,
-                  "geoBundled": geo_bundled,
+              external_packages.append({
+                  "abi": "arm64-v8a",
+                  "geoBundled": False,
                   "fileName": name,
-                  "downloadUrl": f"https://github.com/{repo}/releases/download/{release_tag}/{name}",
                   "size": apk.stat().st_size,
                   "sha256": h.hexdigest(),
-                  "isUniversal": False,
               })
 
-          meta = {
-              "schemaVersion": 2,
+          if len(external_packages) != 1:
+              raise SystemExit(f"Expected exactly one external APK, found {len(external_packages)}")
+          package = external_packages[0]
+          apk_key = f"releases/{channel}/YumeBox-external.apk"
+          download_url = (
+              f"{public_base}/{apk_key}?v={version_code}-{package['sha256'][:8]}"
+              if public_base else ""
+          )
+
+          manifest = {
+              "schemaVersion": 1,
               "channel": channel,
-              "module": module,
-              "artifactPrefix": artifact_prefix,
-              "tag": release_tag,
               "versionName": version_name,
               "versionCode": version_code,
-              "publishedAt": published_at,
               "commitSha": sha,
-              "releaseNotes": release_notes,
-              "releaseUrl": release_url,
-              "packages": packages,
+              "publishedAt": published_at,
+              "notes": release_notes,
+              "releaseUrl": release_url if channel == "stable" else "",
+              "packages": [
+                  {
+                      "id": "external-arm64-v8a",
+                      "abi": package["abi"],
+                      "geoBundled": False,
+                      "fileName": package["fileName"],
+                      "downloadUrl": download_url,
+                      "size": package["size"],
+                      "sha256": package["sha256"],
+                  }
+              ],
           }
 
           meta_dir = Path("publish/meta")
           meta_dir.mkdir(parents=True, exist_ok=True)
           (meta_dir / meta_asset_name).write_text(
-              json.dumps(meta, ensure_ascii=False, indent=2) + "\n",
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
               encoding="utf-8",
           )
           PY
@@ -263,6 +292,14 @@ jobs:
           # APKs are already zip-compressed; keep the archive (downstream jobs
           # download-artifact it) but store entries uncompressed.
           compression-level: 0
+
+      - name: Upload publish metadata
+        if: inputs.publish_meta_artifact_name != ''
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ${{ inputs.publish_meta_artifact_name }}
+          path: publish/meta/${{ inputs.meta_asset_name }}
+          if-no-files-found: error
 
       # Per-APK artifacts: each published APK is uploaded separately with archive:false —
       # the raw .apk is stored as-is (no zip wrapper, no recompression) and downloads

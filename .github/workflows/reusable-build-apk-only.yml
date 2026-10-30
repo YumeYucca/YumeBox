@@ -198,6 +198,7 @@ jobs:
             -Pupdate.channel="${{ inputs.channel }}"
             -Pupdate.tag="${{ inputs.release_tag }}"
             -Pupdate.metaAssetName="${{ inputs.meta_asset_name }}"
+            -Pupdate.baseUrl="${{ vars.R2_PUBLIC_BASE_URL }}"
             -Pbuild.number="${BUILD_NUMBER}"
             -Pbuild.hash="${BUILD_HASH:0:8}"
             -Pbuild.branch="${BUILD_BRANCH}"
