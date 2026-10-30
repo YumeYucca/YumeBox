@@ -85,8 +85,7 @@ jobs:
         run: |
           set -eu
           aws s3 ls "s3://${R2_BUCKET}/" \
-            --endpoint-url "${R2_ENDPOINT}" \
-            --only-show-errors >/dev/null
+            --endpoint-url "${R2_ENDPOINT}" >/dev/null
 
       - name: Validate update manifest
         shell: bash
