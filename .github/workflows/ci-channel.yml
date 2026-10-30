@@ -16,6 +16,7 @@ concurrency:
 
 permissions:
   contents: write
+  packages: read
 
 # Version counter N = commit count of the built commit (`git rev-list --count HEAD`),
 # computed inside reusable-build-apk-only.yml / reusable-prepare-publish.yml after their

@@ -14,6 +14,7 @@ concurrency:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   # Prebuild Java/Kotlin & module resources in parallel with the native build jobs.
