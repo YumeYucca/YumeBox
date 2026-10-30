@@ -126,8 +126,14 @@ class WebViewActivity : ComponentActivity() {
         if (url.isEmpty()) return null
         val scheme = url.substringBefore(':', missingDelimiterValue = "").lowercase()
         if (scheme == "http" || scheme == "https") return url
-        if (scheme == "file" && url.startsWith("file://$filesDir/frontend/", ignoreCase = true)) {
-            return url
+        if (scheme == "file") {
+            val uri = Uri.parse(url)
+            val path = uri.path ?: return null
+            val insideFrontend = runCatching {
+                val root = java.io.File(filesDir, "frontend").canonicalFile.toPath()
+                java.io.File(path).canonicalFile.toPath().startsWith(root)
+            }.getOrDefault(false)
+            if (uri.authority.isNullOrEmpty() && insideFrontend) return url
         }
         Timber.w("Refusing to load unsupported URL from an external intent: %s", url)
         return null
