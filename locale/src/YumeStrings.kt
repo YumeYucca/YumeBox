@@ -848,7 +848,6 @@ public data class YumeStrings_NetworkSettings_Advanced(
     public val DisableOverrideTitle: String,
     public val DisableOverrideSummary: String,
     public val ServiceOptionsSummary: String,
-    public val OverrideSectionTitle: String,
 )
 
 public data class YumeStrings_NetworkSettings_RunMode(
@@ -864,15 +863,17 @@ public data class YumeStrings_NetworkSettings_RunMode(
 )
 
 public data class YumeStrings_NetworkSettings_VpnOptions(
+    public val ProtocolSectionTitle: String,
+    public val ProtocolSectionSummary: String,
+    public val NetworkSectionTitle: String,
+    public val NetworkSectionSummary: String,
+    public val DnsSectionTitle: String,
+    public val DnsSectionSummary: String,
     public val BypassPrivateTitle: String,
     public val DnsHijackTitle: String,
     public val AllowBypassTitle: String,
     public val EnableIpv6Title: String,
     public val SystemProxyTitle: String,
-)
-
-public data class YumeStrings_NetworkSettings_EbpfOptions(
-    public val BypassCnTitle: String,
 )
 
 public data class YumeStrings_NetworkSettings_TunOptions(
@@ -971,7 +972,6 @@ public data class YumeStrings_NetworkSettings(
     public val Advanced: YumeStrings_NetworkSettings_Advanced,
     public val RunMode: YumeStrings_NetworkSettings_RunMode,
     public val VpnOptions: YumeStrings_NetworkSettings_VpnOptions,
-    public val EbpfOptions: YumeStrings_NetworkSettings_EbpfOptions,
     public val TunOptions: YumeStrings_NetworkSettings_TunOptions,
     public val Kernel: YumeStrings_NetworkSettings_Kernel,
     public val ProxyOptions: YumeStrings_NetworkSettings_ProxyOptions,

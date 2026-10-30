@@ -43,43 +43,56 @@ fun VpnServiceOptionsScreen() {
     val stack by viewModel.tunStack.state.collectAsState()
 
     ServiceOptionsPage(YumeTxt.NetworkSettings.Section.VpnOptions) {
-    item {
-        Title(YumeTxt.NetworkSettings.RunMode.VpnServiceTitle)
-        AppCard {
-            PreferenceEnumItem(
-                title = YumeTxt.NetworkSettings.TunOptions.StackTitle,
-                currentValue = stack.forVpnService(),
-                values = listOf(TunStack.GVisor, TunStack.Mips),
-                onValueChange = viewModel::onTunStackChange,
-                label = ::tunStackLabel,
-            )
-            PreferenceSwitchItem(
-                title = YumeTxt.NetworkSettings.VpnOptions.BypassPrivateTitle,
-                checked = tunOptions.common.bypassPrivateNetwork,
-                onCheckedChange = viewModel::onBypassPrivateNetworkChange,
-            )
-            PreferenceSwitchItem(
-                title = YumeTxt.NetworkSettings.VpnOptions.DnsHijackTitle,
-                checked = tunOptions.common.dnsHijack,
-                onCheckedChange = viewModel::onDnsHijackChange,
-            )
-            PreferenceSwitchItem(
-                title = YumeTxt.NetworkSettings.VpnOptions.EnableIpv6Title,
-                checked = tunOptions.common.enableIPv6,
-                onCheckedChange = viewModel::onEnableIPv6Change,
-            )
-            PreferenceSwitchItem(
-                title = YumeTxt.NetworkSettings.VpnOptions.AllowBypassTitle,
-                checked = tunOptions.allowBypass,
-                onCheckedChange = viewModel::onAllowBypassChange,
-            )
-            PreferenceSwitchItem(
-                title = YumeTxt.NetworkSettings.VpnOptions.SystemProxyTitle,
-                checked = tunOptions.systemProxy,
-                onCheckedChange = viewModel::onSystemProxyChange,
-            )
+        item {
+            Title(YumeTxt.NetworkSettings.VpnOptions.ProtocolSectionTitle)
+            AppCard {
+                PreferenceEnumItem(
+                    title = YumeTxt.NetworkSettings.TunOptions.StackTitle,
+                    currentValue = stack.forVpnService(),
+                    values = listOf(TunStack.GVisor, TunStack.Mips),
+                    onValueChange = viewModel::onTunStackChange,
+                    label = ::tunStackLabel,
+                )
+            }
+            SectionSummary(YumeTxt.NetworkSettings.VpnOptions.ProtocolSectionSummary)
         }
-    }
-    item { WifiAutomationSettingsSection() }
+        item {
+            Title(YumeTxt.NetworkSettings.VpnOptions.NetworkSectionTitle)
+            AppCard {
+                PreferenceSwitchItem(
+                    title = YumeTxt.NetworkSettings.VpnOptions.BypassPrivateTitle,
+                    checked = tunOptions.common.bypassPrivateNetwork,
+                    onCheckedChange = viewModel::onBypassPrivateNetworkChange,
+                )
+                PreferenceSwitchItem(
+                    title = YumeTxt.NetworkSettings.VpnOptions.AllowBypassTitle,
+                    checked = tunOptions.allowBypass,
+                    onCheckedChange = viewModel::onAllowBypassChange,
+                )
+                PreferenceSwitchItem(
+                    title = YumeTxt.NetworkSettings.VpnOptions.SystemProxyTitle,
+                    checked = tunOptions.systemProxy,
+                    onCheckedChange = viewModel::onSystemProxyChange,
+                )
+            }
+            SectionSummary(YumeTxt.NetworkSettings.VpnOptions.NetworkSectionSummary)
+        }
+        item {
+            Title(YumeTxt.NetworkSettings.VpnOptions.DnsSectionTitle)
+            AppCard {
+                PreferenceSwitchItem(
+                    title = YumeTxt.NetworkSettings.VpnOptions.DnsHijackTitle,
+                    checked = tunOptions.common.dnsHijack,
+                    onCheckedChange = viewModel::onDnsHijackChange,
+                )
+                PreferenceSwitchItem(
+                    title = YumeTxt.NetworkSettings.VpnOptions.EnableIpv6Title,
+                    checked = tunOptions.common.enableIPv6,
+                    onCheckedChange = viewModel::onEnableIPv6Change,
+                )
+            }
+            SectionSummary(YumeTxt.NetworkSettings.VpnOptions.DnsSectionSummary)
+        }
+        item { WifiAutomationSettingsSection() }
     }
 }
