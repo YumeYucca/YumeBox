@@ -25,6 +25,12 @@ func Run(args []string, channel string) int {
 	opts := ParseFlags(args)
 	opts.Channel = channel
 
+	// --test never opens the launcher channel: ProfileConfigTester.kt only passes --home and
+	// --config, and the default run mode would otherwise demand a CHANNEL fd.
+	if opts.Test {
+		return runTest(opts)
+	}
+
 	realHome := opts.Home
 	if realHome == "" {
 		return Fatal("missing required --home")
@@ -56,6 +62,9 @@ func Run(args []string, channel string) int {
 		MTU:     opts.MTU,
 		// The app's mode switch is only real if the converted config declares the modes.
 		EnableModeSwitching: true,
+		// The preview core is inspect-only: no listeners, no tun, nothing that could collide with
+		// the session it is previewing.
+		Preview: opts.Mode == "preview",
 	})
 	if err != nil {
 		return Fatal("convert config: %v", err)
@@ -84,12 +93,6 @@ func Run(args []string, channel string) int {
 	})
 	if err != nil {
 		return Fatal("create instance: %v", err)
-	}
-
-	if opts.Test {
-		_ = instance.Close()
-		fmt.Fprintf(os.Stdout, "configuration file %s test is successful\n", opts.ConfigPath)
-		return 0
 	}
 
 	// Armed before Start so a stop arriving mid-startup is latched, not lost.
@@ -140,6 +143,33 @@ func Check(home string, rawConfig []byte) error {
 		return fmt.Errorf("create instance: %w", err)
 	}
 	return instance.Close()
+}
+
+// runTest implements the app's config-validation contract. The "mihomo:" prefix is deliberate:
+// ProfileConfigTester.kt strips that prefix and then the "test failed:" marker to show only the
+// cause, and the same tester runs against both kernels. Changing the wording would leak
+// app-private paths into the UI.
+func runTest(opts Options) int {
+	if opts.ConfigPath == "" {
+		return testFatal("--test requires --config")
+	}
+	if opts.Home == "" {
+		return testFatal("--test requires --home")
+	}
+	content, err := os.ReadFile(opts.ConfigPath)
+	if err != nil {
+		return testFatal("read config %q: %v", opts.ConfigPath, err)
+	}
+	if err = Check(opts.Home, content); err != nil {
+		return testFatal("configuration file %s test failed: %v", opts.ConfigPath, err)
+	}
+	fmt.Fprintf(os.Stdout, "configuration file %s test is successful\n", opts.ConfigPath)
+	return 0
+}
+
+func testFatal(format string, args ...any) int {
+	fmt.Fprintf(os.Stderr, "mihomo: "+format+"\n", args...)
+	return 1
 }
 
 // readStartup fetches the compiled config: vpn takes it, plus the TUN fd, off the CHANNEL

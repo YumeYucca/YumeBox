@@ -32,6 +32,9 @@ type Options struct {
 	// EnableModeSwitching emits the clash_mode rules sing-box needs for Global/Direct to exist at
 	// all; without them PATCH /configs is a no-op.
 	EnableModeSwitching bool
+	// Preview marks the inspect-only core: it must not bind a local proxy port, because a running
+	// session may already own it and the preview is supposed to expose nothing.
+	Preview bool
 }
 
 // Result is the sing-box options document plus everything the conversion had to give up on.
@@ -126,7 +129,7 @@ func Convert(content []byte, options Options) (Result, error) {
 	}
 	// Local ports only matter when the core is not the VPN's tun owner: the app never listens on
 	// localhost, but a diagnostic run (and the device checks) need an entry point.
-	if c.options.Gateway == "" {
+	if c.options.Gateway == "" && !c.options.Preview {
 		if inbound, ok := c.convertLocalInbound(document); ok {
 			inbounds = append(inbounds, inbound)
 		}
@@ -880,6 +883,7 @@ func (c *converter) convertDNS(raw any) (map[string]any, bool) {
 		servers = append(fakeIPServers, servers...)
 
 		realTag := asString(servers[len(servers)-1].(map[string]any)["tag"])
+		var skippedFilters []string
 		excluded := map[string]any{"query_type": []string{"A", "AAAA"}, "server": realTag}
 		var suffixes, domains []string
 		for _, entry := range asStringList(dns["fake-ip-filter"]) {
@@ -889,7 +893,7 @@ func (c *converter) convertDNS(raw any) (map[string]any, bool) {
 			case strings.HasPrefix(entry, "."):
 				suffixes = append(suffixes, strings.TrimPrefix(entry, "."))
 			case strings.ContainsAny(entry, "*"):
-				c.warnf("fake-ip-filter pattern %q uses wildcards sing-box cannot express; skipped", entry)
+				skippedFilters = append(skippedFilters, entry)
 			case entry != "":
 				domains = append(domains, entry)
 			}
@@ -902,6 +906,10 @@ func (c *converter) convertDNS(raw any) (map[string]any, bool) {
 		}
 		if len(suffixes) > 0 || len(domains) > 0 {
 			dnsRules = append(dnsRules, excluded)
+		}
+		if len(skippedFilters) > 0 {
+			c.warnf("%d fake-ip-filter patterns use wildcards sing-box cannot express and were skipped: %s",
+				len(skippedFilters), strings.Join(skippedFilters, ", "))
 		}
 		dnsRules = append(dnsRules, map[string]any{
 			"query_type": []string{"A", "AAAA"}, "server": "fakeip",

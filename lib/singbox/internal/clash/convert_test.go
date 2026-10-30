@@ -464,3 +464,100 @@ func TestRealSubscriptionShapesSurviveConversion(t *testing.T) {
 		t.Fatalf("sing-box rejected the converted subscription shapes: %v", err)
 	}
 }
+
+func TestPreviewConversionBindsNothing(t *testing.T) {
+	profile := `
+mixed-port: 7890
+socks-port: 7891
+proxies:
+  - { name: n, type: trojan, server: n.example.com, port: 443, password: p }
+proxy-groups:
+  - { name: g, type: select, proxies: [n, DIRECT] }
+rules:
+  - MATCH,g
+`
+	result, err := clash.Convert([]byte(profile), clash.Options{Preview: true})
+	if err != nil {
+		t.Fatalf("convert: %v", err)
+	}
+	if inbounds, exists := result.Options["inbounds"]; exists {
+		t.Fatalf("a preview config must not declare inbounds, got %v", inbounds)
+	}
+	encoded, _ := json.Marshal(result.Options)
+	if err := core.Check("", encoded); err != nil {
+		t.Fatalf("sing-box rejected the preview config: %v", err)
+	}
+}
+
+// The app does not feed the core a raw subscription: the Rust compiler applies the runtime patch
+// set first, which forces fake-ip DNS, adds a tun block, pins interface-name/routing-mark and
+// installs the unix controller. This locks the converter against that exact shape.
+const runtimePatchedProfile = `
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+ipv6: true
+external-controller: 127.0.0.1:9090
+internal-controller: unix:/data/user/0/com.github.yumeyucca.yumebox/files/core.sock
+interface-name: wlan0
+routing-mark: 0
+tcp-concurrent: true
+unified-delay: true
+profile:
+  store-selected: true
+  store-fake-ip: true
+dns:
+  enable: true
+  use-hosts: true
+  default-nameserver: [223.5.5.5, 119.29.29.29]
+  nameserver: [223.5.5.5, 119.29.29.29]
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter: ['+.stun.*.*', '+.stun.*.*.*', +.lan, localhost]
+  ipv6: false
+tun:
+  enable: true
+  stack: mixed
+  auto-route: false
+  auto-detect-interface: false
+  mtu: 1500
+proxies:
+  - { name: hy2, type: hysteria2, server: hy2.example.com, port: 50000, ports: 50000-53000,
+      password: p, sni: www.example.com, skip-cert-verify: true, udp: true }
+proxy-groups:
+  - { name: PROXY, type: select, proxies: [hy2, DIRECT] }
+rules:
+  - DOMAIN-SUFFIX,example.com,PROXY
+  - GEOIP,CN,DIRECT
+  - MATCH,PROXY
+`
+
+func TestRuntimePatchedProfileConverts(t *testing.T) {
+	result, err := clash.Convert([]byte(runtimePatchedProfile), clash.Options{
+		Gateway:             "172.19.0.1/30",
+		TunName:             "tun0",
+		EnableModeSwitching: true,
+	})
+	if err != nil {
+		t.Fatalf("convert: %v", err)
+	}
+
+	inbounds := result.Options["inbounds"].([]any)
+	if len(inbounds) != 1 {
+		t.Fatalf("the VPN run must declare exactly the tun inbound, got %d", len(inbounds))
+	}
+	tun := inbounds[0].(map[string]any)
+	if tun["type"] != "tun" || tun["interface_name"] != "tun0" || tun["auto_route"] != false {
+		t.Fatalf("tun inbound is wrong: %v", tun)
+	}
+	// Clash "mixed" is not a sing-box stack; gvisor is the safe fallback the mihomo shim used.
+	if tun["stack"] != "gvisor" {
+		t.Fatalf("stack mixed must fall back to gvisor, got %v", tun["stack"])
+	}
+
+	encoded, _ := json.Marshal(result.Options)
+	if err := core.Check("", encoded); err != nil {
+		t.Fatalf("sing-box rejected the runtime-patched conversion: %v", err)
+	}
+}
