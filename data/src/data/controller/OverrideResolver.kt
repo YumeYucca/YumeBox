@@ -55,7 +55,7 @@ class OverrideResolver(
         // Keep every bound id (except legacy/internal). Do not drop missing files here — callers
         // compare resolved specs vs ids so a missing override surfaces as a failed apply instead of
         // silently compiling a shorter chain.
-        return binding.overrideIds
+        return binding.enabledOverrideIds
             .asSequence()
             .filterNot { overrideId ->
                 OverrideMetadata.isLegacyPresetId(overrideId) ||

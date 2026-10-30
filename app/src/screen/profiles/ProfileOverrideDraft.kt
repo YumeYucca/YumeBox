@@ -60,10 +60,10 @@ import timber.log.Timber
  * The 覆写 page's loaded state and its only write path: the profile's binding, the override rows
  * derived from the selection, and the serialised save every toggle and drag ends in.
  *
- * The page never assigns a field — [setSelected], [setCustomRouting] and [reorder] are the only
- * writers, and each of them commits the list it was handed before persisting it. [ProfileOverrideSelection]
- * still owns the loaded gate, so a toggle racing [load] cannot write over a binding that has not
- * been read yet.
+ * The page never assigns a field — [attach], [detach], [setSelected], [setCustomRouting] and
+ * [reorder] are the only writers, and each of them persists the selection it just changed.
+ * [ProfileOverrideSelection] still owns the loaded gate, so a toggle racing [load] cannot write over
+ * a binding that has not been read yet.
  */
 @Stable
 internal class ProfileOverrideDraft internal constructor(
@@ -95,51 +95,54 @@ internal class ProfileOverrideDraft internal constructor(
 
     /** 自定义路由 is one more override id, so the switch is just a membership test. */
     val customRoutingSelected: Boolean
-        get() = customRoutingId in selection.ids
+        get() = selection.isEnabled(customRoutingId)
 
     private val selectableConfigs by derivedStateOf { builtInConfigs.value + userConfigs.value }
 
     private val selectableById by derivedStateOf { selectableConfigs.associateBy(OverrideConfig::id) }
 
-    /** Only the selected ids the row list can actually show, in selection order. */
-    private val visibleSelectedIds by derivedStateOf {
+    /** Attached rows in drag order; ids whose config disappeared are skipped. */
+    val rowIds: List<String> by derivedStateOf {
         selection.ids.filter(selectableById::containsKey)
     }
 
-    /** Selected rows first in drag order, then every unselected row in config order. */
-    val rowIds: List<String> by derivedStateOf {
-        val selectedIds = selection.ids.toSet()
-        visibleSelectedIds +
-            selectableConfigs
-                .asSequence()
-                .map(OverrideConfig::id)
-                .filterNot(selectedIds::contains)
-                .toList()
+    /** Configs offered by the picker, including already attached ones so they can be removed. */
+    val pickerConfigs: List<OverrideConfig> by derivedStateOf {
+        selectableConfigs
     }
 
     /** The row's config; null for an id that is no longer offered, which the row skips. */
     fun configFor(overrideId: String): OverrideConfig? = selectableById[overrideId]
 
-    fun isSelected(overrideId: String): Boolean = overrideId in selection.ids
+    fun isSelected(overrideId: String): Boolean = selection.isEnabled(overrideId)
+
+    fun isAttached(overrideId: String): Boolean = overrideId in selection.ids
+
+    /** Adds a row without applying it, so the checkbox starts off. */
+    fun attach(overrideId: String) {
+        if (selection.attach(overrideId)) persistOverrides()
+    }
+
+    fun detach(overrideId: String) {
+        if (selection.detach(overrideId)) persistOverrides()
+    }
 
     /** Turns one row on or off; a toggle that changes nothing is never persisted. */
     fun setSelected(overrideId: String, selected: Boolean) {
-        selection.toggle(overrideId, selected)?.let(::persistOverrides)
+        if (selection.setEnabled(overrideId, selected)) persistOverrides()
     }
 
     /** The 自定义路由 switch, behind the same commit-then-persist rule as a row. */
     fun setCustomRouting(selected: Boolean) {
-        setSelected(customRoutingId, selected)
+        if (selection.setCustomRouting(customRoutingId, selected)) persistOverrides()
     }
 
     /**
-     * Commits a drag inside the visible order; [ProfileOverrideSelection.reorder] answers null when
-     * the move changes nothing, and a null result is never persisted.
+     * Commits a drag inside the visible order; [ProfileOverrideSelection.reorder] answers false when
+     * the move changes nothing, and a false result is never persisted.
      */
     fun reorder(from: Int, to: Int) {
-        selection
-            .reorder(visibleIds = visibleSelectedIds, from = from, to = to)
-            ?.let(::persistOverrides)
+        if (selection.reorder(visibleIds = rowIds, from = from, to = to)) persistOverrides()
     }
 
     /** Reads the persisted binding and seeds the list; the switches unlock afterwards. */
@@ -147,7 +150,7 @@ internal class ProfileOverrideDraft internal constructor(
         configViewModel.refreshAndAwait()
         val loaded = bindingProvider.getBinding(profileId)
         binding = loaded
-        selection.bind(loaded?.overrideIds)
+        selection.bind(loaded)
     }
 
     /**
@@ -156,12 +159,19 @@ internal class ProfileOverrideDraft internal constructor(
      * and the profile is read after the lock so a save queued behind a switch saves for the newest
      * one.
      */
-    private fun persistOverrides(overrideIds: List<String>) {
+    private fun persistOverrides() {
+        val overrideIds = selection.ids.distinct()
+        val disabledOverrideIds = selection.disabledIds.filter { it in overrideIds }
         scope.launch {
             saveMutex.withLock {
                 val target = currentProfile.value ?: return@withLock
                 runCatching {
-                    binding = saveOverrides(target = target, selectedIds = overrideIds)
+                    binding =
+                        saveOverrides(
+                            target = target,
+                            overrideIds = overrideIds,
+                            disabledOverrideIds = disabledOverrideIds,
+                        )
                 }
                     .onFailure { error ->
                         // Leaving the screen cancels the save; that is not a save failure.
@@ -176,17 +186,27 @@ internal class ProfileOverrideDraft internal constructor(
      * Persists the override selection and applies it to the running session when this profile is the
      * one currently in use. Returns the refreshed binding for [binding].
      */
-    private suspend fun saveOverrides(target: Profile, selectedIds: List<String>): ProfileBinding? {
+    private suspend fun saveOverrides(
+        target: Profile,
+        overrideIds: List<String>,
+        disabledOverrideIds: List<String>,
+    ): ProfileBinding? {
         val targetId = target.uuid.toString()
-        val overrideIds = selectedIds.distinct()
         val updatedBinding =
-            binding?.copy(overrideIds = overrideIds)
-                ?: ProfileBinding(profileId = targetId, overrideIds = overrideIds)
+            binding?.copy(
+                overrideIds = overrideIds,
+                disabledOverrideIds = disabledOverrideIds,
+            )
+                ?: ProfileBinding(
+                    profileId = targetId,
+                    overrideIds = overrideIds,
+                    disabledOverrideIds = disabledOverrideIds,
+                )
 
         bindingProvider.setBinding(updatedBinding)
         val refreshedBinding = bindingProvider.getBinding(targetId)
 
-        if (OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID in overrideIds) {
+        if (OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID in updatedBinding.enabledOverrideIds) {
             runCatching { routingBootstrapper.ensureDefaultContent() }
                 .onFailure { error ->
                     if (error is CancellationException) throw error

@@ -213,5 +213,5 @@ class ProfileBindingStore(context: Context) : ProfileBindingProvider {
     }
 
     private fun isOverrideApplied(binding: ProfileBinding, overrideId: String): Boolean =
-        binding.overrideIds.contains(overrideId)
+        binding.isOverrideEnabled(overrideId)
 }

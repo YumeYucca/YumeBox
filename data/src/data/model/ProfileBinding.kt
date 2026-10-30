@@ -26,7 +26,24 @@ import kotlinx.serialization.Serializable
 data class ProfileBinding(
     val profileId: String = "",
     val overrideIds: List<String> = emptyList(),
+    /**
+     * Rows that are attached to the profile but not applied, in the same order as [overrideIds].
+     * Attaching an override adds it here so it appears on the page without changing the running
+     * chain until the user ticks its checkbox.
+     */
+    val disabledOverrideIds: List<String> = emptyList(),
 ) {
+    /** The ordered overrides that are actually applied. */
+    val enabledOverrideIds: List<String>
+        get() {
+            if (disabledOverrideIds.isEmpty()) return overrideIds
+            val disabled = disabledOverrideIds.toSet()
+            return overrideIds.filterNot(disabled::contains)
+        }
+
+    fun isOverrideEnabled(overrideId: String): Boolean =
+        overrideId in overrideIds && overrideId !in disabledOverrideIds
+
     companion object {
         fun withOverride(profileId: String, overrideId: String): ProfileBinding =
             ProfileBinding(profileId = profileId, overrideIds = listOf(overrideId))
@@ -46,7 +63,11 @@ data class ProfileBinding(
     }
 
     fun removeOverride(overrideId: String): ProfileBinding =
-        copy(overrideIds = overrideIds - overrideId)
+        copy(
+            overrideIds = overrideIds - overrideId,
+            disabledOverrideIds = disabledOverrideIds - overrideId,
+        )
 
-    fun clearOverrides(): ProfileBinding = copy(overrideIds = emptyList())
+    fun clearOverrides(): ProfileBinding =
+        copy(overrideIds = emptyList(), disabledOverrideIds = emptyList())
 }
