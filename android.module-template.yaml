@@ -19,5 +19,5 @@ settings:
   android:
     compileSdk: 37
     targetSdk: 37
-    minSdk: 26
+    minSdk: 33
     buildToolsVersion: 37.0.0
