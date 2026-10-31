@@ -38,11 +38,13 @@ object NativeLibraryManager {
      */
     val JAVET_VERSION: String = BuildInfo.JAVET_VERSION
 
-    /** Release assets of the Javet native, versioned tag first, legacy fixed tag as fallback. */
+    /**
+     * Release asset of the Javet native, pinned to the version this APK was compiled against.
+     * Never resolve through `releases/latest`: older builds must keep their own native.
+     */
     val JAVET_ARCHIVE_URLS: List<String> =
         listOf(
             "https://github.com/YumeYucca/libjavet/releases/download/javet-$JAVET_VERSION/$JAVET_ARCHIVE_FILE_NAME",
-            "https://github.com/YumeYucca/libjavet/releases/download/libjavet/$JAVET_ARCHIVE_FILE_NAME",
         )
 
     /**
