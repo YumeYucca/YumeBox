@@ -35,11 +35,39 @@ jobs:
   publish:
     runs-on: ubuntu-26.04
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
       - name: Download publish artifacts
         uses: actions/download-artifact@v8.0.2
         with:
           name: ${{ inputs.publish_artifacts }}
           path: publish
+
+      # Pre-releases describe only the commit they were built from; stable releases read
+      # CHANGELOG.md, which holds only the notes of the release being published. GitHub's own
+      # note generator is never used: for a rolling tag it accumulates every commit since the
+      # last release.
+      - name: Compose release body
+        id: body
+        shell: bash
+        run: |
+          set -eu
+          mode="commit"
+          if [ "${{ inputs.prerelease }}" != "true" ]; then
+            mode="changelog"
+          fi
+          notes="$(python3 scripts/ci_release_notes.py \
+            --mode "${mode}" \
+            --tag "${{ inputs.release_tag }}" \
+            --sha "$GITHUB_SHA")"
+          {
+            echo "notes<<__RELEASE_NOTES__"
+            printf '%s\n' "${notes}"
+            echo "__RELEASE_NOTES__"
+          } >> "$GITHUB_OUTPUT"
 
       # Rolling pre-release: delete release + tag, then recreate below. Deleting the release
       # removes its assets with it, and the recreated release gets a fresh created_at so it
@@ -92,10 +120,11 @@ jobs:
           prerelease: ${{ inputs.prerelease }}
           draft: false
           target_commitish: ${{ github.sha }}
+          body: ${{ steps.body.outputs.notes }}
           overwrite_files: true
           fail_on_unmatched_files: true
           make_latest: ${{ inputs.channel == 'stable' }}
-          generate_release_notes: ${{ inputs.prerelease }}
+          generate_release_notes: false
           files: publish/*.apk
 
       - name: Attest release APKs

@@ -30,8 +30,9 @@ permissions:
 # (product.properties) + `git rev-list --count HEAD` themselves, so every release gets a
 # unique versionCode in the same sequence as channel packages - upgrading from a channel
 # build of an older commit to a release of a newer commit is no longer a downgrade.
-# publish-release runs with prerelease=false -> generate_release_notes=false (empty body,
-# edited by hand afterwards) and make_latest=true (channel == 'stable').
+# publish-release runs with prerelease=false -> the release body is CHANGELOG.md (replaced with
+# the current release's notes each time, see scripts/ci_release_notes.py) and make_latest=true
+# (channel == 'stable').
 jobs:
   # Prebuild Java/Kotlin & module resources in parallel with the native build jobs.
   prebuild-modules-stable:

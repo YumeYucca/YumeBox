@@ -136,17 +136,17 @@ jobs:
           set -eu
           mkdir -p publish/meta
           notes_file="publish/meta/release-notes.txt"
-
+          # Nightly builds describe only the commit they were built from, so the notes in the
+          # update manifest never repeat earlier builds. Releases use CHANGELOG.md, which holds
+          # only the notes of the release being published.
+          mode="commit"
           if [ "${{ inputs.channel }}" = "stable" ]; then
-            prev_tag="$(git tag --sort=-version:refname | grep '^v' | grep -Fxv "${{ inputs.release_tag }}" | head -n 1 || true)"
-            if [ -n "$prev_tag" ]; then
-              git log --pretty='- %s (%h)' "${prev_tag}..HEAD" > "$notes_file"
-            else
-              git log --pretty='- %s (%h)' -n 20 > "$notes_file"
-            fi
-          else
-            git log --pretty='- %s (%h)' -n 20 > "$notes_file"
+            mode="changelog"
           fi
+          python3 scripts/ci_release_notes.py \
+            --mode "${mode}" \
+            --tag "${{ inputs.release_tag }}" \
+            --sha "$GITHUB_SHA" > "$notes_file"
 
           if [ ! -s "$notes_file" ]; then
             echo "- No release notes." > "$notes_file"
