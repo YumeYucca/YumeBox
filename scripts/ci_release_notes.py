@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Compose release notes for GitHub releases and the in-app update manifest.
 
-``commit`` mode prints only the message of the built commit, so a nightly build never
-repeats the history of earlier ones. ``changelog`` mode prints the whole ``CHANGELOG.md``
-body and falls back to the commit message when it is empty.
+``commit`` mode prints the subject of the built commit as a single Markdown bullet, so a
+nightly build never repeats the history of earlier ones. ``changelog`` mode prints the
+whole ``CHANGELOG.md`` body and falls back to the commit subject when it is empty.
 
 ``CHANGELOG.md`` holds the notes of one release at a time: it is replaced with the next
 release's entries instead of accumulating history, so no version lookup is involved.
@@ -23,14 +23,15 @@ COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 
 def commit_notes(sha: str) -> str:
     result = subprocess.run(
-        ["git", "log", "-1", "--pretty=%B", sha],
+        ["git", "log", "-1", "--pretty=%s", sha],
         check=True,
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
     )
-    return result.stdout.strip()
+    subject = result.stdout.strip()
+    return f"- {subject}" if subject else ""
 
 
 def changelog_notes(path: Path) -> str:

@@ -118,36 +118,32 @@ class AccessControlViewModel(
     }
 
     init {
-        checkAndLoad()
+        checkInstalledAppsPermission()
+        loadApps()
     }
 
-    private fun checkAndLoad() {
+    /** Ask for MIUI/HyperOS's extra app-list permission as soon as the screen is opened. */
+    private fun checkInstalledAppsPermission() {
         val context = getApplication<Application>()
-        val permission = GET_INSTALLED_APPS_PERMISSION
+        val supported =
+            runCatching {
+                context.packageManager
+                    .getPermissionInfo(GET_INSTALLED_APPS_PERMISSION, 0)
+                    .packageName == "com.lbe.security.miui"
+            }
+                .getOrDefault(false)
+        if (!supported) return
 
-        if (RootPackageShell.hasRootAccess()) {
-            loadApps()
-            return
-        }
-
-        val hasPermission =
-            ContextCompat.checkSelfPermission(context, permission) ==
+        val granted =
+            ContextCompat.checkSelfPermission(context, GET_INSTALLED_APPS_PERMISSION) ==
                     PackageManager.PERMISSION_GRANTED
-        if (hasPermission) {
-            loadApps()
-            return
-        }
-
-        val isMiui = runCatching {
-            val permissionInfo = context.packageManager.getPermissionInfo(permission, 0)
-            permissionInfo.packageName == "com.lbe.security.miui"
-        }
-            .getOrElse { false }
-
-        if (isMiui) {
-            _uiState.update { it.copy(needsMiuiPermission = true, isLoading = false) }
+        if (granted) {
+            if (_uiState.value.needsMiuiPermission) {
+                _uiState.update { it.copy(needsMiuiPermission = false) }
+                loadApps()
+            }
         } else {
-            loadApps()
+            _uiState.update { it.copy(needsMiuiPermission = true) }
         }
     }
 
@@ -170,10 +166,7 @@ class AccessControlViewModel(
             }
                 .getOrElse { error ->
                     if (error is CancellationException) throw error
-                    _uiState.update { state ->
-                        state.copy(isLoading = false, needsMiuiPermission = true)
-                    }
-                    return@launch
+                    emptyList()
                 }
 
             _uiState.update { state ->
@@ -192,6 +185,7 @@ class AccessControlViewModel(
      * activity-scoped by the Compose Koin owner, so navigating away does not recreate it.
      */
     fun refreshSelection() {
+        checkInstalledAppsPermission()
         val selectedPackages = settings.accessControlPackages.value
         _uiState.update { state ->
             state.copy(
@@ -216,8 +210,18 @@ class AccessControlViewModel(
                 }
             }
 
-        return packages
-            .filter { it.packageName != selfPackageName }
+        val visiblePackages = packages.filter { it.packageName != selfPackageName }
+        // HyperOS returns an empty (or system-only) list instead of throwing when the app-list
+        // permission is missing, so the SecurityException fallback above never runs. Use root
+        // whenever no third-party package is visible.
+        val resolvedPackages =
+            if (visiblePackages.any { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }) {
+                visiblePackages
+            } else {
+                loadInstalledAppsFromRoot(pm, selfPackageName)
+            }
+
+        return resolvedPackages
             .map { appInfo ->
                 val pkgInfo = runCatching { pm.getPackageInfo(appInfo.packageName, 0) }.getOrNull()
                 AppInfo(

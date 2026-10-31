@@ -34,6 +34,7 @@ import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -82,6 +83,7 @@ private val markdownRenderer = HtmlRenderer.builder()
 fun MarkdownContent(
     content: String,
     modifier: Modifier = Modifier,
+    onContentHeight: ((Int) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -118,8 +120,13 @@ fun MarkdownContent(
         </html>
         """.trimIndent()
     }
+    val currentOnContentHeight = rememberUpdatedState(onContentHeight)
     AndroidView(
-        factory = { viewContext -> createWebView(viewContext, textZoom) },
+        factory = { viewContext ->
+            createWebView(viewContext, textZoom) { height ->
+                currentOnContentHeight.value?.invoke(height)
+            }
+        },
         update = { webView ->
             webView.settings.textZoom = textZoom
             if (webView.tag != html) {
@@ -139,7 +146,8 @@ fun MarkdownContent(
 private fun createWebView(
     context: Context,
     zoomPercent: Int,
-): WebView = WebView(context).apply {
+    onContentHeight: (Int) -> Unit,
+): WebView = MarkdownWebView(context).apply {
     setBackgroundColor(AndroidColor.TRANSPARENT)
     isVerticalScrollBarEnabled = false
     isHorizontalScrollBarEnabled = false
@@ -174,7 +182,22 @@ private fun createWebView(
             }
             return true
         }
+
+        override fun onPageFinished(view: WebView, url: String) {
+            // The document is laid out by the time the page finishes; the scroll range is the
+            // rendered content height, so short notes can shrink the dialog instead of leaving
+            // the fixed max-height gap.
+            view.post {
+                val height = (view as MarkdownWebView).contentHeightPx()
+                if (height > 0) onContentHeight(height)
+            }
+        }
     }
+}
+
+/** Exposes WebView's protected scroll range so the dialog can size itself to the document. */
+private class MarkdownWebView(context: Context) : WebView(context) {
+    fun contentHeightPx(): Int = computeVerticalScrollRange()
 }
 
 private fun readAsset(context: Context, path: String): String =

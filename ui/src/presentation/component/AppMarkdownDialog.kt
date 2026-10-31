@@ -31,8 +31,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.markdown.MarkdownContent
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
@@ -44,8 +49,9 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * Update/changelog dialog with a GitHub-flavored Markdown body and an optional download state.
  *
  * The caller supplies the title and action labels so the update flow can keep its own wording;
- * the body is capped and scrolls internally for long changelogs. While [busy] is true the body
- * swaps to the same refresh indicator the app uses elsewhere, with [busyText] underneath.
+ * the body grows with its content up to a fixed cap and scrolls internally for long changelogs.
+ * While [busy] is true the body swaps to the same refresh indicator the app uses elsewhere,
+ * with [busyText] underneath.
  */
 @Composable
 fun AppMarkdownDialog(
@@ -85,14 +91,25 @@ fun AppMarkdownDialog(
                     }
                 }
             } else {
+                var bodyHeightPx by remember(markdown) { mutableIntStateOf(0) }
+                val maxBodyHeight = UiDp.dp320
+                val bodyHeight =
+                    with(LocalDensity.current) {
+                        if (bodyHeightPx > 0) {
+                            bodyHeightPx.toDp().coerceAtMost(maxBodyHeight)
+                        } else {
+                            maxBodyHeight
+                        }
+                    }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(UiDp.dp320),
+                        .height(bodyHeight),
                 ) {
                     MarkdownContent(
                         content = markdown,
                         modifier = Modifier.fillMaxWidth(),
+                        onContentHeight = { bodyHeightPx = it },
                     )
                 }
                 DialogButtonRow(
