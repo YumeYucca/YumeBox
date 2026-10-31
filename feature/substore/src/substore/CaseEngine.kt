@@ -73,6 +73,7 @@ class CaseEngine(
                     "--SUB_STORE_FRONTEND_PATH=${SubStorePaths.frontendDir.absolutePath}",
                     "--SUB_STORE_BACKEND_API_HOST=$host",
                     "--SUB_STORE_BACKEND_API_PORT=$backendPort",
+                    "--SUB_STORE_BACKEND_CUSTOM_NAME=YumeBox",
                     "--SUB_STORE_DATA_BASE_PATH=${SubStorePaths.dataDir.absolutePath}",
                     "--SUB_STORE_WORKING_DIR=${SubStorePaths.workingDir.absolutePath}",
                 )

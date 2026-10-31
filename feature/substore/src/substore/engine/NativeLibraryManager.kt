@@ -143,6 +143,8 @@ object NativeLibraryManager {
             }
             backupFile.delete()
             targetFile.setReadable(true, false)
+            // Android 14+ refuses System.load() for writable native code; targetSdk 37 enforces it.
+            targetFile.setReadOnly()
             true
         }.getOrElse { error ->
             Timber.e(error, "Native library replacement failed: ${targetFile.name}")
@@ -163,7 +165,11 @@ object NativeLibraryManager {
             return false
         }
 
-        val path = getLibraryFile()?.absolutePath ?: return false
+        val libraryFile = getLibraryFile() ?: return false
+        val path = libraryFile.absolutePath
+        // Also covers libraries installed by builds that did not mark the file read-only.
+        libraryFile.setReadable(true, false)
+        libraryFile.setReadOnly()
 
         return runCatching {
             System.load(path)
