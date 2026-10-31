@@ -2135,6 +2135,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun NoNotes(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Update.NoNotes else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Update.NoNotes, *args)
+            public val DownloadFailed: String
+                get() = YumeLocaleManager.activeStrings.Home.Update.DownloadFailed
+            @androidx.compose.runtime.Composable
+            public fun DownloadFailed(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Home.Update.DownloadFailed else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Home.Update.DownloadFailed, *args)
         }
     }
     public object Log {

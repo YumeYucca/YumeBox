@@ -717,6 +717,7 @@ public data class YumeStrings_Home_Update(
     public val Later: String,
     public val IconDescription: String,
     public val NoNotes: String,
+    public val DownloadFailed: String,
 )
 
 public data class YumeStrings_Home(

@@ -22,31 +22,30 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.markdown.MarkdownContent
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * Update/changelog dialog with a GitHub-flavored Markdown body.
+ * Update/changelog dialog with a GitHub-flavored Markdown body and an optional download state.
  *
- * The caller supplies the title and action labels so the update flow can keep its own
- * wording; the body is capped and scrolls internally for long changelogs.
- *
- * ```kotlin
- * AppMarkdownDialog(
- *     show = showUpdate,
- *     title = updateTitle,
- *     markdown = update.notes,
- *     onDismissRequest = { showUpdate = false },
- *     onConfirm = { context.openUrl(update.downloadUrl) },
- *     confirmText = updateAction,
- * )
- * ```
+ * The caller supplies the title and action labels so the update flow can keep its own wording;
+ * the body is capped and scrolls internally for long changelogs. While [busy] is true the body
+ * swaps to the same refresh indicator the app uses elsewhere, with [busyText] underneath.
  */
 @Composable
 fun AppMarkdownDialog(
@@ -58,6 +57,8 @@ fun AppMarkdownDialog(
     modifier: Modifier = Modifier,
     confirmText: String = YumeTxt.Component.Button.Confirm,
     dismissText: String = YumeTxt.Component.Button.Cancel,
+    busy: Boolean = false,
+    busyText: String? = null,
 ) {
     AppDialog(
         show = show,
@@ -65,26 +66,42 @@ fun AppMarkdownDialog(
         modifier = modifier,
         onDismissRequest = onDismissRequest,
     ) {
-        AppDialogColumn {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(UiDp.dp320),
-            ) {
-                MarkdownContent(
-                    content = markdown,
-                    modifier = Modifier.fillMaxWidth(),
+        AppDialogColumn(modifier = Modifier.animateContentSize()) {
+            if (busy) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = UiDp.dp24),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
+                ) {
+                    InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
+                    busyText?.let { text ->
+                        Text(
+                            text = text,
+                            style = MiuixTheme.textStyles.subtitle,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(UiDp.dp320),
+                ) {
+                    MarkdownContent(
+                        content = markdown,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                DialogButtonRow(
+                    onCancel = onDismissRequest,
+                    onConfirm = onConfirm,
+                    cancelText = dismissText,
+                    confirmText = confirmText,
                 )
             }
-            DialogButtonRow(
-                onCancel = onDismissRequest,
-                onConfirm = {
-                    onConfirm()
-                    onDismissRequest()
-                },
-                cancelText = dismissText,
-                confirmText = confirmText,
-            )
         }
     }
 }

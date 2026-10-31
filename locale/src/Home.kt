@@ -51,11 +51,12 @@ internal val ZhHansYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         AddDescription = "开启开关并完成权限申请，让首页使用当前系统壁纸",
     ),
     Update = YumeStrings_Home_Update(
-        Title = "发现新版本 %s",
+        Title = "发现新版本",
         Action = "更新",
         Later = "稍后",
         IconDescription = "发现新版本",
         NoNotes = "暂无更新说明",
+        DownloadFailed = "下载更新失败，请稍后重试",
     ),
 )
 
@@ -110,11 +111,12 @@ internal val ZhYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         AddDescription = "開啟開關並完成權限申請，讓首頁使用目前的系統桌布",
     ),
     Update = YumeStrings_Home_Update(
-        Title = "發現新版本 %s",
+        Title = "發現新版本",
         Action = "更新",
         Later = "稍後",
         IconDescription = "發現新版本",
         NoNotes = "暫無更新說明",
+        DownloadFailed = "下載更新失敗，請稍後再試",
     ),
 )
 
@@ -169,11 +171,12 @@ internal val EnYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         AddDescription = "Enable the switch and grant access to use your current system wallpaper",
     ),
     Update = YumeStrings_Home_Update(
-        Title = "Update available: %s",
+        Title = "New version available",
         Action = "Update",
         Later = "Later",
         IconDescription = "Update available",
         NoNotes = "No release notes",
+        DownloadFailed = "Failed to download the update. Please try again later",
     ),
 )
 
@@ -228,11 +231,12 @@ internal val JaYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         AddDescription = "スイッチをオンにして権限を許可すると、現在のシステム壁紙を使用できます",
     ),
     Update = YumeStrings_Home_Update(
-        Title = "新しいバージョンがあります: %s",
+        Title = "新しいバージョンがあります",
         Action = "更新",
         Later = "後で",
         IconDescription = "新しいバージョンがあります",
         NoNotes = "更新内容はありません",
+        DownloadFailed = "更新のダウンロードに失敗しました。後でもう一度お試しください",
     ),
 )
 
@@ -287,11 +291,12 @@ internal val RuYumeStrings_Home: YumeStrings_Home = YumeStrings_Home(
         AddDescription = "Включите переключатель и предоставьте доступ для использования текущих системных обоев",
     ),
     Update = YumeStrings_Home_Update(
-        Title = "Доступно обновление: %s",
+        Title = "Доступна новая версия",
         Action = "Обновить",
         Later = "Позже",
         IconDescription = "Доступно обновление",
         NoNotes = "Описание обновления отсутствует",
+        DownloadFailed = "Не удалось скачать обновление. Повторите попытку позже",
     ),
 )
 

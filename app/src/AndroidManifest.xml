@@ -43,13 +43,19 @@
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"
                      tools:ignore="RequestInstallPackagesPolicy"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-                     android:maxSdkVersion="32"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-                     android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
                      tools:ignore="AllFilesAccessPolicy,ScopedStorage"/>
+    <!-- Not used by the app; stripped in case a library manifest merges it in. -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"
+                     tools:node="remove"/>
     <uses-permission android:name="android.permission.CAMERA"/>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="application/vnd.android.package-archive"/>
+        </intent>
+    </queries>
 
     <application
         android:name="com.github.yumeyucca.yumebox.App"

@@ -19,6 +19,7 @@
 
 package com.github.yumeyucca.yumebox.data.update
 
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.CancellationException
@@ -61,4 +62,54 @@ class AppUpdateRepository {
                 connection?.disconnect()
             }
         }
+
+    /**
+     * Streams the update package to [destination] and reports progress as bytes are written.
+     *
+     * [expectedSize] comes from the manifest and backs the progress ratio when the server does not
+     * send a usable `Content-Length`; when neither is available the callback reports a non-positive
+     * total so the UI can fall back to an indeterminate indicator.
+     */
+    suspend fun download(
+        downloadUrl: String,
+        destination: OutputStream,
+        expectedSize: Long = 0L,
+        onProgress: (bytesRead: Long, totalBytes: Long) -> Unit,
+    ) {
+        withContext(Dispatchers.IO) {
+            var connection: HttpURLConnection? = null
+            try {
+                val opened = (URL(downloadUrl).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 15_000
+                    readTimeout = 30_000
+                    instanceFollowRedirects = true
+                    useCaches = false
+                    setRequestProperty("User-Agent", "YumeBox")
+                }
+                connection = opened
+                if (opened.responseCode !in 200..299) error("HTTP " + opened.responseCode)
+                val contentLength = opened.contentLengthLong
+                val totalBytes = if (contentLength > 0) contentLength else expectedSize
+                opened.inputStream.use { input ->
+                    val buffer = ByteArray(BUFFER_SIZE)
+                    var bytesRead = 0L
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        destination.write(buffer, 0, read)
+                        bytesRead += read
+                        onProgress(bytesRead, totalBytes)
+                    }
+                    destination.flush()
+                }
+            } finally {
+                connection?.disconnect()
+            }
+        }
+    }
+
+    private companion object {
+        const val BUFFER_SIZE = 64 * 1024
+    }
 }

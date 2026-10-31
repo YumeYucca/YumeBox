@@ -45,7 +45,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.view.WindowCompat
-import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
@@ -67,6 +66,7 @@ import com.github.yumeyucca.yumebox.presentation.theme.isDark
 import com.github.yumeyucca.yumebox.presentation.util.findActivity
 import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
+import com.github.yumeyucca.yumebox.update.AppUpdateDownloadState
 import com.github.yumeyucca.yumebox.update.AppUpdateViewModel
 import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
 import kotlinx.coroutines.launch
@@ -100,6 +100,8 @@ fun MoeHomePage(
 
     val screen by homeViewModel.screenState.collectAsState()
     val update by appUpdateViewModel.update.collectAsState()
+    val downloadState by appUpdateViewModel.downloadState.collectAsState()
+    val downloadError by appUpdateViewModel.downloadError.collectAsState()
     val moe by appSettingsViewModel.moeHomeSectionState.collectAsState()
     val moeHomeQuoteAuthor by appSettingsViewModel.moeHomeQuoteAuthor.state.collectAsState()
     val sidebarExpanded = moe.sidebarExpanded
@@ -143,6 +145,12 @@ fun MoeHomePage(
         screen.uiError?.let { error ->
             context.toast(error, Toast.LENGTH_LONG)
             homeViewModel.consumeError()
+        }
+    }
+    LaunchedEffect(downloadError) {
+        downloadError?.let { error ->
+            context.toast(error, Toast.LENGTH_LONG)
+            appUpdateViewModel.consumeDownloadError()
         }
     }
     LaunchedEffect(screen.uiMessage) {
@@ -346,18 +354,20 @@ fun MoeHomePage(
     )
 
     update?.let { availableUpdate ->
+        val download = downloadState as? AppUpdateDownloadState.Downloading
         AppMarkdownDialog(
             show = showUpdateDialog,
-            title = YumeTxt.Home.Update.Title(availableUpdate.versionName),
+            title = YumeTxt.Home.Update.Title,
             markdown = availableUpdate.notes.ifBlank { YumeTxt.Home.Update.NoNotes },
-            onDismissRequest = { showUpdateDialog = false },
-            onConfirm = {
-                context.openUrl(availableUpdate.downloadUrl)
-                appUpdateViewModel.dismissForSession()
+            onDismissRequest = {
+                if (download != null) appUpdateViewModel.cancelDownload()
                 showUpdateDialog = false
             },
+            onConfirm = { appUpdateViewModel.startDownload() },
             confirmText = YumeTxt.Home.Update.Action,
             dismissText = YumeTxt.Home.Update.Later,
+            busy = download != null,
+            busyText = download?.percent?.let { "$it%" },
         )
     }
 }
