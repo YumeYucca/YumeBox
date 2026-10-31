@@ -1,0 +1,4 @@
+# Generate independent random values for local development. Never commit .dev.vars.
+DEVICE_HASH_SECRET=replace-with-a-random-secret-at-least-32-characters
+STATS_API_TOKEN=replace-with-a-random-admin-token
+

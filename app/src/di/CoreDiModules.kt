@@ -21,8 +21,11 @@
 package com.github.yumeyucca.yumebox.di
 
 import com.github.yumeyucca.yumebox.common.util.AppLanguageManager
+import com.github.yumeyucca.yumebox.BuildInfo
+import com.github.yumeyucca.yumebox.analytics.ANALYTICS_ENDPOINT
 import com.github.yumeyucca.yumebox.core.model.ConnectionSnapshot
 import com.github.yumeyucca.yumebox.data.controller.*
+import com.github.yumeyucca.yumebox.data.analytics.AnonymousAnalyticsReporter
 import com.github.yumeyucca.yumebox.data.store.*
 import com.github.yumeyucca.yumebox.data.store.room.createTrafficStatisticsDao
 import com.github.yumeyucca.yumebox.data.update.AppUpdateRepository
@@ -87,6 +90,14 @@ val appFoundationModule = module {
 
 val appDataRuntimeModule = module {
     single { AppUpdateRepository() }
+    single {
+        AnonymousAnalyticsReporter(
+            mmkv = get<MMKVProvider>().getMMKV("settings"),
+            endpoint = ANALYTICS_ENDPOINT,
+            appVersion = BuildInfo.VERSION_NAME,
+            versionCode = BuildInfo.VERSION_CODE,
+        )
+    }
     single { AppSettingsController(get(), applyLanguage = AppLanguageManager::apply) }
     single {
         val proxyFacade = get<ProxyFacade>()

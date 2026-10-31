@@ -29,6 +29,7 @@ import com.github.yumeyucca.yumebox.core.Global
 import com.github.yumeyucca.yumebox.core.util.AppVisibilityTracker
 import com.github.yumeyucca.yumebox.core.util.StartupTaskCoordinator
 import com.github.yumeyucca.yumebox.core.util.runtimeHomeDir
+import com.github.yumeyucca.yumebox.data.analytics.AnonymousAnalyticsReporter
 import com.github.yumeyucca.yumebox.data.controller.AppTrafficStatisticsCollector
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
 import com.github.yumeyucca.yumebox.data.store.FeatureStore
@@ -268,6 +269,12 @@ class App : Application() {
         featureStore: FeatureStore,
         appSettings: AppSettingsStore,
     ) {
+        startupScope.launch {
+            if (BuildInfo.DEBUG) return@launch
+            startupStep("Failed to report anonymous app launch") {
+                koin.get<AnonymousAnalyticsReporter>().reportLaunch()
+            }
+        }
         startupScope.launch {
             // Same ordering the inline extraction used to give: nothing that can reach the core runs
             // before the geo databases are on disk.

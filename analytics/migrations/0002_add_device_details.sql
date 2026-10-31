@@ -1,0 +1,2 @@
+ALTER TABLE devices ADD COLUMN manufacturer TEXT NOT NULL DEFAULT 'Unknown';
+ALTER TABLE devices ADD COLUMN model TEXT NOT NULL DEFAULT 'Unknown';

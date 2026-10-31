@@ -1,0 +1,12 @@
+allowBuilds:
+  esbuild: true
+  workerd: true
+minimumReleaseAgeExclude:
+  - "@cloudflare/workers-types@5.20261031.1"
+peerDependencyRules:
+  allowAny:
+    # Vite+ core intentionally uses the Vite+ release version rather than Vite's major.
+    - vite
+overrides:
+  vite@*: npm:@voidzero-dev/vite-plus-core@1.4.0
+  vitest@*: 5.0.5

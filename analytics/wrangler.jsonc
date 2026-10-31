@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "yumebox-analytics",
+  "main": "dist/worker/index.js",
+  "compatibility_date": "2026-10-30",
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true,
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yumebox-analytics",
+      "database_id": "3a86efcb-7357-4c66-9863-ac508a97581c",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "yumebox_launches",
+    },
+  ],
+  "analytics": {
+    "binding": "ANALYTICS_SQL",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}
