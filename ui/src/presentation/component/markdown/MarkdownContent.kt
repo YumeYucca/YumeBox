@@ -77,7 +77,9 @@ private val markdownRenderer = HtmlRenderer.builder()
  *
  * Adapted from KernelSU manager's `MarkdownContent` / `GithubMarkdown`
  * (https://github.com/tiann/KernelSU, GPL-3.0), trimmed to the update-dialog use case:
- * no JavaScript bridge, no remote asset loader, and all links leave the app.
+ * no JavaScript bridge, no remote asset loader, and all links leave the app. JavaScript itself is
+ * enabled only to read the rendered body height; the Markdown source is escaped and URL-sanitized,
+ * so the page cannot inject scripts.
  */
 @Composable
 fun MarkdownContent(
@@ -147,14 +149,14 @@ private fun createWebView(
     context: Context,
     zoomPercent: Int,
     onContentHeight: (Int) -> Unit,
-): WebView = MarkdownWebView(context).apply {
+): WebView = WebView(context).apply {
     setBackgroundColor(AndroidColor.TRANSPARENT)
     isVerticalScrollBarEnabled = false
     isHorizontalScrollBarEnabled = false
     overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
 
     settings.apply {
-        javaScriptEnabled = false
+        javaScriptEnabled = true
         domStorageEnabled = false
         allowFileAccess = false
         allowContentAccess = false
@@ -184,21 +186,26 @@ private fun createWebView(
         }
 
         override fun onPageFinished(view: WebView, url: String) {
-            // The document is laid out by the time the page finishes; the scroll range is the
-            // rendered content height, so short notes can shrink the dialog instead of leaving
-            // the fixed max-height gap.
+            // Measure the rendered body, not the scroll range: a document shorter than the view
+            // still reports the full viewport as its scroll range, which left the dialog at its
+            // max height with an empty gap.
             view.post {
-                val height = (view as MarkdownWebView).contentHeightPx()
-                if (height > 0) onContentHeight(height)
+                view.evaluateJavascript(ContentHeightScript) { result ->
+                    val height = result?.trim()?.toDoubleOrNull()?.toInt() ?: 0
+                    if (height > 0) onContentHeight(height)
+                }
             }
         }
     }
 }
 
-/** Exposes WebView's protected scroll range so the dialog can size itself to the document. */
-private class MarkdownWebView(context: Context) : WebView(context) {
-    fun contentHeightPx(): Int = computeVerticalScrollRange()
-}
+/**
+ * Returns the rendered Markdown body height in physical pixels. `devicePixelRatio` matches the
+ * display density, so the result can be converted back with `LocalDensity`.
+ */
+private const val ContentHeightScript =
+    "(function(){var e=document.querySelector('.markdown-body');" +
+        "return e?Math.ceil(e.getBoundingClientRect().height*window.devicePixelRatio):0})()"
 
 private fun readAsset(context: Context, path: String): String =
     runCatching {
