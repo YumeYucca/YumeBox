@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "./index";
 import type { Bindings } from "./env";
+import { baseVersion } from "./lib/analytics";
 
 const validEvent = {
   schemaVersion: 1,
@@ -193,5 +194,14 @@ describe("Worker API", () => {
       .mock.calls.map((call) => call[0].query)
       .join("\n");
     expect(queries).toContain("lower(blob6) != 'unknown'");
+  });
+
+  describe("baseVersion", () => {
+    it("folds dev build suffixes into the release version", () => {
+      expect(baseVersion("0.6.5")).toBe("0.6.5");
+      expect(baseVersion("0.6.5.moe.b965f0ea")).toBe("0.6.5");
+      expect(baseVersion("0.7.0-dev")).toBe("0.7.0");
+      expect(baseVersion(" nightly ")).toBe("nightly");
+    });
   });
 });

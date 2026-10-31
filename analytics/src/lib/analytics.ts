@@ -86,11 +86,18 @@ export type VersionDistributionRow = {
   launches: number | string;
 };
 
-export function queryVersionDistribution(
+/** `0.6.5.moe.b965f0ea` and `0.6.5-dev` both belong to `0.6.5`. */
+export function baseVersion(value: string): string {
+  const trimmed = value.trim();
+  const match = /^[0-9]+\.[0-9]+\.[0-9]+/.exec(trimmed);
+  return match ? match[0] : trimmed;
+}
+
+export async function queryVersionDistribution(
   env: Bindings,
   days: number,
 ): Promise<VersionDistributionRow[]> {
-  return queryAnalytics<VersionDistributionRow>(
+  const rows = await queryAnalytics<VersionDistributionRow>(
     env,
     `SELECT
       blob3 AS version,
@@ -103,4 +110,26 @@ export function queryVersionDistribution(
     ORDER BY devices DESC
     LIMIT 50`,
   );
+
+  const merged = new Map<string, VersionDistributionRow>();
+  for (const row of rows) {
+    const version = baseVersion(String(row.version ?? ""));
+    if (!version) continue;
+    const devices = Number(row.devices) || 0;
+    const launches = Number(row.launches) || 0;
+    const existing = merged.get(version);
+    if (existing) {
+      existing.devices = Number(existing.devices) + devices;
+      existing.launches = Number(existing.launches) + launches;
+    } else {
+      merged.set(version, {
+        version,
+        versionCode: String(row.versionCode ?? ""),
+        devices,
+        launches,
+      });
+    }
+  }
+
+  return [...merged.values()].sort((left, right) => Number(right.devices) - Number(left.devices));
 }
