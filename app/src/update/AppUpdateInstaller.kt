@@ -59,11 +59,10 @@ internal object AppUpdateInstaller {
             put(MediaStore.MediaColumns.RELATIVE_PATH, UPDATE_RELATIVE_PATH)
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
-        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-        if (uri == null) {
-            Timber.w("Failed to create the update download entry")
-            return@withContext false
-        }
+        val uri =
+            runCatching { resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) }
+                .onFailure { Timber.w(it, "Failed to create the update download entry") }
+                .getOrNull() ?: return@withContext false
 
         var completed = false
         try {
