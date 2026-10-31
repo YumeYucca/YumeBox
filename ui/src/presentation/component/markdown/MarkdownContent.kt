@@ -31,10 +31,17 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -44,6 +51,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import java.util.Locale
 import org.commonmark.ext.autolink.AutolinkExtension
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
@@ -51,6 +59,7 @@ import org.commonmark.ext.gfm.tables.TablesExtension
 import org.commonmark.ext.task.list.items.TaskListItemsExtension
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
+import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private const val MarkdownBaseUrl = "https://github.com/YumeYucca/YumeBox/"
@@ -80,6 +89,9 @@ private val markdownRenderer = HtmlRenderer.builder()
  * no JavaScript bridge, no remote asset loader, and all links leave the app. JavaScript itself is
  * enabled only to read the rendered body height; the Markdown source is escaped and URL-sanitized,
  * so the page cannot inject scripts.
+ *
+ * Until the page reports its rendered height a refresh indicator fills the body, so the caller can
+ * start with a compact placeholder instead of a max-height gap.
  */
 @Composable
 fun MarkdownContent(
@@ -122,33 +134,47 @@ fun MarkdownContent(
         </html>
         """.trimIndent()
     }
+    var loaded by remember { mutableStateOf(false) }
+    LaunchedEffect(html) { loaded = false }
     val currentOnContentHeight = rememberUpdatedState(onContentHeight)
-    AndroidView(
-        factory = { viewContext ->
-            createWebView(viewContext, textZoom) { height ->
-                currentOnContentHeight.value?.invoke(height)
+
+    Box(modifier = modifier) {
+        AndroidView(
+            factory = { viewContext ->
+                createWebView(viewContext, textZoom) { height ->
+                    loaded = true
+                    if (height > 0) currentOnContentHeight.value?.invoke(height)
+                }
+            },
+            update = { webView ->
+                webView.settings.textZoom = textZoom
+                if (webView.tag != html) {
+                    webView.tag = html
+                    webView.loadDataWithBaseURL(MarkdownBaseUrl, html, "text/html", "utf-8", null)
+                }
+            },
+            onRelease = { webView ->
+                webView.stopLoading()
+                webView.destroy()
+            },
+            modifier = Modifier.fillMaxSize(),
+        )
+        if (!loaded) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp24))
             }
-        },
-        update = { webView ->
-            webView.settings.textZoom = textZoom
-            if (webView.tag != html) {
-                webView.tag = html
-                webView.loadDataWithBaseURL(MarkdownBaseUrl, html, "text/html", "utf-8", null)
-            }
-        },
-        onRelease = { webView ->
-            webView.stopLoading()
-            webView.destroy()
-        },
-        modifier = modifier.fillMaxSize(),
-    )
+        }
+    }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
 private fun createWebView(
     context: Context,
     zoomPercent: Int,
-    onContentHeight: (Int) -> Unit,
+    onMeasured: (Int) -> Unit,
 ): WebView = WebView(context).apply {
     setBackgroundColor(AndroidColor.TRANSPARENT)
     isVerticalScrollBarEnabled = false
@@ -192,7 +218,7 @@ private fun createWebView(
             view.post {
                 view.evaluateJavascript(ContentHeightScript) { result ->
                     val height = result?.trim()?.toDoubleOrNull()?.toInt() ?: 0
-                    if (height > 0) onContentHeight(height)
+                    onMeasured(height)
                 }
             }
         }

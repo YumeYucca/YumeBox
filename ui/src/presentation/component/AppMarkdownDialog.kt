@@ -50,6 +50,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  *
  * The caller supplies the title and action labels so the update flow can keep its own wording;
  * the body grows with its content up to a fixed cap and scrolls internally for long changelogs.
+ * While the changelog is still loading the body shows the same refresh indicator as [busy] and
+ * swaps to the measured height once the page reports it.
  * While [busy] is true the body swaps to the same refresh indicator the app uses elsewhere,
  * with [busyText] underneath.
  */
@@ -98,7 +100,7 @@ fun AppMarkdownDialog(
                         if (bodyHeightPx > 0) {
                             bodyHeightPx.toDp().coerceAtMost(maxBodyHeight)
                         } else {
-                            maxBodyHeight
+                            UiDp.dp56
                         }
                     }
                 Box(
