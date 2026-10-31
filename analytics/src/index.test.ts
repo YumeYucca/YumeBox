@@ -189,11 +189,11 @@ describe("Worker API", () => {
         manufacturer: [],
       },
     });
-    const queries = vi
-      .mocked(env.ANALYTICS_SQL.query)
-      .mock.calls.map((call) => call[0].query)
+    const deviceQueries = vi
+      .mocked(env.DB.prepare)
+      .mock.calls.map((call) => String(call[0]))
       .join("\n");
-    expect(queries).toContain("lower(blob6) != 'unknown'");
+    expect(deviceQueries).toContain("lower(manufacturer) != 'unknown'");
   });
 
   describe("baseVersion", () => {

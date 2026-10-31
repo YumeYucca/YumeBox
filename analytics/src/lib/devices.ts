@@ -1,4 +1,68 @@
 import type { AnalyticsEvent } from "../events";
+import { baseVersion } from "./analytics";
+
+export type DeviceDistributionRow = {
+  value: string;
+  devices: number;
+  launches: number;
+};
+
+const deviceColumns = {
+  appVersion: "app_version",
+  androidVersion: "android_version",
+  manufacturer: "manufacturer",
+} as const;
+
+export type DeviceDimension = keyof typeof deviceColumns;
+
+/**
+ * One device contributes exactly one row, so per-dimension device counts can never
+ * exceed the number of devices seen in the same window.
+ */
+export async function queryDeviceDistribution(
+  db: D1Database,
+  dimension: DeviceDimension,
+  sinceSeconds: number,
+): Promise<DeviceDistributionRow[]> {
+  const column = deviceColumns[dimension];
+  const filter =
+    dimension === "manufacturer"
+      ? " AND trim(manufacturer) != '' AND lower(manufacturer) != 'unknown'"
+      : "";
+  const { results } = await db
+    .prepare(
+      `SELECT ${column} AS value, COUNT(*) AS devices, SUM(launch_count) AS launches
+       FROM devices
+       WHERE last_seen_at >= ?1${filter}
+       GROUP BY value
+       ORDER BY devices DESC
+       LIMIT 50`,
+    )
+    .bind(sinceSeconds)
+    .all<DeviceDistributionRow>();
+  return results ?? [];
+}
+
+export async function queryDeviceVersions(
+  db: D1Database,
+  sinceSeconds: number,
+): Promise<DeviceDistributionRow[]> {
+  const merged = new Map<string, DeviceDistributionRow>();
+  for (const row of await queryDeviceDistribution(db, "appVersion", sinceSeconds)) {
+    const version = baseVersion(String(row.value ?? ""));
+    if (!version) continue;
+    const devices = Number(row.devices) || 0;
+    const launches = Number(row.launches) || 0;
+    const existing = merged.get(version);
+    if (existing) {
+      existing.devices += devices;
+      existing.launches += launches;
+    } else {
+      merged.set(version, { value: version, devices, launches });
+    }
+  }
+  return [...merged.values()].sort((left, right) => right.devices - left.devices);
+}
 
 export async function upsertDevice(
   db: D1Database,

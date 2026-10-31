@@ -4,14 +4,9 @@ import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
 import type { Bindings } from "./env";
 import { analyticsEventSchema } from "./events";
-import {
-  isDistributionDimension,
-  queryActivityTrend,
-  queryDistribution,
-  queryVersionDistribution,
-} from "./lib/analytics";
+import { isDistributionDimension, queryActivityTrend, queryDistribution } from "./lib/analytics";
 import { hashDeviceId, tokensEqual } from "./lib/crypto";
-import { upsertDevice } from "./lib/devices";
+import { queryDeviceDistribution, queryDeviceVersions, upsertDevice } from "./lib/devices";
 
 const daysSchema = z.coerce.number().int().min(1).max(90);
 
@@ -212,12 +207,13 @@ export function createApp() {
     if (!days) return c.json({ error: "days_must_be_between_1_and_90" }, 400);
 
     try {
+      const since = Math.floor(Date.now() / 1000) - days * 86_400;
       const [overview, trend, versions, androidVersion, manufacturer] = await Promise.all([
         loadOverview(c.env),
         loadTrend(c.env, days),
-        queryVersionDistribution(c.env, days),
-        queryDistribution(c.env, "androidVersion", days),
-        queryDistribution(c.env, "manufacturer", days),
+        queryDeviceVersions(c.env.DB, since),
+        queryDeviceDistribution(c.env.DB, "androidVersion", since),
+        queryDeviceDistribution(c.env.DB, "manufacturer", since),
       ]);
 
       c.header("Cache-Control", "public, max-age=60");
@@ -228,8 +224,8 @@ export function createApp() {
         trend,
         distributions: {
           versions: versions.map((row) => ({
-            version: row.version,
-            versionCode: row.versionCode,
+            version: row.value,
+            versionCode: "",
             devices: Number(row.devices),
             launches: Number(row.launches),
           })),
