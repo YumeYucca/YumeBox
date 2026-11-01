@@ -49,9 +49,12 @@ jobs:
         # nightly + rust-src: the rust build uses -Zbuild-std and
         # -Cpanic=immediate-abort to shrink liboverride.so (~18%), see
         # RustBuilder in scripts/native_build/rust_builder.py.
+        # Pinned to the last nightly before rust-lang/rust#165263
+        # ("cycle detected when computing when `T` needs async drop"),
+        # which breaks boa_engine. Bump once upstream is fixed.
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # nightly
         with:
-          toolchain: nightly
+          toolchain: nightly-2026-10-31
           targets: aarch64-linux-android
           components: rust-src
 
