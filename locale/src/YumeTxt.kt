@@ -636,6 +636,18 @@ public object YumeTxt {
                 get() = YumeLocaleManager.activeStrings.AppSettings.Notification.HyperOsSummary
             public val StandardSummary: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Notification.StandardSummary
+            public val LiveUpdatesSection: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Notification.LiveUpdatesSection
+            public val LiveUpdatesAppTitle: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Notification.LiveUpdatesAppTitle
+            public val LiveUpdatesTitle: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Notification.LiveUpdatesTitle
+            public val LiveUpdatesSummary: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Notification.LiveUpdatesSummary
+            public val LiveUpdatesEnabled: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Notification.LiveUpdatesEnabled
+            public val LiveUpdatesDisabled: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Notification.LiveUpdatesDisabled
             public val LineProfileName: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Notification.LineProfileName
             public val LineStatus: String
@@ -4468,6 +4480,11 @@ public object YumeTxt {
             @androidx.compose.runtime.Composable
             public fun CurrentNodeLabel(vararg args: Any?): String =
                 if (args.isEmpty()) YumeLocaleManager.activeStrings.Service.Notification.CurrentNodeLabel else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Service.Notification.CurrentNodeLabel, *args)
+            public val SelectNode: String
+                get() = YumeLocaleManager.activeStrings.Service.Notification.SelectNode
+            @androidx.compose.runtime.Composable
+            public fun SelectNode(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.Service.Notification.SelectNode else String.format(java.util.Locale.getDefault(), YumeLocaleManager.activeStrings.Service.Notification.SelectNode, *args)
             public val RealtimeTraffic: String
                 get() = YumeLocaleManager.activeStrings.Service.Notification.RealtimeTraffic
             @androidx.compose.runtime.Composable

@@ -34,6 +34,7 @@ internal sealed class NotificationPresentation {
     abstract val title: String
     abstract val content: String
     abstract val expandedText: String
+    abstract val criticalText: String
 
     /** Traffic figures; also feeds the Super Island payload. */
     data class Running(
@@ -41,6 +42,7 @@ internal sealed class NotificationPresentation {
         override val content: String,
         override val expandedText: String,
         val compactTraffic: String,
+        override val criticalText: String,
         val currentNode: String?,
     ) : NotificationPresentation()
 
@@ -49,7 +51,10 @@ internal sealed class NotificationPresentation {
         override val title: String,
         override val content: String,
         override val expandedText: String,
-    ) : NotificationPresentation()
+    ) : NotificationPresentation() {
+        override val criticalText: String
+            get() = content.ifBlank { title }.ifBlank { YumeTxt.Service.Notification.Running }
+    }
 }
 
 internal object NotificationPresentationFactory {
@@ -65,7 +70,10 @@ internal object NotificationPresentationFactory {
         val total = profile?.total?.coerceAtLeast(0L) ?: 0L
         val expire = profile?.expire?.takeIf { it > 0L }
         val node = currentNode ?: YumeTxt.Service.Notification.NoNode
-        val speedLine = buildSpeedLine(trafficNow)
+        val currentTraffic = TrafficData.from(trafficNow)
+        val compactSpeed =
+            (currentTraffic.upload + currentTraffic.download).coerceAtLeast(0L)
+        val speedLine = buildSpeedLine(currentTraffic)
         val values =
             NotificationLineValues(
                 profileName = profileName,
@@ -92,7 +100,8 @@ internal object NotificationPresentationFactory {
                 listOf(content, YumeTxt.Service.Notification.CurrentNode.format(node))
                     .filter { it.isNotBlank() }
                     .joinToString("\n"),
-            compactTraffic = buildCompactTrafficLine(trafficNow),
+            compactTraffic = ByteFormatter.formatSpeed(compactSpeed),
+            criticalText = ByteFormatter.formatCompactSpeed(compactSpeed),
             currentNode = currentNode,
         )
     }
@@ -124,13 +133,7 @@ internal object NotificationPresentationFactory {
     }
 
 
-    private fun buildCompactTrafficLine(trafficNow: Long): String {
-        val traffic = TrafficData.from(trafficNow)
-        return ByteFormatter.formatSpeed((traffic.upload + traffic.download).coerceAtLeast(0L))
-    }
-
-    private fun buildSpeedLine(trafficNow: Long): String {
-        val traffic = TrafficData.from(trafficNow)
+    private fun buildSpeedLine(traffic: TrafficData): String {
         return YumeTxt.Service.Notification.SpeedLine.format(
             ByteFormatter.formatSpeed(traffic.download),
             ByteFormatter.formatSpeed(traffic.upload),

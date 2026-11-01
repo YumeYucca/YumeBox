@@ -44,6 +44,7 @@ class AppTrafficStatisticsCollector(
     private var lastTotalUpload = NO_BASELINE
     private var lastTotalDownload = NO_BASELINE
     private var lastProfileId: String? = null
+    private var lastCollectionAtNanos = 0L
 
     init {
         startCollection()
@@ -72,6 +73,7 @@ class AppTrafficStatisticsCollector(
         lastTotalUpload = trafficStatisticsStore.getLastTrafficUpload()
         lastTotalDownload = trafficStatisticsStore.getLastTrafficDownload()
         lastProfileId = trafficStatisticsStore.getLastProfileId()
+        lastCollectionAtNanos = 0L
         connectionBaselines.clear()
         collectTrafficDataSafely()
         PollingTimers.ticks(PollingTimerSpecs.TrafficStatsCollection).collect {
@@ -88,8 +90,20 @@ class AppTrafficStatisticsCollector(
     }
 
     private suspend fun collectTrafficData() {
-        val totalTraffic = querySource.queryTrafficTotal()
         val snapshot = querySource.queryConnections()
+        val totalTraffic =
+            TrafficData(
+                upload = snapshot.uploadTotal,
+                download = snapshot.downloadTotal,
+            )
+        val nowNanos = System.nanoTime()
+        val elapsedMs =
+            if (lastCollectionAtNanos == 0L) {
+                0L
+            } else {
+                ((nowNanos - lastCollectionAtNanos) / NANOS_PER_MILLI).coerceAtLeast(1L)
+            }
+        lastCollectionAtNanos = nowNanos
         val timestamp = System.currentTimeMillis()
         val currentProfileId = querySource.currentProfileId() ?: bestEffortActiveProfileId()
 
@@ -99,11 +113,7 @@ class AppTrafficStatisticsCollector(
         }
 
         if (connectionBaselines.isEmpty()) {
-            recordUnattributedDeltaIfNeeded(
-                timestamp = timestamp,
-                currentUpload = totalTraffic.upload,
-                currentDownload = totalTraffic.download,
-            )
+            // Never record the persisted gap as one delta after a process restart.
             rebaseline(totalTraffic, currentProfileId, snapshot.connections)
             return
         }
@@ -121,6 +131,13 @@ class AppTrafficStatisticsCollector(
             )
         val totalUploadDelta = totalTraffic.upload - lastTotalUpload
         val totalDownloadDelta = totalTraffic.download - lastTotalDownload
+        if (
+            isImplausibleDelta(totalUploadDelta, elapsedMs) ||
+                isImplausibleDelta(totalDownloadDelta, elapsedMs)
+        ) {
+            rebaseline(totalTraffic, currentProfileId, snapshot.connections)
+            return
+        }
         val unattributedUpload = (totalUploadDelta - attributedTotals.upload).coerceAtLeast(0L)
         val unattributedDownload =
             (totalDownloadDelta - attributedTotals.download).coerceAtLeast(0L)
@@ -276,36 +293,23 @@ class AppTrafficStatisticsCollector(
         )
     }
 
-    private suspend fun recordUnattributedDeltaIfNeeded(
-        timestamp: Long,
-        currentUpload: Long,
-        currentDownload: Long,
-    ) {
-        if (currentUpload < lastTotalUpload || currentDownload < lastTotalDownload) {
-            return
-        }
-        val uploadDelta = currentUpload - lastTotalUpload
-        val downloadDelta = currentDownload - lastTotalDownload
-        if (uploadDelta <= 0L && downloadDelta <= 0L) {
-            return
-        }
-        trafficStatisticsStore.recordAppTrafficBatch(
-            timestamp = timestamp,
-            records =
-                listOf(
-                    TrafficStatisticsBuckets.buildUnattributedRecord(
-                        uploadDelta = uploadDelta,
-                        downloadDelta = downloadDelta,
-                    )
-                ),
-        )
-    }
-
     private fun resetBaselines() {
         connectionBaselines.clear()
         lastTotalUpload = NO_BASELINE
         lastTotalDownload = NO_BASELINE
         lastProfileId = null
+        lastCollectionAtNanos = 0L
+    }
+
+    /**
+     * A corrupt/transient total must not be stored as one enormous delta. The cap is deliberately
+     * far above any real device throughput; it only catches impossible jumps.
+     */
+    private fun isImplausibleDelta(delta: Long, elapsedMs: Long): Boolean {
+        if (elapsedMs <= 0L) return false
+        val maxDelta =
+            elapsedMs.coerceAtMost(Long.MAX_VALUE / MAX_BYTES_PER_MILLI) * MAX_BYTES_PER_MILLI
+        return delta > maxDelta
     }
 
     private fun buildTrafficBucketKey(appKey: String, routeKey: String?): String =
@@ -338,5 +342,7 @@ class AppTrafficStatisticsCollector(
     companion object {
         private const val TAG = "AppTrafficStatsCollector"
         private const val NO_BASELINE = -1L
+        private const val NANOS_PER_MILLI = 1_000_000L
+        private const val MAX_BYTES_PER_MILLI = 64L * 1024L * 1024L
     }
 }

@@ -29,7 +29,6 @@ import com.github.yumeyucca.yumebox.data.analytics.AnonymousAnalyticsReporter
 import com.github.yumeyucca.yumebox.data.store.*
 import com.github.yumeyucca.yumebox.data.store.room.createTrafficStatisticsDao
 import com.github.yumeyucca.yumebox.data.update.AppUpdateRepository
-import com.github.yumeyucca.yumebox.domain.model.TrafficData
 import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
 import com.github.yumeyucca.yumebox.runtime.client.ProfilesRepository
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
@@ -167,9 +166,6 @@ val appDataRuntimeModule = module {
 
                     override fun currentProfileId(): String? =
                         proxyFacade.currentProfile.value?.uuid?.toString()
-
-                    override suspend fun queryTrafficTotal(): TrafficData =
-                        TrafficData.from(proxyFacade.queryTrafficTotal())
 
                     override suspend fun queryConnections(): ConnectionSnapshot =
                         proxyFacade.queryConnections()

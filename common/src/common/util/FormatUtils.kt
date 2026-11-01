@@ -52,6 +52,13 @@ object ByteFormatter {
         return "%.${digits}f ${SI_UNITS[scaled.rank]}/s".format(scaled.value)
     }
 
+    /** Speed without a space, for compact status-bar labels. */
+    @JvmStatic
+    fun formatCompactSpeed(bytesPerSecond: Long): String {
+        val display = formatForDisplay(bytesPerSecond, isSpeed = true)
+        return display.value + display.unit
+    }
+
     @JvmStatic
     fun formatForDisplay(bytes: Long, isSpeed: Boolean = false): FormattedBytes {
         val suffix = if (isSpeed) "/s" else ""
