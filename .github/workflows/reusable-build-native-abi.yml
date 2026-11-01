@@ -19,6 +19,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-26.04
+    env:
+      # Single source of truth for the Rust toolchain; the native build step forwards
+      # this to rust_builder.py so the pin actually reaches cargo.
+      # See https://github.com/rust-lang/rust/issues/165263
+      RUST_NIGHTLY: nightly-2026-10-31
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -50,11 +55,12 @@ jobs:
         # -Cpanic=immediate-abort to shrink liboverride.so (~18%), see
         # RustBuilder in scripts/native_build/rust_builder.py.
         # Pinned to the last nightly before rust-lang/rust#165263
+        # (https://github.com/rust-lang/rust/issues/165263)
         # ("cycle detected when computing when `T` needs async drop"),
         # which breaks boa_engine. Bump once upstream is fixed.
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # nightly
         with:
-          toolchain: nightly-2026-10-31
+          toolchain: ${{ env.RUST_NIGHTLY }}
           targets: aarch64-linux-android
           components: rust-src
 
@@ -136,6 +142,7 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ steps.native-config.outputs.ndk_version }}
+          RUSTUP_TOOLCHAIN: ${{ env.RUST_NIGHTLY }}
         run: python3 scripts/native-build.py --go --rust --compat --loader
 
       - name: Verify native outputs
