@@ -404,7 +404,7 @@
 		"primary": {
 			"type": "button",
 			"label": "下载 APK",
-			"href": "https://github.com/YumeYucca/YumeBox/releases"
+			"href": "https://download.yumebox.yumeyuka.moe/"
 		}
 	},
 	"contextual": {

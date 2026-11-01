@@ -51,9 +51,27 @@ icon: house
 ## 下载
 第一次使用 YumeBox，请先阅读[快速开始](/guide/quickstart).
 如果需要历史版本，请查看 [更新日志](/update/history)
-<Card title="下载" icon="square-arrow-down" horizontal href="https://github.com/YumeYucca/YumeBox/releases">
-   前往 Github Release 下载安装包
+需要 Android 13（API 33）及以上.
+
+<CardGroup cols={2}>
+    <Card title="下载站" icon="download" href="https://download.yumebox.yumeyuka.moe/">
+        前往 YumeBox 下载站获取最新安装包
+    </Card>
+
+    <Card title="GitHub Releases" icon="github" href="https://github.com/YumeYucca/YumeBox/releases">
+        在 GitHub 查看发布说明与安装包
+    </Card>
+</CardGroup>
+
+## 用户统计
+
+<Card title="用户统计" icon="chart-line" horizontal href="https://analytics.yumebox.yumeyuka.moe/">
+    查看匿名设备、版本与活跃度统计
 </Card>
+
+匿名统计仅会统计 `Android` 版本 `OEM` 厂商,以及所在应用版本占比,启动代理次数,相关代码
+在仓库的 [analytics](https://github.com/YumeYucca/YumeBox/tree/Moe/analytics) 目录在此处开源, 任何人可复刻部署, 实现为 Cloudflared Work 和 D1 数据库实现
+
 
 ## 其他资料
 

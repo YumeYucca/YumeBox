@@ -22,6 +22,15 @@ The app does use third party services that may collect information used to ident
 
 Link to privacy policy of third party service providers used by the app
 
+**Anonymous Usage Analytics**
+
+YumeBox sends one `app_start` event to its analytics service when the app launches. The event contains a
+randomly generated device identifier, the Android version, the device manufacturer, and the app version and
+version code. The payload does not include your model, configuration, subscriptions, node list, traffic data,
+IP address, or account information. The random identifier is not derived from your hardware or account and is
+used only to count a device once. Aggregated statistics are published at
+https://analytics.yumebox.yumeyuka.moe/.
+
 **Log Data**
 
 We want to inform you that whenever you use our app, in a case of an error in the app we collect data and information
