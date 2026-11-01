@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from .command import command_failure, execute_command
 from .config import NdkTools, ProjectConfig, configured_abis
 
@@ -29,13 +31,19 @@ class RustBuilder:
     def build_for_abi(self, abi: str) -> None:
         print(f"[building] Building for {abi} (Rust)...")
         ndk_dir = str(self.ndk_tools.ndk_dir)
+        # Honor the caller-selected toolchain. CI pins nightly-2026-10-31 because newer
+        # nightlies trip rust-lang/rust#165263 (bogus async-drop cycle) in boa_engine.
+        # Hardcoding "nightly" here silently re-installed an unpinned toolchain that
+        # lacked the aarch64-linux-android target and rust-src, failing with E0463
+        # ("can't find crate for core").
+        toolchain = os.environ.get("RUSTUP_TOOLCHAIN", "nightly")
         result = execute_command(
             [
                 "cargo", "ndk", "-t", abi, "-o", str(self.output_dir), "build", "--release", "--lib",
             ],
             working_dir=self.source_dir,
             environment={
-                "RUSTUP_TOOLCHAIN": "nightly",
+                "RUSTUP_TOOLCHAIN": toolchain,
                 "RUSTFLAGS": "-Cpanic=unwind -C link-arg=-Wl,-soname,liboverride.so",
                 "ANDROID_NDK_HOME": ndk_dir,
                 "ANDROID_NDK_ROOT": ndk_dir,
