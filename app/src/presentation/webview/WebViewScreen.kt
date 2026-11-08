@@ -44,7 +44,5 @@ fun WebViewScreen(initialUrl: String) {
         }
     }
 
-    MiuixTheme {
-        LocalWebView(initialUrl = initialUrl, onWebViewCreated = { webView = it })
-    }
+    MiuixTheme { LocalWebView(initialUrl = initialUrl, onWebViewCreated = { webView = it }) }
 }

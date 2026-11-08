@@ -20,12 +20,12 @@
 
 package com.github.yumeyucca.yumebox.di
 
-import com.github.yumeyucca.yumebox.common.util.AppLanguageManager
 import com.github.yumeyucca.yumebox.BuildInfo
 import com.github.yumeyucca.yumebox.analytics.ANALYTICS_ENDPOINT
+import com.github.yumeyucca.yumebox.common.util.AppLanguageManager
 import com.github.yumeyucca.yumebox.core.model.ConnectionSnapshot
-import com.github.yumeyucca.yumebox.data.controller.*
 import com.github.yumeyucca.yumebox.data.analytics.AnonymousAnalyticsReporter
+import com.github.yumeyucca.yumebox.data.controller.*
 import com.github.yumeyucca.yumebox.data.store.*
 import com.github.yumeyucca.yumebox.data.store.room.createTrafficStatisticsDao
 import com.github.yumeyucca.yumebox.data.update.AppUpdateRepository
@@ -58,9 +58,7 @@ val appFoundationModule = module {
         CoroutineScope(
             SupervisorJob() +
                 Dispatchers.Default +
-                CoroutineExceptionHandler { _, error ->
-                    Timber.e(error, "Uncaught failure in the application scope")
-                },
+                CoroutineExceptionHandler { _, error -> Timber.e(error, "Uncaught failure in the application scope") }
         )
     }
 
@@ -114,8 +112,7 @@ val appDataRuntimeModule = module {
             resolveActiveMode = {
                 proxyFacade.runtimeSnapshot.value.let { snapshot ->
                     snapshot.runMode.takeIf {
-                        snapshot.owner != RuntimeOwner.None &&
-                            snapshot.owner != RuntimeOwner.RemoteController
+                        snapshot.owner != RuntimeOwner.None && snapshot.owner != RuntimeOwner.RemoteController
                     }
                 }
             },
@@ -164,11 +161,9 @@ val appDataRuntimeModule = module {
                 object : TrafficQuerySource {
                     override val isRunning: Flow<Boolean> = proxyFacade.isRunning
 
-                    override fun currentProfileId(): String? =
-                        proxyFacade.currentProfile.value?.uuid?.toString()
+                    override fun currentProfileId(): String? = proxyFacade.currentProfile.value?.uuid?.toString()
 
-                    override suspend fun queryConnections(): ConnectionSnapshot =
-                        proxyFacade.queryConnections()
+                    override suspend fun queryConnections(): ConnectionSnapshot = proxyFacade.queryConnections()
 
                     override suspend fun queryActiveProfileId(): String? {
                         proxyFacade.refreshCurrentProfile()
@@ -180,4 +175,3 @@ val appDataRuntimeModule = module {
         )
     }
 }
-

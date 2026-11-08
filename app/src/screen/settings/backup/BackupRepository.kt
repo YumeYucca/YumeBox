@@ -29,25 +29,23 @@ import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
 import com.github.yumeyucca.yumebox.runtime.service.util.importedDir
 import com.github.yumeyucca.yumebox.substore.SubStorePaths
 import com.github.yumeyucca.yumebox.substore.SubStoreServiceController
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class BackupRepository internal constructor(
+class BackupRepository
+internal constructor(
     private val application: Application,
     private val proxyFacade: ProxyFacade,
     private val storeAdapter: BackupStoreAdapter,
     private val archiveManager: BackupArchiveManager = BackupArchiveManager(),
 ) {
-    suspend fun exportBackup(output: OutputStream) =
-        withContext(Dispatchers.IO) {
-            writeCurrentBackup(output)
-        }
+    suspend fun exportBackup(output: OutputStream) = withContext(Dispatchers.IO) { writeCurrentBackup(output) }
 
     internal suspend fun restoreBackup(input: InputStream, strategy: BackupRestoreStrategy) =
         withContext(Dispatchers.IO) {
@@ -62,8 +60,7 @@ class BackupRepository internal constructor(
                 }
 
                 val currentPayload =
-                    if (strategy == BackupRestoreStrategy.Merge) storeAdapter.collectPayload()
-                    else null
+                    if (strategy == BackupRestoreStrategy.Merge) storeAdapter.collectPayload() else null
                 rollbackFile.outputStream().use(::writeCurrentBackup)
                 try {
                     stopRuntimeBeforeRestore()
@@ -74,9 +71,7 @@ class BackupRepository internal constructor(
                         val stagingDir = freshCacheDir("backup-rollback")
                         rollbackDir = stagingDir
                         rollbackFile.inputStream().use { input ->
-                            archiveManager
-                                .readArchive(input, stagingDir)
-                                .also { rollback -> applyBackup(rollback) }
+                            archiveManager.readArchive(input, stagingDir).also { rollback -> applyBackup(rollback) }
                         }
                     }
                     throw error
@@ -139,14 +134,10 @@ class BackupRepository internal constructor(
             }
         val localWallpaperFile = application.moeWallpaperFile().takeIf(File::isFile)
         val restoredWallpaperFile =
-            if (strategy == BackupRestoreStrategy.Merge) localWallpaperFile ?: wallpaperFile
-            else wallpaperFile
+            if (strategy == BackupRestoreStrategy.Merge) localWallpaperFile ?: wallpaperFile else wallpaperFile
         val appBackup =
             if (restoredWallpaperFile != null) {
-                payload.appSettings.copy(
-                    moeWallpaperUri =
-                        "file://${application.moeWallpaperFile().absolutePath}"
-                )
+                payload.appSettings.copy(moeWallpaperUri = "file://${application.moeWallpaperFile().absolutePath}")
             } else {
                 payload.appSettings
             }
@@ -169,10 +160,7 @@ class BackupRepository internal constructor(
             }
         }
 
-        if (
-            wallpaperFile != null &&
-                (strategy == BackupRestoreStrategy.Overwrite || localWallpaperFile == null)
-        ) {
+        if (wallpaperFile != null && (strategy == BackupRestoreStrategy.Overwrite || localWallpaperFile == null)) {
             application.moeWallpaperFile().also { target ->
                 target.parentFile?.mkdirs()
                 wallpaperFile.copyTo(target, overwrite = true)
@@ -185,19 +173,16 @@ class BackupRepository internal constructor(
     private suspend fun stopRuntimeBeforeRestore() {
         // Swallowing cancellation here would let the restore carry on overwriting files after the
         // caller was cancelled; only a genuine stop failure is best-effort.
-        runCatching { proxyFacade.stopProxy() }
-            .onFailure { error -> if (error is CancellationException) throw error }
+        runCatching { proxyFacade.stopProxy() }.onFailure { error -> if (error is CancellationException) throw error }
         runCatching { SubStoreServiceController.stopService(application) }
     }
 
     private suspend fun notifyRestored() {
         application.sendBroadcast(
-            Intent(Intents.actionProfileChanged(application.packageName))
-                .setPackage(application.packageName)
+            Intent(Intents.actionProfileChanged(application.packageName)).setPackage(application.packageName)
         )
         application.sendBroadcast(
-            Intent(Intents.actionOverrideChanged(application.packageName))
-                .setPackage(application.packageName)
+            Intent(Intents.actionOverrideChanged(application.packageName)).setPackage(application.packageName)
         )
         runCatching { proxyFacade.reconcileRuntimeState() }
             .onFailure { error -> if (error is CancellationException) throw error }
@@ -219,9 +204,7 @@ class BackupRepository internal constructor(
 }
 
 internal fun isCompatibleBackupAppId(backupAppId: String, currentAppId: String): Boolean =
-    backupAppId.isBlank() ||
-            backupAppId == currentAppId ||
-            backupAppId in LEGACY_BACKUP_APP_IDS
+    backupAppId.isBlank() || backupAppId == currentAppId || backupAppId in LEGACY_BACKUP_APP_IDS
 
 private val LEGACY_BACKUP_APP_IDS = setOf("com.github.yumelira.yumebox")
 
@@ -239,9 +222,7 @@ internal fun mergeBackupDirectory(source: File, target: File) {
 private fun File.copyToBackupTarget(target: File) {
     if (isDirectory) {
         target.mkdirs()
-        listFiles().orEmpty().forEach { file ->
-            file.copyToBackupTarget(target.resolve(file.name))
-        }
+        listFiles().orEmpty().forEach { file -> file.copyToBackupTarget(target.resolve(file.name)) }
     } else {
         target.parentFile?.mkdirs()
         copyTo(target, overwrite = true)
@@ -252,9 +233,7 @@ private fun File.mergeIntoBackupTarget(target: File) {
     if (isDirectory) {
         if (target.exists() && !target.isDirectory) return
         target.mkdirs()
-        listFiles().orEmpty().forEach { file ->
-            file.mergeIntoBackupTarget(target.resolve(file.name))
-        }
+        listFiles().orEmpty().forEach { file -> file.mergeIntoBackupTarget(target.resolve(file.name)) }
     } else if (!target.exists()) {
         target.parentFile?.mkdirs()
         copyTo(target)

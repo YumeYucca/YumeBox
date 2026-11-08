@@ -19,8 +19,8 @@ import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 /**
  * One option in [GlassDropdownPreference].
  *
- * The option carries the [value] it stands for, so the row selects a model instead of an index and
- * no call site has to translate its own enum through `indexOf`/`getOrNull` first.
+ * The option carries the [value] it stands for, so the row selects a model instead of an index and no call site has to
+ * translate its own enum through `indexOf`/`getOrNull` first.
  */
 data class GlassDropdownOption<T>(
     val value: T,
@@ -32,10 +32,10 @@ data class GlassDropdownOption<T>(
 /**
  * Uses the upstream popup only with a clean page recording; preserves the old window otherwise.
  *
- * @param options Options in display order. A disabled option is greyed out and ignores taps while
- *   the row itself stays usable.
- * @param selected The option whose value matches this shows as selected; a value that no option
- *   carries leaves every row unselected rather than pointing at the wrong one.
+ * @param options Options in display order. A disabled option is greyed out and ignores taps while the row itself stays
+ *   usable.
+ * @param selected The option whose value matches this shows as selected; a value that no option carries leaves every
+ *   row unselected rather than pointing at the wrong one.
  */
 @Composable
 fun <T> GlassDropdownPreference(
@@ -66,9 +66,7 @@ fun <T> GlassDropdownPreference(
             modifier = modifier,
             enabled = rowEnabled,
             sizing = maxHeight?.let { GlassPopupMenuSizing.copy(maxHeight = it) } ?: GlassPopupMenuSizing,
-            onSelectedIndexChange = { index ->
-                options.getOrNull(index)?.let { onSelected(it.value) }
-            },
+            onSelectedIndexChange = { index -> options.getOrNull(index)?.let { onSelected(it.value) } },
         )
     } else {
         val entry =
@@ -85,8 +83,7 @@ fun <T> GlassDropdownPreference(
                                         imageVector = icon,
                                         contentDescription = null,
                                         modifier =
-                                            Modifier
-                                                .padding(end = GlassPopupMenuDefaults.ItemIconGap)
+                                            Modifier.padding(end = GlassPopupMenuDefaults.ItemIconGap)
                                                 .size(GlassPopupMenuDefaults.ItemIconSize),
                                     )
                                 }
@@ -98,7 +95,7 @@ fun <T> GlassDropdownPreference(
                             icon = optionIcon,
                             onClick = { onSelected(option.value) },
                         )
-                    },
+                    }
             )
         WindowDropdownPreference(
             entry = entry,

@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.moe
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -37,10 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/**
- * Shared color roles the guide mockups derive from the theme — one place instead of a block per
- * composable.
- */
+/** Shared color roles the guide mockups derive from the theme — one place instead of a block per composable. */
 internal data class MockupPalette(
     val mask: Color,
     val maskStrong: Color,
@@ -87,8 +83,7 @@ internal fun MockupPhoneFrame(
         val frameWidth = frameHeight * 0.46f
         Box(
             modifier =
-                Modifier
-                    .width(frameWidth)
+                Modifier.width(frameWidth)
                     .height(frameHeight)
                     .clip(RoundedCornerShape(22.dp))
                     .background(palette.surface)

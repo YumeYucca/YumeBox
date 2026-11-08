@@ -34,13 +34,12 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * Route-level [Scaffold] whose top bar can progressively blur the body content scrolling under
- * it. Creates a [top.yukonga.miuix.kmp.blur.LayerBackdrop] capturing the body (opaque surface
- * underlay first, so translucent pages don't bleed through; keyed on the surface color so a
- * theme switch re-records), provides it as [LocalTopBarBackdrop] for `TopBar`/`SmallTopBar`, and
- * attaches the capture to the body wrapper. The top bar composes in the Scaffold's topBar slot,
- * outside the captured subtree, satisfying the miuix-blur same-subtree constraint; devices
- * without RuntimeShader keep the scrim-only fallback inside the top bar itself.
+ * Route-level [Scaffold] whose top bar can progressively blur the body content scrolling under it. Creates a
+ * [top.yukonga.miuix.kmp.blur.LayerBackdrop] capturing the body (opaque surface underlay first, so translucent pages
+ * don't bleed through; keyed on the surface color so a theme switch re-records), provides it as [LocalTopBarBackdrop]
+ * for `TopBar`/`SmallTopBar`, and attaches the capture to the body wrapper. The top bar composes in the Scaffold's
+ * topBar slot, outside the captured subtree, satisfying the miuix-blur same-subtree constraint; devices without
+ * RuntimeShader keep the scrim-only fallback inside the top bar itself.
  */
 @Composable
 fun GlassScaffold(
@@ -57,9 +56,7 @@ fun GlassScaffold(
             modifier = modifier,
         ) { innerPadding ->
             Box(Modifier.fillMaxSize()) {
-                Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-                    content(innerPadding)
-                }
+                Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) { content(innerPadding) }
                 contentOverlay(innerPadding)
             }
         }

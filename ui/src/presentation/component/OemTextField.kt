@@ -46,8 +46,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -69,16 +69,15 @@ private val DefaultTextFieldMargin = DpSize(UiDp.dp16, UiDp.dp16)
 private val DefaultTextFieldRadius = UiDp.dp16
 
 /**
- * Resting size of the [OemTextField] label. The label animation runs in [androidx.compose.ui.unit.Dp]
- * (it feeds `labelSize.value.sp`), shrinks to [UiDp.dp10] while floating, and returns to this value
- * at rest; 17dp has no [UiDp] token, so it stays a named constant instead of a bare literal at the
- * animation site.
+ * Resting size of the [OemTextField] label. The label animation runs in [androidx.compose.ui.unit.Dp] (it feeds
+ * `labelSize.value.sp`), shrinks to [UiDp.dp10] while floating, and returns to this value at rest; 17dp has no [UiDp]
+ * token, so it stays a named constant instead of a bare literal at the animation site.
  */
 private val DefaultLabelRestingFontSize = 17.dp
 
 /**
- * Mirrors an outside [value] into the [TextFieldValue] the platform field edits, keeping the caret
- * at the end of any value that arrives from outside.
+ * Mirrors an outside [value] into the [TextFieldValue] the platform field edits, keeping the caret at the end of any
+ * value that arrives from outside.
  */
 @Composable
 internal fun rememberMirroredTextFieldValue(value: String): MutableState<TextFieldValue> {
@@ -92,8 +91,8 @@ internal fun rememberMirroredTextFieldValue(value: String): MutableState<TextFie
 }
 
 /**
- * Miuix TextField chrome with a platform [EditText] as its input node. Keeping the host view as
- * an EditText is what allows OEM TextView hooks to supply the selection handles and action menu.
+ * Miuix TextField chrome with a platform [EditText] as its input node. Keeping the host view as an EditText is what
+ * allows OEM TextView hooks to supply the selection handles and action menu.
  */
 @Composable
 fun OemTextField(
@@ -115,18 +114,21 @@ fun OemTextField(
     val labelVisible = label.isNotEmpty() && !(useLabelAsPlaceholder && hasText)
     val labelFloating = labelVisible && hasText
     val borderWidth by animateDpAsState(if (focused) UiDp.dp2 else UiDp.dp0, label = "oem_text_field_border")
-    val borderColor by animateColorAsState(
-        if (focused) colors.primary else colors.secondaryContainer,
-        label = "oem_text_field_border_color",
-    )
-    val labelOffset by animateDpAsState(
-        if (labelFloating) -DefaultTextFieldMargin.height / 2 else UiDp.dp0,
-        label = "oem_text_field_label_offset",
-    )
-    val labelSize by animateDpAsState(
-        if (labelFloating) UiDp.dp10 else DefaultLabelRestingFontSize,
-        label = "oem_text_field_label_size",
-    )
+    val borderColor by
+        animateColorAsState(
+            if (focused) colors.primary else colors.secondaryContainer,
+            label = "oem_text_field_border_color",
+        )
+    val labelOffset by
+        animateDpAsState(
+            if (labelFloating) -DefaultTextFieldMargin.height / 2 else UiDp.dp0,
+            label = "oem_text_field_label_offset",
+        )
+    val labelSize by
+        animateDpAsState(
+            if (labelFloating) UiDp.dp10 else DefaultLabelRestingFontSize,
+            label = "oem_text_field_label_size",
+        )
 
     Box(
         modifier =
@@ -138,8 +140,7 @@ fun OemTextField(
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier =
-                    Modifier
-                        .weight(1f)
+                    Modifier.weight(1f)
                         .padding(
                             start = DefaultTextFieldMargin.width,
                             end = if (trailingIcon == null) DefaultTextFieldMargin.width else UiDp.dp0,
@@ -162,8 +163,7 @@ fun OemTextField(
                     value = value,
                     onValueChange = onValueChange,
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
+                        Modifier.fillMaxWidth()
                             .offset(y = if (labelFloating) DefaultTextFieldMargin.height / 2 else UiDp.dp0),
                     enabled = enabled,
                     singleLine = singleLine,
@@ -213,18 +213,17 @@ fun OemTextField(
 }
 
 /**
- * Sheet form row: a persistent label on the leading side and a borderless value that starts at the
- * leading edge of its half, separated from the row above by an optional hairline — the shape of the
- * reference import sheet (名称 / 链接 / age 私钥 in one card).
+ * Sheet form row: a persistent label on the leading side and a borderless value that starts at the leading edge of its
+ * half, separated from the row above by an optional hairline — the shape of the reference import sheet (名称 / 链接 / age
+ * 私钥 in one card).
  *
- * The value never wraps: a long link runs to the card edge and is clipped there (it scrolls under
- * the caret while editing) instead of pushing the row into two lines and losing the label/value
- * rhythm. [hint] is the faint right-aligned tag an empty optional row carries ("可选"), rendered
- * beside the empty value so it does not force the text itself to the right.
+ * The value never wraps: a long link runs to the card edge and is clipped there (it scrolls under the caret while
+ * editing) instead of pushing the row into two lines and losing the label/value rhythm. [hint] is the faint
+ * right-aligned tag an empty optional row carries ("可选"), rendered beside the empty value so it does not force the text
+ * itself to the right.
  *
- * The field itself is as tall as the row (56dp), so a tap anywhere in the value half lands on the
- * caret instead of a thin strip of text at the vertical centre. [trailingIcon] hosts a per-row
- * control (the age key's eye).
+ * The field itself is as tall as the row (56dp), so a tap anywhere in the value half lands on the caret instead of a
+ * thin strip of text at the vertical centre. [trailingIcon] hosts a per-row control (the age key's eye).
  */
 @Composable
 fun AppTextFieldRow(
@@ -250,43 +249,31 @@ fun AppTextFieldRow(
             HorizontalDivider(modifier = Modifier.padding(horizontal = UiDp.dp16))
         }
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = UiDp.dp56)
-                    .padding(start = UiDp.dp16, end = UiDp.dp16),
+            modifier = Modifier.fillMaxWidth().heightIn(min = UiDp.dp56).padding(start = UiDp.dp16, end = UiDp.dp16),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = label,
                 modifier =
-                    Modifier
-                        .weight(1f)
-                        .clickable(
-                            enabled = enabled,
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) {
-                            fieldView?.requestFocus()
-                            keyboardController?.show()
-                        },
+                    Modifier.weight(1f).clickable(
+                        enabled = enabled,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) {
+                        fieldView?.requestFocus()
+                        keyboardController?.show()
+                    },
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 color = if (enabled) colors.onSurface else colors.onSurfaceVariantSummary,
             )
-            Box(
-                modifier =
-                    Modifier
-                        .weight(1.6f)
-                        .heightIn(min = UiDp.dp56),
-            ) {
+            Box(modifier = Modifier.weight(1.6f).heightIn(min = UiDp.dp56)) {
                 InlineTextField(
                     value = value,
                     onValueChange = onValueChange,
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
+                        Modifier.fillMaxWidth()
                             .heightIn(min = UiDp.dp56)
                             // The value stops short of the card edge instead of hugging it.
                             .padding(start = UiDp.dp8, end = valueEndPadding),
@@ -299,10 +286,7 @@ fun AppTextFieldRow(
                 if (value.text.isEmpty() && hint != null) {
                     Text(
                         text = hint,
-                        modifier =
-                            Modifier
-                                .align(Alignment.CenterEnd)
-                                .padding(end = valueEndPadding),
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(end = valueEndPadding),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Medium,
                         color = colors.onSurfaceVariantSummary,
@@ -310,14 +294,7 @@ fun AppTextFieldRow(
                     )
                 }
                 if (trailingIcon != null) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .align(Alignment.CenterEnd)
-                                .padding(end = UiDp.dp8)
-                    ) {
-                        trailingIcon()
-                    }
+                    Box(modifier = Modifier.align(Alignment.CenterEnd).padding(end = UiDp.dp8)) { trailingIcon() }
                 }
             }
         }
@@ -358,8 +335,8 @@ fun AppTextFieldRow(
 }
 
 /**
- * Trailing control for [AppTextFieldRow] — the age key's eye: 32dp tap target, 20dp glyph, no
- * ripple chrome so it reads as part of the row.
+ * Trailing control for [AppTextFieldRow] — the age key's eye: 32dp tap target, 20dp glyph, no ripple chrome so it reads
+ * as part of the row.
  */
 @Composable
 fun AppTextFieldRowIcon(
@@ -473,13 +450,14 @@ private fun PlatformEditText(
 
                         override fun afterTextChanged(text: Editable?) {
                             val updatedText = text?.toString().orEmpty()
-                            val caret = selectionStart.coerceIn(0, updatedText.length) to
-                                selectionEnd.coerceIn(0, updatedText.length)
+                            val caret =
+                                selectionStart.coerceIn(0, updatedText.length) to
+                                    selectionEnd.coerceIn(0, updatedText.length)
                             currentOnValueChange(
                                 TextFieldValue(
                                     text = updatedText,
                                     selection = TextRange(caret.first, caret.second),
-                                ),
+                                )
                             )
                         }
                     }
@@ -527,7 +505,8 @@ private fun PlatformEditText(
 
 private fun TextAlign.horizontalGravity(): Int =
     when (this) {
-        TextAlign.End, TextAlign.Right -> Gravity.END
+        TextAlign.End,
+        TextAlign.Right -> Gravity.END
         TextAlign.Center -> Gravity.CENTER_HORIZONTAL
         else -> Gravity.START
     }

@@ -33,6 +33,7 @@ import android.text.style.ForegroundColorSpan
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
 import com.github.yumeyucca.yumebox.data.model.NotificationDisplaySettings
@@ -58,7 +59,6 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 class ServiceNotificationManager(
     private val service: Service,
@@ -127,8 +127,8 @@ class ServiceNotificationManager(
         }
 
     /**
-     * Stop updating and clear the notification. After this the traffic updater never notifies
-     * again. The caller cancels the traffic job; that job releases the XMSF bypass.
+     * Stop updating and clear the notification. After this the traffic updater never notifies again. The caller cancels
+     * the traffic job; that job releases the XMSF bypass.
      */
     fun release() {
         released = true
@@ -149,9 +149,7 @@ class ServiceNotificationManager(
     private suspend fun loadFrame(): NoticeFrame {
         // Reading the profile deserializes the whole stored list, so resolve it only once.
         val profile = resolveProfile()
-        val profileName =
-            profile?.name?.takeIf { it.isNotBlank() }
-                ?: YumeTxt.Service.Notification.UnknownProfile
+        val profileName = profile?.name?.takeIf { it.isNotBlank() } ?: YumeTxt.Service.Notification.UnknownProfile
         if (!shouldShowTrafficNotification()) {
             return NoticeFrame.Plain(
                 NotificationPresentationFactory.createStatus(
@@ -177,14 +175,12 @@ class ServiceNotificationManager(
         profileName: String,
     ): NotificationPresentation.Running {
         val core = CoreProcess.controller(service)
-        val now =
-            runCatching { core.queryTrafficNow() }
-                .onFailure { error -> if (error is CancellationException) throw error }
-                .getOrDefault(0L)
-        val total =
-            runCatching { core.queryTrafficTotal() }
-                .onFailure { error -> if (error is CancellationException) throw error }
-                .getOrDefault(0L)
+        val now = runCatching {
+            core.queryTrafficNow()
+        }.onFailure { error -> if (error is CancellationException) throw error }.getOrDefault(0L)
+        val total = runCatching {
+            core.queryTrafficTotal()
+        }.onFailure { error -> if (error is CancellationException) throw error }.getOrDefault(0L)
         val displaySettings =
             NotificationDisplaySettings(
                 firstLine = appSettings.notificationFirstLine.value,
@@ -326,8 +322,7 @@ class ServiceNotificationManager(
 
     // startForeground() must never trip before the first frame, so a preference read failure falls
     // back to the default logo.
-    private fun smallIconRes(): Int =
-        runCatching { ServiceLogoIcons.resId() }.getOrDefault(R.drawable.ic_logo_service)
+    private fun smallIconRes(): Int = runCatching { ServiceLogoIcons.resId() }.getOrDefault(R.drawable.ic_logo_service)
 
     private fun whiteActionLabel(text: String): CharSequence =
         SpannableString(text).apply {
@@ -339,8 +334,7 @@ class ServiceNotificationManager(
             )
         }
 
-    private fun resolveProfile(): Imported? =
-        serviceStore.activeProfile?.let { ImportedDao.queryByUUID(it) }
+    private fun resolveProfile(): Imported? = serviceStore.activeProfile?.let { ImportedDao.queryByUUID(it) }
 
     private suspend fun resolveCurrentNode(core: CoreApi): String? {
         val now = SystemClock.elapsedRealtime()
@@ -351,9 +345,7 @@ class ServiceNotificationManager(
         // A failed probe keeps the previous node name; cancellation still propagates.
         runCatching { core.queryAllProxyGroups() }
             .onFailure { error -> if (error is CancellationException) throw error }
-            .onSuccess { groups ->
-                currentNode = groups.map { it.toInfo() }.resolvePrimaryNode()?.name
-            }
+            .onSuccess { groups -> currentNode = groups.map { it.toInfo() }.resolvePrimaryNode()?.name }
         return currentNode
     }
 
@@ -365,14 +357,12 @@ class ServiceNotificationManager(
         }
 
     private fun isIslandEnabled(): Boolean =
-        !RemoteControllerStore.isActive() &&
-            appSettings.superIslandEnabled.value &&
-            HyperOsIsland.isSupported()
+        !RemoteControllerStore.isActive() && appSettings.superIslandEnabled.value && HyperOsIsland.isSupported()
 
     companion object {
         /**
-         * Kept past the first island `startForeground()`. HyperOS decides whether to keep the island
-         * while that notification is delivered, and the XMSF bypass is already held.
+         * Kept past the first island `startForeground()`. HyperOS decides whether to keep the island while that
+         * notification is delivered, and the XMSF bypass is already held.
          */
         private const val ISLAND_SETTLE_DELAY_MS = 100L
 

@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.data.controller
 
-
 import com.github.yumeyucca.yumebox.core.model.RunMode
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.data.store.Preference

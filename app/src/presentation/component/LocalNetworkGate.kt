@@ -47,12 +47,11 @@ private fun needsLocalNetworkPermission(context: Context): Boolean =
         ) != PackageManager.PERMISSION_GRANTED
 
 /**
- * Runs an action that talks to another device on the LAN, asking for the local-network permission
- * first when the platform requires it.
+ * Runs an action that talks to another device on the LAN, asking for the local-network permission first when the
+ * platform requires it.
  *
- * The action is parked while the dialog is up, so callers describe what they want to do once and let
- * the gate resume it — instead of each call site keeping its own "pending action" state next to its
- * own launcher.
+ * The action is parked while the dialog is up, so callers describe what they want to do once and let the gate resume it
+ * — instead of each call site keeping its own "pending action" state next to its own launcher.
  */
 @Stable
 internal class LocalNetworkGate(

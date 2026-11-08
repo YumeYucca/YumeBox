@@ -25,8 +25,8 @@ package com.github.yumeyucca.yumebox.feature.editor.editor
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.github.yumeyucca.yumebox.feature.editor.format.CodeFormatter
 import com.github.yumeyucca.yumebox.core.model.LanguageScope
+import com.github.yumeyucca.yumebox.feature.editor.format.CodeFormatter
 import io.github.rosemoe.sora.widget.CodeEditor
 
 /** The one default text size for every editor surface: preview, fullscreen and the dialog. */

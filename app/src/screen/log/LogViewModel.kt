@@ -30,15 +30,15 @@ import com.github.yumeyucca.yumebox.core.model.LogMessage
 import com.github.yumeyucca.yumebox.runtime.api.LogObserver
 import com.github.yumeyucca.yumebox.runtime.api.LogSubscription
 import com.github.yumeyucca.yumebox.runtime.client.access.RuntimeAccess
+import java.util.concurrent.atomic.AtomicLong
+import kotlin.collections.ArrayDeque
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
-import java.util.concurrent.atomic.AtomicLong
-import kotlin.collections.ArrayDeque
 
 /**
- * Minimum log level shown in the UI. [All] keeps every entry; every other value keeps its own level
- * and anything more severe (Debug < Info < Warning < Error).
+ * Minimum log level shown in the UI. [All] keeps every entry; every other value keeps its own level and anything more
+ * severe (Debug < Info < Warning < Error).
  */
 enum class LogLevelFilter(private val minimumLevel: LogMessage.Level?) {
     All(null),
@@ -48,8 +48,7 @@ enum class LogLevelFilter(private val minimumLevel: LogMessage.Level?) {
     Error(LogMessage.Level.Error);
 
     /** Whether an entry logged at [level] belongs in the filtered list. */
-    fun keeps(level: LogMessage.Level): Boolean =
-        minimumLevel == null || level.rank >= minimumLevel.rank
+    fun keeps(level: LogMessage.Level): Boolean = minimumLevel == null || level.rank >= minimumLevel.rank
 }
 
 /** Severity rank; levels without one rank below every filter except [LogLevelFilter.All]. */
@@ -88,8 +87,7 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
     private val _levelFilter = MutableStateFlow(LogLevelFilter.All)
     private val _searchQuery = MutableStateFlow("")
     private val _connectionState = MutableStateFlow(LogConnectionState.Connecting)
-    @Volatile
-    private var logSubscription: LogSubscription? = null
+    @Volatile private var logSubscription: LogSubscription? = null
     private var connectJob: Job? = null
 
     private val levelFilter: StateFlow<LogLevelFilter> = _levelFilter.asStateFlow()
@@ -97,13 +95,13 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
     private val connectionState: StateFlow<LogConnectionState> = _connectionState.asStateFlow()
     private val filteredLogEntries: StateFlow<List<LiveLogEntry>> =
         combine(_entries, _levelFilter, _searchQuery) { entries, filter, query ->
-            entries.filter { entry ->
-                filter.keeps(entry.level) &&
+                entries.filter { entry ->
+                    filter.keeps(entry.level) &&
                         (query.isBlank() ||
-                                entry.message.contains(query, ignoreCase = true) ||
-                                entry.level.name.contains(query, ignoreCase = true))
+                            entry.message.contains(query, ignoreCase = true) ||
+                            entry.level.name.contains(query, ignoreCase = true))
+                }
             }
-        }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
@@ -162,9 +160,7 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
                         }
                     }
                 if (batch.isNotEmpty()) {
-                    _entries.update { entries ->
-                        (batch.asReversed() + entries).take(MAX_ENTRIES)
-                    }
+                    _entries.update { entries -> (batch.asReversed() + entries).take(MAX_ENTRIES) }
                 }
             }
         }
@@ -172,18 +168,18 @@ class LogViewModel(private val appContext: Context) : ViewModel() {
 
     val screenState: StateFlow<LogScreenState> =
         combine(
-            filteredLogEntries,
-            levelFilter,
-            searchQuery,
-            connectionState,
-        ) { entries, filter, query, connection ->
-            LogScreenState(
-                filteredEntries = entries,
-                levelFilter = filter,
-                searchQuery = query,
-                connectionState = connection,
-            )
-        }
+                filteredLogEntries,
+                levelFilter,
+                searchQuery,
+                connectionState,
+            ) { entries, filter, query, connection ->
+                LogScreenState(
+                    filteredEntries = entries,
+                    levelFilter = filter,
+                    searchQuery = query,
+                    connectionState = connection,
+                )
+            }
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),

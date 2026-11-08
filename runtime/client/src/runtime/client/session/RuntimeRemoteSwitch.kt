@@ -37,8 +37,8 @@ import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 
 /**
- * Probe / attach / fallback for external-controller mode. The wanted preference stays on the store;
- * this object owns the live takeover so [RuntimeSession] does not grow a second lifecycle.
+ * Probe / attach / fallback for external-controller mode. The wanted preference stays on the store; this object owns
+ * the live takeover so [RuntimeSession] does not grow a second lifecycle.
  */
 internal class RuntimeRemoteSwitch(
     private val deps: RuntimeSessionDeps,
@@ -59,10 +59,7 @@ internal class RuntimeRemoteSwitch(
     private var probeJob: Job? = null
     private var refreshJob: Job? = null
 
-    /**
-     * Consecutive unreachable probes while a remote session is held. One miss must not restart the
-     * local runtime.
-     */
+    /** Consecutive unreachable probes while a remote session is held. One miss must not restart the local runtime. */
     private var unreachableStreak = 0
 
     fun apply() {
@@ -106,12 +103,11 @@ internal class RuntimeRemoteSwitch(
 
     private fun startWatch() {
         if (probeJob?.isActive == true) return
-        probeJob =
-            scope.launch {
-                PollingTimers.ticks(PollingTimerSpecs.RemoteControllerProbe).conflate().collect {
-                    mutex.withLock { watchdogTick() }
-                }
+        probeJob = scope.launch {
+            PollingTimers.ticks(PollingTimerSpecs.RemoteControllerProbe).conflate().collect {
+                mutex.withLock { watchdogTick() }
             }
+        }
     }
 
     private fun stopWatch() {
@@ -121,8 +117,7 @@ internal class RuntimeRemoteSwitch(
 
     private fun isWatchingRemote(): Boolean {
         val current = snapshot()
-        return current.owner == RuntimeOwner.RemoteController &&
-            current.phase == RuntimePhase.Running
+        return current.owner == RuntimeOwner.RemoteController && current.phase == RuntimePhase.Running
     }
 
     private suspend fun attach(refresh: Boolean) {
@@ -141,10 +136,11 @@ internal class RuntimeRemoteSwitch(
                 connectBackend()
                 startTrafficPolling()
                 deps.onAfterRunning()
-            }.onFailure { error ->
-                if (error is CancellationException) throw error
-                Timber.d(error, "Remote controller backend refresh skipped")
             }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    Timber.d(error, "Remote controller backend refresh skipped")
+                }
         }
     }
 
@@ -175,9 +171,7 @@ internal class RuntimeRemoteSwitch(
             }
             return
         }
-        Timber.i(
-            "Controller fallback: resuming local runtime owner=${paused?.ownerName} mode=$pausedMode"
-        )
+        Timber.i("Controller fallback: resuming local runtime owner=${paused?.ownerName} mode=$pausedMode")
         runCatching { startLocal(pausedMode) }
             .onFailure { error ->
                 if (error is CancellationException) throw error
@@ -189,9 +183,7 @@ internal class RuntimeRemoteSwitch(
         runCatching {
             val state = control.state.value
             val owner = state.owner
-            if (!state.active ||
-                (owner != RuntimeOwner.VpnService && owner != RuntimeOwner.RootDaemon)
-            ) {
+            if (!state.active || (owner != RuntimeOwner.VpnService && owner != RuntimeOwner.RootDaemon)) {
                 return
             }
             val mode = state.mode ?: deps.networkSettingsStorage.runMode.value

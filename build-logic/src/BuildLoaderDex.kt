@@ -25,9 +25,7 @@ class LoaderDexBuilder(
 
         val sdk = sdkDirectory
         val buildTools =
-            sdk.resolve("build-tools").listFiles()?.filter(File::isDirectory)?.maxWithOrNull {
-                left,
-                right ->
+            sdk.resolve("build-tools").listFiles()?.filter(File::isDirectory)?.maxWithOrNull { left, right ->
                 compareVersions(left.name, right.name)
             } ?: error("No Android build-tools installation found under $sdk")
         val platform =
@@ -67,14 +65,14 @@ class LoaderDexBuilder(
         ZipFile(aar).use { zip ->
             // Classic AARs carry classes.jar at the root; pinned Toolchain 0.13.0 AARs
             // place the single compiled jar under libs/.
-            val entry = zip.getEntry("classes.jar")
-                ?: zip.entries().toList()
-                    .filter { !it.isDirectory && it.name.startsWith("libs/") && it.name.endsWith(".jar") }
-                    .singleOrNull()
-                ?: error("No classes jar found in $aar")
-            zip.getInputStream(entry).use { input ->
-                destination.outputStream().use(input::copyTo)
-            }
+            val entry =
+                zip.getEntry("classes.jar")
+                    ?: zip.entries()
+                        .toList()
+                        .filter { !it.isDirectory && it.name.startsWith("libs/") && it.name.endsWith(".jar") }
+                        .singleOrNull()
+                    ?: error("No classes jar found in $aar")
+            zip.getInputStream(entry).use { input -> destination.outputStream().use(input::copyTo) }
         }
         return destination
     }
@@ -89,8 +87,7 @@ class LoaderDexBuilder(
         return 0
     }
 
-    private fun javaExecutable(): String =
-        File(System.getProperty("java.home"), "bin/java").absolutePath
+    private fun javaExecutable(): String = File(System.getProperty("java.home"), "bin/java").absolutePath
 
     private fun runCommand(command: List<String>, failure: String) {
         val process = ProcessBuilder(command).inheritIO().start()

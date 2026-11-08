@@ -57,9 +57,9 @@ fun ExtensionsScreen() {
         val permission = "android.permission.ACCESS_LOCAL_NETWORK"
         if (
             Build.VERSION.SDK_INT < 37 ||
-            !backend.requiresLocalNetworkPermission() ||
-            ContextCompat.checkSelfPermission(context, permission) ==
-            android.content.pm.PackageManager.PERMISSION_GRANTED
+                !backend.requiresLocalNetworkPermission() ||
+                ContextCompat.checkSelfPermission(context, permission) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
         ) {
             action()
         } else {
@@ -68,18 +68,13 @@ fun ExtensionsScreen() {
         }
     }
 
-    GlassScaffold(
-        topBar = { TopBar(title = YumeTxt.Settings.Section.Extensions, scrollBehavior = scrollBehavior) }
-    ) { innerPadding ->
+    GlassScaffold(topBar = { TopBar(title = YumeTxt.Settings.Section.Extensions, scrollBehavior = scrollBehavior) }) {
+        innerPadding ->
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
         ) {
-            item {
-                RemoteControllerSection(
-                    onRequestLocalNetworkPermission = requestLocalNetworkPermission,
-                )
-            }
+            item { RemoteControllerSection(onRequestLocalNetworkPermission = requestLocalNetworkPermission) }
         }
     }
 }

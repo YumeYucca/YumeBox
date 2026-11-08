@@ -11,7 +11,6 @@
 
 package com.github.yumeyucca.yumebox.screen.moe
 
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -47,10 +46,7 @@ internal fun MoeHomeCopyBlock(
             overflow = TextOverflow.Clip,
         )
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = MoeUi.Quote.quoteTopGap),
+            modifier = Modifier.fillMaxWidth().padding(top = MoeUi.Quote.quoteTopGap),
             verticalArrangement = Arrangement.spacedBy(MoeUi.Quote.authorTopGap),
         ) {
             Text(
@@ -79,9 +75,7 @@ internal fun MoeHomeCopyBlock(
             }
         }
         launchContent?.let { content ->
-            Box(Modifier
-                .fillMaxWidth()
-                .padding(top = MoeUi.Hero.launchTopGap)) { content() }
+            Box(Modifier.fillMaxWidth().padding(top = MoeUi.Hero.launchTopGap)) { content() }
         }
     }
 }

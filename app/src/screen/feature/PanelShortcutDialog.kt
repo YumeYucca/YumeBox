@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.feature
 
-
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -44,10 +43,10 @@ import androidx.compose.ui.unit.dp
 import com.github.panpf.sketch.rememberAsyncImagePainter
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.yumeyucca.yumebox.R
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.AppFormDialog
 import com.github.yumeyucca.yumebox.presentation.component.OemTextField
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -97,8 +96,7 @@ fun PanelShortcutDialog(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier =
-                    Modifier
-                        .padding(vertical = spacing.space16)
+                    Modifier.padding(vertical = spacing.space16)
                         .size(100.dp)
                         .clip(RoundedCornerShape(25.dp))
                         .background(Color.White),

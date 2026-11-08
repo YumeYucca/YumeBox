@@ -31,7 +31,9 @@ import timber.log.Timber
 import java.util.*
 
 /** Profile CRUD via `RuntimeAccess` / `ProfileApi`. */
-class ProfilesRepository(private val context: Context) {
+class ProfilesRepository(
+    private val context: Context,
+) {
     private val appContext = context.appContextOrSelf
 
     suspend fun createProfile(
@@ -86,16 +88,13 @@ class ProfilesRepository(private val context: Context) {
             RuntimeAccess.connect(context)
 
             val profile =
-                RuntimeAccess.profile().queryByUUID(uuid)
-                    ?: throw IllegalArgumentException("Profile not found: $uuid")
+                RuntimeAccess.profile().queryByUUID(uuid) ?: throw IllegalArgumentException("Profile not found: $uuid")
 
             RuntimeAccess.profile().setActive(profile)
 
             notifyRuntimeOverrideChanged()
 
-            Timber.d(
-                "Active profile applied: uuid=$uuid cost=${System.currentTimeMillis() - startedAt}ms"
-            )
+            Timber.d("Active profile applied: uuid=$uuid cost=${System.currentTimeMillis() - startedAt}ms")
         }
     }
 
@@ -126,11 +125,15 @@ class ProfilesRepository(private val context: Context) {
             RuntimeAccess.profile().update(uuid, callback)
         }
 
-    suspend fun patchProfile(uuid: UUID, patch: ProfilePatch) {
+    suspend fun patchProfile(
+        uuid: UUID,
+        patch: ProfilePatch,
+    ) {
         apiCall("patchProfile") {
             Timber.d("Patching profile: uuid=$uuid")
             RuntimeAccess.connect(context)
-            RuntimeAccess.profile()
+            RuntimeAccess
+                .profile()
                 .patch(
                     uuid = uuid,
                     name = patch.name,
@@ -143,13 +146,14 @@ class ProfilesRepository(private val context: Context) {
     }
 
     /** Every call here is binder IPC: keep it off the caller's dispatcher, then surface the failure. */
-    private suspend fun <T> apiCall(operation: String, block: suspend () -> T): T =
-        withContext(Dispatchers.IO) { safeApiCall(TAG, operation, block) }.getOrThrow()
+    private suspend fun <T> apiCall(
+        operation: String,
+        block: suspend () -> T,
+    ): T = withContext(Dispatchers.IO) { safeApiCall(TAG, operation, block) }.getOrThrow()
 
     private fun notifyRuntimeOverrideChanged() {
         appContext.sendBroadcast(
-            Intent(Intents.actionOverrideChanged(appContext.packageName))
-                .setPackage(appContext.packageName)
+            Intent(Intents.actionOverrideChanged(appContext.packageName)).setPackage(appContext.packageName),
         )
     }
 

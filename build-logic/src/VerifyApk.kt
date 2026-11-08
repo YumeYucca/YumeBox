@@ -8,11 +8,17 @@ import org.tukaani.xz.XZInputStream
 
 fun verifyPackedPayload(apk: File) {
     ZipFile(apk).use { zip ->
-        check(zip.getEntry("classes.dex") != null && zip.getEntry("classes2.dex") == null) { "Invalid loader DEX layout" }
-        listOf("libloader", "libmihomo", "libpreview").forEach { check(zip.getEntry("lib/arm64-v8a/$it.so") != null) { "Missing bootstrap library $it" } }
+        check(zip.getEntry("classes.dex") != null && zip.getEntry("classes2.dex") == null) {
+            "Invalid loader DEX layout"
+        }
+        listOf("libloader", "libmihomo", "libpreview").forEach {
+            check(zip.getEntry("lib/arm64-v8a/$it.so") != null) { "Missing bootstrap library $it" }
+        }
         val metadata = requireNotNull(zip.getEntry(PayloadFormat.METADATA)) { "Missing loader metadata" }
         DataInputStream(zip.getInputStream(metadata)).use { input ->
-            check(input.readInt() == PayloadFormat.MAGIC && input.readInt() == PayloadFormat.VERSION) { "Unsupported payload format" }
+            check(input.readInt() == PayloadFormat.MAGIC && input.readInt() == PayloadFormat.VERSION) {
+                "Unsupported payload format"
+            }
             check(input.readUTF().length == 64)
             check(input.readUTF() == "com.github.yumeyucca.yumebox.App")
             check(input.readUTF() == "androidx.core.app.CoreComponentFactory")

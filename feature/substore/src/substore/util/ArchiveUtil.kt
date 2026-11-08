@@ -20,30 +20,32 @@
 
 package com.github.yumeyucca.yumebox.substore.util
 
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.zip.ZipInputStream
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 
 object ArchiveUtil {
     fun unzipZip(zipFile: File, destination: File): Boolean =
         extractArchive(zipFile, destination) { input ->
             ZipInputStream(input).use { zip ->
-                generateSequence { zip.nextEntry }.forEach { entry ->
-                    handleEntry(destination, entry.name, entry.isDirectory) { writeEntry(zip, it) }
-                }
+                generateSequence { zip.nextEntry }
+                    .forEach { entry ->
+                        handleEntry(destination, entry.name, entry.isDirectory) { writeEntry(zip, it) }
+                    }
             }
         }
 
     fun untar(tarFile: File, destination: File): Boolean =
         extractArchive(tarFile, destination) { input ->
             TarArchiveInputStream(input).use { tar ->
-                generateSequence { tar.nextEntry }.forEach { entry ->
-                    handleEntry(destination, entry.name, entry.isDirectory) { writeEntry(tar, it) }
-                }
+                generateSequence { tar.nextEntry }
+                    .forEach { entry ->
+                        handleEntry(destination, entry.name, entry.isDirectory) { writeEntry(tar, it) }
+                    }
             }
         }
 
@@ -51,11 +53,10 @@ object ArchiveUtil {
         extractArchive(tarGzFile, destination) { input ->
             GzipCompressorInputStream(input).use { gzip ->
                 TarArchiveInputStream(gzip).use { tar ->
-                    generateSequence { tar.nextEntry }.forEach { entry ->
-                        handleEntry(destination, entry.name, entry.isDirectory) {
-                            writeEntry(tar, it)
+                    generateSequence { tar.nextEntry }
+                        .forEach { entry ->
+                            handleEntry(destination, entry.name, entry.isDirectory) { writeEntry(tar, it) }
                         }
-                    }
                 }
             }
         }
@@ -68,10 +69,10 @@ object ArchiveUtil {
         if (!archiveFile.isFile) return false
 
         return runCatching {
-            prepareDestination(destination)
-            FileInputStream(archiveFile).use(readEntries)
-            true
-        }
+                prepareDestination(destination)
+                FileInputStream(archiveFile).use(readEntries)
+                true
+            }
             .getOrDefault(false)
     }
 

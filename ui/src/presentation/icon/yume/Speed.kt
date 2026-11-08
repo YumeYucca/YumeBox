@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -39,12 +38,12 @@ val Yume.Speed: ImageVector
         }
         speedVector =
             ImageVector.Builder(
-                name = "Gauge",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            )
+                    name = "Gauge",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                )
                 .apply {
                     path(
                         stroke = SolidColor(Color.Black),
@@ -78,5 +77,4 @@ val Yume.Speed: ImageVector
         return speedVector!!
     }
 
-@Suppress("ObjectPropertyName")
-private var speedVector: ImageVector? = null
+@Suppress("ObjectPropertyName") private var speedVector: ImageVector? = null

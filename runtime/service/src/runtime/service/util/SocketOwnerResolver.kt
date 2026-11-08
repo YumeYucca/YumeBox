@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.runtime.service.util
 
-
 import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Build
@@ -57,7 +56,8 @@ class SocketOwnerResolver(context: Context) {
         target: InetSocketAddress,
     ): Int = runCatching {
         connectivity?.getConnectionOwnerUid(protocol, source, target) ?: -1
-    }.getOrDefault(-1)
+    }
+        .getOrDefault(-1)
 
     private fun resolvePackageName(uid: Int): String {
         packageCache[uid]?.let {
@@ -66,7 +66,8 @@ class SocketOwnerResolver(context: Context) {
 
         val packageName = runCatching {
             packageManager.getPackagesForUid(uid)?.firstOrNull().orEmpty()
-        }.getOrElse { "" }
+        }
+            .getOrElse { "" }
 
         if (packageName.isNotEmpty()) {
             packageCache[uid] = packageName

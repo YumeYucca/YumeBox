@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.settings
 
-
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,18 +33,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.TunDnsMode
 import com.github.yumeyucca.yumebox.data.model.TunStack
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * Root Tun "service config" sub-page. Root provisions the virtual network interface and routing.
- * Shares [NetworkSettingsViewModel] with the picker screen.
+ * Root Tun "service config" sub-page. Root provisions the virtual network interface and routing. Shares
+ * [NetworkSettingsViewModel] with the picker screen.
  */
 @Composable
 fun TunServiceOptionsScreen() {
@@ -63,16 +62,12 @@ fun TunServiceOptionsScreen() {
     ServiceOptionsPage(YumeTxt.NetworkSettings.TunOptions.Title) {
         item {
             Title(YumeTxt.NetworkSettings.TunOptions.InterfaceSectionTitle)
-            AppCard {
-                TunInterfaceFields(ifName = ifName, mtu = mtu, viewModel = viewModel)
-            }
+            AppCard { TunInterfaceFields(ifName = ifName, mtu = mtu, viewModel = viewModel) }
             SectionSummary(YumeTxt.NetworkSettings.TunOptions.InterfaceSectionSummary)
         }
         item {
             Title(YumeTxt.NetworkSettings.TunOptions.ProtocolSectionTitle)
-            AppCard {
-                TunProtocolFields(stack = stack, dnsMode = dnsMode, viewModel = viewModel)
-            }
+            AppCard { TunProtocolFields(stack = stack, dnsMode = dnsMode, viewModel = viewModel) }
             SectionSummary(YumeTxt.NetworkSettings.TunOptions.ProtocolSectionSummary)
         }
         item {
@@ -91,9 +86,7 @@ fun TunServiceOptionsScreen() {
     }
 }
 
-/**
- * Interface name and MTU rows of the Tun card.
- */
+/** Interface name and MTU rows of the Tun card. */
 @Composable
 private fun TunInterfaceFields(ifName: String, mtu: Int, viewModel: NetworkSettingsViewModel) {
     TextInputArrowItem(
@@ -110,9 +103,7 @@ private fun TunInterfaceFields(ifName: String, mtu: Int, viewModel: NetworkSetti
     )
 }
 
-/**
- * Stack and DNS mode pickers of the Tun card.
- */
+/** Stack and DNS mode pickers of the Tun card. */
 @Composable
 private fun TunProtocolFields(stack: TunStack, dnsMode: TunDnsMode, viewModel: NetworkSettingsViewModel) {
     PreferenceEnumItem(
@@ -136,9 +127,7 @@ private fun TunProtocolFields(stack: TunStack, dnsMode: TunDnsMode, viewModel: N
     )
 }
 
-/**
- * Routing and IPv6 switches of the Tun card.
- */
+/** Routing and IPv6 switches of the Tun card. */
 @Composable
 private fun TunRoutingSwitches(
     autoRoute: Boolean,
@@ -170,8 +159,7 @@ private fun TunRoutingSwitches(
 }
 
 /**
- * Tappable row that opens an [AppTextFieldDialog] to edit a single text/number value (row + dialog
- * packaged together).
+ * Tappable row that opens an [AppTextFieldDialog] to edit a single text/number value (row + dialog packaged together).
  */
 @Composable
 internal fun TextInputArrowItem(
@@ -194,10 +182,7 @@ internal fun TextInputArrowItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MiuixTheme.textStyles.body2,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(start = UiDp.dp12),
+                modifier = Modifier.fillMaxWidth().padding(start = UiDp.dp12),
             )
         },
         onClick = {
@@ -229,8 +214,8 @@ internal fun TextInputArrowItem(
 }
 
 /**
- * Stack names are shared by every screen that offers the picker; [VpnServiceOptionsScreen] narrows
- * the offered values, not the labels.
+ * Stack names are shared by every screen that offers the picker; [VpnServiceOptionsScreen] narrows the offered values,
+ * not the labels.
  */
 internal fun tunStackLabel(stack: TunStack): String =
     when (stack) {

@@ -26,8 +26,8 @@ import android.graphics.drawable.Icon
 import android.os.Bundle
 
 /**
- * Xiaomi HyperOS Super Island support. HyperOS picks the island entry up from the extras of the
- * ongoing notification rather than from a notification API.
+ * Xiaomi HyperOS Super Island support. HyperOS picks the island entry up from the extras of the ongoing notification
+ * rather than from a notification API.
  */
 object HyperOsIsland {
     /** HyperOS marks devices with the island renderer through this system property. */
@@ -45,10 +45,11 @@ object HyperOsIsland {
     /** Read once: the property is fixed for the lifetime of the process. */
     private val supported: Boolean by lazy {
         runCatching {
-            Class.forName("android.os.SystemProperties")
-                .getMethod("getBoolean", String::class.java, Boolean::class.javaPrimitiveType)
-                .invoke(null, FEATURE_PROPERTY, false) as Boolean
-        }.getOrDefault(false)
+                Class.forName("android.os.SystemProperties")
+                    .getMethod("getBoolean", String::class.java, Boolean::class.javaPrimitiveType)
+                    .invoke(null, FEATURE_PROPERTY, false) as Boolean
+            }
+            .getOrDefault(false)
     }
 
     fun isSupported(): Boolean = supported

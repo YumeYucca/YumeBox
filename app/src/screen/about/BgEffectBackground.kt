@@ -14,13 +14,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import com.github.yumeyucca.yumebox.presentation.component.isTabletWidth
+import com.github.yumeyucca.yumebox.presentation.theme.isDarkTheme
+import kotlin.math.floor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
-import com.github.yumeyucca.yumebox.presentation.component.isTabletWidth
-import com.github.yumeyucca.yumebox.presentation.theme.isDarkTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlin.math.floor
 
 @Composable
 internal fun BgEffectBackground(
@@ -38,9 +38,7 @@ internal fun BgEffectBackground(
         val darkTheme = isDarkTheme()
         val painter = remember { BgEffectPainter() }
 
-        val preset = remember(deviceType, darkTheme) {
-            BgEffectConfig.get(deviceType, darkTheme)
-        }
+        val preset = remember(deviceType, darkTheme) { BgEffectConfig.get(deviceType, darkTheme) }
 
         val colorStage = remember { Animatable(0f) }
 
@@ -59,22 +57,21 @@ internal fun BgEffectBackground(
         }
 
         Spacer(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(bgModifier)
-                .bgEffectDraw(
-                    painter = painter,
-                    preset = preset,
-                    deviceType = deviceType,
-                    isDarkTheme = darkTheme,
-                    surface = surface,
-                    effectBackground = effectBackground,
-                    isFullSize = isFullSize,
-                    playing = dynamicBackground,
-                    colorStage = { colorStage.value },
-                    alpha = alpha,
-                ),
+            modifier =
+                Modifier.fillMaxSize()
+                    .then(bgModifier)
+                    .bgEffectDraw(
+                        painter = painter,
+                        preset = preset,
+                        deviceType = deviceType,
+                        isDarkTheme = darkTheme,
+                        surface = surface,
+                        effectBackground = effectBackground,
+                        isFullSize = isFullSize,
+                        playing = dynamicBackground,
+                        colorStage = { colorStage.value },
+                        alpha = alpha,
+                    )
         )
     }
 }
-

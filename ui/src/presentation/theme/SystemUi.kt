@@ -46,14 +46,14 @@ private val AndroidSystemUiEffect: @Composable (isDark: Boolean) -> Unit = { isD
                 val appearance =
                     if (!isDark) {
                         WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
-                                WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                            WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
                     } else {
                         0
                     }
                 window.insetsController?.setSystemBarsAppearance(
                     appearance,
                     WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
-                            WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+                        WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
                 )
             } else {
                 WindowCompat.getInsetsController(window, view).apply {
@@ -67,7 +67,5 @@ private val AndroidSystemUiEffect: @Composable (isDark: Boolean) -> Unit = { isD
 
 @Composable
 fun ProvideAndroidPlatformTheme(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalPlatformSystemUiEffect provides AndroidSystemUiEffect) {
-        content()
-    }
+    CompositionLocalProvider(LocalPlatformSystemUiEffect provides AndroidSystemUiEffect) { content() }
 }

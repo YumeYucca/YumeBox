@@ -28,8 +28,8 @@ import androidx.core.app.NotificationCompat
 import com.github.yumeyucca.yumebox.common.util.LiveUpdateSupport
 
 /**
- * Android 16 live updates. The app only requests promotion; the system decides whether the
- * ongoing notification appears as a status-bar chip and an expanded lock-screen card.
+ * Android 16 live updates. The app only requests promotion; the system decides whether the ongoing notification appears
+ * as a status-bar chip and an expanded lock-screen card.
  */
 internal object NativeLiveNotification {
     private const val EXTRA_REQUEST_PROMOTED_ONGOING = "android.requestPromotedOngoing"

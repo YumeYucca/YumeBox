@@ -23,8 +23,8 @@ package com.github.yumeyucca.yumebox.data.model
 /**
  * A dashboard the Sub-Store panel can host.
  *
- * The selection is persisted as [ordinal] (`FeatureStore.selectedPanelType`), so entries must never
- * be reordered or removed without migrating the stored value.
+ * The selection is persisted as [ordinal] (`FeatureStore.selectedPanelType`), so entries must never be reordered or
+ * removed without migrating the stored value.
  */
 enum class SubStorePanel(
     val displayName: String,
@@ -32,8 +32,7 @@ enum class SubStorePanel(
 ) {
     Zashboard("Zashboard", "board.zash.run.place"),
     MetaCubeX("MetaCubeXD", "metacubex.github.io/metacubexd"),
-    Yacd("Yacd", "yacd.haishan.me"),
-    ;
+    Yacd("Yacd", "yacd.haishan.me");
 
     fun url(protocol: RemoteProtocol = RemoteProtocol.HTTPS): String = "${protocol.scheme}://$host"
 

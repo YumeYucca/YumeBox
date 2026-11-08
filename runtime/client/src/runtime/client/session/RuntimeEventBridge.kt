@@ -30,8 +30,8 @@ import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
 import timber.log.Timber
 
 /**
- * Forwards profile / override edits to the session. Runtime lifecycle arrives through the
- * control's state flow, not broadcasts.
+ * Forwards profile / override edits to the session. Runtime lifecycle arrives through the control's state flow, not
+ * broadcasts.
  */
 internal class RuntimeEventBridge(
     context: Context,
@@ -45,7 +45,10 @@ internal class RuntimeEventBridge(
 
     private val receiver =
         object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
+            override fun onReceive(
+                context: Context?,
+                intent: Intent?,
+            ) {
                 when (intent?.action ?: return) {
                     actionProfileChanged -> {
                         if (intent.getBooleanExtra(Intents.EXTRA_AFFECTS_RUNTIME, true)) {
@@ -53,7 +56,9 @@ internal class RuntimeEventBridge(
                         }
                     }
 
-                    actionOverrideChanged -> onConfigChanged()
+                    actionOverrideChanged -> {
+                        onConfigChanged()
+                    }
                 }
             }
         }
@@ -71,7 +76,6 @@ internal class RuntimeEventBridge(
                 filter,
                 ContextCompat.RECEIVER_NOT_EXPORTED,
             )
-        }
-            .onFailure { error -> Timber.w(error, "Failed to register service event receiver") }
+        }.onFailure { error -> Timber.w(error, "Failed to register service event receiver") }
     }
 }

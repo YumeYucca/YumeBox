@@ -30,14 +30,14 @@ import androidx.compose.ui.unit.Velocity
 import kotlin.math.absoluteValue
 
 /**
- * Disables a Pager's built-in nested-scroll arbitration so [rememberNestedPagerHandoffConnection]
- * can own boundary hand-off without competing with the parent's default connection.
+ * Disables a Pager's built-in nested-scroll arbitration so [rememberNestedPagerHandoffConnection] can own boundary
+ * hand-off without competing with the parent's default connection.
  */
 object NoOpNestedScrollConnection : NestedScrollConnection
 
 /**
- * Hands horizontal drag/fling from [childState] to the direct [parentState] only after the child
- * reaches its first or last page. LTR and `reverseLayout = false` are assumed.
+ * Hands horizontal drag/fling from [childState] to the direct [parentState] only after the child reaches its first or
+ * last page. LTR and `reverseLayout = false` are assumed.
  */
 @Composable
 fun rememberNestedPagerHandoffConnection(
@@ -125,26 +125,18 @@ private class NestedPagerHandoffConnection(
     private fun shouldParentHandleFling(velocityX: Float): Boolean {
         val childAtBoundary = !childState.canScrollInGestureDirection(velocityX)
         val parentCanMove =
-            parentDragActive ||
-                parentState.canScrollInGestureDirection(velocityX) ||
-                parentState.isBetweenPages()
-        return parentCanMove &&
-            (parentDragActive || childAtBoundary) &&
-            velocityX.absoluteValue >= minimumFlingVelocity
+            parentDragActive || parentState.canScrollInGestureDirection(velocityX) || parentState.isBetweenPages()
+        return parentCanMove && (parentDragActive || childAtBoundary) && velocityX.absoluteValue >= minimumFlingVelocity
     }
 
     private fun shouldParentHandlePreFling(velocityX: Float): Boolean =
-        (parentDragActive || childState.isScrollInProgress) &&
-            shouldParentHandleFling(velocityX)
+        (parentDragActive || childState.isScrollInProgress) && shouldParentHandleFling(velocityX)
 
-    private fun shouldParentSettle(): Boolean =
-        parentDragActive || parentState.isBetweenPages()
+    private fun shouldParentSettle(): Boolean = parentDragActive || parentState.isBetweenPages()
 
     private suspend fun settleParent(velocityX: Float) {
         parentDragActive = false
-        parentState.animateScrollToPage(
-            parentState.settleTargetPage(velocityX, minimumFlingVelocity)
-        )
+        parentState.animateScrollToPage(parentState.settleTargetPage(velocityX, minimumFlingVelocity))
     }
 }
 
@@ -165,5 +157,4 @@ private fun PagerState.settleTargetPage(velocityX: Float, minimumFlingVelocity: 
     return targetPage.coerceIn(0, pageCount - 1)
 }
 
-private fun PagerState.isBetweenPages(): Boolean =
-    currentPageOffsetFraction.absoluteValue >= 0.001f
+private fun PagerState.isBetweenPages(): Boolean = currentPageOffsetFraction.absoluteValue >= 0.001f

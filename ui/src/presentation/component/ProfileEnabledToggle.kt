@@ -25,13 +25,13 @@ package com.github.yumeyucca.yumebox.presentation.component
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -95,11 +95,12 @@ internal fun ProfileEnabledToggleVisual(
     val colorScheme = MiuixTheme.colorScheme
     val strings = YumeTxt.Component.ProfileCard
     val inactiveContainer = inactiveSurfaceColor()
-    val progress by animateFloatAsState(
-        targetValue = if (isActive) 1f else 0f,
-        animationSpec = ProfileToggleSpring,
-        label = "profileEnabledProgress",
-    )
+    val progress by
+        animateFloatAsState(
+            targetValue = if (isActive) 1f else 0f,
+            animationSpec = ProfileToggleSpring,
+            label = "profileEnabledProgress",
+        )
     val fillProgress = progress.coerceIn(0f, 1f)
 
     Box(
@@ -140,8 +141,7 @@ internal fun ProfileEnabledToggleVisual(
                 text = if (active) strings.CurrentProfile else strings.NotEnabled,
                 fontSize = 12.sp,
                 fontWeight = FontWeight(600),
-                color =
-                    if (active) Color.White else colorScheme.onSurfaceVariantSummary,
+                color = if (active) Color.White else colorScheme.onSurfaceVariantSummary,
                 maxLines = 1,
             )
         }

@@ -75,8 +75,8 @@ object RuntimeAccess {
     }
 
     /**
-     * Probe the configured remote backend without routing through [CoreRouter]. Safe to call before
-     * [connect]; does not attach local unix-socket state.
+     * Probe the configured remote backend without routing through [CoreRouter]. Safe to call before [connect]; does not
+     * attach local unix-socket state.
      */
     suspend fun probeRemoteController(): Boolean =
         withContext(Dispatchers.IO) {

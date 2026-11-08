@@ -28,13 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 /**
- * The bottom pager's page identity: which destinations the bar currently offers, which one the
- * pager rests on, and which one a swipe is heading to.
+ * The bottom pager's page identity: which destinations the bar currently offers, which one the pager rests on, and
+ * which one a swipe is heading to.
  *
- * The proxy page joins the bar only once the runtime has nodes, so the bar's contents, the pager's
- * page count and the settled destination all change at slightly different moments. Keeping them in
- * one holder means [settle] and [onVisibleChanged] are the only places that can reconcile those
- * changes, so the three fallback rules that used to live in separate effects cannot drift apart.
+ * The proxy page joins the bar only once the runtime has nodes, so the bar's contents, the pager's page count and the
+ * settled destination all change at slightly different moments. Keeping them in one holder means [settle] and
+ * [onVisibleChanged] are the only places that can reconcile those changes, so the three fallback rules that used to
+ * live in separate effects cannot drift apart.
  */
 @Stable
 class MainDestinationState(
@@ -43,16 +43,20 @@ class MainDestinationState(
 ) {
     var proxyCommitted by mutableStateOf(proxyInitiallyCommitted)
         private set
+
     var pending by mutableStateOf<BottomBarDestination?>(null)
         private set
+
     var settled by mutableStateOf(initialDestination)
         private set
+
     var previous by mutableStateOf(visible)
         private set
+
     /**
-     * The destination [settled] held before the last change. It is owned here, next to [settled],
-     * because the screen that reacts to a tab change would otherwise have to keep its own copy of the
-     * previous value and could remember it wrongly on recreation.
+     * The destination [settled] held before the last change. It is owned here, next to [settled], because the screen
+     * that reacts to a tab change would otherwise have to keep its own copy of the previous value and could remember it
+     * wrongly on recreation.
      */
     var previousSettled by mutableStateOf(initialDestination)
         private set
@@ -72,11 +76,11 @@ class MainDestinationState(
         get() = visible.indexOf(initialDestination).coerceAtLeast(0)
 
     /**
-     * Reveals the proxy page once the runtime has loaded nodes, but never while the user is mid-swipe:
-     * the page must not be inserted under a moving pager.
+     * Reveals the proxy page once the runtime has loaded nodes, but never while the user is mid-swipe: the page must
+     * not be inserted under a moving pager.
      *
-     * The page is never hidden again — taking it back out would renumber every page under the user,
-     * and a session that started on the proxy page already seeded it as committed.
+     * The page is never hidden again — taking it back out would renumber every page under the user, and a session that
+     * started on the proxy page already seeded it as committed.
      */
     fun revealProxy(everReady: Boolean, scrolling: Boolean) {
         if (!scrolling && everReady) proxyCommitted = true
@@ -85,10 +89,9 @@ class MainDestinationState(
     /**
      * Records the user's tap on [destination] and answers the page to animate to.
      *
-     * A destination that is not in the bar yet is remembered in [pending] and the pager moves to the
-     * nearest page that exists, so the tap still lands somewhere instead of being dropped. The
-     * [pending] write is why this is an event handler and not a query: ask it twice and the second
-     * answer is the same, but the request has been recorded.
+     * A destination that is not in the bar yet is remembered in [pending] and the pager moves to the nearest page that
+     * exists, so the tap still lands somewhere instead of being dropped. The [pending] write is why this is an event
+     * handler and not a query: ask it twice and the second answer is the same, but the request has been recorded.
      */
     fun onTabTapped(destination: BottomBarDestination): Int {
         pending = destination.takeIf { it !in visible }
@@ -97,15 +100,12 @@ class MainDestinationState(
     }
 
     /**
-     * Reconciles [settled]/[previous] after the bar's contents changed. Returns the page the pager
-     * should show, which is what a page that just left the bar has to fall back to.
+     * Reconciles [settled]/[previous] after the bar's contents changed. Returns the page the pager should show, which
+     * is what a page that just left the bar has to fall back to.
      */
     fun onVisibleChanged(currentPage: Int): Int {
         val requested = pending
-        val current =
-            requested?.takeIf { it in visible }
-                ?: previous.getOrNull(currentPage)
-                ?: settled
+        val current = requested?.takeIf { it in visible } ?: previous.getOrNull(currentPage) ?: settled
         val target = current.takeIf { it in visible } ?: fallbackDestination
         if (settled != target) {
             previousSettled = settled
@@ -128,9 +128,9 @@ class MainDestinationState(
     }
 
     /**
-     * Where a page that is no longer offered lands. Profiles is used rather than the home page
-     * because it is the only destination that is always in the bar and is not the home chrome; the
-     * home page owns its own navigation and must not be entered by a silent correction.
+     * Where a page that is no longer offered lands. Profiles is used rather than the home page because it is the only
+     * destination that is always in the bar and is not the home chrome; the home page owns its own navigation and must
+     * not be entered by a silent correction.
      */
     private val fallbackDestination: BottomBarDestination
         get() = BottomBarDestination.Config
@@ -139,16 +139,12 @@ class MainDestinationState(
 /**
  * Remembers the holder for the life of the screen.
  *
- * [initialDestination] and [proxyInitiallyCommitted] are seeds, not inputs: the holder reports the
- * page it settles on back to the shell, the shell hands that value straight back down, and keying
- * this remember on it would rebuild the holder (and forget [MainDestinationState.pending]) on every
- * settle.
+ * [initialDestination] and [proxyInitiallyCommitted] are seeds, not inputs: the holder reports the page it settles on
+ * back to the shell, the shell hands that value straight back down, and keying this remember on it would rebuild the
+ * holder (and forget [MainDestinationState.pending]) on every settle.
  */
 @Composable
 fun rememberMainDestinationState(
     initialDestination: BottomBarDestination,
     proxyInitiallyCommitted: Boolean,
-): MainDestinationState =
-    remember {
-        MainDestinationState(initialDestination, proxyInitiallyCommitted)
-    }
+): MainDestinationState = remember { MainDestinationState(initialDestination, proxyInitiallyCommitted) }

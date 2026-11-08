@@ -28,16 +28,16 @@ fun buildPresetTemplateYaml(selection: OverridePresetTemplateSelection): String 
     val selectedFallbackRegions = orderedRegions.filter { it in selection.fallbackRegions }
     val document =
         linkedMapOf<String, Any?>(
-            "rule-providers" to buildRuleProviders(normalizedEnabledItems),
-            "proxy-groups" to
+                "rule-providers" to buildRuleProviders(normalizedEnabledItems),
+                "proxy-groups" to
                     buildProxyGroups(
                         selectedUrlTestRegions = selectedUrlTestRegions,
                         selectedFallbackRegions = selectedFallbackRegions,
                         enabledItems = normalizedEnabledItems,
                         healthCheckGroups = selection.healthCheckGroups,
                     ),
-            "rules" to buildRules(normalizedEnabledItems),
-        )
+                "rules" to buildRules(normalizedEnabledItems),
+            )
             .filterValues { value ->
                 when (value) {
                     is Collection<*> -> value.isNotEmpty()
@@ -60,14 +60,11 @@ fun buildPresetTemplateYaml(selection: OverridePresetTemplateSelection): String 
     return yamlContent
 }
 
-private fun normalizeEnabledItems(items: Set<OverridePresetItem>): Set<OverridePresetItem> =
-    items.ifEmpty {
-        linkedSetOf(OverridePresetItem.Match)
-    }
+private fun normalizeEnabledItems(items: Set<OverridePresetItem>): Set<OverridePresetItem> = items.ifEmpty {
+    linkedSetOf(OverridePresetItem.Match)
+}
 
-private fun buildRuleProviders(
-    enabledItems: Set<OverridePresetItem>
-): Map<String, Map<String, Any?>> =
+private fun buildRuleProviders(enabledItems: Set<OverridePresetItem>): Map<String, Map<String, Any?>> =
     linkedMapOf<String, Map<String, Any?>>().apply {
         orderedItems
             .filter { item -> item in enabledItems && item != OverridePresetItem.Match }
@@ -99,8 +96,7 @@ private fun buildProxyGroups(
         healthCheckGroups.ordered.map { type ->
             type to regionsFor(type, selectedUrlTestRegions, selectedFallbackRegions)
         }
-    val regionNames =
-        regionsByType.flatMap { (type, regions) -> regions.map { it.groupNameFor(type) } }
+    val regionNames = regionsByType.flatMap { (type, regions) -> regions.map { it.groupNameFor(type) } }
 
     return buildList {
         add(
@@ -109,9 +105,7 @@ private fun buildProxyGroups(
                 healthCheckGroups = healthCheckGroups,
             )
         )
-        healthCheckGroups.ordered.forEach { type ->
-            add(buildHealthCheckGroup(name = type.groupName, type = type))
-        }
+        healthCheckGroups.ordered.forEach { type -> add(buildHealthCheckGroup(name = type.groupName, type = type)) }
         addAll(
             orderedServiceItems
                 .filter { it in enabledItems }
@@ -132,16 +126,15 @@ private fun buildProxyGroups(
 private fun buildRegionHealthCheckGroups(
     regions: List<OverridePresetRegion>,
     type: OfficialMrsHealthCheckGroupType,
-): List<Map<String, Any?>> =
-    regions.map { region ->
-        buildHealthCheckGroup(
-            name = region.groupNameFor(type),
-            type = type,
-            filter = region.filter,
-            excludeFilter = region.excludeFilter,
-            icon = region.icon,
-        )
-    }
+): List<Map<String, Any?>> = regions.map { region ->
+    buildHealthCheckGroup(
+        name = region.groupNameFor(type),
+        type = type,
+        filter = region.filter,
+        excludeFilter = region.excludeFilter,
+        icon = region.icon,
+    )
+}
 
 private fun regionsFor(
     type: OfficialMrsHealthCheckGroupType,
@@ -159,19 +152,16 @@ private fun OverridePresetRegion.groupNameFor(type: OfficialMrsHealthCheckGroupT
         OfficialMrsHealthCheckGroupType.Fallback -> fallbackGroupName
     }
 
-private fun buildRules(enabledItems: Set<OverridePresetItem>): List<String> =
-    buildList {
-        ruleOrder
-            .filter { it in enabledItems }
-            .forEach { item -> addAll(item.detectionRules) }
-        // normalizeEnabledItems() keeps Match enabled when nothing else is and every item carries at
-        // least one rule, so the list is non-empty here; the empty guard is kept as a cheap invariant.
-        if (OverridePresetItem.Match in enabledItems || isEmpty()) {
-            if (OfficialMrs.matchRule !in this) {
-                add(OfficialMrs.matchRule)
-            }
+private fun buildRules(enabledItems: Set<OverridePresetItem>): List<String> = buildList {
+    ruleOrder.filter { it in enabledItems }.forEach { item -> addAll(item.detectionRules) }
+    // normalizeEnabledItems() keeps Match enabled when nothing else is and every item carries at
+    // least one rule, so the list is non-empty here; the empty guard is kept as a cheap invariant.
+    if (OverridePresetItem.Match in enabledItems || isEmpty()) {
+        if (OfficialMrs.matchRule !in this) {
+            add(OfficialMrs.matchRule)
         }
     }
+}
 
 private fun buildHealthCheckGroup(
     name: String,
@@ -200,10 +190,10 @@ private fun buildProxySelectGroup(
         "type" to "select",
         "icon" to OverridePresetItem.Proxy.icon.orEmpty(),
         "proxies" to
-                buildSelectableGroupNames(
-                    regionNames = regionNames,
-                    healthCheckGroups = healthCheckGroups,
-                ),
+            buildSelectableGroupNames(
+                regionNames = regionNames,
+                healthCheckGroups = healthCheckGroups,
+            ),
         "include-all" to true,
     )
 
@@ -233,9 +223,7 @@ private fun buildServiceSelectGroup(
 private fun buildSelectableGroupNames(
     regionNames: List<String>,
     healthCheckGroups: Set<OfficialMrsHealthCheckGroupType>,
-): List<String> =
-    (healthCheckGroups.ordered.map(OfficialMrsHealthCheckGroupType::groupName) + regionNames)
-        .distinct()
+): List<String> = (healthCheckGroups.ordered.map(OfficialMrsHealthCheckGroupType::groupName) + regionNames).distinct()
 
 private val Set<OfficialMrsHealthCheckGroupType>.ordered: List<OfficialMrsHealthCheckGroupType>
     get() = OfficialMrsHealthCheckGroupType.entries.filter { it in this }

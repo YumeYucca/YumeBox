@@ -60,32 +60,32 @@ internal fun TrafficWaveProgress(
 
     val waveColor = if (warn) AppTheme.colors.moe.pingWarning else colorScheme.primary
     val trackColor = colorScheme.onSurface.copy(alpha = opacity.subtleStrong)
-    val animatedRatio by animateFloatAsState(
-        targetValue = ratio.coerceIn(0f, 1f),
-        animationSpec = WavyProgressIndicatorDefaults.ProgressAnimationSpec,
-        label = "profileTrafficRatio",
-    )
+    val animatedRatio by
+        animateFloatAsState(
+            targetValue = ratio.coerceIn(0f, 1f),
+            animationSpec = WavyProgressIndicatorDefaults.ProgressAnimationSpec,
+            label = "profileTrafficRatio",
+        )
     // Phase crawls forward one wavelength per cycle so the wave is visibly alive; both ends
     // taper back to the centerline so the start and the head stay clean at any phase.
-    val phase by rememberInfiniteTransition(label = "waveCrawl").animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(durationMillis = 2000, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart,
-            ),
-        label = "waveCrawlPhase",
-    )
+    val phase by
+        rememberInfiniteTransition(label = "waveCrawl")
+            .animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(durationMillis = 2000, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart,
+                    ),
+                label = "waveCrawlPhase",
+            )
 
     Canvas(
         modifier =
-            modifier
-                .height(UiDp.dp12)
-                .semantics {
-                    progressBarRangeInfo =
-                        ProgressBarRangeInfo(current = animatedRatio, range = 0f..1f)
-                },
+            modifier.height(UiDp.dp12).semantics {
+                progressBarRangeInfo = ProgressBarRangeInfo(current = animatedRatio, range = 0f..1f)
+            },
     ) {
         val strokePx = UiDp.dp4.toPx()
         val gapPx = UiDp.dp8.toPx()
@@ -106,14 +106,8 @@ internal fun TrafficWaveProgress(
             for (i in 0..steps) {
                 val x = headX * i / steps
                 val startTaper = sin((x / taperLength).coerceIn(0f, 1f) * halfPi)
-                val headTaper =
-                    sin(((headX - x) / taperLength).coerceIn(0f, 1f) * halfPi)
-                val y =
-                    centerY -
-                            amplitude *
-                                    startTaper *
-                                    headTaper *
-                                    sin(twoPi * (x / wavelengthPx - phase))
+                val headTaper = sin(((headX - x) / taperLength).coerceIn(0f, 1f) * halfPi)
+                val y = centerY - amplitude * startTaper * headTaper * sin(twoPi * (x / wavelengthPx - phase))
                 if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
             drawPath(

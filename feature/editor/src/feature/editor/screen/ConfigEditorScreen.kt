@@ -25,10 +25,10 @@ package com.github.yumeyucca.yumebox.feature.editor.screen
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.feature.editor.component.EditorExitGuard
 import com.github.yumeyucca.yumebox.feature.editor.component.EditorSurface
 import com.github.yumeyucca.yumebox.feature.editor.editor.rememberConfiguredCodeEditorState
-import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.feature.editor.viewmodel.ConfigEditorViewModel
 import com.github.yumeyucca.yumebox.feature.editor.viewmodel.ConfigType
 import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold

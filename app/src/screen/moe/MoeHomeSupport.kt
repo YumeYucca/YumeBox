@@ -55,12 +55,11 @@ internal object MoeUi {
         private val fallbackPanelCorner = UiDp.dp24
 
         /** Panel radius: the real screen corner once it is readable, a stable default otherwise. */
-        fun panelCorner(systemCorner: Dp): Dp =
-            if (systemCorner < minimumSystemCorner) fallbackPanelCorner else systemCorner
+        fun panelCorner(systemCorner: Dp): Dp = if (systemCorner < minimumSystemCorner) fallbackPanelCorner else systemCorner
 
         /** Hero corner follows the device corner, pulled in slightly like the Moe panel's radius. */
-        fun heroCornerRadius(deviceCorner: Dp): Dp =
-            (deviceCorner - moeSpacing.space2).coerceAtLeast(UiDp.dp14)
+        fun heroCornerRadius(deviceCorner: Dp): Dp = (deviceCorner - moeSpacing.space2).coerceAtLeast(UiDp.dp14)
+
         val launchButton = RoundedCornerShape(moeRadii.full)
         val launchButtonRadius = moeRadii.full
     }
@@ -210,7 +209,8 @@ private fun MoeSidebarIconItemView(item: MoeSidebarIconItem) {
                 .clickable(
                     interactionSource =
                         remember {
-                            androidx.compose.foundation.interaction.MutableInteractionSource()
+                            androidx.compose.foundation.interaction
+                                .MutableInteractionSource()
                         },
                     indication = null,
                     onClick = item.onClick,
@@ -245,7 +245,10 @@ private fun MoeSidebarTimeValue(value: String) {
 }
 
 @Composable
-private fun MoeSidebarStatusStack(batteryPercent: Int?, modifier: Modifier = Modifier) {
+private fun MoeSidebarStatusStack(
+    batteryPercent: Int?,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -283,7 +286,7 @@ private fun MoeBatteryCapsule(percent: Int?) {
                         .fillMaxWidth(fillFraction)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(moeRadii.full))
-                        .background(Color.White.copy(alpha = 0.86f))
+                        .background(Color.White.copy(alpha = 0.86f)),
             )
         }
         Box(
@@ -292,7 +295,7 @@ private fun MoeBatteryCapsule(percent: Int?) {
                     .width(MoeUi.Sidebar.batteryKnobWidth)
                     .height(MoeUi.Sidebar.batteryHeight * 0.46f)
                     .clip(RoundedCornerShape(moeRadii.full))
-                    .background(Color.White.copy(alpha = 0.54f))
+                    .background(Color.White.copy(alpha = 0.54f)),
         )
     }
 }
@@ -304,7 +307,7 @@ private fun MoeSidebarDivider() {
             Modifier
                 .width(MoeUi.Sidebar.dividerWidth)
                 .height(MoeUi.Sidebar.dividerHeight)
-                .background(Color.White.copy(alpha = MoeUi.Sidebar.dividerAlpha))
+                .background(Color.White.copy(alpha = MoeUi.Sidebar.dividerAlpha)),
     )
 }
 
@@ -313,12 +316,22 @@ internal enum class MoeWallpaperQualityMode {
     BackgroundBlur,
 }
 
-internal fun lerpFloat(start: Float, stop: Float, progress: Float): Float =
-    start + (stop - start) * progress
+internal fun lerpFloat(
+    start: Float,
+    stop: Float,
+    progress: Float,
+): Float = start + (stop - start) * progress
 
-internal fun lerpDp(start: Dp, stop: Dp, progress: Float): Dp = start + (stop - start) * progress
+internal fun lerpDp(
+    start: Dp,
+    stop: Dp,
+    progress: Float,
+): Dp = start + (stop - start) * progress
 
-internal fun calculateHomeVisibility(currentPage: Int, currentPageOffsetFraction: Float): Float {
+internal fun calculateHomeVisibility(
+    currentPage: Int,
+    currentPageOffsetFraction: Float,
+): Float {
     val offset = abs(currentPage.toFloat() + currentPageOffsetFraction)
     return 1f - offset.coerceIn(0f, 1f)
 }
@@ -334,8 +347,8 @@ internal data class MoeDurationPair(
 )
 
 /**
- * Wall-clock variant used while idle: maps an epoch timestamp to the current local hour/minute so
- * the rail shows the real time (top = HH, bottom = mm) instead of a frozen 00 / 00.
+ * Wall-clock variant used while idle: maps an epoch timestamp to the current local hour/minute so the rail shows the
+ * real time (top = HH, bottom = mm) instead of a frozen 00 / 00.
  */
 internal fun formatMoeClock(nowMillis: Long): MoeDurationPair {
     val calendar = Calendar.getInstance().apply { timeInMillis = nowMillis }

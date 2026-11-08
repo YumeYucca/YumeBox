@@ -20,29 +20,26 @@
 
 package com.github.yumeyucca.yumebox.runtime.service.root
 
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 object RootAccessSupport {
     // tryResume/completeResume (internal API): the libsu shell callback may fire after the
     // caller was cancelled, so the resume must be race-safe rather than throw.
     @OptIn(InternalCoroutinesApi::class)
-    suspend fun isGranted(): Boolean =
-        suspendCancellableCoroutine { continuation ->
-            fun resume(granted: Boolean) {
-                val resumeToken = continuation.tryResume(granted) ?: return
-                continuation.completeResume(resumeToken)
-            }
-
-            runCatching {
-                Shell.getShell(Shell.EXECUTOR) { shell ->
-                    resume(runCatching { shell.isRoot }.getOrDefault(false))
-                }
-            }
-                .onFailure { resume(false) }
+    suspend fun isGranted(): Boolean = suspendCancellableCoroutine { continuation ->
+        fun resume(granted: Boolean) {
+            val resumeToken = continuation.tryResume(granted) ?: return
+            continuation.completeResume(resumeToken)
         }
+
+        runCatching {
+            Shell.getShell(Shell.EXECUTOR) { shell -> resume(runCatching { shell.isRoot }.getOrDefault(false)) }
+        }
+            .onFailure { resume(false) }
+    }
 
     suspend fun require() {
         check(isGranted()) { YumeTxt.NetworkSettings.Error.RootRequired }

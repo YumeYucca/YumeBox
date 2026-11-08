@@ -21,11 +21,11 @@ import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.runtime.client.ProfilesRepository
 import com.github.yumeyucca.yumebox.runtime.service.WifiAutomationService
+import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidNetwork
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidObservation
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidObserver
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidScanResult
 import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidScanner
-import com.github.yumeyucca.yumebox.runtime.service.session.WifiSsidNetwork
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -36,9 +36,8 @@ import timber.log.Timber
 /**
  * Scan lifecycle of the manual-add sheet.
  *
- * [Results] carries the networks it renders so the list can never drift from the phase it belongs
- * to; [Idle] is the state before the first scan finishes, where the sheet shows nothing but its
- * chrome.
+ * [Results] carries the networks it renders so the list can never drift from the phase it belongs to; [Idle] is the
+ * state before the first scan finishes, where the sheet shows nothing but its chrome.
  */
 sealed interface WifiScanPhase {
     data object Idle : WifiScanPhase
@@ -108,17 +107,17 @@ class WifiAutomationViewModel(
 
     val uiState: StateFlow<UiState> =
         combine(
-            settingsState,
-            settings.wifiAutomationOtherWifiAction.state,
-            settings.wifiAutomationNoWifiAction.state,
-            profiles,
-        ) { state, otherWifiAction, noWifiAction, profiles ->
-            state.copy(
-                otherWifiAction = otherWifiAction,
-                noWifiAction = noWifiAction,
-                profiles = profiles,
-            )
-        }
+                settingsState,
+                settings.wifiAutomationOtherWifiAction.state,
+                settings.wifiAutomationNoWifiAction.state,
+                profiles,
+            ) { state, otherWifiAction, noWifiAction, profiles ->
+                state.copy(
+                    otherWifiAction = otherWifiAction,
+                    noWifiAction = noWifiAction,
+                    profiles = profiles,
+                )
+            }
             .combine(settings.wifiAutomationOtherWifiProfileUuid.state) { state, profileUuid ->
                 state.copy(otherWifiProfileUuid = profileUuid.ifBlank { null })
             }

@@ -25,14 +25,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 
 /**
- * Foreground notification host for the detached root Tun daemon. The core itself remains a
- * root-owned process so it can survive an app process restart; this service only owns Android's
- * user-visible lifecycle and traffic notification.
+ * Foreground notification host for the detached root Tun daemon. The core itself remains a root-owned process so it can
+ * survive an app process restart; this service only owns Android's user-visible lifecycle and traffic notification.
  */
 class RootForegroundService : Service(), CoroutineScope by CoroutineScope(Dispatchers.Default) {
-    private val notificationManager by lazy {
-        ServiceNotificationManager(this, ServiceNotificationManager.rootConfig)
-    }
+    private val notificationManager by lazy { ServiceNotificationManager(this, ServiceNotificationManager.rootConfig) }
     private var notificationJob: Job? = null
 
     private var remoteStartRejected = false

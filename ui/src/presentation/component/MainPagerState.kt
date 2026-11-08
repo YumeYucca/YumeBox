@@ -24,23 +24,23 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 /**
- * Hop count from which [MainPagerState.animateToPage] jumps instead of animating through every
- * intermediate page; animating a long run makes the bar's capsule lag far behind the finger.
+ * Hop count from which [MainPagerState.animateToPage] jumps instead of animating through every intermediate page;
+ * animating a long run makes the bar's capsule lag far behind the finger.
  */
 private const val PagerAnimateScrollPreJumpThreshold = 3
 
@@ -62,10 +62,7 @@ class MainPagerState(
         // The single "already there" rule for the bar and for programmatic navigation. A page counts
         // as reached when it is selected and at rest: mid-drag the bar must still bring it home, and
         // while a navigation runs the newest target wins.
-        if (
-            boundedTarget == selectedPage &&
-            (isNavigating || pagerState.currentPageOffsetFraction == 0f)
-        ) {
+        if (boundedTarget == selectedPage && (isNavigating || pagerState.currentPageOffsetFraction == 0f)) {
             return
         }
 
@@ -77,10 +74,7 @@ class MainPagerState(
             try {
                 val hops = abs(boundedTarget - pagerState.currentPage)
                 val animationSpec = MainBottomBarDefaults.pagerNavigationAnimationSpec(hops)
-                if (
-                    hops >= PagerAnimateScrollPreJumpThreshold &&
-                        pagerState.layoutInfo.pageSize > 0
-                ) {
+                if (hops >= PagerAnimateScrollPreJumpThreshold && pagerState.layoutInfo.pageSize > 0) {
                     pagerState.animateScrollToPageUninterrupted(
                         page = boundedTarget,
                         animationSpec = animationSpec,
@@ -123,9 +117,7 @@ private suspend fun PagerState.animateScrollToPageUninterrupted(
         updateTargetPage(target)
         val distance = (target - currentPage - currentPageOffsetFraction) * pageSizeWithSpacing
         var previous = 0f
-        animate(0f, distance, animationSpec = animationSpec) { value, _ ->
-            previous += scrollBy(value - previous)
-        }
+        animate(0f, distance, animationSpec = animationSpec) { value, _ -> previous += scrollBy(value - previous) }
     }
 }
 
@@ -133,12 +125,8 @@ private suspend fun PagerState.animateScrollToPageUninterrupted(
 fun rememberMainPagerState(
     pagerState: PagerState,
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
-): MainPagerState =
-    remember(pagerState, coroutineScope) { MainPagerState(pagerState, coroutineScope) }
+): MainPagerState = remember(pagerState, coroutineScope) { MainPagerState(pagerState, coroutineScope) }
 
-val LocalMainPagerState =
-    compositionLocalOf<MainPagerState> { error("LocalMainPagerState is not provided") }
+val LocalMainPagerState = compositionLocalOf<MainPagerState> { error("LocalMainPagerState is not provided") }
 val LocalHandlePageChange =
-    compositionLocalOf<(BottomBarDestination) -> Unit> {
-        error("LocalHandlePageChange is not provided")
-    }
+    compositionLocalOf<(BottomBarDestination) -> Unit> { error("LocalHandlePageChange is not provided") }

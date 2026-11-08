@@ -18,7 +18,6 @@
  *
  */
 
-
 @file:Suppress("JavaDefaultMethodsNotOverriddenByDelegation")
 
 package com.github.yumeyucca.yumebox.core.model

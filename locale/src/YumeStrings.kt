@@ -702,6 +702,7 @@ public data class YumeStrings_Home_Settings(
     public val ExpandSidebar: String,
     public val StatusBarSpacing: String,
     public val ChangeWallpaper: String,
+    public val Wallpaper: String,
 )
 
 public data class YumeStrings_Home_PreviewGuide(

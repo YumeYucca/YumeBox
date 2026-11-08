@@ -39,8 +39,8 @@ import com.github.yumeyucca.yumebox.presentation.component.rememberGlassSubmenuS
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Bolt
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ListChevronsUpDown
-import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
 import java.util.Locale
+import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
 
 // :data cannot depend on YumeTxt, so persisted sort modes are localized at the app boundary.
 private val AccessControlSortMode.displayName: String
@@ -74,9 +74,7 @@ internal fun AccessControlOperationsMenu(
     anchor: GlassPopupAnchor,
     uiState: AccessControlViewModel.UiState,
     actions: AccessControlMenuActions,
-    anchorContent: @Composable () -> Unit = {
-        GlassTopActionAnchorIcon(Yume.Bolt)
-    },
+    anchorContent: @Composable () -> Unit = { GlassTopActionAnchorIcon(Yume.Bolt) },
 ) {
     val settings = YumeTxt.AccessControl.Settings
     val submenu = rememberGlassSubmenuState(showPopup)
@@ -171,9 +169,7 @@ internal fun AccessControlSortMenu(
     sortMode: AccessControlSortMode,
     onSortSelected: (AccessControlSortMode) -> Unit,
     anchor: GlassPopupAnchor,
-    anchorContent: @Composable () -> Unit = {
-        GlassTopActionAnchorIcon(Yume.ListChevronsUpDown)
-    },
+    anchorContent: @Composable () -> Unit = { GlassTopActionAnchorIcon(Yume.ListChevronsUpDown) },
 ) {
     GlassPopupHost(
         show = show,
@@ -198,15 +194,8 @@ internal fun importAccessControlPackages(
     context: Context,
     viewModel: AccessControlViewModel,
 ) {
-    val clipboardManager =
-        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val text =
-        clipboardManager.primaryClip
-            ?.takeIf { it.itemCount > 0 }
-            ?.getItemAt(0)
-            ?.text
-            ?.toString()
-            .orEmpty()
+    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val text = clipboardManager.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text?.toString().orEmpty()
     val state = viewModel.uiState.value
     if (text.isBlank() || state.isLoading || state.apps.isEmpty()) {
         context.toast(YumeTxt.AccessControl.Settings.ImportFailed)
@@ -227,13 +216,8 @@ internal fun exportAccessControlPackages(
     context: Context,
     viewModel: AccessControlViewModel,
 ) {
-    val clipboardManager =
-        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val count = viewModel.uiState.value.selectedPackages.size
-    clipboardManager.setPrimaryClip(
-        ClipData.newPlainText("packages", viewModel.exportPackages()),
-    )
-    context.toast(
-        String.format(Locale.getDefault(), YumeTxt.AccessControl.Settings.ExportSuccess, count)
-    )
+    clipboardManager.setPrimaryClip(ClipData.newPlainText("packages", viewModel.exportPackages()))
+    context.toast(String.format(Locale.getDefault(), YumeTxt.AccessControl.Settings.ExportSuccess, count))
 }

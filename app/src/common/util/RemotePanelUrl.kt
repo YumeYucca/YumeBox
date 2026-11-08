@@ -29,8 +29,7 @@ fun buildRemotePanelUrl(
     backend: RemoteBackend,
 ): String {
     val query =
-        Uri
-            .Builder()
+        Uri.Builder()
             .appendQueryParameter(backend.protocol.scheme, "true")
             .appendQueryParameter("hostname", backend.host)
             .appendQueryParameter("port", backend.port.toString())
@@ -42,4 +41,5 @@ fun buildRemotePanelUrl(
 }
 
 /** Android 17 local-network protection does not apply to connections within this process. */
-fun RemoteBackend.requiresLocalNetworkPermission(): Boolean = host.trim().lowercase() !in setOf("127.0.0.1", "::1", "[::1]", "localhost")
+fun RemoteBackend.requiresLocalNetworkPermission(): Boolean =
+    host.trim().lowercase() !in setOf("127.0.0.1", "::1", "[::1]", "localhost")

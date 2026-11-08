@@ -31,8 +31,7 @@ enum class ProfileImportType {
     Qr,
 }
 
-private val subscriptionUrlPattern =
-    Regex(pattern = "^https?://\\S+$", options = setOf(RegexOption.IGNORE_CASE))
+private val subscriptionUrlPattern = Regex(pattern = "^https?://\\S+$", options = setOf(RegexOption.IGNORE_CASE))
 
 private fun isSubscriptionUrl(value: String): Boolean = subscriptionUrlPattern.matches(value.trim())
 
@@ -51,33 +50,27 @@ fun isYamlConfigFileName(fileName: String): Boolean =
     fileName.endsWith(".yaml", ignoreCase = true) || fileName.endsWith(".yml", ignoreCase = true)
 
 fun profileNameFromConfigFileName(fileName: String, fallback: String): String =
-    fileName.substringBeforeLast(".").ifBlank {
-        fallback
-    }
+    fileName.substringBeforeLast(".").ifBlank { fallback }
 
 fun readDisplayName(context: Context, uri: Uri, fallback: String): String =
-    context.contentResolver
-        .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-        ?.use { cursor ->
-            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (nameIndex < 0 || !cursor.moveToFirst()) {
-                fallback
-            } else {
-                cursor.getString(nameIndex)
-            }
-        } ?: fallback
+    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (nameIndex < 0 || !cursor.moveToFirst()) {
+            fallback
+        } else {
+            cursor.getString(nameIndex)
+        }
+    } ?: fallback
 
 /** Byte size of a picked document, or 0 when the provider does not report one. */
-fun readDisplaySize(context: Context, uri: Uri): Long =
-    runCatching {
-        context.contentResolver
-            .query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)
-            ?.use { cursor ->
-                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                if (sizeIndex < 0 || !cursor.moveToFirst() || cursor.isNull(sizeIndex)) {
-                    0L
-                } else {
-                    cursor.getLong(sizeIndex)
-                }
-            } ?: 0L
-    }.getOrDefault(0L)
+fun readDisplaySize(context: Context, uri: Uri): Long = runCatching {
+    context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+        val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+        if (sizeIndex < 0 || !cursor.moveToFirst() || cursor.isNull(sizeIndex)) {
+            0L
+        } else {
+            cursor.getLong(sizeIndex)
+        }
+    } ?: 0L
+}
+    .getOrDefault(0L)

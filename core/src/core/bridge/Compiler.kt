@@ -23,10 +23,9 @@ package com.github.yumeyucca.yumebox.core.bridge
 import androidx.annotation.Keep
 
 /**
- * The config compiler (liboverride, Rust). Compiles a profile + its override chain into the
- * complete final mihomo config, in-process. This is the only surviving native binding on the app
- * side: the core itself runs out-of-process, so the compiled config is streamed to it — nothing is
- * loaded into this process.
+ * The config compiler (liboverride, Rust). Compiles a profile + its override chain into the complete final mihomo
+ * config, in-process. This is the only surviving native binding on the app side: the core itself runs out-of-process,
+ * so the compiled config is streamed to it — nothing is loaded into this process.
  */
 @Keep
 object Compiler {

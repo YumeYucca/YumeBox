@@ -32,7 +32,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -44,6 +43,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,16 +66,16 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import kotlin.math.roundToInt
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.glass.GlassDefaults
-import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRowDefaults
 import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRow
+import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRowDefaults
 import top.yukonga.miuix.kmp.glass.glass
-import top.yukonga.miuix.kmp.basic.Text
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlin.math.roundToInt
 
 private const val SegmentedTabTextAnimationDurationMillis = 220
 private const val SegmentedTabIndicatorAnimationDurationMillis = 280
@@ -97,9 +97,8 @@ private val ScrollableSegmentedTabIndicatorAnimationSpec =
     )
 
 /**
- * zashboard-style segmented tab: 40dp tall, 13sp text, palette borrowed from the bottom bar —
- * primary label on a translucent primary pill when selected, onSurface when not, sliding on a
- * surfaceVariant track.
+ * zashboard-style segmented tab: 40dp tall, 13sp text, palette borrowed from the bottom bar — primary label on a
+ * translucent primary pill when selected, onSurface when not, sliding on a surfaceVariant track.
  */
 @Composable
 fun SegmentedTabRow(
@@ -158,23 +157,14 @@ fun SegmentedTabRow(
 
     BoxWithConstraints(
         modifier =
-            modifier
-                .fillMaxWidth()
-                .height(tabHeight)
-                .clip(shape)
-                .background(colors.trackColor)
-                .padding(indicatorInset)
+            modifier.fillMaxWidth().height(tabHeight).clip(shape).background(colors.trackColor).padding(indicatorInset)
     ) {
         val clampedSelectedTabIndex = selectedTabIndex.coerceIn(0, tabs.lastIndex)
         val tabCount = tabs.size
         val tabWidth =
-            remember(maxWidth, tabCount) {
-                ((maxWidth - indicatorGap * (tabCount - 1)) / tabCount).coerceAtLeast(0.dp)
-            }
+            remember(maxWidth, tabCount) { ((maxWidth - indicatorGap * (tabCount - 1)) / tabCount).coerceAtLeast(0.dp) }
         val targetOffset =
-            remember(tabWidth, clampedSelectedTabIndex) {
-                (tabWidth + indicatorGap) * clampedSelectedTabIndex
-            }
+            remember(tabWidth, clampedSelectedTabIndex) { (tabWidth + indicatorGap) * clampedSelectedTabIndex }
         val indicatorOffset by
             animateDpAsState(
                 targetValue = targetOffset,
@@ -184,8 +174,7 @@ fun SegmentedTabRow(
 
         Box(
             modifier =
-                Modifier
-                    .offset(x = indicatorOffset)
+                Modifier.offset(x = indicatorOffset)
                     .width(tabWidth)
                     .fillMaxHeight()
                     .clip(shape)
@@ -224,10 +213,7 @@ private fun ScrollableSegmentedTabRow(
 ) {
     val colors = segmentedTabColors()
     val shape = GlassSegmentedTabRowDefaults.shape(tabHeight)
-    val indicatorShape =
-        GlassSegmentedTabRowDefaults.shape(
-            tabHeight - GlassSegmentedTabRowDefaults.TrackPadding * 2
-        )
+    val indicatorShape = GlassSegmentedTabRowDefaults.shape(tabHeight - GlassSegmentedTabRowDefaults.TrackPadding * 2)
     val selectedTextStyle = MiuixTheme.textStyles.subtitle
     val unselectedTextStyle = MiuixTheme.textStyles.body2
     val density = LocalDensity.current
@@ -248,9 +234,7 @@ private fun ScrollableSegmentedTabRow(
             label = "scrollable_segmented_tab_indicator_width",
         )
 
-    LaunchedEffect(tabs) {
-        tabBounds.clear()
-    }
+    LaunchedEffect(tabs) { tabBounds.clear() }
 
     BoxWithConstraints(
         modifier =
@@ -272,7 +256,7 @@ private fun ScrollableSegmentedTabRow(
                         Modifier.background(colors.trackColor)
                     }
                 )
-                .padding(GlassSegmentedTabRowDefaults.TrackPadding),
+                .padding(GlassSegmentedTabRowDefaults.TrackPadding)
     ) {
         val viewportWidthPx = with(density) { maxWidth.toPx() }
         LaunchedEffect(
@@ -290,29 +274,21 @@ private fun ScrollableSegmentedTabRow(
             }
         }
 
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight()
-                    .horizontalScroll(resolvedScrollState),
-        ) {
+        Box(modifier = Modifier.fillMaxWidth().fillMaxHeight().horizontalScroll(resolvedScrollState)) {
             Box(modifier = Modifier.fillMaxHeight()) {
                 if (indicatorWidth > 0f) {
                     Box(
                         modifier =
-                            Modifier
-                                .offset { IntOffset(indicatorLeft.roundToInt(), 0) }
+                            Modifier.offset { IntOffset(indicatorLeft.roundToInt(), 0) }
                                 .width(with(density) { indicatorWidth.toDp() })
                                 .fillMaxHeight()
                                 .clip(indicatorShape)
-                                .background(colors.selectedPillColor),
+                                .background(colors.selectedPillColor)
                     )
                 }
                 Row(
                     modifier = Modifier.fillMaxHeight(),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(GlassSegmentedTabRowDefaults.TabGap),
+                    horizontalArrangement = Arrangement.spacedBy(GlassSegmentedTabRowDefaults.TabGap),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     tabs.forEachIndexed { index, tab ->
@@ -324,8 +300,7 @@ private fun ScrollableSegmentedTabRow(
                             unselectedTextStyle = unselectedTextStyle,
                             shape = indicatorShape,
                             onClick = { onTabSelected(index) },
-                            horizontalPadding =
-                                GlassSegmentedTabRowDefaults.TabPaddingHorizontal,
+                            horizontalPadding = GlassSegmentedTabRowDefaults.TabPaddingHorizontal,
                             onBoundsChanged = { bounds -> tabBounds[index] = bounds },
                         )
                     }
@@ -376,9 +351,7 @@ private fun SegmentedTabItem(
         )
     val boundsModifier =
         onBoundsChanged?.let { callback ->
-            Modifier.onGloballyPositioned { coordinates ->
-                callback(coordinates.boundsInParent())
-            }
+            Modifier.onGloballyPositioned { coordinates -> callback(coordinates.boundsInParent()) }
         } ?: Modifier
 
     Box(
@@ -405,8 +378,8 @@ private fun SegmentedTabItem(
 }
 
 /**
- * Pins a segmented row to the top of a lazy list. The surface-coloured band is load-bearing: the tab
- * row's gutter is transparent, so rows scrolling underneath would otherwise show through it.
+ * Pins a segmented row to the top of a lazy list. The surface-coloured band is load-bearing: the tab row's gutter is
+ * transparent, so rows scrolling underneath would otherwise show through it.
  */
 fun LazyListScope.stickySegmentedTabs(
     key: Any,
@@ -419,11 +392,7 @@ fun LazyListScope.stickySegmentedTabs(
 ) {
     stickyHeader(key = key) {
         Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .background(MiuixTheme.colorScheme.surface)
-                    .padding(vertical = UiDp.dp4),
+            modifier = Modifier.fillMaxWidth().background(MiuixTheme.colorScheme.surface).padding(vertical = UiDp.dp4)
         ) {
             SegmentedTabRow(
                 tabs = tabs,

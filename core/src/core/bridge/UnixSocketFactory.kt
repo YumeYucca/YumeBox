@@ -25,9 +25,9 @@ import java.net.Socket
 import javax.net.SocketFactory
 
 /**
- * A [SocketFactory] whose sockets always connect to a fixed UNIX-domain path (the local core's
- * mihomo controller), regardless of the host/port OkHttp resolves from the request URL. Plug this
- * into an OkHttp client to speak HTTP over the controller socket:
+ * A [SocketFactory] whose sockets always connect to a fixed UNIX-domain path (the local core's mihomo controller),
+ * regardless of the host/port OkHttp resolves from the request URL. Plug this into an OkHttp client to speak HTTP over
+ * the controller socket:
  * ```
  * OkHttpClient.Builder().socketFactory(UnixSocketFactory(socketPath)).build()
  * ```
@@ -35,8 +35,7 @@ import javax.net.SocketFactory
 class UnixSocketFactory(private val path: String) : SocketFactory() {
     override fun createSocket(): Socket = UnixDomainSocket(path)
 
-    override fun createSocket(host: String?, port: Int): Socket =
-        connectedSocket(host, port)
+    override fun createSocket(host: String?, port: Int): Socket = connectedSocket(host, port)
 
     override fun createSocket(
         host: String?,
@@ -45,8 +44,7 @@ class UnixSocketFactory(private val path: String) : SocketFactory() {
         localPort: Int,
     ): Socket = connectedSocket(host, port)
 
-    override fun createSocket(host: InetAddress?, port: Int): Socket =
-        connectedSocket(host, port)
+    override fun createSocket(host: InetAddress?, port: Int): Socket = connectedSocket(host, port)
 
     override fun createSocket(
         address: InetAddress?,
@@ -56,9 +54,7 @@ class UnixSocketFactory(private val path: String) : SocketFactory() {
     ): Socket = connectedSocket(address, port)
 
     private fun connectedSocket(host: String?, port: Int): Socket =
-        UnixDomainSocket(path).apply {
-            connect(java.net.InetSocketAddress.createUnresolved(host ?: "localhost", port))
-        }
+        UnixDomainSocket(path).apply { connect(java.net.InetSocketAddress.createUnresolved(host ?: "localhost", port)) }
 
     private fun connectedSocket(address: InetAddress?, port: Int): Socket =
         UnixDomainSocket(path).apply {

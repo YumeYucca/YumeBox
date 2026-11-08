@@ -6,20 +6,17 @@
 package com.github.yumeyucca.yumebox.screen.about
 
 import androidx.compose.ui.graphics.Brush
-import top.yukonga.miuix.kmp.blur.RuntimeShader
-import top.yukonga.miuix.kmp.blur.asBrush
 import kotlin.math.cos
 import kotlin.math.sin
+import top.yukonga.miuix.kmp.blur.RuntimeShader
+import top.yukonga.miuix.kmp.blur.asBrush
 
 internal class BgEffectPainter {
 
-    val runtimeShader by lazy {
-        RuntimeShader(OS3_BG_FRAG).also {
-            initStaticUniforms(it)
-        }
-    }
+    val runtimeShader by lazy { RuntimeShader(OS3_BG_FRAG).also { initStaticUniforms(it) } }
 
-    val brush: Brush get() = runtimeShader.asBrush()
+    val brush: Brush
+        get() = runtimeShader.asBrush()
 
     private val resolution = FloatArray(2)
     private val bound = FloatArray(4)
@@ -106,21 +103,19 @@ internal class BgEffectPainter {
         cachedColorStage = stage
     }
 
-    private fun colorsForCycleIndex(preset: BgEffectConfig.Config, index: Int): FloatArray = when (index.mod(4)) {
-        1 -> preset.colors1
-        3 -> preset.colors3
-        else -> preset.colors2
-    }
+    private fun colorsForCycleIndex(preset: BgEffectConfig.Config, index: Int): FloatArray =
+        when (index.mod(4)) {
+            1 -> preset.colors1
+            3 -> preset.colors3
+            else -> preset.colors2
+        }
 
     fun updateBoundIfNeeded(
         logoHeight: Float,
         totalHeight: Float,
         totalWidth: Float,
     ) {
-        if (cachedLogoHeight == logoHeight &&
-            cachedTotalHeight == totalHeight &&
-            cachedTotalWidth == totalWidth
-        ) {
+        if (cachedLogoHeight == logoHeight && cachedTotalHeight == totalHeight && cachedTotalWidth == totalWidth) {
             return
         }
 
@@ -171,4 +166,3 @@ internal class BgEffectPainter {
         }
     }
 }
-

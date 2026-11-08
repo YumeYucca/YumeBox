@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.core.bridge
 
-
 import android.os.ParcelFileDescriptor
 import androidx.annotation.Keep
 import java.io.Closeable
@@ -49,8 +48,8 @@ class UnixSocket private constructor(private val descriptor: ParcelFileDescripto
         }
 
         /**
-         * Connect a `SOCK_STREAM` UNIX socket to [path]. A leading `@` selects the abstract
-         * namespace. [timeoutMs] of 0 blocks indefinitely.
+         * Connect a `SOCK_STREAM` UNIX socket to [path]. A leading `@` selects the abstract namespace. [timeoutMs] of 0
+         * blocks indefinitely.
          *
          * @throws java.io.IOException on socket/connect failure.
          */
@@ -60,13 +59,10 @@ class UnixSocket private constructor(private val descriptor: ParcelFileDescripto
             return UnixSocket(ParcelFileDescriptor.adoptFd(fd))
         }
 
-        @JvmStatic
-        private external fun nativeConnectUnixSocket(path: String, timeoutMs: Int): Int
+        @JvmStatic private external fun nativeConnectUnixSocket(path: String, timeoutMs: Int): Int
 
-        @JvmStatic
-        private external fun nativeSetSoTimeout(fd: Int, timeoutMs: Int)
+        @JvmStatic private external fun nativeSetSoTimeout(fd: Int, timeoutMs: Int)
 
-        @JvmStatic
-        private external fun nativeGetSoTimeout(fd: Int): Int
+        @JvmStatic private external fun nativeGetSoTimeout(fd: Int): Int
     }
 }

@@ -176,7 +176,6 @@ private fun createWebView(
 
                     return false
                 }
-
             }
 
         webChromeClient =

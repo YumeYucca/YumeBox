@@ -27,9 +27,8 @@ data class ProfileBinding(
     val profileId: String = "",
     val overrideIds: List<String> = emptyList(),
     /**
-     * Rows that are attached to the profile but not applied, in the same order as [overrideIds].
-     * Attaching an override adds it here so it appears on the page without changing the running
-     * chain until the user ticks its checkbox.
+     * Rows that are attached to the profile but not applied, in the same order as [overrideIds]. Attaching an override
+     * adds it here so it appears on the page without changing the running chain until the user ticks its checkbox.
      */
     val disabledOverrideIds: List<String> = emptyList(),
 ) {
@@ -41,8 +40,7 @@ data class ProfileBinding(
             return overrideIds.filterNot(disabled::contains)
         }
 
-    fun isOverrideEnabled(overrideId: String): Boolean =
-        overrideId in overrideIds && overrideId !in disabledOverrideIds
+    fun isOverrideEnabled(overrideId: String): Boolean = overrideId in overrideIds && overrideId !in disabledOverrideIds
 
     companion object {
         fun withOverride(profileId: String, overrideId: String): ProfileBinding =
@@ -68,6 +66,5 @@ data class ProfileBinding(
             disabledOverrideIds = disabledOverrideIds - overrideId,
         )
 
-    fun clearOverrides(): ProfileBinding =
-        copy(overrideIds = emptyList(), disabledOverrideIds = emptyList())
+    fun clearOverrides(): ProfileBinding = copy(overrideIds = emptyList(), disabledOverrideIds = emptyList())
 }

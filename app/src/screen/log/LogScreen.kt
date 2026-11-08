@@ -40,15 +40,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.LogMessage
 import com.github.yumeyucca.yumebox.presentation.component.*
+import com.github.yumeyucca.yumebox.presentation.component.rememberCollapsedTopPadding
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
 import top.yukonga.miuix.kmp.glass.glassPopupAnchor
@@ -58,8 +60,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Filter
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
-import com.github.yumeyucca.yumebox.presentation.component.rememberCollapsedTopPadding
-import top.yukonga.miuix.kmp.basic.ScrollBehavior
 
 private val LogLevelFilter.label: String
     get() =
@@ -121,9 +121,12 @@ fun LogScreen(navigator: Navigator) {
     val listEndPadding = spacing.screenHorizontal
 
     LogFollowNewestEffect(
-        entries = screen.filteredEntries, search = search,
-        listState = listState, searchListState = searchListState,
-        followLatest = followLatest, followLatestInSearch = followLatestInSearch,
+        entries = screen.filteredEntries,
+        search = search,
+        listState = listState,
+        searchListState = searchListState,
+        followLatest = followLatest,
+        followLatestInSearch = followLatestInSearch,
     )
 
     LaunchedEffect(Unit) { viewModel.connect() }
@@ -132,26 +135,34 @@ fun LogScreen(navigator: Navigator) {
         GlassScaffold(
             topBar = {
                 LogTopBar(
-                    search = search, scrollBehavior = scrollBehavior,
-                    dynamicTopPadding = dynamicTopPadding, startPadding = listStartPadding,
-                    endPadding = listEndPadding, levelFilter = screen.levelFilter,
+                    search = search,
+                    scrollBehavior = scrollBehavior,
+                    dynamicTopPadding = dynamicTopPadding,
+                    startPadding = listStartPadding,
+                    endPadding = listEndPadding,
+                    levelFilter = screen.levelFilter,
                     onLevelFilterSelected = viewModel::setLevelFilter,
-                    levelFilterAnchor = levelFilterAnchor, showLevelPopup = showLevelPopup,
+                    levelFilterAnchor = levelFilterAnchor,
+                    showLevelPopup = showLevelPopup,
                     onShowLevelPopupChange = { showLevelPopup = it },
                 )
             }
         ) { innerPadding ->
             LogPageContent(
-                search = search, scrollBehavior = scrollBehavior,
-                innerPadding = innerPadding, listState = listState,
+                search = search,
+                scrollBehavior = scrollBehavior,
+                innerPadding = innerPadding,
+                listState = listState,
                 screen = screen,
             )
         }
 
         // Always composed — same as AccessControl. Do not gate with !isCollapsed().
         LogSearchOverlay(
-            search = search, screen = screen,
-            onQueryChange = viewModel::setSearchQuery, searchListState = searchListState,
+            search = search,
+            screen = screen,
+            onQueryChange = viewModel::setSearchQuery,
+            searchListState = searchListState,
             topPadding = dynamicTopPadding,
             bottomPadding = mainLikePadding.calculateBottomPadding(),
         )
@@ -234,12 +245,11 @@ private fun LogSearchOverlay(
 }
 
 /**
- * The log page's top bar: the level filter action (with its glass popup) and the search field that
- * rides along with the collapsing bar.
+ * The log page's top bar: the level filter action (with its glass popup) and the search field that rides along with the
+ * collapsing bar.
  *
- * The filter icon is bound to [levelFilterAnchor] here and not at the call site because a
- * `GlassPopupAnchor` only works when the button and the popup agree on it — splitting the two
- * halves across a parameter list is how they drift apart.
+ * The filter icon is bound to [levelFilterAnchor] here and not at the call site because a `GlassPopupAnchor` only works
+ * when the button and the popup agree on it — splitting the two halves across a parameter list is how they drift apart.
  */
 @Composable
 private fun LogTopBar(
@@ -265,7 +275,7 @@ private fun LogTopBar(
                             anchor = levelFilterAnchor,
                             cornerRadius = GlassTopActionDefaults.IconSize / 2,
                             floating = true,
-                        ),
+                        )
                 ) {
                     IconButton(onClick = { onShowLevelPopupChange(true) }) {
                         Icon(
@@ -297,8 +307,8 @@ private fun LogTopBar(
 }
 
 /**
- * What the empty list means, in the reader's terms: a connection problem outranks an empty filter,
- * which outranks "nothing has been logged yet".
+ * What the empty list means, in the reader's terms: a connection problem outranks an empty filter, which outranks
+ * "nothing has been logged yet".
  */
 @Composable
 private fun LogEmptyHint(connectionState: LogConnectionState, levelFilter: LogLevelFilter) {
@@ -325,10 +335,8 @@ private fun LogEntryRow(
 ) {
     val spacing = AppTheme.spacing
     val semanticColors = AppTheme.colors
-    val metaStyle =
-        MiuixTheme.textStyles.body2.copy(fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-    val messageStyle =
-        MiuixTheme.textStyles.body2.copy(fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+    val metaStyle = MiuixTheme.textStyles.body2.copy(fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+    val messageStyle = MiuixTheme.textStyles.body2.copy(fontSize = 12.sp, fontFamily = FontFamily.Monospace)
 
     val levelColor =
         when (entry.level) {
@@ -345,12 +353,7 @@ private fun LogEntryRow(
         onClick = onClick,
         pressFeedbackType = PressFeedbackType.Sink,
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.space12, vertical = spacing.space10)
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space12, vertical = spacing.space10)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(spacing.space8),
@@ -404,17 +407,15 @@ private fun LazyListScope.logEntryItems(
 
 private fun copyLogEntry(context: Context, entry: LiveLogEntry) {
     val text = "[${entry.time}] [${entry.level.name}] ${entry.message}"
-    context
-        .getSystemService(ClipboardManager::class.java)
-        ?.setPrimaryClip(ClipData.newPlainText("YumeBox log", text))
+    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("YumeBox log", text))
     context.toast(YumeTxt.Log.Action.Copied)
 }
 
 /**
  * Pins the visible list back to its newest row while the reader is following it.
  *
- * The keys are the newest entry's id and the overlay phase, so a batch that lands while the list
- * sits scrolled and idle never re-pins it.
+ * The keys are the newest entry's id and the overlay phase, so a batch that lands while the list sits scrolled and idle
+ * never re-pins it.
  */
 @Composable
 private fun LogFollowNewestEffect(
@@ -441,8 +442,8 @@ private fun LogFollowNewestEffect(
 /**
  * Whether [listState] is still parked on its newest row.
  *
- * The value only flips while the user scrolls or the list snaps back to the top, so a batch that
- * lands while the list sits scrolled and idle never re-pins it.
+ * The value only flips while the user scrolls or the list snaps back to the top, so a batch that lands while the list
+ * sits scrolled and idle never re-pins it.
  */
 @Composable
 private fun rememberFollowsNewest(listState: LazyListState): State<Boolean> {

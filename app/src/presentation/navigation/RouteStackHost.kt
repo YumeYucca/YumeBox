@@ -48,9 +48,7 @@ internal data class MainRouteArgs(
     val detailStack: RouteStack,
 )
 
-internal val LocalMainRouteArgs = compositionLocalOf<MainRouteArgs> {
-    error("LocalMainRouteArgs is not provided")
-}
+internal val LocalMainRouteArgs = compositionLocalOf<MainRouteArgs> { error("LocalMainRouteArgs is not provided") }
 
 /** The route shown by the right pane when no detail page is open. */
 internal val PaneRestingRoute: Route = Route.About

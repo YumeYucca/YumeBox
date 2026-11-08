@@ -11,7 +11,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -31,14 +30,14 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /**
  * NetEase / YumeFuwa style dual-pane shell.
  *
- * Left pane holds the main pager at a phone-like width so Moe home is not stretched. Right pane
- * hosts detail destinations. The center divider may be shown and optionally dragged.
+ * Left pane holds the main pager at a phone-like width so Moe home is not stretched. Right pane hosts detail
+ * destinations. The center divider may be shown and optionally dragged.
  *
  * Width policy:
  * - Keep `leftRatio` of free width (container minus divider) so window resize scales both panes.
- * - Clamp the live left width into absolute `minLeftWidth, maxLeftWidth` while reserving
- *   `minRightWidth`. Absolute bounds are the source of truth; the old fraction-only clamp could
- *   collapse drag range to zero when `minFraction * width > maxLeftWidth` on wide windows.
+ * - Clamp the live left width into absolute `minLeftWidth, maxLeftWidth` while reserving `minRightWidth`. Absolute
+ *   bounds are the source of truth; the old fraction-only clamp could collapse drag range to zero when `minFraction *
+ *   width > maxLeftWidth` on wide windows.
  */
 @Composable
 fun DualPaneLayout(
@@ -54,9 +53,7 @@ fun DualPaneLayout(
     // Ratio of free width. Survives window resize so both panes scale together, and survives
     // configuration changes via rememberSaveable; [onLeftFractionChange] mirrors it to storage
     // so a fresh process restores the user's divider position (issue #151 item 1).
-    var leftRatio by rememberSaveable {
-        mutableFloatStateOf(initialLeftFraction.coerceIn(0.2f, 0.8f))
-    }
+    var leftRatio by rememberSaveable { mutableFloatStateOf(initialLeftFraction.coerceIn(0.2f, 0.8f)) }
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
 
@@ -71,8 +68,7 @@ fun DualPaneLayout(
 
         // Soft-shrink preferred floors when the window cannot host both.
         val minsTotal = rawMinLeftPx + rawMinRightPx
-        val minScale =
-            if (minsTotal > freeWidthPx && minsTotal > 0f) freeWidthPx / minsTotal else 1f
+        val minScale = if (minsTotal > freeWidthPx && minsTotal > 0f) freeWidthPx / minsTotal else 1f
         val minLeftPx = rawMinLeftPx * minScale
         val minRightPx = rawMinRightPx * minScale
 
@@ -93,16 +89,11 @@ fun DualPaneLayout(
         }
 
         Row(modifier = Modifier.fillMaxSize()) {
-            Box(Modifier
-                .width(leftWidthDp)
-                .fillMaxHeight()) {
-                left()
-            }
+            Box(Modifier.width(leftWidthDp).fillMaxHeight()) { left() }
 
             Box(
                 modifier =
-                    Modifier
-                        .fillMaxHeight()
+                    Modifier.fillMaxHeight()
                         .width(DividerHitWidth)
                         .then(
                             if (canDrag) {
@@ -116,20 +107,10 @@ fun DualPaneLayout(
                         ),
                 contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .width(1.dp)
-                        .background(MiuixTheme.colorScheme.outline.copy(alpha = 0.55f))
-                )
+                Box(Modifier.fillMaxHeight().width(1.dp).background(MiuixTheme.colorScheme.outline.copy(alpha = 0.55f)))
             }
 
-
-            Box(Modifier
-                .weight(1f)
-                .fillMaxHeight()) {
-                right()
-            }
+            Box(Modifier.weight(1f).fillMaxHeight()) { right() }
         }
     }
 }

@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathFillType.Companion.EvenOdd
 import androidx.compose.ui.graphics.SolidColor
@@ -41,12 +40,12 @@ val Yume.Zashboard: ImageVector
         }
         zashboardVector =
             Builder(
-                name = "Zashboard",
-                defaultWidth = 24.0.dp,
-                defaultHeight = 24.0.dp,
-                viewportWidth = 24.0f,
-                viewportHeight = 24.0f,
-            )
+                    name = "Zashboard",
+                    defaultWidth = 24.0.dp,
+                    defaultHeight = 24.0.dp,
+                    viewportWidth = 24.0f,
+                    viewportHeight = 24.0f,
+                )
                 .apply {
                     path(
                         fill = SolidColor(Color(0xFF000000)),
@@ -117,7 +116,7 @@ val Yume.Zashboard: ImageVector
                             isMoreThanHalf = false,
                             isPositiveArc = true,
                             -0.372f,
-                            -0.648f
+                            -0.648f,
                         )
                         verticalLineToRelative(-2.25f)
                         arcTo(0.75f, 0.75f, 0.0f, isMoreThanHalf = false, isPositiveArc = true, 3.0f, 13.5f)

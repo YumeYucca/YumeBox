@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -39,12 +38,12 @@ val Yume.Rocket: ImageVector
         }
         rocketVector =
             ImageVector.Builder(
-                name = "Rocket",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            )
+                    name = "Rocket",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                )
                 .apply {
                     path(
                         stroke = SolidColor(Color.Black),
@@ -133,5 +132,4 @@ val Yume.Rocket: ImageVector
         return rocketVector!!
     }
 
-@Suppress("ObjectPropertyName")
-private var rocketVector: ImageVector? = null
+@Suppress("ObjectPropertyName") private var rocketVector: ImageVector? = null

@@ -26,9 +26,9 @@ import com.github.yumeyucca.yumebox.runtime.api.RuntimePhase
 import com.tencent.mmkv.MMKV
 
 /**
- * The last startup failure, kept for ten minutes so a restarted app can still say why the core
- * is down. Only a Failed record is meaningful; anything else found under these keys is a
- * leftover of the old persisted phase slot and is dropped on read.
+ * The last startup failure, kept for ten minutes so a restarted app can still say why the core is down. Only a Failed
+ * record is meaningful; anything else found under these keys is a leftover of the old persisted phase slot and is
+ * dropped on read.
  */
 internal object RuntimeFailureRecord {
     data class Failure(val mode: RunMode, val error: String)

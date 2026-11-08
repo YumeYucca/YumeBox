@@ -24,12 +24,12 @@ package com.github.yumeyucca.yumebox.presentation.screen
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -60,8 +60,8 @@ import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.rememberSavedGridState
 import com.github.yumeyucca.yumebox.presentation.util.rememberSavedListState
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
@@ -120,6 +120,9 @@ private fun ProxyPageShell(
     val sortMode by proxyViewModel.sortMode.collectAsState()
     val uiSelectedGroupName by proxyViewModel.uiSelectedGroupName.collectAsState()
     val nodeSearchVisible by proxyViewModel.nodeSearchVisible.collectAsState()
+    val compactTwoColumnNodes by proxyViewModel.compactTwoColumnNodes.collectAsState()
+    val splitTwoColumnNodes by proxyViewModel.splitTwoColumnNodes.collectAsState()
+    val groupTabsMode by proxyViewModel.groupTabsMode.collectAsState()
     val scrollBehavior = MiuixScrollBehavior(snapAnimationSpec = null)
     val coroutineScope = rememberCoroutineScope()
 
@@ -141,6 +144,12 @@ private fun ProxyPageShell(
             proxyViewModel = proxyViewModel,
             proxyGroups = proxyGroups,
             nodeSearchVisible = nodeSearchVisible,
+            twoColumnNodes =
+                if (pane == ProxyPageMode.Compact) compactTwoColumnNodes else splitTwoColumnNodes,
+            onTwoColumnNodesChange =
+                if (pane == ProxyPageMode.Compact) proxyViewModel::setCompactTwoColumnNodes else proxyViewModel::setSplitTwoColumnNodes,
+            groupTabsMode = groupTabsMode,
+            onGroupTabsModeChange = proxyViewModel::setGroupTabsMode,
             selectionController = selectionController,
         )
     val activeScrollSurface = state.activeScrollSurface
@@ -167,8 +176,10 @@ private fun ProxyPageShell(
     val searchAvailable =
         when (pane) {
             ProxyPageMode.SplitDetail -> state.selectedNodeGroup != null
+
             ProxyPageMode.Compact,
-            ProxyPageMode.SplitMaster -> state.selectedGroupName != null
+            ProxyPageMode.SplitMaster,
+            -> state.selectedGroupName != null
         }
     // What can appear in the "More" menu is decided once, here; the top bar only
     // lays it out and owns the anchor.
@@ -248,12 +259,7 @@ private fun ProxyPageShell(
                     searchVisible = nodeSearchVisible,
                 )
             val onSearchQueryChange: (String) -> Unit = { state.nodeSearchQuery = it }
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .nestedScroll(state.tabCollapseState.nestedScrollConnection)
-            ) {
+            Box(modifier = Modifier.fillMaxSize().nestedScroll(state.tabCollapseState.nestedScrollConnection)) {
                 if (state.groupTabsMode && tabbedPagerState != null) {
                     ProxyGroupTabsPane(
                         state = state,
@@ -319,8 +325,8 @@ private fun ProxyTopBarSection(
 }
 
 /**
- * Collapsing group-tab overlay. The call site decides whether the slot emits at all, so an
- * empty [tabs] list never gets here.
+ * Collapsing group-tab overlay. The call site decides whether the slot emits at all, so an empty [tabs] list never gets
+ * here.
  */
 @Composable
 private fun ProxyTabsOverlay(
@@ -342,8 +348,8 @@ private fun ProxyTabsOverlay(
 }
 
 /**
- * Group-tab host: one swipeable [ProxyNodePage] per visible group, each keeping its own saved
- * list/grid state, registered back into [ProxyPageState] for the following recompositions.
+ * Group-tab host: one swipeable [ProxyNodePage] per visible group, each keeping its own saved list/grid state,
+ * registered back into [ProxyPageState] for the following recompositions.
  */
 @Composable
 private fun ProxyGroupTabsPane(
@@ -379,8 +385,8 @@ private fun ProxyGroupTabsPane(
 }
 
 /**
- * Phone split host: slides between the group list and the selected group's node page, and stops
- * on its own saved scroll state while the node page is shown.
+ * Phone split host: slides between the group list and the selected group's node page, and stops on its own saved scroll
+ * state while the node page is shown.
  */
 @Composable
 private fun ProxyCompactNodesPane(
@@ -393,9 +399,7 @@ private fun ProxyCompactNodesPane(
 ) {
     AnimatedContent(
         targetState = state.selectedGroupName,
-        transitionSpec = {
-            proxyGroupContentTransform(forward = targetState != null)
-        },
+        transitionSpec = { proxyGroupContentTransform(forward = targetState != null) },
         label = "proxy_content_slide",
     ) { targetGroupName ->
         if (targetGroupName == null) {
@@ -405,12 +409,7 @@ private fun ProxyCompactNodesPane(
         } else {
             // The transition needs an opaque background so it can cover the group list
             // underneath.
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(MiuixTheme.colorScheme.surface),
-            ) {
+            Box(modifier = Modifier.fillMaxSize().background(MiuixTheme.colorScheme.surface)) {
                 ProxyNodePage(
                     page =
                         nodePage.copy(
@@ -426,10 +425,7 @@ private fun ProxyCompactNodesPane(
     }
 }
 
-/**
- * Split shell right-pane host: switches node pages by group, animating in the direction the
- * group order moved.
- */
+/** Split shell right-pane host: switches node pages by group, animating in the direction the group order moved. */
 @Composable
 private fun ProxySplitDetailNodesPane(
     state: ProxyPageState,
@@ -438,30 +434,19 @@ private fun ProxySplitDetailNodesPane(
     proxyViewModel: ProxyViewModel,
     onSearchQueryChange: (String) -> Unit,
 ) {
-    val activeGroupName =
-        state.selectedGroupName ?: proxyGroups.firstOrNull()?.name
+    val activeGroupName = state.selectedGroupName ?: proxyGroups.firstOrNull()?.name
     AnimatedContent(
         targetState = activeGroupName,
         modifier = Modifier.fillMaxSize(),
         transitionSpec = {
-            val fromIndex =
-                initialState?.let { name ->
-                    proxyGroups.indexOfFirst { it.name == name }
-                } ?: -1
-            val toIndex =
-                targetState?.let { name ->
-                    proxyGroups.indexOfFirst { it.name == name }
-                } ?: -1
+            val fromIndex = initialState?.let { name -> proxyGroups.indexOfFirst { it.name == name } } ?: -1
+            val toIndex = targetState?.let { name -> proxyGroups.indexOfFirst { it.name == name } } ?: -1
             proxyGroupContentTransform(forward = toIndex >= fromIndex)
         },
         label = "proxy_shell_group_switch",
     ) { groupName ->
         val pageGroup =
-            groupName
-                ?.let { name ->
-                    proxyGroups.firstOrNull { it.name == name }
-                }
-                ?: state.selectedNodeGroup
+            groupName?.let { name -> proxyGroups.firstOrNull { it.name == name } } ?: state.selectedNodeGroup
         // The selected layout owns the real scroll surface on the shell right pane.
         // Keyed on the group actually rendered: [groupName] is null while the
         // shell has not selected one, and keying on that would let every group
@@ -477,20 +462,15 @@ private fun ProxySplitDetailNodesPane(
                 ),
             proxyViewModel = proxyViewModel,
             onSearchQueryChange = onSearchQueryChange,
-            onTestDelay = {
-                pageGroup?.let { group ->
-                    proxyViewModel.testDelay(group.name)
-                }
-            },
+            onTestDelay = { pageGroup?.let { group -> proxyViewModel.testDelay(group.name) } },
         )
     }
 }
 
 /**
- * Contents of the "More" menu: sorting is always there, layout only appears on the side
- * that has a node list, and search only on a group page that can search.
- * It is a function so the shell is left with wiring only — reading this one expression
- * tells you what the menu holds.
+ * Contents of the "More" menu: sorting is always there, layout only appears on the side that has a node list, and
+ * search only on a group page that can search. It is a function so the shell is left with wiring only — reading this
+ * one expression tells you what the menu holds.
  */
 private fun buildNodeMenuActions(
     pane: ProxyPageMode,
@@ -529,25 +509,30 @@ private fun buildNodeMenuActions(
 private fun proxyGroupContentTransform(forward: Boolean): ContentTransform {
     val enterMillis = if (forward) 380 else 340
     val exitMillis = if (forward) 340 else 380
-    return (slideInHorizontally(
-        animationSpec = tween(durationMillis = enterMillis, easing = AnimationSpecs.Legacy),
-        initialOffsetX = { width -> if (forward) width else -width / 3 },
-    ) + fadeIn(animationSpec = tween(durationMillis = 180, easing = AnimationSpecs.Legacy))) togetherWith
-        (slideOutHorizontally(
-            animationSpec = tween(durationMillis = exitMillis, easing = AnimationSpecs.Legacy),
-            targetOffsetX = { width -> if (forward) -width / 3 else width },
-        ) + fadeOut(animationSpec = tween(durationMillis = 160, easing = AnimationSpecs.Legacy)))
+    return (
+        slideInHorizontally(
+            animationSpec = tween(durationMillis = enterMillis, easing = AnimationSpecs.Legacy),
+            initialOffsetX = { width -> if (forward) width else -width / 3 },
+        ) + fadeIn(animationSpec = tween(durationMillis = 180, easing = AnimationSpecs.Legacy))
+    ) togetherWith
+        (
+            slideOutHorizontally(
+                animationSpec = tween(durationMillis = exitMillis, easing = AnimationSpecs.Legacy),
+                targetOffsetX = { width -> if (forward) -width / 3 else width },
+            ) + fadeOut(animationSpec = tween(durationMillis = 160, easing = AnimationSpecs.Legacy))
+        )
 }
 
-private suspend fun ScrollBehavior.syncFromScrollSurface(atTop: Boolean, rampPx: Float) {
+private suspend fun ScrollBehavior.syncFromScrollSurface(
+    atTop: Boolean,
+    rampPx: Float,
+) {
     if (atTop) {
         state.contentOffset = 0f
         state.heightOffset = 0f
         return
     }
     state.contentOffset = minOf(state.contentOffset, -rampPx)
-    val heightLimit =
-        snapshotFlow { state.heightOffsetLimit }
-            .first { it < 0f && it > -Float.MAX_VALUE }
+    val heightLimit = snapshotFlow { state.heightOffsetLimit }.first { it < 0f && it > -Float.MAX_VALUE }
     state.heightOffset = heightLimit
 }

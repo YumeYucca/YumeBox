@@ -111,9 +111,7 @@ class RemoteControllerViewModel(
         id: String,
         protocol: RemoteProtocol,
     ) {
-        store.backends.set(
-            store.backends.value.map { if (it.id == id) it.copy(protocol = protocol) else it },
-        )
+        store.backends.set(store.backends.value.map { if (it.id == id) it.copy(protocol = protocol) else it })
         if (id == store.activeBackendId.value) {
             proxyFacade.applyRemoteControllerState()
         }

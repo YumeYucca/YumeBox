@@ -21,8 +21,8 @@
 package com.github.yumeyucca.yumebox.data.store.room
 
 /**
- * DAO write-input carriers. Time-agnostic: the facade computes [dateMillis] (midnight day bucket)
- * and [lastActiveAt] and hands fully-resolved rows down. The DAO only accumulates and persists.
+ * DAO write-input carriers. Time-agnostic: the facade computes [dateMillis] (midnight day bucket) and [lastActiveAt]
+ * and hands fully-resolved rows down. The DAO only accumulates and persists.
  */
 data class AppTrafficDelta(
     val dateMillis: Long,

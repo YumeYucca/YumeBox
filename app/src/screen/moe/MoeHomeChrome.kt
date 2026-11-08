@@ -23,13 +23,13 @@ package com.github.yumeyucca.yumebox.screen.moe
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -51,18 +51,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
+import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.glassSurface
+import com.github.yumeyucca.yumebox.presentation.theme.isDarkTheme
+import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.PencilSparkles
 import io.github.yumeyucca.lucide.lucide.Rss
-import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
-import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.presentation.theme.isDarkTheme
-import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
-import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.glassSurface
-import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.squircle.squircleBackground
 import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.squircle.squircleClip
@@ -116,10 +116,7 @@ internal fun MoeSidebarDecoration(
             modifier
                 .then(blurModifier)
                 .background(
-                    brush =
-                        Brush.horizontalGradient(
-                            colors = listOf(glassGradientStart, glassGradientEnd)
-                        ),
+                    brush = Brush.horizontalGradient(colors = listOf(glassGradientStart, glassGradientEnd)),
                     shape = RectangleShape,
                 )
                 .padding(
@@ -142,9 +139,7 @@ internal fun MoeSidebarContent(
     // this width, so adding horizontal decoration padding would push digits under the panel.
     val laneWidth = visibleWidth.coerceAtLeast(0.dp)
     Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(laneWidth),
+        modifier = Modifier.fillMaxHeight().width(laneWidth),
         contentAlignment = Alignment.TopCenter,
     ) {
         MoeSidebarRail(
@@ -199,7 +194,7 @@ internal fun MoeLaunchControls(
             enter =
                 fadeIn(
                     animationSpec =
-                        tween(MOE_UPDATE_BUTTON_ENTER_DURATION, easing = AnimationSpecs.EmphasizedDecelerate),
+                        tween(MOE_UPDATE_BUTTON_ENTER_DURATION, easing = AnimationSpecs.EmphasizedDecelerate)
                 ) +
                     expandHorizontally(
                         expandFrom = Alignment.End,
@@ -208,8 +203,7 @@ internal fun MoeLaunchControls(
                     ),
             exit =
                 fadeOut(
-                    animationSpec =
-                        tween(MOE_UPDATE_BUTTON_EXIT_DURATION, easing = AnimationSpecs.EmphasizedAccelerate),
+                    animationSpec = tween(MOE_UPDATE_BUTTON_EXIT_DURATION, easing = AnimationSpecs.EmphasizedAccelerate)
                 ) +
                     shrinkHorizontally(
                         shrinkTowards = Alignment.End,
@@ -245,18 +239,17 @@ private fun MoeCircleActionButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val pressScale by
-    animateFloatAsState(
-        targetValue = if (isPressed) MoeUi.Button.pressedScale else 1f,
-        animationSpec = spring(dampingRatio = 1f, stiffness = 600f),
-        label = "moe_launch_config_button_press_scale",
-    )
+        animateFloatAsState(
+            targetValue = if (isPressed) MoeUi.Button.pressedScale else 1f,
+            animationSpec = spring(dampingRatio = 1f, stiffness = 600f),
+            label = "moe_launch_config_button_press_scale",
+        )
     val contentColor = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.62f)
     val borderColor = moeLaunchButtonBorderColor()
 
     Box(
         modifier =
-            Modifier
-                .graphicsLayer {
+            Modifier.graphicsLayer {
                     scaleX = pressScale
                     scaleY = pressScale
                 }
@@ -302,15 +295,14 @@ internal fun MoeLaunchButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val isRunning = controlState == HomeProxyControlState.Running
-    val contentColor =
-        MiuixTheme.colorScheme.onBackground.copy(alpha = if (enabled) 0.72f else 0.34f)
+    val contentColor = MiuixTheme.colorScheme.onBackground.copy(alpha = if (enabled) 0.72f else 0.34f)
     val borderColor = moeLaunchButtonBorderColor()
     val pressScale by
-    animateFloatAsState(
-        targetValue = if (isPressed && enabled) MoeUi.Button.pressedScale else 1f,
-        animationSpec = spring(dampingRatio = 1f, stiffness = 600f),
-        label = "moe_launch_button_press_scale",
-    )
+        animateFloatAsState(
+            targetValue = if (isPressed && enabled) MoeUi.Button.pressedScale else 1f,
+            animationSpec = spring(dampingRatio = 1f, stiffness = 600f),
+            label = "moe_launch_button_press_scale",
+        )
     val targetLabel =
         when {
             isRemoteController && isRunning -> MoeLaunchLabel(YumeTxt.Home.Status.Running, order = 2)
@@ -320,19 +312,16 @@ internal fun MoeLaunchButton(
             else ->
                 when (controlState) {
                     HomeProxyControlState.Idle -> MoeLaunchLabel(YumeTxt.Home.Control.Start, order = 0)
-                    HomeProxyControlState.Connecting ->
-                        MoeLaunchLabel(YumeTxt.Home.Status.Connecting, order = 1)
+                    HomeProxyControlState.Connecting -> MoeLaunchLabel(YumeTxt.Home.Status.Connecting, order = 1)
 
                     HomeProxyControlState.Running ->
                         MoeLaunchLabel(
-                            if (isRemoteController) YumeTxt.Home.Status.Running
-                            else YumeTxt.Home.Control.Stop,
+                            if (isRemoteController) YumeTxt.Home.Status.Running else YumeTxt.Home.Control.Stop,
                             order = 2,
                         )
 
                     HomeProxyControlState.Lost -> MoeLaunchLabel(YumeTxt.Home.Status.Lost, order = 0)
-                    HomeProxyControlState.Disconnecting ->
-                        MoeLaunchLabel(YumeTxt.Home.Status.Disconnecting, order = 1)
+                    HomeProxyControlState.Disconnecting -> MoeLaunchLabel(YumeTxt.Home.Status.Disconnecting, order = 1)
                 }
         }
 
@@ -371,10 +360,7 @@ internal fun MoeLaunchButton(
                 )
     ) {
         Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .heightIn(min = 28.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.align(Alignment.Center).heightIn(min = 28.dp).fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
             AnimatedContent(
@@ -393,9 +379,9 @@ internal fun MoeLaunchButton(
                             easing = AnimationSpecs.StandardEasing,
                         )
                     (slideInVertically(
-                        initialOffsetY = { if (forward) it else -it },
-                        animationSpec = slideSpec,
-                    ) + fadeIn(animationSpec = fadeSpec))
+                            initialOffsetY = { if (forward) it else -it },
+                            animationSpec = slideSpec,
+                        ) + fadeIn(animationSpec = fadeSpec))
                         .togetherWith(
                             slideOutVertically(
                                 targetOffsetY = { if (forward) -it else it },

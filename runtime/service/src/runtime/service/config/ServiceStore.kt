@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.runtime.service.config
 
-
 import com.github.yumeyucca.yumebox.core.util.LenientJson
 import com.github.yumeyucca.yumebox.data.model.TunStack
 import com.tencent.mmkv.MMKV
@@ -41,8 +40,7 @@ class ServiceStore {
 
     private fun readString(newKey: String, legacyKey: String, defaultValue: String): String =
         when {
-            networkSettings.containsKey(newKey) ->
-                networkSettings.decodeString(newKey, defaultValue) ?: defaultValue
+            networkSettings.containsKey(newKey) -> networkSettings.decodeString(newKey, defaultValue) ?: defaultValue
 
             else -> store.provider.getString(legacyKey, defaultValue)
         }
@@ -53,8 +51,7 @@ class ServiceStore {
         defaultValue: Set<String>,
     ): Set<String> =
         when {
-            networkSettings.containsKey(newKey) ->
-                networkSettings.decodeStringSet(newKey, defaultValue) ?: defaultValue
+            networkSettings.containsKey(newKey) -> networkSettings.decodeStringSet(newKey, defaultValue) ?: defaultValue
 
             else -> store.provider.getStringSet(legacyKey, defaultValue)
         }
@@ -62,9 +59,7 @@ class ServiceStore {
     private fun readStringList(newKey: String, defaultValue: List<String>): List<String> {
         if (!networkSettings.containsKey(newKey)) return defaultValue
         return runCatching {
-                networkSettings.decodeString(newKey)?.let {
-                    json.decodeFromString<List<String>>(it)
-                } ?: defaultValue
+                networkSettings.decodeString(newKey)?.let { json.decodeFromString<List<String>>(it) } ?: defaultValue
             }
             .onFailure { Timber.w(it, "Unreadable %s in the service store, falling back to defaults", newKey) }
             .getOrDefault(defaultValue)
@@ -99,10 +94,10 @@ class ServiceStore {
     /**
      * The service's view of the access control mode.
      *
-     * Read-only: the value is owned by the UI (it writes the data-layer names through
-     * `NetworkSettingsStore`), so the raw key is parsed here with both spellings accepted. A
-     * stored value this build cannot parse falls back to accept-all, which is what the core
-     * does for an unpinned state, and says so in the log instead of doing it silently.
+     * Read-only: the value is owned by the UI (it writes the data-layer names through `NetworkSettingsStore`), so the
+     * raw key is parsed here with both spellings accepted. A stored value this build cannot parse falls back to
+     * accept-all, which is what the core does for an unpinned state, and says so in the log instead of doing it
+     * silently.
      */
     val accessControlMode: AccessControlMode
         get() {
@@ -173,9 +168,9 @@ class ServiceStore {
         }
 
     /**
-     * The stack the user picked, written by the UI through `NetworkSettingsStore` as [TunStack.name].
-     * Read-only like [accessControlMode] because the service never owns the setting, and the legacy
-     * key held the lowercase core spelling, so both spellings are accepted here.
+     * The stack the user picked, written by the UI through `NetworkSettingsStore` as [TunStack.name]. Read-only like
+     * [accessControlMode] because the service never owns the setting, and the legacy key held the lowercase core
+     * spelling, so both spellings are accepted here.
      */
     val tunStack: TunStack
         get() {
@@ -198,8 +193,7 @@ class ServiceStore {
             networkSettings.encode("tunRouteExcludeAddress", json.encodeToString(value))
         }
 
-    var showTrafficNotification by
-        store.boolean(key = "show_traffic_notification", defaultValue = true)
+    var showTrafficNotification by store.boolean(key = "show_traffic_notification", defaultValue = true)
 
     private companion object {
         val json = LenientJson

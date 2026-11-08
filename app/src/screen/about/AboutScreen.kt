@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.about
 
-
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -38,8 +37,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -54,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.BuildInfo
 import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
@@ -66,7 +66,8 @@ import com.github.yumeyucca.yumebox.runtime.service.log.RuntimeLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import org.koin.compose.koinInject
+import timber.log.Timber
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -82,8 +83,6 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import org.koin.compose.koinInject
-import timber.log.Timber
 
 private val AboutHeroSpacerExtraHeight = 230.dp
 private const val TitleFadeStart = 0.35f
@@ -111,58 +110,56 @@ fun AboutScreen(navigator: Navigator) {
         aboutLinkGroups(
             context = context,
             navigator = navigator,
-            onExportLogs = {
-                exportLogsLauncher.launch("yumebox_diagnostics_${System.currentTimeMillis()}.log")
-            },
+            onExportLogs = { exportLogsLauncher.launch("yumebox_diagnostics_${System.currentTimeMillis()}.log") },
         )
 
-    GlassScaffold(
-        topBar = {
-            AboutTopBar(scrollBehavior = scrollBehavior, progress = scrollProgress, blur = blur)
-        },
-    ) { innerPadding ->
+    GlassScaffold(topBar = { AboutTopBar(scrollBehavior = scrollBehavior, progress = scrollProgress, blur = blur) }) {
+        innerPadding ->
         Box(Modifier.fillMaxSize()) {
             AboutDynamicBackground(
-                listState = listState, backdrop = backdrop,
-                blur = blur, scrollProgress = scrollProgress,
+                listState = listState,
+                backdrop = backdrop,
+                blur = blur,
+                scrollProgress = scrollProgress,
             )
             AboutPageList(
-                scrollBehavior = scrollBehavior, innerPadding = innerPadding,
-                listState = listState, metrics = heroMetrics,
-                showDebugPanel = showDebugPanel, appSettingsStore = appSettingsStore,
-                linkGroups = linkGroups, backdrop = backdrop, blur = blur,
+                scrollBehavior = scrollBehavior,
+                innerPadding = innerPadding,
+                listState = listState,
+                metrics = heroMetrics,
+                showDebugPanel = showDebugPanel,
+                appSettingsStore = appSettingsStore,
+                linkGroups = linkGroups,
+                backdrop = backdrop,
+                blur = blur,
                 blendColors = cardBlend,
             )
             AboutHeroLayer(
                 coreVersion = BuildInfo.CORE_VERSION,
                 topPadding = innerPadding.calculateTopPadding(),
                 backdrop = if (blur) backdrop else null,
-                logoBlend = logoBlend, progress = heroProgress,
-                metrics = heroMetrics, onShowDebugPanel = { showDebugPanel = true },
+                logoBlend = logoBlend,
+                progress = heroProgress,
+                metrics = heroMetrics,
+                onShowDebugPanel = { showDebugPanel = true },
             )
         }
     }
 }
 
 /**
- * The diagnostics file picker: it writes the log bundle off the main thread and reports the outcome
- * from the main one.
+ * The diagnostics file picker: it writes the log bundle off the main thread and reports the outcome from the main one.
  */
 @Composable
 private fun rememberDiagnosticsExportLauncher(): ManagedActivityResultLauncher<String, Uri?> {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    return rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("text/plain")
-    ) { uri ->
+    return rememberLauncherForActivityResult(contract = ActivityResultContracts.CreateDocument("text/plain")) { uri ->
         uri ?: return@rememberLauncherForActivityResult
         scope.launch(Dispatchers.IO) {
             val success = exportStartupLogs(context, uri)
             withContext(Dispatchers.Main) {
-                context.toast(
-                    if (success) YumeTxt.About.Support.ExportSuccess
-                    else YumeTxt.About.Support.ExportFailed
-                )
+                context.toast(if (success) YumeTxt.About.Support.ExportSuccess else YumeTxt.About.Support.ExportFailed)
             }
         }
     }
@@ -179,9 +176,7 @@ private fun rememberAboutScrollProgress(
             when {
                 heroMetrics.spacerHeightPx <= 0 -> 0f
                 listState.firstVisibleItemIndex > 0 -> 1f
-                else ->
-                    (listState.firstVisibleItemScrollOffset.toFloat() / heroMetrics.spacerHeightPx)
-                        .coerceIn(0f, 1f)
+                else -> (listState.firstVisibleItemScrollOffset.toFloat() / heroMetrics.spacerHeightPx).coerceIn(0f, 1f)
             }
         }
     }
@@ -221,9 +216,7 @@ private fun AboutPageList(
         scaffoldPadding = innerPadding,
         lazyListState = listState,
     ) {
-        item(key = "logoSpacer") {
-            AboutHeroSpacer(height = spacerHeight, metrics = metrics, listState = listState)
-        }
+        item(key = "logoSpacer") { AboutHeroSpacer(height = spacerHeight, metrics = metrics, listState = listState) }
         item(key = "aboutContent") {
             AboutContentColumn(
                 listState = listState,
@@ -258,14 +251,11 @@ private fun AboutTopBar(
                     backdrop = barBackdrop,
                     shape = RectangleShape,
                     blurRadius = AboutTopBarBlurRadius,
-                    colors =
-                        BlurColors(
-                            blendColors = listOf(BlendColorEntry(surface.copy(alpha = 0.87f))),
-                        ),
+                    colors = BlurColors(blendColors = listOf(BlendColorEntry(surface.copy(alpha = 0.87f)))),
                 )
             } else {
                 Modifier
-            },
+            }
     ) {
         SmallTopAppBar(
             title = YumeTxt.About.Title,
@@ -304,18 +294,15 @@ private fun AboutHeroSpacer(
     listState: LazyListState,
 ) {
     Box(
-        Modifier
-            .fillMaxWidth()
+        Modifier.fillMaxWidth()
             .height(height)
             .onSizeChanged { metrics.updateSpacerHeightPx(it.height) }
             .onGloballyPositioned { coords ->
                 metrics.updateSpacerBottom(
                     bottom = coords.positionInWindow().y + coords.size.height,
-                    captureInitial =
-                        listState.firstVisibleItemIndex == 0 &&
-                            listState.firstVisibleItemScrollOffset > 0,
+                    captureInitial = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset > 0,
                 )
-            },
+            }
     )
 }
 
@@ -331,20 +318,18 @@ private fun AboutContentColumn(
     blendColors: List<BlendColorEntry>,
 ) {
     val density = LocalDensity.current
-    val contentMinHeight by remember(density, listState) {
-        derivedStateOf {
-            val info = listState.layoutInfo
-            val available =
-                (info.viewportSize.height - info.beforeContentPadding - info.afterContentPadding)
-                    .coerceAtLeast(0)
-            with(density) { available.toDp() }
+    val contentMinHeight by
+        remember(density, listState) {
+            derivedStateOf {
+                val info = listState.layoutInfo
+                val available =
+                    (info.viewportSize.height - info.beforeContentPadding - info.afterContentPadding).coerceAtLeast(0)
+                with(density) { available.toDp() }
+            }
         }
-    }
     Column(Modifier.fillMaxWidth().heightIn(min = contentMinHeight)) {
         AboutDebugPanel(visible = showDebugPanel, appSettingsStore = appSettingsStore)
-        linkGroups.forEach { rows ->
-            AboutLinkCard(backdrop, blur, blendColors, rows)
-        }
+        linkGroups.forEach { rows -> AboutLinkCard(backdrop, blur, blendColors, rows) }
         AboutCopyrightFooter()
     }
 }
@@ -388,8 +373,8 @@ private fun AboutCopyrightFooter() {
 }
 
 /**
- * The floating hero over the list. It owns the version tap counter, so five quick taps hand the
- * screen its one-shot [onShowDebugPanel] signal.
+ * The floating hero over the list. It owns the version tap counter, so five quick taps hand the screen its one-shot
+ * [onShowDebugPanel] signal.
  */
 @Composable
 private fun AboutHeroLayer(
@@ -428,17 +413,11 @@ private fun aboutLinkGroups(
             AboutLinkRow.Link(YumeTxt.About.Link.ProjectSource) {
                 context.openUrl("https://github.com/YumeYucca/YumeBox")
             },
-            AboutLinkRow.Link(YumeTxt.About.Link.CoreSource) {
-                context.openUrl("https://github.com/MetaCubeX/mihomo")
-            },
+            AboutLinkRow.Link(YumeTxt.About.Link.CoreSource) { context.openUrl("https://github.com/MetaCubeX/mihomo") },
         ),
         listOf(
-            AboutLinkRow.Link(YumeTxt.About.Link.TelegramGroup) {
-                context.openUrl("https://t.me/Eden_Moe")
-            },
-            AboutLinkRow.Link(YumeTxt.About.Link.TelegramChannel) {
-                context.openUrl("https://t.me/YumeYucca")
-            },
+            AboutLinkRow.Link(YumeTxt.About.Link.TelegramGroup) { context.openUrl("https://t.me/Eden_Moe") },
+            AboutLinkRow.Link(YumeTxt.About.Link.TelegramChannel) { context.openUrl("https://t.me/YumeYucca") },
         ),
         listOf(
             AboutLinkRow.Link(YumeTxt.About.Support.ExportLogs, onClick = onExportLogs),
@@ -544,8 +523,7 @@ private fun AboutLinkCard(
     val cornerRadius = AppTheme.radii.radius24
     AppCard(
         modifier =
-            Modifier
-                .padding(horizontal = AppTheme.spacing.screenHorizontal)
+            Modifier.padding(horizontal = AppTheme.spacing.screenHorizontal)
                 .then(
                     if (blur) {
                         Modifier.textureBlur(
@@ -556,13 +534,13 @@ private fun AboutLinkCard(
                         )
                     } else {
                         Modifier
-                    },
+                    }
                 ),
         cornerRadius = cornerRadius,
         applyHorizontalPadding = false,
         colors =
             CardDefaults.defaultColors(
-                color = if (blur) Color.Transparent else MiuixTheme.colorScheme.surfaceContainer,
+                color = if (blur) Color.Transparent else MiuixTheme.colorScheme.surfaceContainer
             ),
     ) {
         rows.forEach { row ->
@@ -573,8 +551,7 @@ private fun AboutLinkCard(
                         summary = row.summary,
                         onClick = row.onClick,
                     )
-                is AboutLinkRow.Info ->
-                    BasicComponent(title = row.title, summary = row.summary)
+                is AboutLinkRow.Info -> BasicComponent(title = row.title, summary = row.summary)
             }
         }
     }

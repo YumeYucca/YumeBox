@@ -61,8 +61,8 @@ internal fun AppDialogMessage(message: String, modifier: Modifier = Modifier) {
 /**
  * Returns a stable "dismiss the keyboard" action.
  *
- * Dialogs that host a text field must drop focus *and* hide the IME before they leave
- * composition, otherwise the keyboard stays up over the next screen.
+ * Dialogs that host a text field must drop focus *and* hide the IME before they leave composition, otherwise the
+ * keyboard stays up over the next screen.
  */
 @Composable
 internal fun rememberInputHider(): () -> Unit {
@@ -77,15 +77,15 @@ internal fun rememberInputHider(): () -> Unit {
 }
 
 /**
- * The shell every input dialog shares: the [AppDialog] chrome, the caller's fields, the validation
- * message and the cancel/confirm row.
+ * The shell every input dialog shares: the [AppDialog] chrome, the caller's fields, the validation message and the
+ * cancel/confirm row.
  *
- * It exists so the keyboard dismissal cannot drift: every way out of the dialog (cancel, confirm,
- * scrim tap, IME action) has to clear focus and hide the keyboard before the fields leave
- * composition, otherwise the keyboard stays up over the next screen.
+ * It exists so the keyboard dismissal cannot drift: every way out of the dialog (cancel, confirm, scrim tap, IME
+ * action) has to clear focus and hide the keyboard before the fields leave composition, otherwise the keyboard stays up
+ * over the next screen.
  *
- * @param content the dialog's own fields; it receives [rememberInputHider]'s action so an IME
- *   action can dismiss the keyboard the same way the buttons do.
+ * @param content the dialog's own fields; it receives [rememberInputHider]'s action so an IME action can dismiss the
+ *   keyboard the same way the buttons do.
  */
 @Composable
 internal fun AppInputDialog(

@@ -57,8 +57,7 @@ class CoreRouter(
 
     override suspend fun queryConnections(): ConnectionSnapshot = pick().queryConnections()
 
-    override suspend fun queryAllProxyGroups(): List<ProxyGroup> =
-        pick().queryAllProxyGroups()
+    override suspend fun queryAllProxyGroups(): List<ProxyGroup> = pick().queryAllProxyGroups()
 
     override suspend fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup =
         pick().queryProxyGroup(name, proxySort)
@@ -70,20 +69,17 @@ class CoreRouter(
     override suspend fun setRuleDisabled(rule: RuntimeRule, disabled: Boolean): List<RuntimeRule> =
         pick().setRuleDisabled(rule, disabled)
 
-    override suspend fun patchSelector(group: String, name: String): Boolean =
-        pick().patchSelector(group, name)
+    override suspend fun patchSelector(group: String, name: String): Boolean = pick().patchSelector(group, name)
 
     override suspend fun closeConnection(id: String): Boolean = pick().closeConnection(id)
 
     override suspend fun healthCheck(group: String): Map<String, Int> = pick().healthCheck(group)
 
-    override suspend fun healthCheckProxy(proxyName: String): Int =
-        pick().healthCheckProxy(proxyName)
+    override suspend fun healthCheckProxy(proxyName: String): Int = pick().healthCheckProxy(proxyName)
 
     override suspend fun warmUpProviderSnapshot() = pick().warmUpProviderSnapshot()
 
-    override suspend fun updateProvider(type: Provider.Type, name: String) =
-        pick().updateProvider(type, name)
+    override suspend fun updateProvider(type: Provider.Type, name: String) = pick().updateProvider(type, name)
 
     @Synchronized
     override fun subscribeLogs(observer: LogObserver): LogSubscription {
@@ -106,17 +102,13 @@ class CoreRouter(
                                 routedLogSubscription = nextSubscription
                                 target = nextTarget
                             }
-                            .onFailure { error ->
-                                Timber.w(error, "Log stream rebind failed; keeping the current one")
-                            }
+                            .onFailure { error -> Timber.w(error, "Log stream rebind failed; keeping the current one") }
                     }
                 }
             }
         }
         return LogSubscription {
-            synchronized(this@CoreRouter) {
-                if (activeLogToken === token) clearActiveLogSubscription()
-            }
+            synchronized(this@CoreRouter) { if (activeLogToken === token) clearActiveLogSubscription() }
         }
     }
 

@@ -8,21 +8,30 @@ private const val PinnedToolchainVersion = "0.14.0-dev-4533"
 
 /** Version declared by the checked-out launcher, e.g. `set kotlin_cli_version=0.14.0-dev-4533`. */
 fun launcherToolchainVersion(root: File): String =
-    root.resolve(if (System.getProperty("os.name").startsWith("Windows")) "kotlin.bat" else "kotlin").readText()
+    root
+        .resolve(if (System.getProperty("os.name").startsWith("Windows")) "kotlin.bat" else "kotlin")
+        .readText()
         .lineSequence()
         .map { it.trim() }
         .firstOrNull { it.startsWith("set kotlin_cli_version=") || it.startsWith("kotlin_cli_version=") }
-        ?.substringAfter('=')?.trim()
-        ?: error("Launcher is missing kotlin_cli_version")
+        ?.substringAfter('=')
+        ?.trim() ?: error("Launcher is missing kotlin_cli_version")
 
 class ToolchainBackend(private val root: File, graph: RuntimeGraph, private val resourceAars: List<ResourceAar>) {
-    private val excludedNames = graph.excluded.flatMap { coordinate ->
-        val classifier = coordinate.classifier.takeIf(String::isNotEmpty)?.let { "-$it" }.orEmpty()
-        listOf("${coordinate.artifact}-${coordinate.version}$classifier.jar", "${coordinate.artifact}-${coordinate.version}$classifier.aar")
-    }.sorted()
+    private val excludedNames =
+        graph.excluded
+            .flatMap { coordinate ->
+                val classifier = coordinate.classifier.takeIf(String::isNotEmpty)?.let { "-$it" }.orEmpty()
+                listOf(
+                    "${coordinate.artifact}-${coordinate.version}$classifier.jar",
+                    "${coordinate.artifact}-${coordinate.version}$classifier.aar",
+                )
+            }
+            .sorted()
     // 0.13.0 has no desugaring/exclusion DSL. This is an internal-backend shim,
     // not a project build: orchestration, manifests, native payloads and signing stay Kotlin.
-    private val initScript = """
+    private val initScript =
+        """
         import org.gradle.api.artifacts.FileCollectionDependency
         import java.security.MessageDigest
         import java.util.zip.ZipFile
@@ -81,9 +90,16 @@ class ToolchainBackend(private val root: File, graph: RuntimeGraph, private val 
                 }
             }
         }
-    """.trimIndent()
+    """
+            .trimIndent()
     private val launcherVersion = launcherToolchainVersion(root)
-    private val fingerprint = MessageDigest.getInstance("SHA-256").digest(("$launcherVersion/resource-symbols-v1/nontransitive-true/nonfinal-true\n" + initScript).toByteArray()).take(8).joinToString("") { "%02x".format(it) }
+    private val fingerprint =
+        MessageDigest.getInstance("SHA-256")
+            .digest(
+                ("$launcherVersion/resource-symbols-v1/nontransitive-true/nonfinal-true\n" + initScript).toByteArray()
+            )
+            .take(8)
+            .joinToString("") { "%02x".format(it) }
     val buildRoot: File = root.resolve("build/toolchain-$fingerprint")
     private val gradleHome = root.resolve(".kotlin/yumebox/gradle-home")
 
@@ -91,16 +107,34 @@ class ToolchainBackend(private val root: File, graph: RuntimeGraph, private val 
         require(launcherVersion == PinnedToolchainVersion) {
             "Update the Android output adapter before changing Toolchain version (launcher=$launcherVersion, adapter=$PinnedToolchainVersion)"
         }
-        gradleHome.resolve("init.d/yumebox.gradle").apply { parentFile.mkdirs(); writeText(initScript) }
-        gradleHome.resolve("gradle.properties").writeText(listOf("org.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=1g", "org.gradle.caching=true", "android.nonTransitiveRClass=true", "android.nonFinalResIds=true", "").joinToString(System.lineSeparator()))
+        gradleHome.resolve("init.d/yumebox.gradle").apply {
+            parentFile.mkdirs()
+            writeText(initScript)
+        }
+        gradleHome
+            .resolve("gradle.properties")
+            .writeText(
+                listOf(
+                        "org.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=1g",
+                        "org.gradle.caching=true",
+                        "android.nonTransitiveRClass=true",
+                        "android.nonFinalResIds=true",
+                        "",
+                    )
+                    .joinToString(System.lineSeparator())
+            )
         println("Toolchain backend: $fingerprint; excluded runtime artifacts: ${excludedNames.joinToString()}")
         // The backend provisions its own SDK when ANDROID_HOME is unset; prefer the machine's
         // local.properties location so local runs do not download an unlicensed duplicate.
         val environment = mutableMapOf("GRADLE_USER_HOME" to gradleHome.path)
         if (System.getenv("ANDROID_HOME").isNullOrBlank()) {
-            loadProperties(root.resolve("local.properties")).getProperty("sdk.dir")?.takeIf { it.isNotBlank() }?.let { environment["ANDROID_HOME"] = it }
+            loadProperties(root.resolve("local.properties"))
+                .getProperty("sdk.dir")
+                ?.takeIf { it.isNotBlank() }
+                ?.let { environment["ANDROID_HOME"] = it }
         }
-        val arguments = mutableListOf("build", "--module=$module", "--variant=$variant", "--build-dir=${buildRoot.path}")
+        val arguments =
+            mutableListOf("build", "--module=$module", "--variant=$variant", "--build-dir=${buildRoot.path}")
         if (loader) arguments += "--module=pack"
         toolchain(root, arguments, environment)
     }
@@ -109,13 +143,16 @@ class ToolchainBackend(private val root: File, graph: RuntimeGraph, private val 
         val suffix = variant.replaceFirstChar(Char::uppercaseChar)
         val directory = buildRoot.resolve("tasks/_${module}_buildAndroid$suffix")
         val candidates = directory.listFiles().orEmpty().filter { it.isFile && it.extension == "apk" }
-        require(candidates.size == 1) { "Expected one exported APK for $module/$variant in $directory, found ${candidates.size}; update the pinned adapter" }
+        require(candidates.size == 1) {
+            "Expected one exported APK for $module/$variant in $directory, found ${candidates.size}; update the pinned adapter"
+        }
         return candidates.single()
     }
 
     fun sdk(module: String, variant: String): File {
         val suffix = variant.replaceFirstChar(Char::uppercaseChar)
-        val local = loadProperties(buildRoot.resolve("tasks/_${module}_prepareAndroid$suffix/gradle-project/local.properties"))
+        val local =
+            loadProperties(buildRoot.resolve("tasks/_${module}_prepareAndroid$suffix/gradle-project/local.properties"))
         return File(requireNotNull(local.getProperty("sdk.dir")) { "Toolchain Android SDK handoff unavailable" })
     }
 
@@ -130,12 +167,20 @@ class ToolchainBackend(private val root: File, graph: RuntimeGraph, private val 
 private val progressLine = Regex("""^\s*(→.*)?\[\s*[#\u2501\u2500•]+[\s\u2501\u2500•]*\] \d+ / \d+ tasks.*$""")
 
 /**
- * Runs the Kotlin CLI without handing it the console. Toolchain renders live progress bars and
- * multi-line warnings when stdout is a terminal; capturing it and reporting only milestones keeps
- * packaging output stable in PowerShell, CI logs and other wrappers.
+ * Runs the Kotlin CLI without handing it the console. Toolchain renders live progress bars and multi-line warnings when
+ * stdout is a terminal; capturing it and reporting only milestones keeps packaging output stable in PowerShell, CI logs
+ * and other wrappers.
  */
-fun toolchain(root: File, arguments: List<String>, environment: Map<String, String> = emptyMap(), capture: Boolean = false): String {
-    val command = if (System.getProperty("os.name").startsWith("Windows")) listOf("cmd.exe", "/d", "/c", root.resolve("kotlin.bat").path) else listOf("sh", root.resolve("kotlin").path)
+fun toolchain(
+    root: File,
+    arguments: List<String>,
+    environment: Map<String, String> = emptyMap(),
+    capture: Boolean = false,
+): String {
+    val command =
+        if (System.getProperty("os.name").startsWith("Windows"))
+            listOf("cmd.exe", "/d", "/c", root.resolve("kotlin.bat").path)
+        else listOf("sh", root.resolve("kotlin").path)
     val builder = ProcessBuilder(command + arguments).directory(root).redirectErrorStream(true)
     builder.environment().putAll(environment)
     val process = builder.start()

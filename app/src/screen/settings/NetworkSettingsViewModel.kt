@@ -41,9 +41,8 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /**
- * Backs both the run-mode picker ([NetworkSettingsScreen]) and the VpnService options page
- * ([VpnServiceOptionsScreen]). The parallel HTTP run mode is gone, so this exposes the
- * configured mode plus the VpnService knobs.
+ * Backs both the run-mode picker ([NetworkSettingsScreen]) and the VpnService options page ([VpnServiceOptionsScreen]).
+ * The parallel HTTP run mode is gone, so this exposes the configured mode plus the VpnService knobs.
  */
 class NetworkSettingsViewModel(
     application: Application,
@@ -96,37 +95,37 @@ class NetworkSettingsViewModel(
 
     val networkScreenState: StateFlow<NetworkSettingsScreenState> =
         combine(
-            combine(
-                runMode.state,
-                disableAllOverride.state,
-                accessControlMode.state,
-                rootAvailable,
-                ebpfAvailable,
-            ) { mode, disableOverride, accessMode, root, ebpf ->
-                NetworkSettingsScreenState(
-                    runMode = mode,
-                    disableAllOverride = disableOverride,
-                    accessControlMode = accessMode,
-                    rootAvailable = root,
-                    ebpfAvailable = ebpf,
+                combine(
+                    runMode.state,
+                    disableAllOverride.state,
+                    accessControlMode.state,
+                    rootAvailable,
+                    ebpfAvailable,
+                ) { mode, disableOverride, accessMode, root, ebpf ->
+                    NetworkSettingsScreenState(
+                        runMode = mode,
+                        disableAllOverride = disableOverride,
+                        accessControlMode = accessMode,
+                        rootAvailable = root,
+                        ebpfAvailable = ebpf,
+                    )
+                },
+                combine(
+                    _kernels,
+                    _kernelBusy,
+                    _activeKernelId,
+                    _installedKernels,
+                ) { availableKernels, busy, active, installed ->
+                    KernelUiSelection(availableKernels, busy, active, installed)
+                },
+            ) { base, kernel ->
+                base.copy(
+                    kernels = kernel.kernels,
+                    kernelBusy = kernel.busy,
+                    activeKernelId = kernel.active,
+                    installedKernels = kernel.installed,
                 )
-            },
-            combine(
-                _kernels,
-                _kernelBusy,
-                _activeKernelId,
-                _installedKernels,
-            ) { availableKernels, busy, active, installed ->
-                KernelUiSelection(availableKernels, busy, active, installed)
-            },
-        ) { base, kernel ->
-            base.copy(
-                kernels = kernel.kernels,
-                kernelBusy = kernel.busy,
-                activeKernelId = kernel.active,
-                installedKernels = kernel.installed,
-            )
-        }
+            }
             .stateInWhileSubscribed(
                 viewModelScope,
                 NetworkSettingsScreenState(
@@ -154,33 +153,31 @@ class NetworkSettingsViewModel(
 
     val tunOptionsScreenState: StateFlow<TunOptionsScreenState> =
         combine(
-            combine(
-                tunIfName.state,
-                tunMtu.state,
-                tunStack.state,
-                tunAutoRoute.state,
-                tunStrictRoute.state,
-            ) { ifName, mtu, stack, autoRoute, strictRoute ->
-                TunOptionsScreenState(
-                    ifName = ifName,
-                    mtu = mtu,
-                    stack = stack,
-                    autoRoute = autoRoute,
-                    strictRoute = strictRoute,
+                combine(
+                    tunIfName.state,
+                    tunMtu.state,
+                    tunStack.state,
+                    tunAutoRoute.state,
+                    tunStrictRoute.state,
+                ) { ifName, mtu, stack, autoRoute, strictRoute ->
+                    TunOptionsScreenState(
+                        ifName = ifName,
+                        mtu = mtu,
+                        stack = stack,
+                        autoRoute = autoRoute,
+                        strictRoute = strictRoute,
+                    )
+                },
+                combine(tunAutoRedirect.state, tunDnsMode.state, enableIPv6.state) { autoRedirect, dnsMode, ipv6 ->
+                    Triple(autoRedirect, dnsMode, ipv6)
+                },
+            ) { base, extra ->
+                base.copy(
+                    autoRedirect = extra.first,
+                    dnsMode = extra.second,
+                    enableIPv6 = extra.third,
                 )
-            },
-            combine(tunAutoRedirect.state, tunDnsMode.state, enableIPv6.state) { autoRedirect,
-                                                                                 dnsMode,
-                                                                                 ipv6 ->
-                Triple(autoRedirect, dnsMode, ipv6)
-            },
-        ) { base, extra ->
-            base.copy(
-                autoRedirect = extra.first,
-                dnsMode = extra.second,
-                enableIPv6 = extra.third,
-            )
-        }
+            }
             .stateInWhileSubscribed(
                 viewModelScope,
                 TunOptionsScreenState(
@@ -199,8 +196,7 @@ class NetworkSettingsViewModel(
         viewModelScope.launch {
             // Everything below reads the kernel directory; none of it may run on the caller's
             // frame (this constructor runs during composition of the settings page).
-            _activeKernelId.value =
-                withContext(Dispatchers.IO) { KernelManager.activeKernelId(getApplication()) }
+            _activeKernelId.value = withContext(Dispatchers.IO) { KernelManager.activeKernelId(getApplication()) }
             refreshInstalledKernels()
             _rootAvailable.value = RootAccessSupport.isGranted()
             refreshEbpfAvailability()
@@ -209,23 +205,23 @@ class NetworkSettingsViewModel(
 
     val tunServiceOptionsUiState: StateFlow<TunServiceOptionsUiState> =
         combine(
-            bypassPrivateNetwork.state,
-            dnsHijack.state,
-            enableIPv6.state,
-            allowBypass.state,
-            systemProxy.state,
-        ) { bypassPrivateNetwork, dnsHijack, enableIPv6, allowBypass, systemProxy ->
-            TunServiceOptionsUiState(
-                common =
-                    CommonTunOptionsUiState(
-                        bypassPrivateNetwork = bypassPrivateNetwork,
-                        dnsHijack = dnsHijack,
-                        enableIPv6 = enableIPv6,
-                    ),
-                allowBypass = allowBypass,
-                systemProxy = systemProxy,
-            )
-        }
+                bypassPrivateNetwork.state,
+                dnsHijack.state,
+                enableIPv6.state,
+                allowBypass.state,
+                systemProxy.state,
+            ) { bypassPrivateNetwork, dnsHijack, enableIPv6, allowBypass, systemProxy ->
+                TunServiceOptionsUiState(
+                    common =
+                        CommonTunOptionsUiState(
+                            bypassPrivateNetwork = bypassPrivateNetwork,
+                            dnsHijack = dnsHijack,
+                            enableIPv6 = enableIPv6,
+                        ),
+                    allowBypass = allowBypass,
+                    systemProxy = systemProxy,
+                )
+            }
             .stateInWhileSubscribed(
                 viewModelScope,
                 TunServiceOptionsUiState(
@@ -241,9 +237,8 @@ class NetworkSettingsViewModel(
             )
 
     /**
-     * Selects the run mode — the single mode key across the runtime. The root Tun cards
-     * are disabled in the UI when [rootAvailable] is false, so reaching here for a root mode
-     * already implies root was granted.
+     * Selects the run mode — the single mode key across the runtime. The root Tun cards are disabled in the UI when
+     * [rootAvailable] is false, so reaching here for a root mode already implies root was granted.
      */
     fun onRunModeChange(mode: RunMode) {
         if (mode == RunMode.Ebpf && !_ebpfAvailable.value) return
@@ -272,14 +267,11 @@ class NetworkSettingsViewModel(
 
     fun onTunStackChange(value: TunStack) = controller.setAndRestartIfNeeded(tunStack, value)
 
-    fun onTunAutoRouteChange(enabled: Boolean) =
-        controller.setAndRestartIfNeeded(tunAutoRoute, enabled)
+    fun onTunAutoRouteChange(enabled: Boolean) = controller.setAndRestartIfNeeded(tunAutoRoute, enabled)
 
-    fun onTunStrictRouteChange(enabled: Boolean) =
-        controller.setAndRestartIfNeeded(tunStrictRoute, enabled)
+    fun onTunStrictRouteChange(enabled: Boolean) = controller.setAndRestartIfNeeded(tunStrictRoute, enabled)
 
-    fun onTunAutoRedirectChange(enabled: Boolean) =
-        controller.setAndRestartIfNeeded(tunAutoRedirect, enabled)
+    fun onTunAutoRedirectChange(enabled: Boolean) = controller.setAndRestartIfNeeded(tunAutoRedirect, enabled)
 
     fun onTunDnsModeChange(value: TunDnsMode) = controller.setAndRestartIfNeeded(tunDnsMode, value)
 
@@ -301,8 +293,8 @@ class NetworkSettingsViewModel(
     }
 
     /**
-     * [runCatching] for suspending work: the plain version also catches [CancellationException],
-     * which turns "this screen is gone" into a reported failure and lets the block run on.
+     * [runCatching] for suspending work: the plain version also catches [CancellationException], which turns "this
+     * screen is gone" into a reported failure and lets the block run on.
      */
     private suspend fun <T> runCatchingCancellable(block: suspend () -> T): Result<T> =
         try {
@@ -323,9 +315,7 @@ class NetworkSettingsViewModel(
                     .onSuccess { index ->
                         _kernels.value = index.kernels
                         _activeKernelId.value =
-                            withContext(Dispatchers.IO) {
-                                KernelManager.activeKernelId(getApplication())
-                            }
+                            withContext(Dispatchers.IO) { KernelManager.activeKernelId(getApplication()) }
                     }
             } finally {
                 _kernelBusy.value = false
@@ -344,12 +334,9 @@ class NetworkSettingsViewModel(
                 selected.forEach { kernel ->
                     if (!failed) {
                         // Downloads and unpacks the core; must not occupy the main thread.
-                        val installed =
-                            runCatchingCancellable {
-                                withContext(Dispatchers.IO) {
-                                    KernelManager.install(getApplication(), kernel)
-                                }
-                            }
+                        val installed = runCatchingCancellable {
+                            withContext(Dispatchers.IO) { KernelManager.install(getApplication(), kernel) }
+                        }
                         failed = installed.isFailure
                     }
                 }
@@ -362,9 +349,8 @@ class NetworkSettingsViewModel(
     }
 
     /**
-     * Applies the user's kernel pick. Every branch probes or writes the kernel directory, so the
-     * work runs off the caller's frame and [busy][NetworkSettingsScreenState.kernelBusy] gates
-     * concurrent picks.
+     * Applies the user's kernel pick. Every branch probes or writes the kernel directory, so the work runs off the
+     * caller's frame and [busy][NetworkSettingsScreenState.kernelBusy] gates concurrent picks.
      */
     fun selectKernel(id: String) {
         if (_kernelBusy.value) return
@@ -392,8 +378,7 @@ class NetworkSettingsViewModel(
         if (kernel == null) {
             // Neither in the fetched index nor on disk: publish the index so the list offers a
             // kernel that actually exists instead of retrying this pick.
-            runCatchingCancellable { KernelManager.fetchIndex() }
-                .onSuccess { _kernels.value = it.kernels }
+            runCatchingCancellable { KernelManager.fetchIndex() }.onSuccess { _kernels.value = it.kernels }
             return
         }
         runCatchingCancellable {
@@ -417,14 +402,13 @@ class NetworkSettingsViewModel(
     /** Pure probe: whether an eBPF kernel is installed and running. It never touches the config. */
     private suspend fun refreshEbpfAvailability() {
         _ebpfAvailable.value =
-            _rootAvailable.value &&
-                withContext(Dispatchers.IO) { KernelManager.isEbpfKernelActive(getApplication()) }
+            _rootAvailable.value && withContext(Dispatchers.IO) { KernelManager.isEbpfKernelActive(getApplication()) }
     }
 
     /**
-     * The configured mode is eBPF but nothing can run it: fall back to a mode this device supports.
-     * Only ever reached from a kernel change, so merely opening settings cannot rewrite the stored
-     * run mode (and restart the runtime) behind the user's back.
+     * The configured mode is eBPF but nothing can run it: fall back to a mode this device supports. Only ever reached
+     * from a kernel change, so merely opening settings cannot rewrite the stored run mode (and restart the runtime)
+     * behind the user's back.
      */
     private suspend fun failOverFromEbpf() {
         if (_ebpfAvailable.value || runMode.value != RunMode.Ebpf) return
@@ -440,9 +424,9 @@ class NetworkSettingsViewModel(
     }
 
     /**
-     * Reads what is installed once, off the main thread. This is the only source the UI consults:
-     * probing the kernel directory reads (and ELF-scans) every candidate, which must not happen
-     * during composition or from a non-suspend handler.
+     * Reads what is installed once, off the main thread. This is the only source the UI consults: probing the kernel
+     * directory reads (and ELF-scans) every candidate, which must not happen during composition or from a non-suspend
+     * handler.
      */
     private suspend fun refreshInstalledKernels() {
         _installedKernels.value =

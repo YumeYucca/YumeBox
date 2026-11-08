@@ -44,10 +44,9 @@ import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 
 /**
- * UI-side view of the runtime: mirrors [RuntimeSessionDeps.control] into a [RuntimeSnapshot]
- * enriched with profile / group / traffic readiness, and drives payload refreshes and traffic
- * polling. Lifecycle decisions stay in the control; remote-controller takeover lives in
- * [RuntimeRemoteSwitch].
+ * UI-side view of the runtime: mirrors [RuntimeSessionDeps.control] into a [RuntimeSnapshot] enriched with profile /
+ * group / traffic readiness, and drives payload refreshes and traffic polling. Lifecycle decisions stay in the control;
+ * remote-controller takeover lives in [RuntimeRemoteSwitch].
  */
 internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
     private val scope = deps.scope
@@ -137,9 +136,7 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
         eventBridge.register()
         if (remoteControllerStore.isWanted()) applyRemoteControllerState()
         scope.launch { control.state.collect { state -> mirrorLocal(state) } }
-        scope.launch {
-            remoteControllerStore.controllerEnabled.state.collect { applyRemoteControllerState() }
-        }
+        scope.launch { remoteControllerStore.controllerEnabled.state.collect { applyRemoteControllerState() } }
     }
 
     fun isRemoteControllerActive(): Boolean = remoteControllerStore.isActive()
@@ -198,14 +195,11 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
     }
 
     /**
-     * Publishes [state] unless the remote controller holds the snapshot, and refreshes the
-     * payload once per settled state: each Running generation (outside a reload) and each idle
-     * one.
+     * Publishes [state] unless the remote controller holds the snapshot, and refreshes the payload once per settled
+     * state: each Running generation (outside a reload) and each idle one.
      */
     private fun applyLocalLocked(state: RuntimeState, forceRefresh: Boolean) {
-        if (isRemoteControllerActive() ||
-            _runtimeSnapshot.value.owner == RuntimeOwner.RemoteController
-        ) {
+        if (isRemoteControllerActive() || _runtimeSnapshot.value.owner == RuntimeOwner.RemoteController) {
             _isConfigReloading.value = false
             return
         }
@@ -282,8 +276,8 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
     }
 
     /**
-     * Applies changed settings to an active runtime: a reload in the same [mode], an owner switch
-     * otherwise. An idle runtime stays idle.
+     * Applies changed settings to an active runtime: a reload in the same [mode], an owner switch otherwise. An idle
+     * runtime stays idle.
      */
     suspend fun reload(mode: RunMode) {
         if (isRemoteControllerActive()) return
@@ -317,8 +311,8 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
     }
 
     /**
-     * The controller did not answer: returns true when that is because the local core itself is
-     * gone (the control then already dropped to Idle).
+     * The controller did not answer: returns true when that is because the local core itself is gone (the control then
+     * already dropped to Idle).
      */
     suspend fun verifyLocalRuntime(snapshot: RuntimeSnapshot): Boolean {
         if (snapshot.owner != RuntimeOwner.VpnService && snapshot.owner != RuntimeOwner.RootDaemon) {
@@ -351,9 +345,6 @@ internal class RuntimeSession(private val deps: RuntimeSessionDeps) {
     fun shouldRefreshRuntimePayload(groupsEmpty: Boolean): Boolean {
         val snapshot = _runtimeSnapshot.value
         return snapshot.phase == RuntimePhase.Running &&
-            (!snapshot.profileReady ||
-                !snapshot.groupsReady ||
-                groupsEmpty ||
-                _currentProfile.value == null)
+            (!snapshot.profileReady || !snapshot.groupsReady || groupsEmpty || _currentProfile.value == null)
     }
 }

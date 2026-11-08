@@ -26,9 +26,9 @@ import androidx.compose.runtime.Composable
 import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.feature.meta.presentation.screen.CustomRoutingScreen
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
-import com.github.yumeyucca.yumebox.presentation.navigation.Route
-import com.github.yumeyucca.yumebox.presentation.navigation.LocalConfigPreviewSlot
 import com.github.yumeyucca.yumebox.presentation.navigation.ConfigPreviewRequest
+import com.github.yumeyucca.yumebox.presentation.navigation.LocalConfigPreviewSlot
+import com.github.yumeyucca.yumebox.presentation.navigation.Route
 
 @Composable
 fun CustomRoutingRoute(navigator: Navigator) {

@@ -33,19 +33,15 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /**
  * Summary text shown below a settings section card.
  *
- * Adds the shared gap before the next section title. Combined with the
- * next `SmallTitle`'s default top padding and inside margin, plus the
- * 8dp bottom margin from [SmallTitleDefaults.InsideMargin], this yields
- * a consistent 40dp gap between the summary and the next title.
+ * Adds the shared gap before the next section title. Combined with the next `SmallTitle`'s default top padding and
+ * inside margin, plus the 8dp bottom margin from [SmallTitleDefaults.InsideMargin], this yields a consistent 40dp gap
+ * between the summary and the next title.
  */
 @Composable
 fun SectionSummary(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        modifier =
-            modifier
-                .padding(SmallTitleDefaults.InsideMargin)
-                .padding(bottom = UiDp.dp16),
+        modifier = modifier.padding(SmallTitleDefaults.InsideMargin).padding(bottom = UiDp.dp16),
         style = MiuixTheme.textStyles.footnote1,
         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
     )

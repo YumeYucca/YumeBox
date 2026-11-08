@@ -48,7 +48,7 @@ internal fun ProfileSettingsPage(
                 scrollBehavior = scrollBehavior,
                 actions = actions,
             )
-        },
+        }
     ) { paddingValues ->
         StandalonePageList(
             scrollBehavior = scrollBehavior,

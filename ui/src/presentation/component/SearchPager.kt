@@ -86,9 +86,7 @@ import top.yukonga.miuix.kmp.icon.basic.Search
 import top.yukonga.miuix.kmp.icon.basic.SearchCleanup
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
-/**
- * Search-bar padding trio threaded from the screen; unspecified fields fall back to theme values.
- */
+/** Search-bar padding trio threaded from the screen; unspecified fields fall back to theme values. */
 data class SearchBarPadding(
     val top: Dp = Dp.Unspecified,
     val start: Dp = Dp.Unspecified,
@@ -98,15 +96,13 @@ data class SearchBarPadding(
 /**
  * Presentation state of one screen's search overlay.
  *
- * The bar is *controlled*: the query stays where the screen already keeps it (a `ViewModel` or a
- * `rememberSaveable`), and this class only owns what no caller can know from the query itself — the
- * expand/collapse phase and where the collapsed bar sits inside the window, which is what the
- * overlay animates from.
+ * The bar is *controlled*: the query stays where the screen already keeps it (a `ViewModel` or a `rememberSaveable`),
+ * and this class only owns what no caller can know from the query itself — the expand/collapse phase and where the
+ * collapsed bar sits inside the window, which is what the overlay animates from.
  *
- * The previous model was a `SearchStatus` data class copied by the screen on every keystroke and
- * every animation tick; because the phase lived in the screen and the query lived in the
- * `ViewModel`, a `rememberSyncedSearchStatus` adapter had to write each value back to the other,
- * and each screen re-derived the same result status by hand.
+ * The previous model was a `SearchStatus` data class copied by the screen on every keystroke and every animation tick;
+ * because the phase lived in the screen and the query lived in the `ViewModel`, a `rememberSyncedSearchStatus` adapter
+ * had to write each value back to the other, and each screen re-derived the same result status by hand.
  */
 @Stable
 class SearchPagerState internal constructor() {
@@ -117,8 +113,8 @@ class SearchPagerState internal constructor() {
         private set
 
     /**
-     * Whether the page content and the collapsed bar belong in composition. True while collapsing so
-     * the list is already in place underneath the fading overlay.
+     * Whether the page content and the collapsed bar belong in composition. True while collapsing so the list is
+     * already in place underneath the fading overlay.
      */
     val keepsPageMounted: Boolean
         get() = phase == SearchPagerPhase.Collapsed || phase == SearchPagerPhase.Collapsing
@@ -178,15 +174,13 @@ internal enum class SearchResultStatus {
     SHOW,
 }
 
-@Composable
-fun rememberSearchPagerState(): SearchPagerState = remember { SearchPagerState() }
+@Composable fun rememberSearchPagerState(): SearchPagerState = remember { SearchPagerState() }
 
 /**
  * Collapsed search bar for a Scaffold top bar.
  *
- * Owns the three things every screen used to repeat around this bar: fading it out while the
- * overlay is open, reporting its window position so the overlay can animate from it, and turning a
- * tap into [SearchPagerState.expand].
+ * Owns the three things every screen used to repeat around this bar: fading it out while the overlay is open, reporting
+ * its window position so the overlay can animate from it, and turning a tap into [SearchPagerState.expand].
  */
 @Composable
 fun SearchPagerState.CollapsedBar(
@@ -203,9 +197,7 @@ fun SearchPagerState.CollapsedBar(
             modifier
                 .alpha(if (keepsPageMounted) 1f else 0f)
                 .onGloballyPositioned { coordinates ->
-                    reportCollapsedBarTop(
-                        with(density) { coordinates.positionInWindow().y.toDp() }
-                    )
+                    reportCollapsedBarTop(with(density) { coordinates.positionInWindow().y.toDp() })
                 }
                 .then(
                     if (isCollapsed) {
@@ -224,15 +216,13 @@ fun SearchPagerState.CollapsedBar(
                     imageVector = MiuixIcons.Basic.Search,
                     contentDescription = label,
                     modifier =
-                        Modifier
-                            .size(AppTheme.sizes.searchIconTouchTarget)
+                        Modifier.size(AppTheme.sizes.searchIconTouchTarget)
                             .padding(start = spacing.space16, end = spacing.space8),
                     tint = colorScheme.onSurfaceVariantSummary,
                 )
             },
             modifier =
-                Modifier
-                    .fillMaxWidth()
+                Modifier.fillMaxWidth()
                     .padding(start = startPadding, end = endPadding)
                     .padding(top = topPadding, bottom = AppTheme.sizes.searchBarBottomPadding),
             onSearch = {},
@@ -250,31 +240,23 @@ fun SearchPagerState.TopAppBarAnim(
 ) {
     val visible = keepsPageMounted
     val alpha by
-    animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(if (visible) 550 else 0, easing = FastOutSlowInEasing),
-        label = "SearchTopBarAlpha",
-    )
-    Box(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .background(colorScheme.surface)
-                .alpha(alpha)
-    ) {
-        content()
-    }
+        animateFloatAsState(
+            targetValue = if (visible) 1f else 0f,
+            animationSpec = tween(if (visible) 550 else 0, easing = FastOutSlowInEasing),
+            label = "SearchTopBarAlpha",
+        )
+    Box(modifier = modifier.fillMaxWidth().background(colorScheme.surface).alpha(alpha)) { content() }
 }
 
 /**
  * The list an overlay shows, with the two rules every result list needs:
  *
- * - a new query starts the list over — a filtered list whose first match is scrolled out of sight
- *   reads as empty, and the overlay just opened on top of it;
+ * - a new query starts the list over — a filtered list whose first match is scrolled out of sight reads as empty, and
+ *   the overlay just opened on top of it;
  * - the last row stays clear of the keyboard, on top of whatever the page already reserves.
  *
- * [app/src/screen/log/LogScreen.kt] keeps its own list on purpose: live entries arrive at the head
- * and that screen re-anchors on the newest one instead of jumping to the top.
+ * [app/src/screen/log/LogScreen.kt] keeps its own list on purpose: live entries arrive at the head and that screen
+ * re-anchors on the newest one instead of jumping to the top.
  */
 @Composable
 fun SearchPagerState.SearchResults(
@@ -289,9 +271,7 @@ fun SearchPagerState.SearchResults(
     val spacing = AppTheme.spacing
     val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
 
-    LaunchedEffect(query) {
-        if (query.isNotBlank()) state.scrollToItem(0)
-    }
+    LaunchedEffect(query) { if (query.isNotBlank()) state.scrollToItem(0) }
 
     LazyColumn(
         state = state,
@@ -308,20 +288,18 @@ fun SearchPagerState.SearchResults(
 }
 
 /**
- * Expandable search overlay. Callers must keep this composed always (do not `if (!isCollapsed)`) so
- * expand/collapse animations stay continuous.
+ * Expandable search overlay. Callers must keep this composed always (do not `if (!isCollapsed)`) so expand/collapse
+ * animations stay continuous.
  *
- * When settled collapsed it is zero-size, without zIndex or pointer input, so it never covers the
- * page. While expanding / expanded / collapsing it is a full-screen dim plus the bar.
+ * When settled collapsed it is zero-size, without zIndex or pointer input, so it never covers the page. While expanding
+ * / expanded / collapsing it is a full-screen dim plus the bar.
  *
- * Must be placed as a **full-window sibling** of the page `Scaffold`, not inside its content —
- * `topPadding` animates relative to the window top (status bars), matching the collapsed bar's
- * reported position.
+ * Must be placed as a **full-window sibling** of the page `Scaffold`, not inside its content — `topPadding` animates
+ * relative to the window top (status bars), matching the collapsed bar's reported position.
  *
- * `query`/`onQueryChange` are the caller's own search text: the overlay never holds a second copy,
- * so a locale switch, a restored state or a `ViewModel` update all reach the field unchanged.
- * `hasResults` is the caller's filtered result — the empty state is picked here instead of by each
- * screen deriving a status from the same two values.
+ * `query`/`onQueryChange` are the caller's own search text: the overlay never holds a second copy, so a locale switch,
+ * a restored state or a `ViewModel` update all reach the field unchanged. `hasResults` is the caller's filtered result
+ * — the empty state is picked here instead of by each screen deriving a status from the same two values.
  */
 @Composable
 fun SearchPagerState.SearchPager(
@@ -354,23 +332,23 @@ fun SearchPagerState.SearchPager(
     }
 
     val topPadding by
-    animateDpAsState(
-        targetValue =
-            if (wantsOverlay) {
-                systemBarsPadding + componentSizes.listItemVerticalMinimal
-            } else {
-                max(collapsedBarTop, spacing.space0)
-            },
-        animationSpec = tween(300, easing = LinearOutSlowInEasing),
-        label = "SearchTopPadding",
-        finishedListener = { if (settle()) onQueryChange("") },
-    )
+        animateDpAsState(
+            targetValue =
+                if (wantsOverlay) {
+                    systemBarsPadding + componentSizes.listItemVerticalMinimal
+                } else {
+                    max(collapsedBarTop, spacing.space0)
+                },
+            animationSpec = tween(300, easing = LinearOutSlowInEasing),
+            label = "SearchTopPadding",
+            finishedListener = { if (settle()) onQueryChange("") },
+        )
     val overlayAlpha by
-    animateFloatAsState(
-        targetValue = if (wantsOverlay) 1f else 0f,
-        animationSpec = tween(300, easing = LinearOutSlowInEasing),
-        label = "SearchOverlayAlpha",
-    )
+        animateFloatAsState(
+            targetValue = if (wantsOverlay) 1f else 0f,
+            animationSpec = tween(300, easing = LinearOutSlowInEasing),
+            label = "SearchOverlayAlpha",
+        )
 
     BackHandler(enabled = showsOverlay) { dismissSearch() }
 
@@ -379,8 +357,7 @@ fun SearchPagerState.SearchPager(
     Column(
         modifier =
             if (showsOverlay) {
-                Modifier
-                    .fillMaxSize()
+                Modifier.fillMaxSize()
                     .zIndex(5f)
                     .background(colorScheme.surface.copy(alpha = overlayAlpha))
                     .pointerInput(phase) {}
@@ -425,11 +402,7 @@ private fun SearchPagerTopRow(
     label: String,
 ) {
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(top = topPadding)
-                .background(colorScheme.surface),
+        modifier = Modifier.fillMaxWidth().padding(top = topPadding).background(colorScheme.surface),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -469,8 +442,7 @@ private fun SearchPagerCancelButton(
             fontWeight = FontWeight.Bold,
             color = colorScheme.primary,
             modifier =
-                Modifier
-                    .padding(
+                Modifier.padding(
                         start = spacing.space4,
                         end = spacing.space16,
                         top = searchBarTopPadding,
@@ -496,10 +468,7 @@ private fun SearchPagerResultsLayer(
 ) {
     AnimatedVisibility(
         visible = visible,
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .zIndex(1f),
+        modifier = Modifier.fillMaxSize().zIndex(1f),
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
@@ -534,9 +503,7 @@ private fun SearchBar(
                 .padding(top = padding.top, bottom = AppTheme.sizes.searchBarBottomPadding)
                 .heightIn(min = AppTheme.sizes.searchFieldMinHeight),
         leadingIcon = { SearchBarLeadingIcon() },
-        trailingIcon = {
-            SearchBarClearButton(searchText = query, onClear = { onQueryChange("") })
-        },
+        trailingIcon = { SearchBarClearButton(searchText = query, onClear = { onQueryChange("") }) },
         onSearch = {
             focusManager.clearFocus(force = true)
             keyboardController?.hide()
@@ -552,8 +519,7 @@ private fun SearchBarLeadingIcon() {
         imageVector = MiuixIcons.Basic.Search,
         contentDescription = YumeTxt.Component.Editor.Action.Search,
         modifier =
-            Modifier
-                .size(AppTheme.sizes.searchIconTouchTarget)
+            Modifier.size(AppTheme.sizes.searchIconTouchTarget)
                 .padding(start = AppTheme.spacing.space16, end = AppTheme.spacing.space8),
         tint = colorScheme.onSurfaceVariantSummary,
     )
@@ -574,8 +540,7 @@ private fun SearchBarClearButton(
             contentDescription = YumeTxt.Component.Button.Clear,
             tint = colorScheme.onSurface,
             modifier =
-                Modifier
-                    .size(AppTheme.sizes.searchIconTouchTarget)
+                Modifier.size(AppTheme.sizes.searchIconTouchTarget)
                     .padding(start = AppTheme.spacing.space8, end = AppTheme.spacing.space16)
                     .clickable(interactionSource = null, indication = null, onClick = onClear),
         )

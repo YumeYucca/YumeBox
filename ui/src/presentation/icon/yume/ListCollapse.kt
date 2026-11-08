@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -38,14 +37,14 @@ val Yume.ListCollapse: ImageVector
             return listCollapseVector!!
         }
         listCollapseVector =
-            ImageVector.Builder(
-                name = "ListCollapse",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            )
-                .apply {
+            ImageVector
+                .Builder(
+                    name = "ListCollapse",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                ).apply {
                     path(
                         stroke = SolidColor(Color.Black),
                         strokeLineWidth = 2f,
@@ -93,8 +92,7 @@ val Yume.ListCollapse: ImageVector
                         lineToRelative(3f, -3f)
                         lineToRelative(-3f, -3f)
                     }
-                }
-                .build()
+                }.build()
 
         return listCollapseVector!!
     }

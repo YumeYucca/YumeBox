@@ -28,8 +28,7 @@ object LocaleUtil {
     private const val FLAG_BASE_URI = "circle-flag:///flags/"
     private const val UNKNOWN_FLAG_PATH = "other/earth.svg"
 
-    @Volatile
-    private var override: Locale? = null
+    @Volatile private var override: Locale? = null
 
     fun setCurrentLocale(locale: Locale?) {
         override = locale
@@ -44,10 +43,7 @@ object LocaleUtil {
         baseUri: String = FLAG_BASE_URI,
     ): String {
         val normalizedCode =
-            countryCode
-                ?.trim()
-                ?.takeIf { it.isNotEmpty() && it.all(Char::isLetter) }
-                ?: return unknownFlagUri(baseUri)
+            countryCode?.trim()?.takeIf { it.isNotEmpty() && it.all(Char::isLetter) } ?: return unknownFlagUri(baseUri)
         if (normalizedCode.equals(UNKNOWN_FLAG_CODE, ignoreCase = true)) {
             return unknownFlagUri(baseUri)
         }

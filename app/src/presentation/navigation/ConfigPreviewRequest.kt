@@ -29,10 +29,10 @@ import com.github.yumeyucca.yumebox.core.model.LanguageScope
 /**
  * One pending config preview: what to show and how to write edits back.
  *
- * The text cannot live in [Route.OverrideConfigPreview] — a config file is easily hundreds of
- * kilobytes and would sit in the navigation stack for as long as the route lives — so the request
- * travels beside the route as one immutable value. One value rather than four loose fields is what
- * makes the handoff atomic: a preview can never observe a new title with the previous body.
+ * The text cannot live in [Route.OverrideConfigPreview] — a config file is easily hundreds of kilobytes and would sit
+ * in the navigation stack for as long as the route lives — so the request travels beside the route as one immutable
+ * value. One value rather than four loose fields is what makes the handoff atomic: a preview can never observe a new
+ * title with the previous body.
  */
 @Immutable
 data class ConfigPreviewRequest(
@@ -44,18 +44,17 @@ data class ConfigPreviewRequest(
 )
 
 /**
- * The slot a screen puts its [ConfigPreviewRequest] in before pushing
- * [Route.OverrideConfigPreview], and the preview route reads it back out.
+ * The slot a screen puts its [ConfigPreviewRequest] in before pushing [Route.OverrideConfigPreview], and the preview
+ * route reads it back out.
  *
- * Data travels this way instead of as route arguments because neither half fits a route: the save
- * callback closes over the caller's own view model, and the document itself is the whole config file.
- * Routes here are never serialised either (every stack is created with `serializer = null`), so they
- * are not a place to park state that has to survive.
+ * Data travels this way instead of as route arguments because neither half fits a route: the save callback closes over
+ * the caller's own view model, and the document itself is the whole config file. Routes here are never serialised
+ * either (every stack is created with `serializer = null`), so they are not a place to park state that has to survive.
  *
- * Every [put] hands back a [previewId] the caller pushes with the route, so the route names exactly
- * one handoff instead of "whatever is in the slot right now". Opening the editor twice used to push
- * one identical route both times, which made the second push indistinguishable from the first and let
- * it be dropped: the editor then refused to open again until its page was left and re-entered.
+ * Every [put] hands back a [previewId] the caller pushes with the route, so the route names exactly one handoff instead
+ * of "whatever is in the slot right now". Opening the editor twice used to push one identical route both times, which
+ * made the second push indistinguishable from the first and let it be dropped: the editor then refused to open again
+ * until its page was left and re-entered.
  */
 @Stable
 class ConfigPreviewSlot {
@@ -73,11 +72,11 @@ class ConfigPreviewSlot {
     fun get(previewId: Long): ConfigPreviewRequest? = requests[previewId]
 
     /**
-     * Drops one handoff once its preview leaves the back stack, so the closure (and the config text
-     * it captured) does not outlive the screen that showed it.
+     * Drops one handoff once its preview leaves the back stack, so the closure (and the config text it captured) does
+     * not outlive the screen that showed it.
      *
-     * Released by id rather than wholesale: a preview can still be on screen while a newer one is
-     * already open, and the newer request must not be cleared under it.
+     * Released by id rather than wholesale: a preview can still be on screen while a newer one is already open, and the
+     * newer request must not be cleared under it.
      */
     fun release(previewId: Long) {
         requests.remove(previewId)
@@ -85,9 +84,10 @@ class ConfigPreviewSlot {
 }
 
 /**
- * The [ConfigPreviewSlot] of the shell that hosts the route stack. A shell owns its own slot, so two
- * hosts (a root window and a sheet) can preview different files at the same time.
+ * The [ConfigPreviewSlot] of the shell that hosts the route stack. A shell owns its own slot, so two hosts (a root
+ * window and a sheet) can preview different files at the same time.
  */
-val LocalConfigPreviewSlot = staticCompositionLocalOf<ConfigPreviewSlot> {
-    error("LocalConfigPreviewSlot is not provided; host the config preview route inside a shell")
-}
+val LocalConfigPreviewSlot =
+    staticCompositionLocalOf<ConfigPreviewSlot> {
+        error("LocalConfigPreviewSlot is not provided; host the config preview route inside a shell")
+    }

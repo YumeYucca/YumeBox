@@ -34,46 +34,48 @@ val Yume.clock: ImageVector
         if (_clock != null) {
             return _clock!!
         }
-        _clock = ImageVector.Builder(
-            name = "clock",
-            defaultWidth = 24.dp,
-            defaultHeight = 24.dp,
-            viewportWidth = 24f,
-            viewportHeight = 24f
-        ).apply {
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(12f, 6f)
-                verticalLineToRelative(6f)
-                lineToRelative(4f, 2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(22f, 12f)
-                arcToRelative(10f, 10f, 0f, isMoreThanHalf = true, isPositiveArc = false, -11f, 9.95f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveToRelative(22f, 16f)
-                lineToRelative(-5.5f, 5.5f)
-                lineTo(14f, 19f)
-            }
-        }.build()
+        _clock =
+            ImageVector.Builder(
+                    name = "clock",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                )
+                .apply {
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(12f, 6f)
+                        verticalLineToRelative(6f)
+                        lineToRelative(4f, 2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(22f, 12f)
+                        arcToRelative(10f, 10f, 0f, isMoreThanHalf = true, isPositiveArc = false, -11f, 9.95f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveToRelative(22f, 16f)
+                        lineToRelative(-5.5f, 5.5f)
+                        lineTo(14f, 19f)
+                    }
+                }
+                .build()
 
         return _clock!!
     }
 
-@Suppress("ObjectPropertyName")
-private var _clock: ImageVector? = null
+@Suppress("ObjectPropertyName") private var _clock: ImageVector? = null

@@ -79,9 +79,9 @@ object GlassPopupMenuDefaults {
 /**
  * Hosts an anchored glass popup and keeps it mounted until its collapse finishes.
  *
- * A menu that owns a cascading page passes it as [submenu]; the host then feeds the page's
- * position, the panel's measured width, the backdrop and the stacked state, so the page and the
- * panel cannot drift apart. [submenuContent] is only composed while the page is open.
+ * A menu that owns a cascading page passes it as [submenu]; the host then feeds the page's position, the panel's
+ * measured width, the backdrop and the stacked state, so the page and the panel cannot drift apart. [submenuContent] is
+ * only composed while the page is open.
  */
 @Composable
 fun GlassPopupHost(
@@ -105,9 +105,7 @@ fun GlassPopupHost(
     val popupVisible = remember { mutableStateOf(false) }
     var menuWidth by remember { mutableStateOf(UiDp.dp0) }
 
-    LaunchedEffect(show) {
-        if (show) popupVisible.value = true
-    }
+    LaunchedEffect(show) { if (show) popupVisible.value = true }
     PopupLayout(
         visible = popupVisible,
         enterTransition = EnterTransition.None,
@@ -133,9 +131,7 @@ fun GlassPopupHost(
                 visuals = visuals,
                 stacked = submenu?.open == true,
                 alignToPageEnd = alignToPageEnd,
-                onMeasured = { size ->
-                    menuWidth = with(density) { size.width.toDp() }
-                },
+                onMeasured = { size -> menuWidth = with(density) { size.width.toDp() } },
                 onDismissFinished = {
                     if (!currentShow) {
                         popupVisible.value = false
@@ -164,8 +160,8 @@ fun GlassPopupHost(
 /**
  * Open state and resting row bounds of one cascading menu page.
  *
- * One instance per page: the row that triggers the page calls [openAt] with its own bounds and the
- * host owns everything else. [open] is readable so the trigger row can animate its arrow.
+ * One instance per page: the row that triggers the page calls [openAt] with its own bounds and the host owns everything
+ * else. [open] is readable so the trigger row can animate its arrow.
  */
 @Stable
 class GlassSubmenuState internal constructor() {
@@ -191,18 +187,16 @@ class GlassSubmenuState internal constructor() {
 @Composable
 fun rememberGlassSubmenuState(show: Boolean): GlassSubmenuState {
     val state = remember { GlassSubmenuState() }
-    LaunchedEffect(show) {
-        if (!show) state.close()
-    }
+    LaunchedEffect(show) { if (!show) state.close() }
     return state
 }
 
 /**
  * A row in one of the app's anchored glass menus.
  *
- * Every menu shares the compact glyph metrics of [GlassPopupMenuDefaults], so this row supplies
- * them and call sites only state what differs. Use [GlassPopupSubmenuItem] for a row that opens a
- * cascading page and [GlassSubmenuPageHeader] for the row that names one.
+ * Every menu shares the compact glyph metrics of [GlassPopupMenuDefaults], so this row supplies them and call sites
+ * only state what differs. Use [GlassPopupSubmenuItem] for a row that opens a cascading page and
+ * [GlassSubmenuPageHeader] for the row that names one.
  */
 @Composable
 fun GlassMenuItem(
@@ -232,8 +226,8 @@ fun GlassMenuItem(
 }
 
 /**
- * A row that opens a cascading page: its arrow turns while [open] holds, and it hands its resting
- * bounds to [onOpen] so the page can grow out of the row.
+ * A row that opens a cascading page: its arrow turns while [open] holds, and it hands its resting bounds to [onOpen] so
+ * the page can grow out of the row.
  */
 @Composable
 fun GlassPopupSubmenuItem(
@@ -280,17 +274,18 @@ fun GlassSubmenuPageHeader(
 }
 
 /**
- * Rotation of a cascading row's arrow: it turns while the page is open and turns back while the
- * page collapses, because the page drives [GlassPopupAnchor.secondaryBackProgress].
+ * Rotation of a cascading row's arrow: it turns while the page is open and turns back while the page collapses, because
+ * the page drives [GlassPopupAnchor.secondaryBackProgress].
  */
 @Composable
 private fun submenuArrow(anchor: GlassPopupAnchor, open: Boolean): () -> Float {
     val turn = CascadingPopupDefaults.arrowRotation(LocalLayoutDirection.current)
-    val rotation by animateFloatAsState(
-        targetValue = if (open) turn else 0f,
-        animationSpec = CascadingPopupDefaults.arrowSpring(open),
-        label = "glassSubmenuArrow",
-    )
+    val rotation by
+        animateFloatAsState(
+            targetValue = if (open) turn else 0f,
+            animationSpec = CascadingPopupDefaults.arrowSpring(open),
+            label = "glassSubmenuArrow",
+        )
     return { rotation * (1f - anchor.secondaryBackProgress) }
 }
 
@@ -325,5 +320,4 @@ fun GlassMenuSectionLabel(text: String) {
 }
 
 /** The shared menu width, narrowed to one fixed [width]. */
-fun GlassPopupSizing.fixedWidth(width: Dp): GlassPopupSizing =
-    copy(minWidth = width, maxWidth = width)
+fun GlassPopupSizing.fixedWidth(width: Dp): GlassPopupSizing = copy(minWidth = width, maxWidth = width)

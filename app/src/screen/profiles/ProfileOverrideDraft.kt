@@ -25,8 +25,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -57,16 +57,16 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import timber.log.Timber
 
 /**
- * The 覆写 page's loaded state and its only write path: the profile's binding, the override rows
- * derived from the selection, and the serialised save every toggle and drag ends in.
+ * The 覆写 page's loaded state and its only write path: the profile's binding, the override rows derived from the
+ * selection, and the serialised save every toggle and drag ends in.
  *
- * The page never assigns a field — [attach], [detach], [setSelected], [setCustomRouting] and
- * [reorder] are the only writers, and each of them persists the selection it just changed.
- * [ProfileOverrideSelection] still owns the loaded gate, so a toggle racing [load] cannot write over
- * a binding that has not been read yet.
+ * The page never assigns a field — [attach], [detach], [setSelected], [setCustomRouting] and [reorder] are the only
+ * writers, and each of them persists the selection it just changed. [ProfileOverrideSelection] still owns the loaded
+ * gate, so a toggle racing [load] cannot write over a binding that has not been read yet.
  */
 @Stable
-internal class ProfileOverrideDraft internal constructor(
+internal class ProfileOverrideDraft
+internal constructor(
     val overrideListState: LazyListState,
     private val selection: ProfileOverrideSelection,
     private val profileId: String,
@@ -102,14 +102,10 @@ internal class ProfileOverrideDraft internal constructor(
     private val selectableById by derivedStateOf { selectableConfigs.associateBy(OverrideConfig::id) }
 
     /** Attached rows in drag order; ids whose config disappeared are skipped. */
-    val rowIds: List<String> by derivedStateOf {
-        selection.ids.filter(selectableById::containsKey)
-    }
+    val rowIds: List<String> by derivedStateOf { selection.ids.filter(selectableById::containsKey) }
 
     /** Configs offered by the picker, including already attached ones so they can be removed. */
-    val pickerConfigs: List<OverrideConfig> by derivedStateOf {
-        selectableConfigs
-    }
+    val pickerConfigs: List<OverrideConfig> by derivedStateOf { selectableConfigs }
 
     /** The row's config; null for an id that is no longer offered, which the row skips. */
     fun configFor(overrideId: String): OverrideConfig? = selectableById[overrideId]
@@ -138,8 +134,8 @@ internal class ProfileOverrideDraft internal constructor(
     }
 
     /**
-     * Commits a drag inside the visible order; [ProfileOverrideSelection.reorder] answers false when
-     * the move changes nothing, and a false result is never persisted.
+     * Commits a drag inside the visible order; [ProfileOverrideSelection.reorder] answers false when the move changes
+     * nothing, and a false result is never persisted.
      */
     fun reorder(from: Int, to: Int) {
         if (selection.reorder(visibleIds = rowIds, from = from, to = to)) persistOverrides()
@@ -154,10 +150,9 @@ internal class ProfileOverrideDraft internal constructor(
     }
 
     /**
-     * Runs saves one at a time, in the order they were requested: a toggle during an in-flight save
-     * waits for it instead of overwriting it. A failed save is toasted and leaves [binding] alone,
-     * and the profile is read after the lock so a save queued behind a switch saves for the newest
-     * one.
+     * Runs saves one at a time, in the order they were requested: a toggle during an in-flight save waits for it
+     * instead of overwriting it. A failed save is toasted and leaves [binding] alone, and the profile is read after the
+     * lock so a save queued behind a switch saves for the newest one.
      */
     private fun persistOverrides() {
         val overrideIds = selection.ids.distinct()
@@ -183,8 +178,8 @@ internal class ProfileOverrideDraft internal constructor(
     }
 
     /**
-     * Persists the override selection and applies it to the running session when this profile is the
-     * one currently in use. Returns the refreshed binding for [binding].
+     * Persists the override selection and applies it to the running session when this profile is the one currently in
+     * use. Returns the refreshed binding for [binding].
      */
     private suspend fun saveOverrides(
         target: Profile,
@@ -215,15 +210,12 @@ internal class ProfileOverrideDraft internal constructor(
                         "Failed to generate custom routing content for profile %s",
                         targetId,
                     )
-                    context.toast(
-                        error.message ?: YumeTxt.ProfilesPage.SettingsDialog.CustomRouting
-                    )
+                    context.toast(error.message ?: YumeTxt.ProfilesPage.SettingsDialog.CustomRouting)
                 }
         }
 
         val shouldApplyRuntime =
-            (currentIsRunning.value || target.active) &&
-                    (target.active || homeViewModel.isCurrentProfile(target.uuid))
+            (currentIsRunning.value || target.active) && (target.active || homeViewModel.isCurrentProfile(target.uuid))
         if (shouldApplyRuntime) {
             val applied = overrideService.applyOverride(targetId)
             if (!applied) {
@@ -238,9 +230,9 @@ internal class ProfileOverrideDraft internal constructor(
 /**
  * Remembers the [ProfileOverrideDraft] of [profileId] and keeps it loaded.
  *
- * [profile] is handed over as the latest-value state the page used to hold inline, so a save that
- * lands after a list refresh still persists for the profile on screen, and [ProfileOverrideDraft.load]
- * runs once per profile id — a re-emitted equal profile cannot re-seed the list under a drag.
+ * [profile] is handed over as the latest-value state the page used to hold inline, so a save that lands after a list
+ * refresh still persists for the profile on screen, and [ProfileOverrideDraft.load] runs once per profile id — a
+ * re-emitted equal profile cannot re-seed the list under a drag.
  */
 @Composable
 internal fun rememberProfileOverrideDraft(
@@ -289,14 +281,12 @@ internal fun rememberProfileOverrideDraft(
 /**
  * The drag handle state of [draft]'s row list.
  *
- * `rememberReorderableLazyListState` is a composable factory, so the one object the draft cannot
- * build itself is built here; every move still goes through [ProfileOverrideDraft.reorder], which
- * is what decides whether the drop is committed.
+ * `rememberReorderableLazyListState` is a composable factory, so the one object the draft cannot build itself is built
+ * here; every move still goes through [ProfileOverrideDraft.reorder], which is what decides whether the drop is
+ * committed.
  */
 @Composable
-internal fun rememberProfileOverrideReorderState(
-    draft: ProfileOverrideDraft,
-): ReorderableLazyListState =
+internal fun rememberProfileOverrideReorderState(draft: ProfileOverrideDraft): ReorderableLazyListState =
     rememberReorderableLazyListState(draft.overrideListState) { from, to ->
         draft.reorder(from = from.index, to = to.index)
     }

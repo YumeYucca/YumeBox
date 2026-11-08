@@ -58,8 +58,8 @@ data class TunConfig(
 ) {
     companion object {
         /**
-         * Defaults shared with the settings store, so a fresh install and a locally built config
-         * start from exactly the same values instead of two literals that have to be kept in step.
+         * Defaults shared with the settings store, so a fresh install and a locally built config start from exactly the
+         * same values instead of two literals that have to be kept in step.
          */
         const val DefaultIfName: String = "Yume"
         const val DefaultMtu: Int = 1500
@@ -70,8 +70,6 @@ data class TunConfig(
 
 @Serializable
 enum class TunDnsMode {
-    @SerialName("redir-host")
-    RedirHost,
-    @SerialName("fake-ip")
-    FakeIp,
+    @SerialName("redir-host") RedirHost,
+    @SerialName("fake-ip") FakeIp,
 }

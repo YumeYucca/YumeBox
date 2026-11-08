@@ -21,8 +21,7 @@
 package com.github.yumeyucca.yumebox.runtime.client
 
 /**
- * Editable profile fields collected by the edit dialogs and applied in one call by
- * [ProfilesRepository.patchProfile].
+ * Editable profile fields collected by the edit dialogs and applied in one call by [ProfilesRepository.patchProfile].
  */
 data class ProfilePatch(
     val name: String,

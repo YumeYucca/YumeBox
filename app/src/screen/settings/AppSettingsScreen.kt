@@ -44,22 +44,19 @@ import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.theme.label
 import com.github.yumeyucca.yumebox.screen.settings.component.ThemeColorPickerItem
 import com.github.yumeyucca.yumebox.update.AppUpdateChannel
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import com.github.yumeyucca.yumebox.presentation.theme.label
 
 @Composable
 fun AppSettingsScreen(navigator: Navigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<AppSettingsViewModel>()
 
-    GlassScaffold(
-        topBar = { TopBar(title = YumeTxt.AppSettings.Title, scrollBehavior = scrollBehavior) }
-    ) { innerPadding ->
-
+    GlassScaffold(topBar = { TopBar(title = YumeTxt.AppSettings.Title, scrollBehavior = scrollBehavior) }) { innerPadding ->
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
@@ -242,7 +239,7 @@ private fun AppServiceSettingsSection(viewModel: AppSettingsViewModel) {
                     context.startActivitySafely(
                         Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                             data = "package:${context.packageName}".toUri()
-                        }
+                        },
                     )
                 }
             },
@@ -292,7 +289,10 @@ private fun isBatteryOptimizationIgnored(context: Context): Boolean {
 }
 
 @Composable
-private fun PageScalePreferenceItem(pageScale: Float, onApply: (Float) -> Unit) {
+private fun PageScalePreferenceItem(
+    pageScale: Float,
+    onApply: (Float) -> Unit,
+) {
     var pageScaleLocal by remember(pageScale) { mutableFloatStateOf(pageScale) }
     var showPageScaleDialog by remember { mutableStateOf(false) }
 
@@ -336,8 +336,7 @@ private fun PageScaleDialog(
     onApply: (Float) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
-    var scaleText by
-        remember(show, pageScale) { mutableStateOf((pageScale * 100).toInt().toString()) }
+    var scaleText by remember(show, pageScale) { mutableStateOf((pageScale * 100).toInt().toString()) }
 
     AppTextFieldDialog(
         show = show,
@@ -396,7 +395,10 @@ private fun PredictiveBackProgressPreferenceItem(
 }
 
 @Composable
-private fun CustomUserAgentPreferenceItem(customUserAgent: String, onConfirm: (String) -> Unit) {
+private fun CustomUserAgentPreferenceItem(
+    customUserAgent: String,
+    onConfirm: (String) -> Unit,
+) {
     val focusManager = LocalFocusManager.current
     var showEditDialog by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf(customUserAgent) }

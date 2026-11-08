@@ -23,8 +23,7 @@ object EbpfOverride {
     const val FILE_NAME = "__ebpf_cn_override__.yaml"
     private const val LISTENER_NAME = "ebpf-in"
     private const val CN_PROVIDER_NAME = "CN-IP"
-    private const val CN_PROVIDER_URL =
-        "https://github.com/MetaCubeX/meta-rules-dat/raw/meta/geo/geoip/cn.mrs"
+    private const val CN_PROVIDER_URL = "https://github.com/MetaCubeX/meta-rules-dat/raw/meta/geo/geoip/cn.mrs"
 
     data class Config(val bypassCn: Boolean)
 
@@ -53,7 +52,7 @@ object EbpfOverride {
                                 "interval" to 86400,
                                 "path" to providerPath,
                                 "url" to CN_PROVIDER_URL,
-                            ),
+                            )
                     ),
             )
         return YamlCodec.dumpMap(override)

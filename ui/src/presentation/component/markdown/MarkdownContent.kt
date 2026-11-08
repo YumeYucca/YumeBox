@@ -64,34 +64,29 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private const val MarkdownBaseUrl = "https://github.com/YumeYucca/YumeBox/"
 
-private val markdownExtensions = listOf(
-    TablesExtension.create(),
-    StrikethroughExtension.builder().requireTwoTildes(true).build(),
-    AutolinkExtension.create(),
-    TaskListItemsExtension.create(),
-)
+private val markdownExtensions =
+    listOf(
+        TablesExtension.create(),
+        StrikethroughExtension.builder().requireTwoTildes(true).build(),
+        AutolinkExtension.create(),
+        TaskListItemsExtension.create(),
+    )
 
-private val markdownParser = Parser.builder()
-    .extensions(markdownExtensions)
-    .build()
+private val markdownParser = Parser.builder().extensions(markdownExtensions).build()
 
-private val markdownRenderer = HtmlRenderer.builder()
-    .extensions(markdownExtensions)
-    .escapeHtml(true)
-    .sanitizeUrls(true)
-    .build()
+private val markdownRenderer =
+    HtmlRenderer.builder().extensions(markdownExtensions).escapeHtml(true).sanitizeUrls(true).build()
 
 /**
  * Renders GitHub-flavored Markdown in a WebView.
  *
- * Adapted from KernelSU manager's `MarkdownContent` / `GithubMarkdown`
- * (https://github.com/tiann/KernelSU, GPL-3.0), trimmed to the update-dialog use case:
- * no JavaScript bridge, no remote asset loader, and all links leave the app. JavaScript itself is
- * enabled only to read the rendered body height; the Markdown source is escaped and URL-sanitized,
+ * Adapted from KernelSU manager's `MarkdownContent` / `GithubMarkdown` (https://github.com/tiann/KernelSU, GPL-3.0),
+ * trimmed to the update-dialog use case: no JavaScript bridge, no remote asset loader, and all links leave the app.
+ * JavaScript itself is enabled only to read the rendered body height; the Markdown source is escaped and URL-sanitized,
  * so the page cannot inject scripts.
  *
- * Until the page reports its rendered height a refresh indicator fills the body, so the caller can
- * start with a compact placeholder instead of a max-height gap.
+ * Until the page reports its rendered height a refresh indicator fills the body, so the caller can start with a compact
+ * placeholder instead of a max-height gap.
  */
 @Composable
 fun MarkdownContent(
@@ -102,9 +97,7 @@ fun MarkdownContent(
     val context = LocalContext.current
     val density = LocalDensity.current
     val systemDensity = LocalResources.current.displayMetrics.density
-    val textZoom = (100 * (density.density / systemDensity) * density.fontScale)
-        .toInt()
-        .coerceIn(50, 200)
+    val textZoom = (100 * (density.density / systemDensity) * density.fontScale).toInt().coerceIn(50, 200)
     val direction = if (LocalLayoutDirection.current == LayoutDirection.Rtl) "rtl" else "ltr"
     val scheme = MiuixTheme.colorScheme
 
@@ -119,9 +112,10 @@ fun MarkdownContent(
         append("--table-alt:").append(scheme.surfaceVariant.cssHex()).append(';')
         append('}')
     }
-    val html = remember(content, css, variables, direction) {
-        val body = markdownRenderer.render(markdownParser.parse(content))
-        """
+    val html =
+        remember(content, css, variables, direction) {
+            val body = markdownRenderer.render(markdownParser.parse(content))
+            """
         <!DOCTYPE html>
         <html dir="$direction">
         <head>
@@ -132,8 +126,9 @@ fun MarkdownContent(
         </head>
         <body><main class="markdown-body">$body</main></body>
         </html>
-        """.trimIndent()
-    }
+        """
+                .trimIndent()
+        }
     var loaded by remember { mutableStateOf(false) }
     LaunchedEffect(html) { loaded = false }
     val currentOnContentHeight = rememberUpdatedState(onContentHeight)
@@ -175,68 +170,68 @@ private fun createWebView(
     context: Context,
     zoomPercent: Int,
     onMeasured: (Int) -> Unit,
-): WebView = WebView(context).apply {
-    setBackgroundColor(AndroidColor.TRANSPARENT)
-    isVerticalScrollBarEnabled = false
-    isHorizontalScrollBarEnabled = false
-    overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+): WebView =
+    WebView(context).apply {
+        setBackgroundColor(AndroidColor.TRANSPARENT)
+        isVerticalScrollBarEnabled = false
+        isHorizontalScrollBarEnabled = false
+        overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
 
-    settings.apply {
-        javaScriptEnabled = true
-        domStorageEnabled = false
-        allowFileAccess = false
-        allowContentAccess = false
-        loadsImagesAutomatically = true
-        blockNetworkImage = false
-        mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-        cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
-        textZoom = zoomPercent
-        setSupportZoom(false)
-        builtInZoomControls = false
-        displayZoomControls = false
-    }
-
-    webViewClient = object : WebViewClient() {
-        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-            val uri = request.url
-            val scheme = uri.scheme?.lowercase(Locale.US)
-            if (scheme == "http" || scheme == "https") {
-                runCatching {
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW, uri)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
-                }
-            }
-            return true
+        settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = false
+            allowFileAccess = false
+            allowContentAccess = false
+            loadsImagesAutomatically = true
+            blockNetworkImage = false
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+            textZoom = zoomPercent
+            setSupportZoom(false)
+            builtInZoomControls = false
+            displayZoomControls = false
         }
 
-        override fun onPageFinished(view: WebView, url: String) {
-            // Measure the rendered body, not the scroll range: a document shorter than the view
-            // still reports the full viewport as its scroll range, which left the dialog at its
-            // max height with an empty gap.
-            view.post {
-                view.evaluateJavascript(ContentHeightScript) { result ->
-                    val height = result?.trim()?.toDoubleOrNull()?.toInt() ?: 0
-                    onMeasured(height)
+        webViewClient =
+            object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                    val uri = request.url
+                    val scheme = uri.scheme?.lowercase(Locale.US)
+                    if (scheme == "http" || scheme == "https") {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }
+                    return true
+                }
+
+                override fun onPageFinished(view: WebView, url: String) {
+                    // Measure the rendered body, not the scroll range: a document shorter than the view
+                    // still reports the full viewport as its scroll range, which left the dialog at its
+                    // max height with an empty gap.
+                    view.post {
+                        view.evaluateJavascript(ContentHeightScript) { result ->
+                            val height = result?.trim()?.toDoubleOrNull()?.toInt() ?: 0
+                            onMeasured(height)
+                        }
+                    }
                 }
             }
-        }
     }
-}
 
 /**
- * Returns the rendered Markdown body height in physical pixels. `devicePixelRatio` matches the
- * display density, so the result can be converted back with `LocalDensity`.
+ * Returns the rendered Markdown body height in physical pixels. `devicePixelRatio` matches the display density, so the
+ * result can be converted back with `LocalDensity`.
  */
 private const val ContentHeightScript =
     "(function(){var e=document.querySelector('.markdown-body');" +
         "return e?Math.ceil(e.getBoundingClientRect().height*window.devicePixelRatio):0})()"
 
-private fun readAsset(context: Context, path: String): String =
-    runCatching {
-        context.assets.open(path).bufferedReader(Charsets.UTF_8).use { it.readText() }
-    }.getOrDefault("")
+private fun readAsset(context: Context, path: String): String = runCatching {
+    context.assets.open(path).bufferedReader(Charsets.UTF_8).use { it.readText() }
+}
+    .getOrDefault("")
 
-private fun Color.cssHex(): String =
-    String.format(Locale.US, "#%06X", toArgb() and 0xFFFFFF)
+private fun Color.cssHex(): String = String.format(Locale.US, "#%06X", toArgb() and 0xFFFFFF)

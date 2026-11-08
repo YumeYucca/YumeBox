@@ -39,14 +39,11 @@ internal class RuntimeCoreOps(private val connect: suspend () -> Unit = {}) {
 
     suspend fun queryConnections(): ConnectionSnapshot = api().queryConnections()
 
-    suspend fun queryAllProxyGroups(): List<ProxyGroup> =
-        api().queryAllProxyGroups()
+    suspend fun queryAllProxyGroups(): List<ProxyGroup> = api().queryAllProxyGroups()
 
-    suspend fun queryProxyGroup(name: String, sort: ProxySort): ProxyGroup =
-        api().queryProxyGroup(name, sort)
+    suspend fun queryProxyGroup(name: String, sort: ProxySort): ProxyGroup = api().queryProxyGroup(name, sort)
 
-    suspend fun patchSelector(group: String, name: String): Boolean =
-        api().patchSelector(group, name)
+    suspend fun patchSelector(group: String, name: String): Boolean = api().patchSelector(group, name)
 
     suspend fun healthCheck(group: String): Map<String, Int> = api().healthCheck(group)
 

@@ -30,12 +30,12 @@ import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.data.model.OverrideContentType
 import com.github.yumeyucca.yumebox.feature.editor.screen.ConfigPreviewScreen
+import com.github.yumeyucca.yumebox.feature.override.presentation.screen.OverrideListScreen
+import com.github.yumeyucca.yumebox.feature.override.presentation.viewmodel.OverrideConfigViewModel
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.presentation.navigation.ConfigPreviewRequest
 import com.github.yumeyucca.yumebox.presentation.navigation.LocalConfigPreviewSlot
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
-import com.github.yumeyucca.yumebox.feature.override.presentation.screen.OverrideListScreen
-import com.github.yumeyucca.yumebox.feature.override.presentation.viewmodel.OverrideConfigViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -85,9 +85,7 @@ fun OverrideConfigPreviewRoute(navigator: Navigator, previewId: Long) {
     // Pinned to this route's own handoff: the shell keeps the outgoing route composed for the whole
     // stack animation, so a newer preview can already be open while this one is still on screen.
     val ownRequest = remember(previewId) { configPreviewSlot.get(previewId) }
-    DisposableEffect(previewId) {
-        onDispose { configPreviewSlot.release(previewId) }
-    }
+    DisposableEffect(previewId) { onDispose { configPreviewSlot.release(previewId) } }
     // Nothing to preview means the route outlived its request (process death); show the plain
     // read-only editor rather than a blank document.
     ConfigPreviewScreen(

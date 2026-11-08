@@ -76,9 +76,7 @@ class AppTrafficStatisticsCollector(
         lastCollectionAtNanos = 0L
         connectionBaselines.clear()
         collectTrafficDataSafely()
-        PollingTimers.ticks(PollingTimerSpecs.TrafficStatsCollection).collect {
-            collectTrafficDataSafely()
-        }
+        PollingTimers.ticks(PollingTimerSpecs.TrafficStatsCollection).collect { collectTrafficDataSafely() }
     }
 
     private suspend fun collectTrafficDataSafely() {
@@ -131,16 +129,12 @@ class AppTrafficStatisticsCollector(
             )
         val totalUploadDelta = totalTraffic.upload - lastTotalUpload
         val totalDownloadDelta = totalTraffic.download - lastTotalDownload
-        if (
-            isImplausibleDelta(totalUploadDelta, elapsedMs) ||
-                isImplausibleDelta(totalDownloadDelta, elapsedMs)
-        ) {
+        if (isImplausibleDelta(totalUploadDelta, elapsedMs) || isImplausibleDelta(totalDownloadDelta, elapsedMs)) {
             rebaseline(totalTraffic, currentProfileId, snapshot.connections)
             return
         }
         val unattributedUpload = (totalUploadDelta - attributedTotals.upload).coerceAtLeast(0L)
-        val unattributedDownload =
-            (totalDownloadDelta - attributedTotals.download).coerceAtLeast(0L)
+        val unattributedDownload = (totalDownloadDelta - attributedTotals.download).coerceAtLeast(0L)
         if (unattributedUpload > 0L || unattributedDownload > 0L) {
             trafficDeltas[TrafficStatisticsBuckets.UNATTRIBUTED_APP_KEY] =
                 TrafficStatisticsBuckets.buildUnattributedRecord(
@@ -249,8 +243,8 @@ class AppTrafficStatisticsCollector(
     }
 
     /**
-     * Active profile id from the runtime, or null when the runtime has not published one yet.
-     * Best effort only, but cancellation must still reach the collector's owner.
+     * Active profile id from the runtime, or null when the runtime has not published one yet. Best effort only, but
+     * cancellation must still reach the collector's owner.
      */
     private suspend fun bestEffortActiveProfileId(): String? =
         try {
@@ -302,13 +296,12 @@ class AppTrafficStatisticsCollector(
     }
 
     /**
-     * A corrupt/transient total must not be stored as one enormous delta. The cap is deliberately
-     * far above any real device throughput; it only catches impossible jumps.
+     * A corrupt/transient total must not be stored as one enormous delta. The cap is deliberately far above any real
+     * device throughput; it only catches impossible jumps.
      */
     private fun isImplausibleDelta(delta: Long, elapsedMs: Long): Boolean {
         if (elapsedMs <= 0L) return false
-        val maxDelta =
-            elapsedMs.coerceAtMost(Long.MAX_VALUE / MAX_BYTES_PER_MILLI) * MAX_BYTES_PER_MILLI
+        val maxDelta = elapsedMs.coerceAtMost(Long.MAX_VALUE / MAX_BYTES_PER_MILLI) * MAX_BYTES_PER_MILLI
         return delta > maxDelta
     }
 
@@ -327,9 +320,7 @@ class AppTrafficStatisticsCollector(
             ?: TrafficStatisticsBuckets.UNATTRIBUTED_ROUTE_KEY
 
     private fun resolveRouteLabel(connection: ConnectionInfo, routeKey: String?): String =
-        preferredChainLabel(connection)
-            ?: routeKey
-            ?: TrafficStatisticsBuckets.UNATTRIBUTED_ROUTE_NAME
+        preferredChainLabel(connection) ?: routeKey ?: TrafficStatisticsBuckets.UNATTRIBUTED_ROUTE_NAME
 
     fun stop() {
         monitoringJob?.cancel()

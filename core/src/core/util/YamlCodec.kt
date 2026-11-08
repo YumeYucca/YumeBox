@@ -20,6 +20,7 @@
 
 package com.github.yumeyucca.yumebox.core.util
 
+import java.util.regex.Pattern
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.*
 import org.yaml.snakeyaml.DumperOptions
@@ -28,7 +29,6 @@ import org.yaml.snakeyaml.constructor.SafeConstructor
 import org.yaml.snakeyaml.nodes.Tag
 import org.yaml.snakeyaml.representer.Representer
 import org.yaml.snakeyaml.resolver.Resolver
-import java.util.regex.Pattern
 
 object YamlCodec {
     private fun newYaml(): Yaml {
@@ -80,9 +80,7 @@ object YamlCodec {
         when (element) {
             JsonNull -> null
             is JsonObject ->
-                LinkedHashMap<String, Any?>().apply {
-                    element.forEach { (key, value) -> put(key, toYamlNode(value)) }
-                }
+                LinkedHashMap<String, Any?>().apply { element.forEach { (key, value) -> put(key, toYamlNode(value)) } }
 
             is JsonArray -> element.map(::toYamlNode)
             is JsonPrimitive ->
@@ -121,9 +119,7 @@ object YamlCodec {
             null -> null
             is Map<*, *> ->
                 LinkedHashMap<String, Any?>().apply {
-                    value.forEach { (key, childValue) ->
-                        put(key.toString(), normalizeYamlValue(childValue))
-                    }
+                    value.forEach { (key, childValue) -> put(key.toString(), normalizeYamlValue(childValue)) }
                 }
 
             is Iterable<*> -> value.map(::normalizeYamlValue)

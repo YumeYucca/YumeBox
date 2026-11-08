@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.domain.model
 
-
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import com.github.yumeyucca.yumebox.core.model.isManuallySelectable
@@ -59,14 +58,11 @@ fun ProxyGroup.toInfo(): ProxyGroupInfo =
     )
 
 /**
- * Resolves the terminal proxy of the group the runtime is dialing: the main group
- * ([PRIMARY_GROUP_NAME]) when there is one, otherwise the first group.
+ * Resolves the terminal proxy of the group the runtime is dialing: the main group ([PRIMARY_GROUP_NAME]) when there is
+ * one, otherwise the first group.
  */
 fun List<ProxyGroupInfo>.resolvePrimaryNode(): Proxy? {
-    val group =
-        firstOrNull { it.name.equals(PRIMARY_GROUP_NAME, ignoreCase = true) }
-            ?: firstOrNull()
-            ?: return null
+    val group = firstOrNull { it.name.equals(PRIMARY_GROUP_NAME, ignoreCase = true) } ?: firstOrNull() ?: return null
     val selected = group.now.trim()
     return if (selected.isEmpty()) null else resolveTerminalProxy(selected)
 }
@@ -74,55 +70,54 @@ fun List<ProxyGroupInfo>.resolvePrimaryNode(): Proxy? {
 /**
  * Delay shown beside the selected node on a group card.
  *
- * The label names that node, so the number has to be its measurement. Leaf copies can disagree
- * after a partial publish; the freshest non-zero delay wins. An empty selection stays unknown.
+ * The label names that node, so the number has to be its measurement. Leaf copies can disagree after a partial publish;
+ * the freshest non-zero delay wins. An empty selection stays unknown.
  */
 fun List<ProxyGroupInfo>.displayedSelectionDelay(group: ProxyGroupInfo): Int =
     GroupDelayIndex(this).selectedLeafDelay(group.name)
 
 /**
- * Copies group members so each nested group row carries the delay a direct tap would show.
- * Leaf rows stay as they are. Builds the lookup index once instead of once per group,
- * which is what a delay-test publish needs to stay off the main thread's critical path.
+ * Copies group members so each nested group row carries the delay a direct tap would show. Leaf rows stay as they are.
+ * Builds the lookup index once instead of once per group, which is what a delay-test publish needs to stay off the main
+ * thread's critical path.
  */
 fun List<ProxyGroupInfo>.resolveMemberDelays(): List<ProxyGroupInfo> {
     if (isEmpty()) return this
     val index = GroupDelayIndex(this)
     var anyChanged = false
-    val resolved =
-        map { group ->
-            if (group.proxies.isEmpty()) {
-                group
-            } else {
-                var changed = false
-                val proxies =
-                    group.proxies.map { proxy ->
-                        val delay = index.displayedMemberDelay(proxy)
-                        if (delay == proxy.delay) {
-                            proxy
-                        } else {
-                            changed = true
-                            proxy.copy(delay = delay)
-                        }
+    val resolved = map { group ->
+        if (group.proxies.isEmpty()) {
+            group
+        } else {
+            var changed = false
+            val proxies =
+                group.proxies.map { proxy ->
+                    val delay = index.displayedMemberDelay(proxy)
+                    if (delay == proxy.delay) {
+                        proxy
+                    } else {
+                        changed = true
+                        proxy.copy(delay = delay)
                     }
-                if (changed) {
-                    anyChanged = true
-                    group.copy(proxies = proxies)
-                } else {
-                    group
                 }
+            if (changed) {
+                anyChanged = true
+                group.copy(proxies = proxies)
+            } else {
+                group
             }
         }
+    }
     return if (anyChanged) resolved else this
 }
 
 /**
  * Resolves what a nested group row should display.
  *
- * A group test measures leaves and does not write a delay onto the group row itself. Prefer this
- * row's own positive delay (a direct probe of its name), then the current selection walked to a
- * leaf, then the fastest measured leaf when that selection is empty or still unmeasured. Timeout
- * is shown only when the row, its selection, and every measured leaf failed.
+ * A group test measures leaves and does not write a delay onto the group row itself. Prefer this row's own positive
+ * delay (a direct probe of its name), then the current selection walked to a leaf, then the fastest measured leaf when
+ * that selection is empty or still unmeasured. Timeout is shown only when the row, its selection, and every measured
+ * leaf failed.
  */
 private class GroupDelayIndex(private val groups: List<ProxyGroupInfo>) {
     private val exactGroups: Map<String, ProxyGroupInfo>
@@ -168,13 +163,13 @@ private class GroupDelayIndex(private val groups: List<ProxyGroupInfo>) {
         return freshest(terminal.name)
     }
 
-    private fun isGroupName(name: String): Boolean =
-        name in groupNames || name.lowercase() in groupNames
+    private fun isGroupName(name: String): Boolean = name in groupNames || name.lowercase() in groupNames
 
     private fun freshest(name: String): Int {
-        delayByName[name]?.let { return it }
-        return delayByName.entries.firstOrNull { (key, _) -> key.equals(name, ignoreCase = true) }?.value
-            ?: 0
+        delayByName[name]?.let {
+            return it
+        }
+        return delayByName.entries.firstOrNull { (key, _) -> key.equals(name, ignoreCase = true) }?.value ?: 0
     }
 
     private fun findGroup(name: String): ProxyGroupInfo? {
@@ -225,12 +220,8 @@ fun List<ProxyGroupInfo>.resolveTerminalProxy(entryName: String): Proxy? {
         firstOrNull { it.name == name } ?: firstOrNull { it.name.equals(name, ignoreCase = true) }
 
     fun findProxy(name: String): Proxy? =
-        asSequence()
-            .flatMap { it.proxies.asSequence() }
-            .firstOrNull { it.name == name }
-            ?: asSequence()
-                .flatMap { it.proxies.asSequence() }
-                .firstOrNull { it.name.equals(name, ignoreCase = true) }
+        asSequence().flatMap { it.proxies.asSequence() }.firstOrNull { it.name == name }
+            ?: asSequence().flatMap { it.proxies.asSequence() }.firstOrNull { it.name.equals(name, ignoreCase = true) }
 
     fun resolve(name: String, visited: MutableSet<String>): Proxy? {
         val normalized = name.trim()

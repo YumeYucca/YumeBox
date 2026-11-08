@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -38,14 +37,14 @@ val Yume.chevron: ImageVector
             return chevronVector!!
         }
         chevronVector =
-            ImageVector.Builder(
-                name = "IconName",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            )
-                .apply {
+            ImageVector
+                .Builder(
+                    name = "IconName",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                ).apply {
                     path(
                         stroke = SolidColor(Color.Black),
                         strokeLineWidth = 2f,
@@ -56,8 +55,7 @@ val Yume.chevron: ImageVector
                         lineToRelative(6f, -6f)
                         lineToRelative(-6f, -6f)
                     }
-                }
-                .build()
+                }.build()
 
         return chevronVector!!
     }

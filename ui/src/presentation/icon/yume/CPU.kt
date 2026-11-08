@@ -34,159 +34,161 @@ val Yume.CPU: ImageVector
         if (_CPU != null) {
             return _CPU!!
         }
-        _CPU = ImageVector.Builder(
-            name = "CPU",
-            defaultWidth = 24.dp,
-            defaultHeight = 24.dp,
-            viewportWidth = 24f,
-            viewportHeight = 24f
-        ).apply {
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(12f, 20f)
-                verticalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(12f, 2f)
-                verticalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(17f, 20f)
-                verticalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(17f, 2f)
-                verticalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(2f, 12f)
-                horizontalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(2f, 17f)
-                horizontalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(2f, 7f)
-                horizontalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(20f, 12f)
-                horizontalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(20f, 17f)
-                horizontalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(20f, 7f)
-                horizontalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(7f, 20f)
-                verticalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(7f, 2f)
-                verticalLineToRelative(2f)
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(6f, 4f)
-                lineTo(18f, 4f)
-                arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 20f, 6f)
-                lineTo(20f, 18f)
-                arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 18f, 20f)
-                lineTo(6f, 20f)
-                arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 4f, 18f)
-                lineTo(4f, 6f)
-                arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 6f, 4f)
-                close()
-            }
-            path(
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round
-            ) {
-                moveTo(9f, 8f)
-                lineTo(15f, 8f)
-                arcTo(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 16f, 9f)
-                lineTo(16f, 15f)
-                arcTo(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 15f, 16f)
-                lineTo(9f, 16f)
-                arcTo(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 8f, 15f)
-                lineTo(8f, 9f)
-                arcTo(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 9f, 8f)
-                close()
-            }
-        }.build()
+        _CPU =
+            ImageVector.Builder(
+                    name = "CPU",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                )
+                .apply {
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(12f, 20f)
+                        verticalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(12f, 2f)
+                        verticalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(17f, 20f)
+                        verticalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(17f, 2f)
+                        verticalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(2f, 12f)
+                        horizontalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(2f, 17f)
+                        horizontalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(2f, 7f)
+                        horizontalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(20f, 12f)
+                        horizontalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(20f, 17f)
+                        horizontalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(20f, 7f)
+                        horizontalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(7f, 20f)
+                        verticalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(7f, 2f)
+                        verticalLineToRelative(2f)
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(6f, 4f)
+                        lineTo(18f, 4f)
+                        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 20f, 6f)
+                        lineTo(20f, 18f)
+                        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 18f, 20f)
+                        lineTo(6f, 20f)
+                        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 4f, 18f)
+                        lineTo(4f, 6f)
+                        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 6f, 4f)
+                        close()
+                    }
+                    path(
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = 2f,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    ) {
+                        moveTo(9f, 8f)
+                        lineTo(15f, 8f)
+                        arcTo(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 16f, 9f)
+                        lineTo(16f, 15f)
+                        arcTo(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 15f, 16f)
+                        lineTo(9f, 16f)
+                        arcTo(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 8f, 15f)
+                        lineTo(8f, 9f)
+                        arcTo(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 9f, 8f)
+                        close()
+                    }
+                }
+                .build()
 
         return _CPU!!
     }
 
-@Suppress("ObjectPropertyName")
-private var _CPU: ImageVector? = null
+@Suppress("ObjectPropertyName") private var _CPU: ImageVector? = null

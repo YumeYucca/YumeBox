@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.OverrideConfig
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
@@ -39,7 +40,6 @@ import com.github.yumeyucca.yumebox.presentation.theme.Spacing
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.TextCursorInput
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.glass.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
@@ -64,8 +64,7 @@ internal fun OverrideConfigCard(
 
     AppCard(
         modifier =
-            Modifier
-                .fillMaxWidth()
+            Modifier.fillMaxWidth()
                 .padding(vertical = overrideConfigItemGap / 2)
                 .then(modifier)
                 .alpha(if (isDragging) 0.92f else 1f),
@@ -108,7 +107,7 @@ internal fun OverrideConfigCard(
                         anchor = actionsMenuAnchor,
                         cornerRadius = AppTheme.sizes.statusCapsuleHeight / 2,
                         floating = true,
-                    ),
+                    )
             ) {
                 OverrideConfigStatusBadge(isBuiltIn = isBuiltIn, isInUse = isInUse)
             }
@@ -203,8 +202,7 @@ private fun OverrideConfigStatusBadge(
 
     Box(
         modifier =
-            Modifier
-                .size(sizes.statusCapsuleHeight + spacing.space4)
+            Modifier.size(sizes.statusCapsuleHeight + spacing.space4)
                 .background(
                     color =
                         if (active) {

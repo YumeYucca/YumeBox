@@ -48,16 +48,15 @@ import io.github.yumeyucca.lucide.lucide.Search
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
 
-internal val NodeSortModes =
-    listOf(ProxySortMode.DEFAULT, ProxySortMode.BY_NAME, ProxySortMode.BY_LATENCY)
+internal val NodeSortModes = listOf(ProxySortMode.DEFAULT, ProxySortMode.BY_NAME, ProxySortMode.BY_LATENCY)
 
 /**
  * Everything the "more" menu can offer, as one value.
  *
- * A capability that is absent never renders, and each capability carries its own state together
- * with the callback that changes it, so a caller cannot half-provide one action (the old shape had
- * two nullable callbacks driving a single row, which could disagree) and the menu never repeats
- * `?.invoke`. Row order and labels stay owned by [NodeActionsMenu], not by the caller.
+ * A capability that is absent never renders, and each capability carries its own state together with the callback that
+ * changes it, so a caller cannot half-provide one action (the old shape had two nullable callbacks driving a single
+ * row, which could disagree) and the menu never repeats `?.invoke`. Row order and labels stay owned by
+ * [NodeActionsMenu], not by the caller.
  */
 @Immutable
 internal data class NodeMenuActions(
@@ -85,11 +84,7 @@ internal data class NodeSearchActions(
     val onToggle: () -> Unit,
 )
 
-/**
- * 二级页只有两个,页面自己带图标和标题取值,菜单里不再写两份并行的 when。
- * 标题用 lambda 求值:语言是运行时可切换的,YumeTxt 的 val 都是 getter,
- * 在枚举初始化时取值会把当时的语言固化下来。
- */
+/** 二级页只有两个,页面自己带图标和标题取值,菜单里不再写两份并行的 when。 标题用 lambda 求值:语言是运行时可切换的,YumeTxt 的 val 都是 getter, 在枚举初始化时取值会把当时的语言固化下来。 */
 private enum class NodeSubmenu(
     val icon: ImageVector,
     val label: () -> String,
@@ -129,9 +124,7 @@ internal fun NodeActionsMenu(
             )
             when (submenuPage) {
                 NodeSubmenu.Layout -> {
-                    layout?.let { available ->
-                        NodeLayoutItems(available, onDismiss = submenu::close)
-                    }
+                    layout?.let { available -> NodeLayoutItems(available, onDismiss = submenu::close) }
                 }
                 NodeSubmenu.Sort -> {
                     NodeSortItems(

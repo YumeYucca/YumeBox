@@ -33,11 +33,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.style.TextOverflow
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.RuntimeRule
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Switch
@@ -45,12 +45,12 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * Runtime rules from `GET /rules`. Each card has an enable switch wired to `PATCH /rules/disable`.
- * This is **not** the custom-routing editor.
+ * Runtime rules from `GET /rules`. Each card has an enable switch wired to `PATCH /rules/disable`. This is **not** the
+ * custom-routing editor.
  *
- * Rendered inline inside the shared scaffold owned by [RulesAndProvidersScreen]: this composable
- * owns no top bar, search overlay or tab band of its own. Horizontal inset for cards is owned by
- * shared [AppCard] (`applyHorizontalPadding`), same as Log — not LazyColumn contentPadding.
+ * Rendered inline inside the shared scaffold owned by [RulesAndProvidersScreen]: this composable owns no top bar,
+ * search overlay or tab band of its own. Horizontal inset for cards is owned by shared [AppCard]
+ * (`applyHorizontalPadding`), same as Log — not LazyColumn contentPadding.
  */
 @Composable
 fun RulesScreen(
@@ -106,9 +106,7 @@ fun RulesScreen(
                         rule = rule,
                         enabled = !rule.disabled,
                         toggling = rule.index in uiState.togglingIndexes,
-                        onEnabledChange = { enabled ->
-                            viewModel.setRuleEnabled(rule.index, enabled)
-                        },
+                        onEnabledChange = { enabled -> viewModel.setRuleEnabled(rule.index, enabled) },
                     )
                 }
             }
@@ -133,12 +131,7 @@ private fun RuleCard(
             "-"
         }
     AppCard(modifier = Modifier.padding(vertical = spacing.space4)) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.space16, vertical = spacing.space12)
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space16, vertical = spacing.space12)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,

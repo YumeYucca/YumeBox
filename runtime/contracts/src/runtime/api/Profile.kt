@@ -26,9 +26,9 @@ import android.annotation.SuppressLint
 import android.os.Parcel
 import android.os.Parcelable
 import com.github.yumeyucca.yumebox.core.util.Parcelizer
+import java.util.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
-import java.util.*
 
 @SuppressLint("UnsafeOptInUsageError")
 @Serializable
@@ -59,8 +59,7 @@ data class Profile(
     override fun describeContents(): Int = 0
 
     companion object CREATOR : Parcelable.Creator<Profile> {
-        override fun createFromParcel(parcel: Parcel): Profile =
-            Parcelizer.decodeFromParcel(serializer(), parcel)
+        override fun createFromParcel(parcel: Parcel): Profile = Parcelizer.decodeFromParcel(serializer(), parcel)
 
         override fun newArray(size: Int): Array<Profile?> = arrayOfNulls(size)
     }

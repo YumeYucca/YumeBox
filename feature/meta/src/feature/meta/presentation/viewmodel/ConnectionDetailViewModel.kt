@@ -47,8 +47,8 @@ import timber.log.Timber
 /**
  * One connection's detail page: polls that connection while it is live and issues the interrupt.
  *
- * The list screen hands the tapped row over through a staged snapshot, so the first frame already
- * shows real numbers; everything after that comes from polling here.
+ * The list screen hands the tapped row over through a staged snapshot, so the first frame already shows real numbers;
+ * everything after that comes from polling here.
  */
 class ConnectionDetailViewModel(private val appContext: Context) : ViewModel() {
     data class ConnectionDetailState(
@@ -63,8 +63,10 @@ class ConnectionDetailViewModel(private val appContext: Context) : ViewModel() {
     private val _state = MutableStateFlow(ConnectionDetailState())
     val state: StateFlow<ConnectionDetailState> = _state.asStateFlow()
 
-    /** Emitted once per successful interrupt; replay is intentionally off, so a page re-opened
-     *  later does not immediately leave itself. */
+    /**
+     * Emitted once per successful interrupt; replay is intentionally off, so a page re-opened later does not
+     * immediately leave itself.
+     */
     private val _closed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val closed: SharedFlow<Unit> = _closed.asSharedFlow()
 
@@ -72,8 +74,8 @@ class ConnectionDetailViewModel(private val appContext: Context) : ViewModel() {
     private var watchedId: String? = null
 
     /**
-     * Starts watching [connectionId]. The view model is scoped to the activity, so a second detail
-     * page must take over from the first rather than sharing its snapshot.
+     * Starts watching [connectionId]. The view model is scoped to the activity, so a second detail page must take over
+     * from the first rather than sharing its snapshot.
      */
     fun start(connectionId: String, canInterrupt: Boolean, staged: ConnectionInfo?) {
         if (watchedId == connectionId && pollingJob?.isActive == true) return
@@ -87,15 +89,12 @@ class ConnectionDetailViewModel(private val appContext: Context) : ViewModel() {
                 info = initial,
                 canInterrupt = canInterrupt,
             )
-        pollingJob =
-            viewModelScope.launch {
-                val gone = pollOnce(connectionId)
-                _state.update { it.copy(hasLoaded = true) }
-                if (gone) return@launch
-                PollingTimers.ticks(PollingTimerSpecs.ConnectionsPolling)
-                    .takeWhile { !pollOnce(connectionId) }
-                    .collect { }
-            }
+        pollingJob = viewModelScope.launch {
+            val gone = pollOnce(connectionId)
+            _state.update { it.copy(hasLoaded = true) }
+            if (gone) return@launch
+            PollingTimers.ticks(PollingTimerSpecs.ConnectionsPolling).takeWhile { !pollOnce(connectionId) }.collect {}
+        }
     }
 
     /** Stops watching; called when the page leaves, so a background poll does not outlive it. */
@@ -132,9 +131,7 @@ class ConnectionDetailViewModel(private val appContext: Context) : ViewModel() {
                 try {
                     RuntimeAccess.connect(appContext)
                     RuntimeAccess.core().queryConnections().connections
-                } catch (
-                    error: Exception
-                ) { // fault barrier: a failed query is not a closed connection, keep polling
+                } catch (error: Exception) { // fault barrier: a failed query is not a closed connection, keep polling
                     if (error is CancellationException) throw error
                     Timber.w(error, "Failed to query connections")
                     null
@@ -161,9 +158,7 @@ class ConnectionDetailViewModel(private val appContext: Context) : ViewModel() {
             try {
                 RuntimeAccess.connect(appContext)
                 RuntimeAccess.core().closeConnection(id)
-            } catch (
-                error: Exception
-            ) { // fault barrier: the button reports failure through the state it already shows
+            } catch (error: Exception) { // fault barrier: the button reports failure through the state it already shows
                 if (error is CancellationException) throw error
                 Timber.w(error, "Failed to close connection: %s", id)
                 false

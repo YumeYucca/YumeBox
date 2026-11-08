@@ -32,29 +32,29 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Dp
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.github.yumeyucca.yumebox.presentation.component.*
+import com.github.yumeyucca.yumebox.presentation.navigation.PaneRestingRoute
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.navigation.RouteStack
-import com.github.yumeyucca.yumebox.screen.rules.RulesProvidersTab
 import com.github.yumeyucca.yumebox.presentation.navigation.RouteStackHost
-import com.github.yumeyucca.yumebox.presentation.theme.verticalBounceContentTransform
 import com.github.yumeyucca.yumebox.presentation.screen.ProxyShellNodeDetail
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
-import top.yukonga.miuix.kmp.blur.layerBackdrop
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.theme.verticalBounceContentTransform
+import com.github.yumeyucca.yumebox.screen.rules.RulesProvidersTab
 import top.yukonga.miuix.kmp.basic.Scaffold
-import com.github.yumeyucca.yumebox.presentation.navigation.PaneRestingRoute
+import top.yukonga.miuix.kmp.blur.layerBackdrop
 
 /**
  * Hosts the main pager (and optional tablet dual-pane shell).
  *
- * Split shell: each pane owns a Scaffold root so sheets/dialogs stay pane-local and can cover the
- * floating bottom bar on the left without spanning the full window.
+ * Split shell: each pane owns a Scaffold root so sheets/dialogs stay pane-local and can cover the floating bottom bar
+ * on the left without spanning the full window.
  */
 @Composable
 internal fun MainContentHost(
@@ -75,13 +75,13 @@ internal fun MainContentHost(
     val bottomBarScrollBehavior = LocalBottomBarScrollBehavior.current
     val barShown = bottomBarVisible && (bottomBarScrollBehavior?.isBottomBarVisible ?: true)
     val bottomBarReservedHeight by
-    animateDpAsState(
-        targetValue = if (barShown) visibleBottomBarReservedHeight else UiDp.dp0,
-        // Matches the bar's own hide duration (BottomBar's exit translate): a longer tween would keep
-        // a strip of padding after the bar has already left the screen.
-        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-        label = "main_bottom_bar_reserved_height",
-    )
+        animateDpAsState(
+            targetValue = if (barShown) visibleBottomBarReservedHeight else UiDp.dp0,
+            // Matches the bar's own hide duration (BottomBar's exit translate): a longer tween would keep
+            // a strip of padding after the bar has already left the screen.
+            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+            label = "main_bottom_bar_reserved_height",
+        )
     val pagerFlingBehavior = rememberMainPagerFlingBehavior(mainPagerState.pagerState)
     // The split shell's left pane is only 280–420dp wide; rendering the phone Moe layout there
     // clips the rail clock and squeezes the panel against the divider (issue #151 items 1/3/8),
@@ -126,9 +126,7 @@ internal fun MainContentHost(
                     // recompose every time this pane does.
                     val openRoutingInPane: () -> Unit =
                         remember(detailNavigator) {
-                            {
-                                detailNavigator.push(Route.RulesAndProviders(RulesProvidersTab.Rules))
-                            }
+                            { detailNavigator.push(Route.RulesAndProviders(RulesProvidersTab.Rules)) }
                         }
                     val detailChildStack by detailStack.value.subscribeAsState()
                     val showProxyNodes =
@@ -180,12 +178,15 @@ internal fun MainContentHost(
 }
 
 /** Which screen edges a pane actually touches; the divider-facing edge has no system bar to clear. */
-private enum class PaneHorizontalInset { Both, Start, End }
+private enum class PaneHorizontalInset {
+    Both,
+    Start,
+    End,
+}
 
 /**
- * Inner padding of a pager pane: the Scaffold's own insets plus the floating bottom bar's reserved
- * height when the pane draws the bar, and the system bars horizontally on whichever side the pane
- * sits.
+ * Inner padding of a pager pane: the Scaffold's own insets plus the floating bottom bar's reserved height when the pane
+ * draws the bar, and the system bars horizontally on whichever side the pane sits.
  */
 @Composable
 private fun paneInnerPadding(
@@ -221,12 +222,10 @@ private fun MainPagerHost(
     Box(Modifier.fillMaxSize()) {
         HorizontalPager(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .let { modifier ->
-                        val glassBackdrop = LocalGlassBackdrop.current
-                        if (glassBackdrop != null) modifier.layerBackdrop(glassBackdrop) else modifier
-                    },
+                Modifier.fillMaxSize().let { modifier ->
+                    val glassBackdrop = LocalGlassBackdrop.current
+                    if (glassBackdrop != null) modifier.layerBackdrop(glassBackdrop) else modifier
+                },
             state = mainPagerState.pagerState,
             beyondViewportPageCount = (tabs.visible.size - 1).coerceAtLeast(0),
             flingBehavior = pagerFlingBehavior,
@@ -236,14 +235,15 @@ private fun MainPagerHost(
         ) { page ->
             val destination = tabs.destinationAt(page)
             MainRootPageContent(
-                state = MainRootPageState(
-                    destination = destination,
-                    mainInnerPadding = mainInnerPadding,
-                    home = home,
-                    isActive = destination == tabs.settled,
-                    windowLayoutMode = layoutMode,
-                    onOpenPanel = onOpenPanel,
-                ),
+                state =
+                    MainRootPageState(
+                        destination = destination,
+                        mainInnerPadding = mainInnerPadding,
+                        home = home,
+                        isActive = destination == tabs.settled,
+                        windowLayoutMode = layoutMode,
+                        onOpenPanel = onOpenPanel,
+                    )
             )
         }
 

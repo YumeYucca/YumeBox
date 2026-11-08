@@ -23,11 +23,10 @@ package com.github.yumeyucca.yumebox.runtime.service.core
 import com.github.yumeyucca.yumebox.data.store.MMKVProvider
 
 /**
- * Persisted handle to the decoupled root core daemon. Unlike the tracked VPN child core, the root
- * daemon outlives the app process, so its `{pid, secret, mode}` must survive process death for a
- * fresh start to detect and reattach over the REST socket — held in the multi-process
- * `root_tun_state` MMKV (pre-created by StatusProvider). The app is the single writer; the daemon
- * never touches it.
+ * Persisted handle to the decoupled root core daemon. Unlike the tracked VPN child core, the root daemon outlives the
+ * app process, so its `{pid, secret, mode}` must survive process death for a fresh start to detect and reattach over
+ * the REST socket — held in the multi-process `root_tun_state` MMKV (pre-created by StatusProvider). The app is the
+ * single writer; the daemon never touches it.
  */
 object RootDaemonState {
     private const val ID = "root_tun_state"

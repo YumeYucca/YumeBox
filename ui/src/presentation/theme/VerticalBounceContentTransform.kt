@@ -44,13 +44,11 @@ fun verticalBounceContentTransform(forward: Boolean): ContentTransform {
     val direction = if (forward) 1 else -1
     return ContentTransform(
         targetContentEnter =
-            slideInVertically(animationSpec = enterSpring) { fullHeight ->
-                direction * fullHeight / 10
-            } + fadeIn(animationSpec = fadeInSpec),
+            slideInVertically(animationSpec = enterSpring) { fullHeight -> direction * fullHeight / 10 } +
+                fadeIn(animationSpec = fadeInSpec),
         initialContentExit =
-            slideOutVertically(animationSpec = exitSpring) { fullHeight ->
-                -direction * fullHeight / 14
-            } + fadeOut(animationSpec = fadeOutSpec),
+            slideOutVertically(animationSpec = exitSpring) { fullHeight -> -direction * fullHeight / 14 } +
+                fadeOut(animationSpec = fadeOutSpec),
         sizeTransform = SizeTransform(clip = false),
     )
 }

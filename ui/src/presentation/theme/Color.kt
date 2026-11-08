@@ -92,8 +92,7 @@ data class StateColors(
     val subtleDivider: Color = Color(0xFFC7C7CC),
     val neutralPlaceholderBackground: Color = Color(0xFFE0E0E0),
     /** Neutral container behind selectable profile / node chrome. */
-    val inactiveSurface: ToneColors =
-        ToneColors(light = Color(0xFFF7F7F7), dark = Color(0xFF131415)),
+    val inactiveSurface: ToneColors = ToneColors(light = Color(0xFFF7F7F7), dark = Color(0xFF131415)),
 )
 
 /** A palette entry that resolves to a different colour per theme brightness. */
@@ -108,8 +107,8 @@ data class MoeColors(
 )
 
 /**
- * Colours the text-selection action menu paints over the code surface. The editor's own
- * syntax/background palette lives in `feature/editor` (CursorPalette); do not mirror it here.
+ * Colours the text-selection action menu paints over the code surface. The editor's own syntax/background palette lives
+ * in `feature/editor` (CursorPalette); do not mirror it here.
  */
 data class EditorColors(
     val darkTextActionBackground: Color = Color(0xFF2D2D2D),
@@ -131,24 +130,20 @@ data class AppColors(
 )
 
 /** 当前主题是否处于暗色模式（以背景亮度为准）。 */
-@Composable
-fun isDarkTheme(): Boolean = isDarkSurface(MiuixTheme.colorScheme.background)
+@Composable fun isDarkTheme(): Boolean = isDarkSurface(MiuixTheme.colorScheme.background)
 
 /**
  * 绘制在 [color] 上的内容是否需要浅色前景。
  *
- * 用于任意表面色（例如用户选定的强调色、壁纸推导色、首页内容底色）。若该颜色本身就是主题背景，
- * 请改用 [isDarkTheme]。
+ * 用于任意表面色（例如用户选定的强调色、壁纸推导色、首页内容底色）。若该颜色本身就是主题背景， 请改用 [isDarkTheme]。
  */
 fun isDarkSurface(color: Color): Boolean = color.luminance() < 0.5f
 
 /** 按当前主题明暗取用该调色板条目。 */
-@Composable
-fun ToneColors.resolve(): Color = if (isDarkTheme()) dark else light
+@Composable fun ToneColors.resolve(): Color = if (isDarkTheme()) dark else light
 
 /** 可选卡片（配置 / 节点）共用的中性底色。 */
-@Composable
-fun inactiveSurfaceColor(): Color = AppTheme.colors.state.inactiveSurface.resolve()
+@Composable fun inactiveSurfaceColor(): Color = AppTheme.colors.state.inactiveSurface.resolve()
 
 private fun ThemeColors.toLightScheme() =
     lightColorScheme(
@@ -188,8 +183,7 @@ private fun ThemeColors.toDarkScheme() =
         onBackgroundVariant = onBackgroundVariant,
     )
 
-private fun ThemeColors.toColorScheme(isDark: Boolean) =
-    if (isDark) toDarkScheme() else toLightScheme()
+private fun ThemeColors.toColorScheme(isDark: Boolean) = if (isDark) toDarkScheme() else toLightScheme()
 
 private val basePalette =
     ThemePalette(
@@ -233,11 +227,12 @@ private val basePalette =
 
 fun colorSchemeFromSeed(seed: Color, isDark: Boolean, invertOnPrimaryColors: Boolean = false) =
     deriveThemeColors(
-        base = if (isDark) basePalette.dark else basePalette.light,
-        seed = seed,
-        dark = isDark,
-        invertOnPrimaryColors = invertOnPrimaryColors,
-    ).toColorScheme(isDark)
+            base = if (isDark) basePalette.dark else basePalette.light,
+            seed = seed,
+            dark = isDark,
+            invertOnPrimaryColors = invertOnPrimaryColors,
+        )
+        .toColorScheme(isDark)
 
 fun colorFromArgb(argb: Long): Color = Color(argb.toInt())
 
@@ -310,8 +305,7 @@ private fun deriveThemeColors(
     val defaultOnPrimaryContainer = primaryContainer.autoOnColor()
     val onTertiaryContainer = tertiaryContainer.autoOnColor()
 
-    val onPrimary =
-        if (invertOnPrimaryColors) defaultOnPrimary.invertBlackWhite() else defaultOnPrimary
+    val onPrimary = if (invertOnPrimaryColors) defaultOnPrimary.invertBlackWhite() else defaultOnPrimary
     val onPrimaryVariant =
         if (invertOnPrimaryColors) {
             defaultOnPrimaryVariant.invertBlackWhite()
@@ -352,8 +346,7 @@ private fun deriveThemeColors(
         tertiaryContainer = tertiaryContainer,
         onTertiaryContainer = onTertiaryContainer,
         tertiaryContainerVariant = tertiaryContainerVariant,
-        onBackgroundVariant =
-            if (dark) seed.mix(Color.White, 0.25f) else seed.mix(Color.Black, 0.18f),
+        onBackgroundVariant = if (dark) seed.mix(Color.White, 0.25f) else seed.mix(Color.Black, 0.18f),
     )
 }
 

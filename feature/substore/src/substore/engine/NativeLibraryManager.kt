@@ -22,10 +22,10 @@ package com.github.yumeyucca.yumebox.substore.engine
 import android.annotation.SuppressLint
 import android.content.Context
 import com.github.yumeyucca.yumebox.feature.substore.BuildInfo
-import org.tukaani.xz.XZInputStream
-import timber.log.Timber
 import java.io.File
 import java.security.MessageDigest
+import org.tukaani.xz.XZInputStream
+import timber.log.Timber
 
 @SuppressLint("StaticFieldLeak")
 object NativeLibraryManager {
@@ -33,24 +33,21 @@ object NativeLibraryManager {
     const val JAVET_ARCHIVE_FILE_NAME = "libjavet.so.xz"
 
     /**
-     * Javet version the Java layer in this APK was compiled against. A native of another version
-     * must never reach `System.load`: the mismatch aborts the process instead of throwing.
+     * Javet version the Java layer in this APK was compiled against. A native of another version must never reach
+     * `System.load`: the mismatch aborts the process instead of throwing.
      */
     val JAVET_VERSION: String = BuildInfo.JAVET_VERSION
 
     /**
-     * Release asset of the Javet native, pinned to the version this APK was compiled against.
-     * Never resolve through `releases/latest`: older builds must keep their own native.
+     * Release asset of the Javet native, pinned to the version this APK was compiled against. Never resolve through
+     * `releases/latest`: older builds must keep their own native.
      */
     val JAVET_ARCHIVE_URLS: List<String> =
-        listOf(
-            "https://github.com/YumeYucca/libjavet/releases/download/javet-$JAVET_VERSION/$JAVET_ARCHIVE_FILE_NAME",
-        )
+        listOf("https://github.com/YumeYucca/libjavet/releases/download/javet-$JAVET_VERSION/$JAVET_ARCHIVE_FILE_NAME")
 
     /**
-     * Known-good digests per Javet version, append-only. Only the entry of [JAVET_VERSION] is ever
-     * accepted; older entries exist so a stale native can be reported by version instead of as an
-     * anonymous mismatch.
+     * Known-good digests per Javet version, append-only. Only the entry of [JAVET_VERSION] is ever accepted; older
+     * entries exist so a stale native can be reported by version instead of as an anonymous mismatch.
      */
     private val LIBRARY_SHA256_BY_VERSION =
         mapOf(
@@ -67,12 +64,10 @@ object NativeLibraryManager {
     init {
         // A version without digests cannot be verified at all: every install and load would fail
         // with a confusing "hash mismatch", so say why once.
-        if (JAVET_VERSION !in LIBRARY_SHA256_BY_VERSION ||
-            JAVET_VERSION !in ARCHIVE_SHA256_BY_VERSION
-        ) {
+        if (JAVET_VERSION !in LIBRARY_SHA256_BY_VERSION || JAVET_VERSION !in ARCHIVE_SHA256_BY_VERSION) {
             Timber.e(
                 "No known digest for Javet $JAVET_VERSION: add the SHA-256 of its libjavet.so and " +
-                    "libjavet.so.xz to NativeLibraryManager",
+                    "libjavet.so.xz to NativeLibraryManager"
             )
         }
     }
@@ -93,9 +88,7 @@ object NativeLibraryManager {
     }
 
     fun getDownloadTempFile(): File? =
-        getLibraryFile()?.let { library ->
-            File(library.parentFile, "$JAVET_ARCHIVE_FILE_NAME.download")
-        }
+        getLibraryFile()?.let { library -> File(library.parentFile, "$JAVET_ARCHIVE_FILE_NAME.download") }
 
     fun installDownloadedArchive(downloadedArchive: File): Boolean {
         val targetFile = getLibraryFile() ?: return false
@@ -105,19 +98,19 @@ object NativeLibraryManager {
         }
 
         val expandedFile = File(targetFile.parentFile, "${targetFile.name}.expanded")
-        val installed =
-            runCatching {
-                if (expandedFile.exists() && !expandedFile.delete()) {
-                    error("Unable to clear expanded native library: ${expandedFile.absolutePath}")
-                }
-                XZInputStream(downloadedArchive.inputStream().buffered()).use { input ->
-                    expandedFile.outputStream().buffered().use { output -> input.copyTo(output) }
-                }
-                check(isLibraryFileValid(expandedFile)) {
-                    "Expanded native library hash mismatch (expected Javet $JAVET_VERSION)"
-                }
-                replaceLibrary(targetFile, expandedFile)
-            }.getOrElse { error ->
+        val installed = runCatching {
+            if (expandedFile.exists() && !expandedFile.delete()) {
+                error("Unable to clear expanded native library: ${expandedFile.absolutePath}")
+            }
+            XZInputStream(downloadedArchive.inputStream().buffered()).use { input ->
+                expandedFile.outputStream().buffered().use { output -> input.copyTo(output) }
+            }
+            check(isLibraryFileValid(expandedFile)) {
+                "Expanded native library hash mismatch (expected Javet $JAVET_VERSION)"
+            }
+            replaceLibrary(targetFile, expandedFile)
+        }
+            .getOrElse { error ->
                 Timber.e(error, "Native library installation failed")
                 false
             }
@@ -126,34 +119,34 @@ object NativeLibraryManager {
         return installed
     }
 
-    private fun replaceLibrary(targetFile: File, replacementFile: File): Boolean =
-        runCatching {
-            targetFile.parentFile?.mkdirs()
-            val backupFile = File(targetFile.parentFile, "${targetFile.name}.previous")
-            if (backupFile.exists() && !backupFile.delete()) {
-                error("Unable to clear native library backup: ${backupFile.absolutePath}")
-            }
-            val hasPreviousLibrary = targetFile.exists()
-            if (hasPreviousLibrary && !targetFile.renameTo(backupFile)) {
-                error("Unable to back up native library: ${targetFile.absolutePath}")
-            }
-            if (!replacementFile.renameTo(targetFile)) {
-                if (hasPreviousLibrary) backupFile.renameTo(targetFile)
-                error("Unable to install native library: ${targetFile.absolutePath}")
-            }
-            backupFile.delete()
-            targetFile.setReadable(true, false)
-            // Android 14+ refuses System.load() for writable native code; targetSdk 37 enforces it.
-            targetFile.setReadOnly()
-            true
-        }.getOrElse { error ->
+    private fun replaceLibrary(targetFile: File, replacementFile: File): Boolean = runCatching {
+        targetFile.parentFile?.mkdirs()
+        val backupFile = File(targetFile.parentFile, "${targetFile.name}.previous")
+        if (backupFile.exists() && !backupFile.delete()) {
+            error("Unable to clear native library backup: ${backupFile.absolutePath}")
+        }
+        val hasPreviousLibrary = targetFile.exists()
+        if (hasPreviousLibrary && !targetFile.renameTo(backupFile)) {
+            error("Unable to back up native library: ${targetFile.absolutePath}")
+        }
+        if (!replacementFile.renameTo(targetFile)) {
+            if (hasPreviousLibrary) backupFile.renameTo(targetFile)
+            error("Unable to install native library: ${targetFile.absolutePath}")
+        }
+        backupFile.delete()
+        targetFile.setReadable(true, false)
+        // Android 14+ refuses System.load() for writable native code; targetSdk 37 enforces it.
+        targetFile.setReadOnly()
+        true
+    }
+        .getOrElse { error ->
             Timber.e(error, "Native library replacement failed: ${targetFile.name}")
             false
         }
 
     /**
-     * Whether the native on disk is exactly the build this APK can load. Another Javet version is
-     * reported as unavailable on purpose, so the UI offers a download instead.
+     * Whether the native on disk is exactly the build this APK can load. Another Javet version is reported as
+     * unavailable on purpose, so the UI offers a download instead.
      */
     fun isLibraryAvailable(): Boolean = identifyInstalledVersion() == JAVET_VERSION
 
@@ -174,10 +167,11 @@ object NativeLibraryManager {
         return runCatching {
             System.load(path)
             true
-        }.getOrElse { error ->
-            Timber.e(error, "JNI load failed: Javet $JAVET_VERSION")
-            false
         }
+            .getOrElse { error ->
+                Timber.e(error, "JNI load failed: Javet $JAVET_VERSION")
+                false
+            }
     }
 
     fun getLibraryStatus(): String {
@@ -188,8 +182,7 @@ object NativeLibraryManager {
             else ->
                 when (val installedVersion = identifyInstalledVersion()) {
                     null -> "Unknown native library build: ${libraryFile.absolutePath}"
-                    JAVET_VERSION ->
-                        "Library ready: Javet $installedVersion at ${libraryFile.absolutePath}"
+                    JAVET_VERSION -> "Library ready: Javet $installedVersion at ${libraryFile.absolutePath}"
                     else ->
                         "Library version mismatch: installed $installedVersion, " +
                             "required $JAVET_VERSION (${libraryFile.absolutePath})"
@@ -214,17 +207,17 @@ object NativeLibraryManager {
     private fun isArchiveFileValid(file: File): Boolean =
         file.isFile && file.canRead() && sha256(file) == ARCHIVE_SHA256_BY_VERSION[JAVET_VERSION]
 
-    private fun sha256(file: File): String? =
-        runCatching {
-            val digest = MessageDigest.getInstance("SHA-256")
-            file.inputStream().buffered().use { input ->
-                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                while (true) {
-                    val read = input.read(buffer)
-                    if (read == -1) break
-                    digest.update(buffer, 0, read)
-                }
+    private fun sha256(file: File): String? = runCatching {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().buffered().use { input ->
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                digest.update(buffer, 0, read)
             }
-            digest.digest().joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
-        }.getOrNull()
+        }
+        digest.digest().joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+    }
+        .getOrNull()
 }

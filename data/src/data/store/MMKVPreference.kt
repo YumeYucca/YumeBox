@@ -22,30 +22,27 @@
 
 package com.github.yumeyucca.yumebox.data.store
 
-
 import com.github.yumeyucca.yumebox.core.util.LenientJson
 import com.github.yumeyucca.yumebox.core.util.enumByNameOrNull
 import com.tencent.mmkv.MMKV
+import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
-import kotlin.properties.ReadOnlyProperty
-import kotlin.reflect.KProperty
 
 /**
  * Base class for MMKV-based preference storage with process-local reactive StateFlow support.
  *
- * This class provides a type-safe property delegation pattern for storing and observing preferences
- * using MMKV (a fast key-value storage library).
+ * This class provides a type-safe property delegation pattern for storing and observing preferences using MMKV (a fast
+ * key-value storage library).
  *
  * ## Features
- * - **Type-safe delegates**: `boolFlow`, `strFlow`, `intFlow`, `longFlow`, `floatFlow`, `enumFlow`,
- *   etc.
- * - **Reactive updates**: All `*Flow` delegates expose [Preference] with [StateFlow] for in-process
- *   observation
- * - **Multi-process storage compatibility**: Uses `MMKV.MULTI_PROCESS_MODE` so app and service can
- *   safely read/write the same store
+ * - **Type-safe delegates**: `boolFlow`, `strFlow`, `intFlow`, `longFlow`, `floatFlow`, `enumFlow`, etc.
+ * - **Reactive updates**: All `*Flow` delegates expose [Preference] with [StateFlow] for in-process observation
+ * - **Multi-process storage compatibility**: Uses `MMKV.MULTI_PROCESS_MODE` so app and service can safely read/write
+ *   the same store
  * - **JSON serialization**: Support for complex types via `jsonListFlow`
  *
  * ## Usage Example
@@ -132,10 +129,9 @@ import kotlin.reflect.KProperty
  * - JSON serialization has overhead but acceptable for small lists
  *
  * ## Cross-Process Behavior
- * `MULTI_PROCESS_MODE` keeps storage access compatible across processes, but existing
- * [Preference.state] instances do not automatically receive remote-process updates. Call
- * [Preference.refresh] / [Preference.invalidate] when you need to pull the latest persisted value
- * into the local flow cache.
+ * `MULTI_PROCESS_MODE` keeps storage access compatible across processes, but existing [Preference.state] instances do
+ * not automatically receive remote-process updates. Call [Preference.refresh] / [Preference.invalidate] when you need
+ * to pull the latest persisted value into the local flow cache.
  *
  * The storage mode ensures safe access when:
  * - Main app UI reads/writes preferences
@@ -151,9 +147,7 @@ abstract class MMKVPreference(
 ) {
     @PublishedApi
     internal val mmkv: MMKV =
-        externalMmkv
-            ?: mmkvID?.let { MMKV.mmkvWithID(it, MMKV.MULTI_PROCESS_MODE) }
-            ?: MMKV.defaultMMKV()
+        externalMmkv ?: mmkvID?.let { MMKV.mmkvWithID(it, MMKV.MULTI_PROCESS_MODE) } ?: MMKV.defaultMMKV()
 
     protected fun bool(default: Boolean = false) =
         MMKVProperty(
@@ -236,8 +230,7 @@ abstract class MMKVPreference(
         MMKVFlowProperty(
             default = default,
             getter = { key, def ->
-                runCatching { mmkv.decodeString(key)?.let { json.decode(it) } ?: def }
-                    .getOrDefault(def)
+                runCatching { mmkv.decodeString(key)?.let { json.decode(it) } ?: def }.getOrDefault(def)
             },
             setter = { key, value -> mmkv.encode(key, json.encode(value)) },
             skipEqualityCheck = true,
@@ -249,8 +242,7 @@ abstract class MMKVPreference(
         private val setter: (key: String, value: T) -> Unit,
         private val skipEqualityCheck: Boolean = false,
     ) : ReadOnlyProperty<Any?, T> {
-        override fun getValue(thisRef: Any?, property: KProperty<*>): T =
-            getter(property.name, default)
+        override fun getValue(thisRef: Any?, property: KProperty<*>): T = getter(property.name, default)
 
         operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
             if (!skipEqualityCheck && value == getter(property.name, default)) return
@@ -273,21 +265,21 @@ abstract class MMKVPreference(
                     val initialValue = getter(key, default)
                     val flow = MutableStateFlow(initialValue)
                     Preference(
-                        state = flow.asStateFlow(),
-                        update = { value ->
-                            if (skipEqualityCheck || value != flow.value) {
-                                setter(key, value)
-                                flow.value = value
-                            }
-                        },
-                        get = { getter(key, default) },
-                        refreshState = {
-                            val latest = getter(key, default)
-                            if (skipEqualityCheck || latest != flow.value) {
-                                flow.value = latest
-                            }
-                        },
-                    )
+                            state = flow.asStateFlow(),
+                            update = { value ->
+                                if (skipEqualityCheck || value != flow.value) {
+                                    setter(key, value)
+                                    flow.value = value
+                                }
+                            },
+                            get = { getter(key, default) },
+                            refreshState = {
+                                val latest = getter(key, default)
+                                if (skipEqualityCheck || latest != flow.value) {
+                                    flow.value = latest
+                                }
+                            },
+                        )
                         .also { cached = it }
                 }
     }
@@ -308,4 +300,3 @@ data class Preference<T>(
 
     fun invalidate() = refresh()
 }
-

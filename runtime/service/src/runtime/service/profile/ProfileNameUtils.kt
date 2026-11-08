@@ -32,12 +32,7 @@ internal object ProfileNameUtils {
         if (normalized.isBlank()) return true
         if (normalized.startsWith("temp_", ignoreCase = true)) return true
 
-        val lowered =
-            normalized
-                .lowercase(Locale.getDefault())
-                .replace(" ", "")
-                .replace("_", "")
-                .replace("-", "")
+        val lowered = normalized.lowercase(Locale.getDefault()).replace(" ", "").replace("_", "").replace("-", "")
 
         return lowered in autoNameSet
     }

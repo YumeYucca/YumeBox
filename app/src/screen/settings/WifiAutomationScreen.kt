@@ -25,8 +25,8 @@ import org.koin.androidx.compose.koinViewModel
 /**
  * Inline section of the VpnService configuration page. It deliberately has no separate route.
  *
- * It only collects state, remembers the permission flow and renders: the choreography of asking for
- * location access lives in [WifiPermissionFlow].
+ * It only collects state, remembers the permission flow and renders: the choreography of asking for location access
+ * lives in [WifiPermissionFlow].
  */
 @Composable
 fun WifiAutomationSettingsSection() {
@@ -52,7 +52,8 @@ fun WifiAutomationSettingsSection() {
                     WifiAutomationViewModel.Effect.SsidAlreadyExists -> YumeTxt.NetworkSettings.WifiAutomation.Duplicate
                     WifiAutomationViewModel.Effect.NoWifi -> YumeTxt.NetworkSettings.WifiAutomation.NoWifi
                     WifiAutomationViewModel.Effect.SsidUnavailable -> YumeTxt.NetworkSettings.WifiAutomation.Unavailable
-                    WifiAutomationViewModel.Effect.ScanUnavailable -> YumeTxt.NetworkSettings.WifiAutomation.ScanUnavailable
+                    WifiAutomationViewModel.Effect.ScanUnavailable ->
+                        YumeTxt.NetworkSettings.WifiAutomation.ScanUnavailable
                 }
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
@@ -61,7 +62,7 @@ fun WifiAutomationSettingsSection() {
     // Profiles can be added or renamed on another screen, so the picker is rebuilt on every resume.
     LifecycleResumeEffect(Unit) {
         viewModel.refreshProfiles()
-        onPauseOrDispose { }
+        onPauseOrDispose {}
     }
 
     WifiAutomationToggleSection(
@@ -195,8 +196,8 @@ private fun WifiAutomationSheetHosts(
 }
 
 /**
- * One fallback-action preference plus, for [WifiAutomationFallbackAction.Start], the profile it
- * switches to. This is the only place that knows "start needs a target profile".
+ * One fallback-action preference plus, for [WifiAutomationFallbackAction.Start], the profile it switches to. This is
+ * the only place that knows "start needs a target profile".
  */
 @Composable
 private fun WifiFallbackActionPreference(

@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetConfirmAction
 import com.github.yumeyucca.yumebox.presentation.component.OemTextField
@@ -40,7 +41,6 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.Palette
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.colorFromArgb
 import com.github.yumeyucca.yumebox.presentation.theme.colorToArgbLong
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ColorPicker
 import top.yukonga.miuix.kmp.basic.Icon
@@ -54,10 +54,7 @@ internal fun ThemeColorPickerItem(
 
     BasicComponent(
         title = YumeTxt.AppSettings.Interface.ColorThemeTitle,
-        summary =
-            YumeTxt.AppSettings.Interface.ColorThemeCustomSummary.format(
-                formatThemeSeedHex(themeSeedColorArgb)
-            ),
+        summary = YumeTxt.AppSettings.Interface.ColorThemeCustomSummary.format(formatThemeSeedHex(themeSeedColorArgb)),
         onClick = { showThemeColorPicker = true },
         endActions = {
             val previewColor =
@@ -93,9 +90,7 @@ internal fun ThemeColorPickerSheet(
 ) {
     var pickerColor by
         remember(show, initialSeedColorArgb) {
-            mutableStateOf(
-                runCatching { colorFromArgb(initialSeedColorArgb) }.getOrDefault(Color.White)
-            )
+            mutableStateOf(runCatching { colorFromArgb(initialSeedColorArgb) }.getOrDefault(Color.White))
         }
     var hexField by
         remember(show, initialSeedColorArgb) {
@@ -108,17 +103,9 @@ internal fun ThemeColorPickerSheet(
         title = YumeTxt.AppSettings.Interface.ColorThemePickerTitle,
         onDismissRequest = onDismissRequest,
         defaultWindowInsetsPadding = false,
-        endAction = {
-            AppBottomSheetConfirmAction(onClick = { onConfirm(colorToArgbLong(pickerColor)) })
-        },
+        endAction = { AppBottomSheetConfirmAction(onClick = { onConfirm(colorToArgbLong(pickerColor)) }) },
         content = {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .imePadding(),
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().imePadding()) {
                 ColorPicker(
                     color = pickerColor,
                     onColorChanged = { color ->
@@ -136,10 +123,7 @@ internal fun ThemeColorPickerSheet(
                         parseThemeHexColorOrNull(upper.text)?.let { pickerColor = it }
                     },
                     label = YumeTxt.AppSettings.Interface.ColorThemeCodeLabel,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = UiDp.dp8),
+                    modifier = Modifier.fillMaxWidth().padding(top = UiDp.dp8),
                 )
             }
         },

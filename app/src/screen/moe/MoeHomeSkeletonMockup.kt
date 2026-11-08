@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.moe
 
-
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,8 +39,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -66,21 +65,13 @@ internal fun MoeHomeSkeletonMockup(
 
     MockupPhoneFrame(palette = mockupPalette(), modifier = modifier) {
         Row(modifier = Modifier.fillMaxSize()) {
-            MockupSidebar(
-                modifier =
-                    Modifier
-                        .fillMaxHeight()
-                        .weight(0.22f),
-            )
+            MockupSidebar(modifier = Modifier.fillMaxHeight().weight(0.22f))
             MockupHomeContent(
                 loop = loop,
                 wallpaper = wallpaper,
                 animateLaunch = animateLaunch,
                 markWallpaper = markWallpaper,
-                modifier =
-                    Modifier
-                        .fillMaxHeight()
-                        .weight(0.78f),
+                modifier = Modifier.fillMaxHeight().weight(0.78f),
             )
         }
 
@@ -93,8 +84,8 @@ internal fun MoeHomeSkeletonMockup(
 /**
  * The four looping values the wallpaper demo draws with.
  *
- * They are handed over as [State] and never read here, so the composables that paint them read
- * them inside `graphicsLayer` at draw time instead of paying a recomposition per frame.
+ * They are handed over as [State] and never read here, so the composables that paint them read them inside
+ * `graphicsLayer` at draw time instead of paying a recomposition per frame.
  */
 private class MockupWallpaperLoop(
     val sheetProgress: State<Float>,
@@ -201,14 +192,7 @@ private fun MockupSidebar(modifier: Modifier = Modifier) {
 private fun MockupVerticalClock(modifier: Modifier = Modifier) {
     val palette = mockupPalette()
 
-    Box(
-        modifier =
-            modifier
-                .width(13.dp)
-                .height(72.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(palette.maskStrong)
-    )
+    Box(modifier = modifier.width(13.dp).height(72.dp).clip(RoundedCornerShape(6.dp)).background(palette.maskStrong))
 }
 
 /** Nav icon rail: three icons stacked near the bottom of the sidebar. */
@@ -221,14 +205,7 @@ private fun MockupNavIconRail(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(11.dp),
     ) {
-        repeat(3) {
-            Box(
-                Modifier
-                    .size(13.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(palette.mask)
-            )
-        }
+        repeat(3) { Box(Modifier.size(13.dp).clip(RoundedCornerShape(4.dp)).background(palette.mask)) }
     }
 }
 
@@ -249,19 +226,13 @@ private fun MockupHomeContent(
             loop = loop,
             wallpaper = wallpaper,
             markWallpaper = markWallpaper,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .weight(2f),
+            modifier = Modifier.fillMaxWidth().weight(2f),
         )
 
         MockupLaunchPanel(
             wallpaper = wallpaper,
             animateLaunch = animateLaunch,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+            modifier = Modifier.fillMaxWidth().weight(1f),
         )
     }
 }
@@ -276,18 +247,9 @@ private fun MockupHeroCard(
 ) {
     val palette = mockupPalette()
 
-    Box(
-        modifier =
-            modifier
-                .clip(RoundedCornerShape(13.dp))
-                .background(palette.maskStrong)
-    ) {
+    Box(modifier = modifier.clip(RoundedCornerShape(13.dp)).background(palette.maskStrong)) {
         Column(
-            modifier =
-                Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .padding(7.dp),
+            modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(7.dp),
             verticalArrangement = Arrangement.spacedBy(MockupSectionGap),
         ) {
             MockupTrafficStrip()
@@ -316,20 +278,8 @@ private fun MockupTrafficStrip(modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Box(
-            Modifier
-                .width(30.dp)
-                .height(9.dp)
-                .clip(MockupBarShape)
-                .background(palette.onHero)
-        )
-        Box(
-            Modifier
-                .width(30.dp)
-                .height(9.dp)
-                .clip(MockupBarShape)
-                .background(palette.onHero)
-        )
+        Box(Modifier.width(30.dp).height(9.dp).clip(MockupBarShape).background(palette.onHero))
+        Box(Modifier.width(30.dp).height(9.dp).clip(MockupBarShape).background(palette.onHero))
     }
 }
 
@@ -347,27 +297,10 @@ private fun MockupNodeInfoRow(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(palette.onHero)
-            )
-            Box(
-                Modifier
-                    .width(46.dp)
-                    .height(7.dp)
-                    .clip(MockupBarShape)
-                    .background(palette.onHero)
-            )
+            Box(Modifier.size(10.dp).clip(CircleShape).background(palette.onHero))
+            Box(Modifier.width(46.dp).height(7.dp).clip(MockupBarShape).background(palette.onHero))
         }
-        Box(
-            Modifier
-                .width(20.dp)
-                .height(7.dp)
-                .clip(MockupBarShape)
-                .background(palette.onHero)
-        )
+        Box(Modifier.width(20.dp).height(7.dp).clip(MockupBarShape).background(palette.onHero))
     }
 }
 
@@ -385,8 +318,7 @@ private fun MockupHeroLongPressRipple(
     ) {
         Box(
             modifier =
-                Modifier
-                    .graphicsLayer {
+                Modifier.graphicsLayer {
                         scaleX = loop.heroRippleScale.value
                         scaleY = loop.heroRippleScale.value
                         alpha = loop.heroRippleAlpha.value
@@ -397,8 +329,7 @@ private fun MockupHeroLongPressRipple(
         )
         Box(
             modifier =
-                Modifier
-                    .graphicsLayer {
+                Modifier.graphicsLayer {
                         scaleX = loop.heroLongPressScale.value
                         scaleY = loop.heroLongPressScale.value
                     }
@@ -455,41 +386,16 @@ private fun MockupQuoteBlock(modifier: Modifier = Modifier) {
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth(0.92f)
-                .height(8.dp)
-                .clip(MockupBarShape)
-                .background(palette.mask)
-        )
-        Box(
-            Modifier
-                .fillMaxWidth(0.8f)
-                .height(8.dp)
-                .clip(MockupBarShape)
-                .background(palette.mask)
-        )
-        Box(
-            Modifier
-                .fillMaxWidth(0.5f)
-                .height(8.dp)
-                .clip(MockupBarShape)
-                .background(palette.mask)
-        )
-        Box(
-            Modifier
-                .align(Alignment.End)
-                .fillMaxWidth(0.3f)
-                .height(6.dp)
-                .clip(MockupBarShape)
-                .background(palette.mask)
-        )
+        Box(Modifier.fillMaxWidth(0.92f).height(8.dp).clip(MockupBarShape).background(palette.mask))
+        Box(Modifier.fillMaxWidth(0.8f).height(8.dp).clip(MockupBarShape).background(palette.mask))
+        Box(Modifier.fillMaxWidth(0.5f).height(8.dp).clip(MockupBarShape).background(palette.mask))
+        Box(Modifier.align(Alignment.End).fillMaxWidth(0.3f).height(6.dp).clip(MockupBarShape).background(palette.mask))
     }
 }
 
 /**
- * Wallpaper demo: the dim scrim and the photo-picker bottom sheet sliding up. Both are clipped
- * to the phone-frame's inner radius so they follow the rounded corners instead of sharp edges.
+ * Wallpaper demo: the dim scrim and the photo-picker bottom sheet sliding up. Both are clipped to the phone-frame's
+ * inner radius so they follow the rounded corners instead of sharp edges.
  */
 @Composable
 private fun MockupWallpaperSheetOverlay(
@@ -498,18 +404,8 @@ private fun MockupWallpaperSheetOverlay(
 ) {
     val sheetProgress by loop.sheetProgress
 
-    Box(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(15.dp))
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .matchParentSize()
-                    .background(Color.Black.copy(alpha = 0.40f * sheetProgress))
-        )
+    Box(modifier = modifier.fillMaxSize().clip(RoundedCornerShape(15.dp))) {
+        Box(modifier = Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.40f * sheetProgress)))
         PhotoPickerSheet(
             sheetProgress = sheetProgress,
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -522,40 +418,40 @@ private fun HighlightedLaunchRow(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "start_chip")
     // A press that reads as a tap: hold, snap down, snap back, then rest until the next cycle.
     val animatedPressScale by
-    transition.loopKeyframes(
-        label = "press_scale",
-        initialValue = 1f,
-        targetValue = 1f,
-        durationMillis = LaunchTapCycleMillis,
-    ) {
-        1f at 0
-        1f at 200
-        0.9f at 360 using FastOutSlowInEasing
-        1f at 560
-        1f at 1500
-    }
+        transition.loopKeyframes(
+            label = "press_scale",
+            initialValue = 1f,
+            targetValue = 1f,
+            durationMillis = LaunchTapCycleMillis,
+        ) {
+            1f at 0
+            1f at 200
+            0.9f at 360 using FastOutSlowInEasing
+            1f at 560
+            1f at 1500
+        }
     val animatedRippleScale by
-    transition.animateFloat(
-        initialValue = 0.6f,
-        targetValue = 2.6f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Restart,
-            ),
-        label = "ripple_scale",
-    )
+        transition.animateFloat(
+            initialValue = 0.6f,
+            targetValue = 2.6f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "ripple_scale",
+        )
     val animatedRippleAlpha by
-    transition.animateFloat(
-        initialValue = 0.5f,
-        targetValue = 0f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Restart,
-            ),
-        label = "ripple_alpha",
-    )
+        transition.animateFloat(
+            initialValue = 0.5f,
+            targetValue = 0f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "ripple_alpha",
+        )
 
     LaunchRow(
         modifier = modifier,
@@ -574,9 +470,9 @@ private fun HighlightedLaunchRow(modifier: Modifier = Modifier) {
 }
 
 /**
- * Shared launch strip: the bordered config circle on the left and the start capsule filling the
- * rest. [behind] paints under the capsule (tap ripple) and [front] above it (touch dot), so the
- * animated demo keeps its original stacking order.
+ * Shared launch strip: the bordered config circle on the left and the start capsule filling the rest. [behind] paints
+ * under the capsule (tap ripple) and [front] above it (touch dot), so the animated demo keeps its original stacking
+ * order.
  */
 @Composable
 private fun LaunchRow(
@@ -614,10 +510,7 @@ private fun LaunchConfigButton(modifier: Modifier = Modifier) {
                 .border(1.dp, palette.frameBorder, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier
-            .size(8.dp)
-            .clip(RoundedCornerShape(2.dp))
-            .background(palette.maskStrong))
+        Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(palette.maskStrong))
     }
 }
 
@@ -704,8 +597,8 @@ private const val LaunchTapCycleMillis = 1500
 /**
  * One looped value of a shared [InfiniteTransition].
  *
- * Every mockup animation is "describe a cycle, repeat it forever"; the repeat wrapper and the
- * keyframe duration live here so each choreography block is only its keyframes.
+ * Every mockup animation is "describe a cycle, repeat it forever"; the repeat wrapper and the keyframe duration live
+ * here so each choreography block is only its keyframes.
  */
 @Composable
 private fun InfiniteTransition.loopKeyframes(
@@ -738,8 +631,7 @@ private fun MockupLaunchTapRipple(
 ) {
     Box(
         modifier =
-            Modifier
-                .graphicsLayer {
+            Modifier.graphicsLayer {
                     scaleX = scale
                     scaleY = scale
                     this.alpha = alpha
@@ -755,8 +647,7 @@ private fun MockupLaunchTapRipple(
 private fun MockupLaunchTapDot(scale: Float) {
     Box(
         modifier =
-            Modifier
-                .offset(x = 4.dp, y = 4.dp)
+            Modifier.offset(x = 4.dp, y = 4.dp)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
@@ -773,13 +664,7 @@ private fun MockupLaunchTapDot(scale: Float) {
 private fun MockupPickerGrabber() {
     val palette = mockupPalette()
 
-    Box(
-        Modifier
-            .width(22.dp)
-            .height(4.dp)
-            .clip(RoundedCornerShape(2.dp))
-            .background(palette.mask)
-    )
+    Box(Modifier.width(22.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(palette.mask))
 }
 
 /** Photo-picker sheet: the "All" and "Albums" tab pills. */
@@ -794,19 +679,12 @@ private fun MockupPickerTabPills() {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(
-            Modifier
-                .weight(1f)
+            Modifier.weight(1f)
                 .height(15.dp)
                 .clip(RoundedCornerShape(7.dp))
                 .background(colorScheme.primary.copy(alpha = opacity.subtleStrong))
         )
-        Box(
-            Modifier
-                .weight(1f)
-                .height(15.dp)
-                .clip(RoundedCornerShape(7.dp))
-                .background(palette.mask)
-        )
+        Box(Modifier.weight(1f).height(15.dp).clip(RoundedCornerShape(7.dp)).background(palette.mask))
     }
 }
 
@@ -815,13 +693,7 @@ private fun MockupPickerTabPills() {
 private fun MockupPickerNoticeBar() {
     val palette = mockupPalette()
 
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(18.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(palette.mask)
-    )
+    Box(Modifier.fillMaxWidth().height(18.dp).clip(RoundedCornerShape(8.dp)).background(palette.mask))
 }
 
 /** Photo-picker sheet: the 3x3 tile grid filling the space the sheet chrome leaves. */
@@ -835,31 +707,21 @@ private fun ColumnScope.MockupPickerPhotoGrid() {
     ) {
         repeat(3) { row ->
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 repeat(3) { col ->
                     val isCamera = row == 0 && col == 0
                     Box(
                         modifier =
-                            Modifier
-                                .weight(1f)
+                            Modifier.weight(1f)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(5.dp))
-                                .background(
-                                    if (isCamera) palette.mask else palette.maskStrong
-                                ),
+                                .background(if (isCamera) palette.mask else palette.maskStrong),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (isCamera) {
-                            Box(
-                                Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(palette.maskStrong)
-                            )
+                            Box(Modifier.size(6.dp).clip(CircleShape).background(palette.maskStrong))
                         }
                     }
                 }

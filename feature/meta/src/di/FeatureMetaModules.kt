@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.di
 
-
 import com.github.yumeyucca.yumebox.data.store.TrafficStatisticsStore
 import com.github.yumeyucca.yumebox.feature.meta.presentation.util.CustomRoutingBootstrapper
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionDetailViewModel

@@ -37,12 +37,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetCloseAction
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetConfirmAction
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 internal class ProfileAddSheetActions(
     val dismiss: () -> Unit,
@@ -73,9 +73,7 @@ internal fun ProfileAddSheetContent(
 ) {
     val density = LocalDensity.current
     val stableHeight: Dp? =
-        remember(stableHeightPx, density) {
-            if (stableHeightPx <= 0) null else with(density) { stableHeightPx.toDp() }
-        }
+        remember(stableHeightPx, density) { if (stableHeightPx <= 0) null else with(density) { stableHeightPx.toDp() } }
 
     // Read inside the title-bar action lambdas via state (not captured parameters): the
     // overlay-hosted action row can be re-rendered from a stale composable after the app returns
@@ -101,8 +99,7 @@ internal fun ProfileAddSheetContent(
     ) {
         Column(
             modifier =
-                Modifier
-                    .fillMaxWidth()
+                Modifier.fillMaxWidth()
                     .wrapContentHeight()
                     .animateContentSize(animationSpec = tween(300, easing = FastOutSlowInEasing))
                     .padding(bottom = UiDp.dp16)
@@ -111,31 +108,23 @@ internal fun ProfileAddSheetContent(
                 targetState = phase.showsProgress,
                 transitionSpec = {
                     if (targetState) {
-                        (
-                            slideInHorizontally(
-                                animationSpec = tween(260),
-                                initialOffsetX = { it },
-                            ) + fadeIn()
-                        ) togetherWith
-                            (
-                                slideOutHorizontally(
-                                    animationSpec = tween(220),
-                                    targetOffsetX = { -it / 3 },
-                                ) + fadeOut()
-                            )
-                    } else {
-                        (
-                            slideInHorizontally(
+                        (slideInHorizontally(
+                            animationSpec = tween(260),
+                            initialOffsetX = { it },
+                        ) + fadeIn()) togetherWith
+                            (slideOutHorizontally(
                                 animationSpec = tween(220),
-                                initialOffsetX = { -it / 3 },
-                            ) + fadeIn()
-                        ) togetherWith
-                            (
-                                slideOutHorizontally(
-                                    animationSpec = tween(260),
-                                    targetOffsetX = { it },
-                                ) + fadeOut()
-                            )
+                                targetOffsetX = { -it / 3 },
+                            ) + fadeOut())
+                    } else {
+                        (slideInHorizontally(
+                            animationSpec = tween(220),
+                            initialOffsetX = { -it / 3 },
+                        ) + fadeIn()) togetherWith
+                            (slideOutHorizontally(
+                                animationSpec = tween(260),
+                                targetOffsetX = { it },
+                            ) + fadeOut())
                     }
                 },
                 label = "ProfileImportContentSwitch",

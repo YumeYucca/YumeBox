@@ -40,17 +40,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntSize
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownOption
 import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
+import com.github.yumeyucca.yumebox.runtime.api.Profile
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.FileText
 import io.github.yumeyucca.lucide.lucide.Link
 import io.github.yumeyucca.lucide.lucide.QrCode
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
-import com.github.yumeyucca.yumebox.runtime.api.Profile
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -70,9 +70,7 @@ internal fun ProfileFormContent(
     onQrScanned: (String) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .onSizeChanged(onContainerMeasured),
+        modifier = Modifier.fillMaxWidth().onSizeChanged(onContainerMeasured),
         verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
     ) {
         Crossfade(
@@ -143,8 +141,7 @@ private fun QrScannerContent(
     ) {
         Column(
             modifier =
-                Modifier
-                    .fillMaxWidth()
+                Modifier.fillMaxWidth()
                     .height(UiDp.dp200)
                     .clip(RoundedCornerShape(UiDp.dp12))
                     .background(MiuixTheme.colorScheme.surfaceVariant),
@@ -246,7 +243,8 @@ private fun ProfileImportType.spinnerIcon(): ImageVector =
 // The QR scanner yields a subscription URL, so only the two manual types differ here.
 private fun ProfileImportType.sourceProfileType(): Profile.Type =
     when (this) {
-        ProfileImportType.Url, ProfileImportType.Qr -> Profile.Type.Url
+        ProfileImportType.Url,
+        ProfileImportType.Qr -> Profile.Type.Url
         ProfileImportType.LocalFile -> Profile.Type.File
     }
 

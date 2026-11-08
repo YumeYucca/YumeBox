@@ -39,9 +39,7 @@ class SessionRuntimeSpecFactory(
 ) {
     private val context: Context = context.appContextOrSelf
     private val compiledConfigPipeline = CompiledConfigPipeline(this.context)
-    private val networkSettings by lazy {
-        NetworkSettingsStore(MMKVProvider().getMMKV("network_settings"))
-    }
+    private val networkSettings by lazy { NetworkSettingsStore(MMKVProvider().getMMKV("network_settings")) }
 
     fun createVpnSpec(): RuntimeSpec = createSpec(RunMode.VpnService)
 
@@ -50,12 +48,14 @@ class SessionRuntimeSpecFactory(
     /** A local, no-TUN core used only to materialize proxy-group state while the app is foregrounded. */
     fun createPreviewSpec(): RuntimeSpec = createSpec(RunMode.VpnService, preview = true)
 
-    private fun createSpec(runMode: RunMode, preview: Boolean = false): RuntimeSpec {
+    private fun createSpec(
+        runMode: RunMode,
+        preview: Boolean = false,
+    ): RuntimeSpec {
         val profile = requireActiveProfile()
         val profileDir = context.importedDir.resolve(profile.uuid.toString())
         val disableAllUserOverrides = networkSettings.disableAllOverride.value
-        val skipModePatches =
-            disableAllUserOverrides && runMode == RunMode.Tun
+        val skipModePatches = disableAllUserOverrides && runMode == RunMode.Tun
         val skipRuntimePatches = skipModePatches || runMode == RunMode.Ebpf
         val userOverrides =
             if (disableAllUserOverrides) {
@@ -63,26 +63,31 @@ class SessionRuntimeSpecFactory(
             } else {
                 compiledConfigPipeline.resolveOverrideSpecs(profile.uuid.toString())
             }
-        val tunConfig =
-            if (!skipModePatches && runMode == RunMode.Tun) buildTunConfig() else null
+        val tunConfig = if (!skipModePatches && runMode == RunMode.Tun) buildTunConfig() else null
         // Mode/system fragments first; app global-ua always last so it beats subscription + user
         // overrides and survives disable-all (core provider refresh must use the same UA).
         val modeOverrides =
             when {
-                tunConfig != null -> userOverrides + TunOverride.materialize(tunConfig, profileDir)
-                runMode == RunMode.Ebpf ->
+                tunConfig != null -> {
+                    userOverrides + TunOverride.materialize(tunConfig, profileDir)
+                }
+
+                runMode == RunMode.Ebpf -> {
                     userOverrides +
                         listOfNotNull(
                             EbpfOverride.materialize(
                                 EbpfOverride.Config(bypassCn = store.ebpfBypassCn),
                                 profileDir,
-                            )
+                            ),
                         )
-                else -> userOverrides
+                }
+
+                else -> {
+                    userOverrides
+                }
             }
         val overrideSpecs =
-            if (runMode == RunMode.Ebpf) modeOverrides
-            else modeOverrides + GlobalUaOverride.materialize(profileDir)
+            if (runMode == RunMode.Ebpf) modeOverrides else modeOverrides + GlobalUaOverride.materialize(profileDir)
         return RuntimeSpec(
             profileUuid = profile.uuid.toString(),
             profileName = profile.name,
@@ -118,14 +123,16 @@ class SessionRuntimeSpecFactory(
 
     /**
      * Maps the shared access-control setting onto Tun uid rules. The cmfa build stubs out mihomo's
-     * include/exclude-package, so a selected PACKAGE must be resolved to a UID here (include-uid /
-     * exclude-uid). All-apps modes fall back to include-android-user (+ the built-in system-uid
-     * exclusion in [TunConfig]).
+     * include/exclude-package, so a selected PACKAGE must be resolved to a UID here (include-uid / exclude-uid).
+     * All-apps modes fall back to include-android-user (+ the built-in system-uid exclusion in [TunConfig]).
      */
     private fun resolveTunAccessControl(): TunAccessControl {
         val self = context.applicationInfo.uid
         val selectedPackages =
-            store.accessControlPackages.map(String::trim).filter(String::isNotEmpty).toSet()
+            store.accessControlPackages
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .toSet()
         val rootUidMap = RootPackageShell.queryPackageUidMap(selectedPackages)
         val selectedUid =
             selectedPackages
@@ -135,19 +142,29 @@ class SessionRuntimeSpecFactory(
                 .sorted()
         val allUsers = resolveIncludeAndroidUsers()
         return when (store.accessControlMode) {
-            AccessControlMode.AcceptAll -> TunAccessControl(includeAndroidUser = allUsers)
-            AccessControlMode.AcceptSelected -> TunAccessControl(includeUid = selectedUid)
-            AccessControlMode.RejectSelected ->
+            AccessControlMode.AcceptAll -> {
+                TunAccessControl(includeAndroidUser = allUsers)
+            }
+
+            AccessControlMode.AcceptSelected -> {
+                TunAccessControl(includeUid = selectedUid)
+            }
+
+            AccessControlMode.RejectSelected -> {
                 TunAccessControl(excludeUid = selectedUid, includeAndroidUser = allUsers)
+            }
+
             // Whitelist only ourselves ⇒ no other app is ever routed into the tun.
-            AccessControlMode.RejectAll -> TunAccessControl(includeUid = listOf(self))
+            AccessControlMode.RejectAll -> {
+                TunAccessControl(includeUid = listOf(self))
+            }
         }
     }
 
     /**
-     * Empty list means "all Android users": TunOverride omits include-android-user and sing-tun
-     * does not install per-user ExcludeUID ranges. The old hard-coded default [0, 10] only kept
-     * owner + work-profile traffic and silently dropped every other multi-user profile.
+     * Empty list means "all Android users": TunOverride omits include-android-user and sing-tun does not install
+     * per-user ExcludeUID ranges. The old hard-coded default [0, 10] only kept owner + work-profile traffic and
+     * silently dropped every other multi-user profile.
      */
     private fun resolveIncludeAndroidUsers(): List<Int> {
         val users = networkSettings.tunIncludeAndroidUser.value
@@ -158,9 +175,13 @@ class SessionRuntimeSpecFactory(
         return users
     }
 
-    private fun resolvePackageUid(pkg: String): Int? = runCatching {
-        context.packageManager.getPackageInfo(pkg, 0).applicationInfo?.uid
-    }.getOrNull()
+    private fun resolvePackageUid(pkg: String): Int? =
+        runCatching {
+            context.packageManager
+                .getPackageInfo(pkg, 0)
+                .applicationInfo
+                ?.uid
+        }.getOrNull()
 
     private data class TunAccessControl(
         val includeUid: List<Int> = emptyList(),
@@ -175,7 +196,6 @@ class SessionRuntimeSpecFactory(
 
     private fun requireActiveProfile(): Imported {
         val profileId = store.activeProfile ?: error("No active profile selected")
-        return ImportedDao.queryByUUID(profileId)
-            ?: error("Active profile metadata not found: $profileId")
+        return ImportedDao.queryByUUID(profileId) ?: error("Active profile metadata not found: $profileId")
     }
 }

@@ -34,19 +34,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.OverrideConfig
+import com.github.yumeyucca.yumebox.feature.override.presentation.viewmodel.OverrideConfigViewModel
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.BadgePlus
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.feature.override.presentation.viewmodel.OverrideConfigViewModel
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.Download
 import org.koin.androidx.compose.koinViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -68,10 +68,8 @@ fun OverrideListScreen(
 
     val listState = rememberLazyListState()
     var selectedSectionIndex by rememberSaveable { mutableIntStateOf(0) }
-    val builtInItems =
-        remember(builtInConfigs, usageCountMap) { builtInConfigs.toListItems(usageCountMap) }
-    val userItems =
-        remember(userConfigs, usageCountMap) { userConfigs.toListItems(usageCountMap) }
+    val builtInItems = remember(builtInConfigs, usageCountMap) { builtInConfigs.toListItems(usageCountMap) }
+    val userItems = remember(userConfigs, usageCountMap) { userConfigs.toListItems(usageCountMap) }
     // One tab row always sits above the cards, so both sections start at index 1.
     val userListIndexOffset = 1
     val reorderState =
@@ -84,9 +82,7 @@ fun OverrideListScreen(
         }
 
     val exportConfigLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.CreateDocument("text/plain")
-        ) { uri ->
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.CreateDocument("text/plain")) { uri ->
             val targetConfig = exportTargetConfig
             if (uri == null || targetConfig == null) {
                 exportTargetConfig = null
@@ -99,9 +95,7 @@ fun OverrideListScreen(
                     output.flush()
                 } ?: error(YumeTxt.Util.Error.UnknownError)
             }
-                .onSuccess {
-                    context.toast(YumeTxt.Override.Export.Success.format(targetConfig.name))
-                }
+                .onSuccess { context.toast(YumeTxt.Override.Export.Success.format(targetConfig.name)) }
                 .onFailure { error ->
                     val reason = error.message ?: YumeTxt.Util.Error.UnknownError
                     context.toast(YumeTxt.Override.Export.Failed.format(reason))
@@ -119,7 +113,7 @@ fun OverrideListScreen(
     // rule-usage map are re-read whenever this list comes back to the foreground.
     LifecycleResumeEffect(viewModel) {
         viewModel.refresh()
-        onPauseOrDispose { }
+        onPauseOrDispose {}
     }
 
     // Only jump after an explicit create/import/duplicate. Re-run when list data arrives so we
@@ -144,8 +138,7 @@ fun OverrideListScreen(
             selectedSectionIndex = targetSection
             return@LaunchedEffect
         }
-        val targetIndex =
-            userListIndexOffset + if (targetSection == 0) builtInIndex else userIndex
+        val targetIndex = userListIndexOffset + if (targetSection == 0) builtInIndex else userIndex
         listState.animateScrollToItem(targetIndex.coerceAtLeast(0))
         viewModel.consumePendingRevealConfig(targetId)
     }
@@ -162,25 +155,20 @@ fun OverrideListScreen(
                                 GlassTopAction(
                                     icon = Yume.BadgePlus,
                                     contentDescription = YumeTxt.Override.Action.Create,
-                                    onClick = {
-                                        dialog = OverrideListDialog.Create(OverrideConfigInputMode.CreateNew)
-                                    },
+                                    onClick = { dialog = OverrideListDialog.Create(OverrideConfigInputMode.CreateNew) },
                                 ),
                                 GlassTopAction(
                                     icon = Lucide.Download,
                                     contentDescription = YumeTxt.Override.Action.NetworkImport,
-                                    onClick = {
-                                        dialog = OverrideListDialog.Create(OverrideConfigInputMode.LocalFile)
-                                    },
+                                    onClick = { dialog = OverrideListDialog.Create(OverrideConfigInputMode.LocalFile) },
                                 ),
                             ),
                         backdrop = LocalTopBarBackdrop.current,
                     )
                 },
             )
-        },
+        }
     ) { paddingValues ->
-
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = paddingValues,
@@ -264,18 +252,14 @@ fun OverrideListScreen(
     }
 }
 
-/**
- * 这一页同一时间只会有一个弹窗,所以用一个槽位表达,而不是几个互斥的布尔值。
- */
+/** 这一页同一时间只会有一个弹窗,所以用一个槽位表达,而不是几个互斥的布尔值。 */
 private sealed interface OverrideListDialog {
     data class Create(val mode: OverrideConfigInputMode) : OverrideListDialog
 
     data class Rename(val config: OverrideConfig) : OverrideListDialog
 }
 
-/**
- * 内置表与用户表共用同一张卡,差别只在外面的拖拽壳和有没有删除入口。
- */
+/** 内置表与用户表共用同一张卡,差别只在外面的拖拽壳和有没有删除入口。 */
 @Composable
 private fun OverrideCardSlot(
     item: OverrideConfigListItem,
@@ -306,9 +290,7 @@ private data class OverrideConfigListItem(
     val isInUse: Boolean,
 )
 
-private fun List<OverrideConfig>.toListItems(
-    usageCountMap: Map<String, Int>
-): List<OverrideConfigListItem> =
+private fun List<OverrideConfig>.toListItems(usageCountMap: Map<String, Int>): List<OverrideConfigListItem> =
     map { config ->
         OverrideConfigListItem(
             config = config,

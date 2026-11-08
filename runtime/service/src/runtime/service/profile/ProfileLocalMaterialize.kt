@@ -26,14 +26,17 @@ import timber.log.Timber
 import java.io.File
 
 /**
- * Materialize a local profile's config.yaml into [stagingDir], matching the old native
- * `FetchAndValid(force=true)` path that re-opened `content://` / `file://` sources.
+ * Materialize a local profile's config.yaml into [stagingDir], matching the old native `FetchAndValid(force=true)` path
+ * that re-opened `content://` / `file://` sources.
  *
- * Prefer the original source URI when still readable so a missing or partial copy from
- * import cannot silently leave staging without a config (and therefore without provider
- * prefetch). Fall back to whatever is already staged.
+ * Prefer the original source URI when still readable so a missing or partial copy from import cannot silently leave
+ * staging without a config (and therefore without provider prefetch). Fall back to whatever is already staged.
  */
-internal fun materializeLocalConfig(context: Context, stagingDir: File, imported: Imported) {
+internal fun materializeLocalConfig(
+    context: Context,
+    stagingDir: File,
+    imported: Imported,
+) {
     val config = stagingDir.resolve("config.yaml")
     val temporary = stagingDir.resolve(".config.yaml.local")
     val source = imported.source.trim()
@@ -46,37 +49,34 @@ internal fun materializeLocalConfig(context: Context, stagingDir: File, imported
 
     val reloaded =
         runCatching {
-                stagingDir.mkdirs()
-                temporary.delete()
-                when {
-                    source.startsWith("content:", ignoreCase = true) ||
-                        source.startsWith("file:", ignoreCase = true) -> {
-                        val uri = Uri.parse(source)
-                        context.contentResolver.openInputStream(uri)?.use { input ->
-                            temporary.outputStream().use { output -> input.copyTo(output) }
-                            true
-                        } ?: false
-                    }
-                    File(source).isFile -> {
-                        File(source).inputStream().use { input ->
-                            temporary.outputStream().use { output -> input.copyTo(output) }
-                        }
+            stagingDir.mkdirs()
+            temporary.delete()
+            when {
+                source.startsWith("content:", ignoreCase = true) || source.startsWith("file:", ignoreCase = true) -> {
+                    val uri = Uri.parse(source)
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        temporary.outputStream().use { output -> input.copyTo(output) }
                         true
-                    }
-                    else -> false
+                    } ?: false
                 }
-                    .also { copied ->
-                        if (copied) {
-                            check(temporary.isFile && temporary.length() > 0L) {
-                                "Local profile source is empty: $source"
-                            }
-                            temporary.copyTo(config, overwrite = true)
-                        }
+
+                File(source).isFile -> {
+                    File(source).inputStream().use { input ->
+                        temporary.outputStream().use { output -> input.copyTo(output) }
                     }
+                    true
+                }
+
+                else -> {
+                    false
+                }
+            }.also { copied ->
+                if (copied) {
+                    check(temporary.isFile && temporary.length() > 0L) { "Local profile source is empty: $source" }
+                    temporary.copyTo(config, overwrite = true)
+                }
             }
-            .onFailure { error ->
-                Timber.w(error, "Failed to re-read local profile source: %s", source)
-            }
+        }.onFailure { error -> Timber.w(error, "Failed to re-read local profile source: %s", source) }
             .getOrDefault(false)
     temporary.delete()
 

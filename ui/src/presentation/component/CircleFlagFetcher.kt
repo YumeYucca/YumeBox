@@ -44,9 +44,7 @@ internal class CircleFlagFetcher(
 ) : Fetcher {
     @WorkerThread
     override suspend fun fetch(): Result<FetchResult> = runCatching {
-        val bytes =
-            readFlag(path) ?: readFlag(UNKNOWN_FLAG_PATH)
-                ?: error("Bundled fallback flag is missing")
+        val bytes = readFlag(path) ?: readFlag(UNKNOWN_FLAG_PATH) ?: error("Bundled fallback flag is missing")
         FetchResult(ByteArrayDataSource(bytes, DataFrom.LOCAL), "image/svg+xml")
     }
 
@@ -80,14 +78,10 @@ internal class CircleFlagFetcher(
                 while (true) {
                     val read = input.read(buffer)
                     if (read == -1) break
-                    require(output.size() + read <= MAX_FLAG_BYTES) {
-                        "Invalid bundled flag data"
-                    }
+                    require(output.size() + read <= MAX_FLAG_BYTES) { "Invalid bundled flag data" }
                     output.write(buffer, 0, read)
                 }
-                output.toByteArray().also { bytes ->
-                    require(bytes.isNotEmpty()) { "Invalid bundled flag data" }
-                }
+                output.toByteArray().also { bytes -> require(bytes.isNotEmpty()) { "Invalid bundled flag data" } }
             }
         }
     }

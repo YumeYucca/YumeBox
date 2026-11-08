@@ -85,8 +85,7 @@ data class Proxy(
     override fun describeContents(): Int = 0
 
     companion object CREATOR : Parcelable.Creator<Proxy> {
-        override fun createFromParcel(parcel: Parcel): Proxy =
-            Parcelizer.decodeFromParcel(serializer(), parcel)
+        override fun createFromParcel(parcel: Parcel): Proxy = Parcelizer.decodeFromParcel(serializer(), parcel)
 
         override fun newArray(size: Int): Array<Proxy?> = arrayOfNulls(size)
     }

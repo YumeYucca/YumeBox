@@ -28,17 +28,16 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /**
  * Builds the traffic-statistics Room database and returns its DAO.
  *
- * Keeping construction here confines the `TrafficDatabase` / `RoomDatabase` / `Room` types to
- * `:data`; callers (e.g. `:app` DI wiring) only ever touch [TrafficStatisticsDao], which exposes no
- * Room supertypes in its signatures. This lets `:data` keep Room as an `implementation` dependency
- * without leaking it onto the `:app` compile classpath.
+ * Keeping construction here confines the `TrafficDatabase` / `RoomDatabase` / `Room` types to `:data`; callers (e.g.
+ * `:app` DI wiring) only ever touch [TrafficStatisticsDao], which exposes no Room supertypes in its signatures. This
+ * lets `:data` keep Room as an `implementation` dependency without leaking it onto the `:app` compile classpath.
  */
 fun createTrafficStatisticsDao(context: Context): TrafficStatisticsDao =
     Room.databaseBuilder(
-        context.applicationContext,
-        TrafficDatabase::class.java,
-        TrafficDatabase.DATABASE_NAME,
-    )
+            context.applicationContext,
+            TrafficDatabase::class.java,
+            TrafficDatabase.DATABASE_NAME,
+        )
         .addMigrations(TRAFFIC_MIGRATION_1_2)
         .build()
         .trafficStatisticsDao()

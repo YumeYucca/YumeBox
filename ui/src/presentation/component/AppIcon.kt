@@ -34,22 +34,20 @@ import kotlinx.coroutines.withContext
 /**
  * Decodes the launcher icon of [packageName] at [sizePx] square pixels.
  *
- * Blocking: callers must be off the main thread. Returns `null` for a blank or unknown package —
- * a missing icon is a cosmetic fallback, so callers draw their own placeholder instead of failing.
+ * Blocking: callers must be off the main thread. Returns `null` for a blank or unknown package — a missing icon is a
+ * cosmetic fallback, so callers draw their own placeholder instead of failing.
  */
 fun resolveAppIconBitmap(context: Context, packageName: String?, sizePx: Int): ImageBitmap? {
     val target = packageName?.trim()?.takeIf { it.isNotEmpty() } ?: return null
     return runCatching {
-        context.packageManager
-            .getApplicationIcon(target)
-            .toBitmap(width = sizePx, height = sizePx)
-            .asImageBitmap()
-    }.getOrNull()
+        context.packageManager.getApplicationIcon(target).toBitmap(width = sizePx, height = sizePx).asImageBitmap()
+    }
+        .getOrNull()
 }
 
 /**
- * [resolveAppIconBitmap] as remembered state: decodes once per ([packageName], [sizePx]) pair off the
- * main thread, so a list row never re-reads the package manager while scrolling.
+ * [resolveAppIconBitmap] as remembered state: decodes once per ([packageName], [sizePx]) pair off the main thread, so a
+ * list row never re-reads the package manager while scrolling.
  */
 @Composable
 fun rememberAppIconBitmap(packageName: String?, sizePx: Int): ImageBitmap? {

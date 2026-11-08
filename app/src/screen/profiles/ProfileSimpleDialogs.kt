@@ -22,11 +22,10 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-
 import androidx.compose.runtime.Composable
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.AppDialog
 import com.github.yumeyucca.yumebox.presentation.component.DialogButtonRow
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 @Composable
 internal fun DeleteConfirmDialog(

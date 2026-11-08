@@ -32,22 +32,22 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.GlassMenuItem
-import com.github.yumeyucca.yumebox.presentation.component.GlassPopupMenuSizing
 import com.github.yumeyucca.yumebox.presentation.component.GlassPopupHost
+import com.github.yumeyucca.yumebox.presentation.component.GlassPopupMenuSizing
 import com.github.yumeyucca.yumebox.presentation.component.fixedWidth
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
+import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.ClipboardPaste
 import io.github.yumeyucca.lucide.lucide.Copy
 import io.github.yumeyucca.lucide.lucide.Scissors
 import io.github.yumeyucca.lucide.lucide.TextCursor
-import io.github.rosemoe.sora.widget.CodeEditor
-import top.yukonga.miuix.kmp.glass.glassPopupAnchor
-import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
-import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 
 internal enum class SelectionAction {
     Cut,
@@ -129,10 +129,7 @@ internal fun buildSelectionMenuState(editor: CodeEditor): SelectionMenuState? {
 
     return SelectionMenuState(
         editor = editor,
-        anchorX =
-            ((leftX + rightX) / 2f)
-                .coerceIn(0f, editor.getWidth().toFloat())
-                .roundToInt(),
+        anchorX = ((leftX + rightX) / 2f).coerceIn(0f, editor.getWidth().toFloat()).roundToInt(),
         anchorY = anchorY.coerceIn(0f, editor.getHeight().toFloat()).roundToInt(),
         canCut = canCut,
         canPaste = canPaste,
@@ -168,8 +165,7 @@ internal fun TextSelectionActionsMenu(
     Box(Modifier.fillMaxSize()) {
         Box(
             modifier =
-                Modifier
-                    .offset { IntOffset(state.anchorX, state.anchorY) }
+                Modifier.offset { IntOffset(state.anchorX, state.anchorY) }
                     .size(1.dp)
                     .glassPopupAnchor(
                         anchor = anchor,

@@ -19,9 +19,7 @@ class BuiltinGeoAssetsRequiredException : IllegalStateException()
 fun Context.requireBuiltinGeoAssets() {
     val installed =
         runtimeHomeDir.listFiles()?.any { file ->
-            file.isFile &&
-                file.length() > 0L &&
-                file.extension.equals("mmdb", ignoreCase = true)
+            file.isFile && file.length() > 0L && file.extension.equals("mmdb", ignoreCase = true)
         } == true
     if (!installed) throw BuiltinGeoAssetsRequiredException()
 }

@@ -42,8 +42,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.state.IntColorDrawableStateImage
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.displayedSelectionDelay
 import com.github.yumeyucca.yumebox.domain.model.resolveTerminalProxy
@@ -53,12 +55,10 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.chevron
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.inactiveSurfaceColor
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.SinkFeedback
-import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 
 internal fun LazyListScope.nodeGroupItems(
     groups: List<ProxyGroupInfo>,
@@ -78,9 +78,7 @@ internal fun LazyListScope.nodeGroupItems(
             isDelayTesting = testingGroupNames.contains(group.name),
             onClick = onGroupClick,
             onTestClick = onGroupTest,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = itemVerticalPadding),
+            modifier = Modifier.fillMaxWidth().padding(vertical = itemVerticalPadding),
         )
     }
 }
@@ -98,8 +96,7 @@ internal fun NodeGroupCard(
     val interactionSource = remember { MutableInteractionSource() }
     val currentProxy =
         remember(group.now, allGroups) {
-            allGroups.resolveTerminalProxy(group.now)
-                ?: group.proxies.firstOrNull { it.name == group.now }
+            allGroups.resolveTerminalProxy(group.now) ?: group.proxies.firstOrNull { it.name == group.now }
         }
     val currentNode =
         remember(currentProxy?.name, currentProxy?.title, group.now) {
@@ -110,18 +107,11 @@ internal fun NodeGroupCard(
         }
     val currentNodeName =
         remember(currentNode.displayName, group.now) {
-            currentNode.displayName
-                .ifBlank { group.now.trim() }
-                .ifBlank { YumeTxt.Proxy.Mode.Direct }
+            currentNode.displayName.ifBlank { group.now.trim() }.ifBlank { YumeTxt.Proxy.Mode.Direct }
         }
     val iconUri =
-        remember(group.icon) {
-            group.icon?.trim()?.takeIf { it.isNotEmpty() }?.let(::normalizeNodeGroupIconUri)
-        }
-    val currentDelay =
-        remember(group.now, allGroups) {
-            allGroups.displayedSelectionDelay(group)
-        }
+        remember(group.icon) { group.icon?.trim()?.takeIf { it.isNotEmpty() }?.let(::normalizeNodeGroupIconUri) }
+    val currentDelay = remember(group.now, allGroups) { allGroups.displayedSelectionDelay(group) }
 
     Column(
         modifier =
@@ -153,9 +143,7 @@ internal fun NodeGroupCard(
             if (iconUri != null) {
                 NodeGroupIcon(
                     iconUri = iconUri,
-                    modifier = Modifier
-                        .size(UiDp.dp44)
-                        .clip(RoundedCornerShape(UiDp.dp14)),
+                    modifier = Modifier.size(UiDp.dp44).clip(RoundedCornerShape(UiDp.dp14)),
                 )
             }
 
@@ -182,8 +170,7 @@ internal fun NodeGroupCard(
                         style = MiuixTheme.textStyles.footnote1.copy(fontSize = 10.sp),
                         color = primary,
                         modifier =
-                            Modifier
-                                .padding(start = UiDp.dp8)
+                            Modifier.padding(start = UiDp.dp8)
                                 .clip(RoundedCornerShape(UiDp.dp100))
                                 .background(primary.copy(alpha = 0.1f))
                                 .padding(horizontal = UiDp.dp8, vertical = UiDp.dp3),
@@ -191,11 +178,11 @@ internal fun NodeGroupCard(
                 }
 
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(UiDp.dp14))
-                        .background(inactiveSurfaceColor())
-                        .padding(horizontal = UiDp.dp10, vertical = UiDp.dp6),
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(UiDp.dp14))
+                            .background(inactiveSurfaceColor())
+                            .padding(horizontal = UiDp.dp10, vertical = UiDp.dp6)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

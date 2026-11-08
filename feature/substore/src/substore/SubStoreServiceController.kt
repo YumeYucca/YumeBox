@@ -36,8 +36,7 @@ data class SubStoreServiceRequest(
 enum class SubStoreServiceLifecycle {
     Stopped,
     Starting,
-    Running,
-    ;
+    Running;
 
     val isActive: Boolean
         get() = this != Stopped
@@ -76,12 +75,8 @@ object SubStoreServiceController {
 
     fun requestFrom(intent: Intent?): SubStoreServiceRequest =
         SubStoreServiceRequest(
-            frontendPort =
-                intent?.getIntExtra(EXTRA_FRONTEND_PORT, DEFAULT_FRONTEND_PORT)
-                    ?: DEFAULT_FRONTEND_PORT,
-            backendPort =
-                intent?.getIntExtra(EXTRA_BACKEND_PORT, DEFAULT_BACKEND_PORT)
-                    ?: DEFAULT_BACKEND_PORT,
+            frontendPort = intent?.getIntExtra(EXTRA_FRONTEND_PORT, DEFAULT_FRONTEND_PORT) ?: DEFAULT_FRONTEND_PORT,
+            backendPort = intent?.getIntExtra(EXTRA_BACKEND_PORT, DEFAULT_BACKEND_PORT) ?: DEFAULT_BACKEND_PORT,
             allowLan = intent?.getBooleanExtra(EXTRA_ALLOW_LAN, false) ?: false,
         )
 

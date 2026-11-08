@@ -37,8 +37,7 @@ class MMKVStoreProvider(private val mmkv: MMKV) : StoreProvider {
         mmkv.encode(key, value)
     }
 
-    override fun getBoolean(key: String, defaultValue: Boolean): Boolean =
-        mmkv.decodeBool(key, defaultValue)
+    override fun getBoolean(key: String, defaultValue: Boolean): Boolean = mmkv.decodeBool(key, defaultValue)
 
     override fun setBoolean(key: String, value: Boolean) {
         mmkv.encode(key, value)

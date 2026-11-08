@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.github.yumeyucca.yumebox.BuildInfo
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.*
@@ -37,7 +38,6 @@ import io.github.yumeyucca.lucide.lucide.Feather
 import io.github.yumeyucca.lucide.lucide.FileBracesCorner
 import io.github.yumeyucca.lucide.lucide.ShieldCheck
 import io.github.yumeyucca.lucide.lucide.WifiPen
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
@@ -77,9 +77,8 @@ private fun SettingsMasterList(
     versionInfo: String,
     onOpen: (Route) -> Unit,
 ) {
-    Scaffold(
-        topBar = { SmallTopBar(title = YumeTxt.Settings.Title, scrollBehavior = scrollBehavior) }
-    ) { innerPadding ->
+    Scaffold(topBar = { SmallTopBar(title = YumeTxt.Settings.Title, scrollBehavior = scrollBehavior) }) { innerPadding
+        ->
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
@@ -111,7 +110,7 @@ private fun SettingsMasterList(
                                     icon = Lucide.ShieldCheck,
                                 )
                             },
-                        )
+                        ),
                 )
             }
             item {
@@ -141,7 +140,7 @@ private fun SettingsMasterList(
                                     icon = Yume.CPU,
                                 )
                             },
-                        )
+                        ),
                 )
             }
             item {
@@ -164,7 +163,7 @@ private fun SettingsMasterList(
                                     icon = Yume.FlaskConical,
                                 )
                             },
-                        )
+                        ),
                 )
             }
             item {

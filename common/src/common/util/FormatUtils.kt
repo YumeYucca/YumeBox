@@ -71,8 +71,7 @@ object ByteFormatter {
     }
 
     /** One decimal below 10, none above — keeps the displayed number short. */
-    private fun adaptive(num: Double): String =
-        if (num < 10) "%.1f".format(num) else "%.0f".format(num)
+    private fun adaptive(num: Double): String = if (num < 10) "%.1f".format(num) else "%.0f".format(num)
 }
 
 private val dateTimeFormatters = ConcurrentHashMap<String, DateTimeFormatter>()
@@ -80,17 +79,14 @@ private val dateTimeFormatters = ConcurrentHashMap<String, DateTimeFormatter>()
 /**
  * Formats [epochMillis] with [pattern] in the device's zone and locale.
  *
- * Formatters are cached per pattern: the call sites sit in list rows, and building a
- * [DateTimeFormatter] (or the older `SimpleDateFormat`) per row shows up in traces.
+ * Formatters are cached per pattern: the call sites sit in list rows, and building a [DateTimeFormatter] (or the older
+ * `SimpleDateFormat`) per row shows up in traces.
  */
 fun formatDateTime(
     epochMillis: Long,
     pattern: String,
 ): String {
-    val formatter =
-        dateTimeFormatters.computeIfAbsent(pattern) {
-            DateTimeFormatter.ofPattern(it, Locale.getDefault())
-        }
+    val formatter = dateTimeFormatters.computeIfAbsent(pattern) { DateTimeFormatter.ofPattern(it, Locale.getDefault()) }
     return formatter.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
 }
 

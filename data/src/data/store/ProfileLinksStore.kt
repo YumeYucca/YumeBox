@@ -22,9 +22,8 @@
 
 package com.github.yumeyucca.yumebox.data.store
 
-
-import com.tencent.mmkv.MMKV
 import com.github.yumeyucca.yumebox.core.util.LenientJson
+import com.tencent.mmkv.MMKV
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -45,11 +44,11 @@ class ProfileLinksStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exte
     val linkOpenMode by enumFlow(LinkOpenMode.IN_APP)
 
     val links by
-    jsonListFlow(
-        default = emptyList(),
-        decode = { str -> decodeFromString<List<ProfileLink>>(str) },
-        encode = { value -> encodeToString(value) },
-    )
+        jsonListFlow(
+            default = emptyList(),
+            decode = { str -> decodeFromString<List<ProfileLink>>(str) },
+            encode = { value -> encodeToString(value) },
+        )
 
     val defaultLinkId by strFlow(default = "")
 }

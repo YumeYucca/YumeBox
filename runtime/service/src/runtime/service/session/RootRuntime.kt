@@ -36,19 +36,17 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
 /**
- * Compiles the active profile for a root [RunMode.Tun] / [RunMode.Ebpf] daemon and swaps it in.
- * The daemon that is already serving keeps serving through the compile; [CoreProcess.startRoot]
- * reaps it under the lifecycle lock right before the new exec.
+ * Compiles the active profile for a root [RunMode.Tun] / [RunMode.Ebpf] daemon and swaps it in. The daemon that is
+ * already serving keeps serving through the compile; [CoreProcess.startRoot] reaps it under the lifecycle lock right
+ * before the new exec.
  */
 internal object RootRuntime {
     /**
-     * On failure the daemon this call launched is reaped again, so afterwards
-     * [RootDaemonProbe.trackedAlive] tells whether the previous daemon still serves.
+     * On failure the daemon this call launched is reaped again, so afterwards [RootDaemonProbe.trackedAlive] tells
+     * whether the previous daemon still serves.
      */
     suspend fun start(context: Context, mode: RunMode) {
-        require(mode == RunMode.Tun || mode == RunMode.Ebpf) {
-            "RootRuntime handles root modes only, got $mode"
-        }
+        require(mode == RunMode.Tun || mode == RunMode.Ebpf) { "RootRuntime handles root modes only, got $mode" }
         val log = RuntimeLog.writer(context, mode)
         log.beginSession(RuntimeLog.Type.Launcher, "root start mode=${mode.name}")
         val previousPid = RootDaemonState.load()?.pid
@@ -62,9 +60,7 @@ internal object RootRuntime {
                 }
             }
             StartupTaskCoordinator.awaitWarmup()
-            val spec = withContext(Dispatchers.IO) {
-                SessionRuntimeSpecFactory(context).createRootSpec(mode)
-            }
+            val spec = withContext(Dispatchers.IO) { SessionRuntimeSpecFactory(context).createRootSpec(mode) }
             log.i(
                 RuntimeLog.Type.Launcher,
                 "profile=${spec.profileName} overrides=${spec.overrideSpecs.size}",

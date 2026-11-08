@@ -68,8 +68,7 @@ internal class ProxyTabScrollState internal constructor() {
                 source: NestedScrollSource,
             ): Offset {
                 if (consumed.y != 0f) {
-                    distanceFromTopPx =
-                        (distanceFromTopPx - consumed.y).coerceAtLeast(0f)
+                    distanceFromTopPx = (distanceFromTopPx - consumed.y).coerceAtLeast(0f)
                 }
                 return Offset.Zero
             }
@@ -86,8 +85,7 @@ internal class ProxyTabScrollState internal constructor() {
     }
 }
 
-@Composable
-internal fun rememberProxyTabScrollState(): ProxyTabScrollState = remember { ProxyTabScrollState() }
+@Composable internal fun rememberProxyTabScrollState(): ProxyTabScrollState = remember { ProxyTabScrollState() }
 
 @Composable
 internal fun rememberProxyGroupPagerState(
@@ -95,10 +93,7 @@ internal fun rememberProxyGroupPagerState(
     selectedGroupName: String?,
     onGroupSelected: (ProxyGroupInfo) -> Unit,
 ): PagerState {
-    val initialPage =
-        groups
-            .indexOfFirst { group -> group.name == selectedGroupName }
-            .coerceAtLeast(0)
+    val initialPage = groups.indexOfFirst { group -> group.name == selectedGroupName }.coerceAtLeast(0)
     val pagerState =
         rememberPagerState(
             initialPage = initialPage,
@@ -110,16 +105,10 @@ internal fun rememberProxyGroupPagerState(
     // was re-ordered the group at that index is no longer the one the user picked. Re-selecting
     // here would overwrite the user's choice with whatever now sits at that index; the effect
     // below is what realigns the pager after a list change.
-    LaunchedEffect(pagerState.currentPage) {
-        groups.getOrNull(pagerState.currentPage)?.let(latestOnGroupSelected)
-    }
+    LaunchedEffect(pagerState.currentPage) { groups.getOrNull(pagerState.currentPage)?.let(latestOnGroupSelected) }
     LaunchedEffect(selectedGroupName, groups, pagerState.isScrollInProgress) {
         val selectedIndex = groups.indexOfFirst { group -> group.name == selectedGroupName }
-        if (
-            selectedIndex >= 0 &&
-                selectedIndex != pagerState.currentPage &&
-                !pagerState.isScrollInProgress
-        ) {
+        if (selectedIndex >= 0 && selectedIndex != pagerState.currentPage && !pagerState.isScrollInProgress) {
             pagerState.animateScrollToPage(selectedIndex)
         }
     }
@@ -144,10 +133,7 @@ internal fun ProxyGroupTabPager(
 
     HorizontalPager(
         state = pagerState,
-        modifier =
-            modifier
-                .fillMaxSize()
-                .nestedScroll(handoffConnection),
+        modifier = modifier.fillMaxSize().nestedScroll(handoffConnection),
         beyondViewportPageCount = 0,
         userScrollEnabled = true,
         pageNestedScrollConnection = NoOpNestedScrollConnection,
@@ -175,11 +161,8 @@ internal fun ProxyCollapsingTabs(
 
     Box(
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .graphicsLayer {
-                    translationY = restTopPx - collapseState.collapsedPx
-                }
+            Modifier.fillMaxWidth()
+                .graphicsLayer { translationY = restTopPx - collapseState.collapsedPx }
                 .padding(start = UiDp.dp12, end = UiDp.dp12, bottom = UiDp.dp4)
     ) {
         SegmentedTabRow(

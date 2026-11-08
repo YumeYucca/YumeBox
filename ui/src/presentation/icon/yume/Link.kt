@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathFillType.Companion.NonZero
 import androidx.compose.ui.graphics.SolidColor
@@ -41,12 +40,12 @@ val Yume.Link: ImageVector
         }
         linkVector =
             Builder(
-                name = "Link",
-                defaultWidth = 24.0.dp,
-                defaultHeight = 24.0.dp,
-                viewportWidth = 24.0f,
-                viewportHeight = 24.0f,
-            )
+                    name = "Link",
+                    defaultWidth = 24.0.dp,
+                    defaultHeight = 24.0.dp,
+                    viewportWidth = 24.0f,
+                    viewportHeight = 24.0f,
+                )
                 .apply {
                     path(
                         fill = SolidColor(Color(0x00000000)),

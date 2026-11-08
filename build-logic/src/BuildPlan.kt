@@ -23,12 +23,13 @@ data class BuildPlan(
 ) {
     fun apkFileName(abi: String): String =
         buildList {
-            add(outputPrefix)
-            add(geoSegment)
-            if (abi != "arm64-v8a") add(abi)
-            outputChannel?.let(::add)
-            outputTail?.let(::add)
-        }.joinToString("-") + ".apk"
+                add(outputPrefix)
+                add(geoSegment)
+                if (abi != "arm64-v8a") add(abi)
+                outputChannel?.let(::add)
+                outputTail?.let(::add)
+            }
+            .joinToString("-") + ".apk"
 }
 
 fun planBuild(request: BuildRequest): BuildPlan {
@@ -37,8 +38,7 @@ fun planBuild(request: BuildRequest): BuildPlan {
     require(number >= 0) { "build.number must not be negative" }
     val hash = request.buildHash.nonBlank()?.take(8)
     // Keep in sync with reusable-prepare-publish.yml.
-    val branch =
-        request.buildBranch?.lowercase()?.replace(Regex("[^a-z0-9]+"), "-")?.trim('-')?.nonBlank()
+    val branch = request.buildBranch?.lowercase()?.replace(Regex("[^a-z0-9]+"), "-")?.trim('-')?.nonBlank()
     return BuildPlan(
         versionCode = Math.addExact(request.versionCodeEpoch, number),
         versionName =

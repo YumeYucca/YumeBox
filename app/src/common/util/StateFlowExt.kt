@@ -26,14 +26,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
-/**
- * Stop-collecting timeout shared by every screen state flow; tune retention here, not per call
- * site.
- */
+/** Stop-collecting timeout shared by every screen state flow; tune retention here, not per call site. */
 private const val STATE_STOP_TIMEOUT_MS = 5_000L
 
-/**
- * The `stateIn(scope, WhileSubscribed(5s), initial)` idiom every view model repeats, spelled once.
- */
+/** The `stateIn(scope, WhileSubscribed(5s), initial)` idiom every view model repeats, spelled once. */
 fun <T> Flow<T>.stateInWhileSubscribed(scope: CoroutineScope, initialValue: T): StateFlow<T> =
     stateIn(scope, SharingStarted.WhileSubscribed(STATE_STOP_TIMEOUT_MS), initialValue)

@@ -82,8 +82,7 @@ internal fun EditorSymbolBar(
         HorizontalDivider()
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
+                Modifier.fillMaxWidth()
                     .height(UiDp.dp48)
                     .background(MiuixTheme.colorScheme.surface)
                     .horizontalScroll(rememberScrollState())

@@ -75,9 +75,9 @@ class ApiProtocolException(cause: Throwable) : ApiException("controller returned
 /**
  * Kotlin/JVM client for the controller REST API.
  *
- * The client owns its HTTP client unless an [httpClient] is supplied. Call [close] when a
- * long-lived instance is no longer needed. All helpers delegate to [request], so newer
- * endpoints remain available without waiting for this library to add a wrapper.
+ * The client owns its HTTP client unless an [httpClient] is supplied. Call [close] when a long-lived instance is no
+ * longer needed. All helpers delegate to [request], so newer endpoints remain available without waiting for this
+ * library to add a wrapper.
  */
 class ApiClient(
     val config: ApiConfig,
@@ -104,8 +104,8 @@ class ApiClient(
     /**
      * Calls any controller route and decodes its JSON response.
      *
-     * [path] is always appended to [ApiConfig.endpoint]; absolute URLs are not
-     * accepted, so credentials cannot accidentally be sent to another host.
+     * [path] is always appended to [ApiConfig.endpoint]; absolute URLs are not accepted, so credentials cannot
+     * accidentally be sent to another host.
      */
     suspend fun request(
         method: HttpMethod,
@@ -176,8 +176,7 @@ class ApiClient(
         configs()["mode"]?.jsonPrimitive?.contentOrNull
             ?: throw ApiProtocolException(IllegalStateException("configs response is missing mode"))
 
-    suspend fun patchConfigs(config: JsonObject): JsonElement =
-        request(HttpMethod.Patch, "configs", body = config)
+    suspend fun patchConfigs(config: JsonObject): JsonElement = request(HttpMethod.Patch, "configs", body = config)
 
     suspend fun traffic(): JsonObject = getObject("traffic")
 
@@ -252,11 +251,13 @@ class ApiClient(
 
     private fun buildUrl(path: String, query: Map<String, String>): String {
         require(!path.contains("://")) { "path must be relative to the configured endpoint" }
-        return URLBuilder().apply {
-            takeFrom(config.normalizedEndpoint)
-            appendPathSegments(*path.trim('/').split('/').filter(String::isNotBlank).toTypedArray())
-            query.forEach { (key, value) -> parameters.append(key, value) }
-        }.buildString()
+        return URLBuilder()
+            .apply {
+                takeFrom(config.normalizedEndpoint)
+                appendPathSegments(*path.trim('/').split('/').filter(String::isNotBlank).toTypedArray())
+                query.forEach { (key, value) -> parameters.append(key, value) }
+            }
+            .buildString()
     }
 
     private fun HttpRequestBuilder.applyAuthorization() {

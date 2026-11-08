@@ -10,15 +10,19 @@
 package com.github.yumeyucca.yumebox.runtime.service.core
 
 import android.content.Context
+import com.github.yumeyucca.yumebox.core.util.LenientJson
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.isSuccess
 import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
 import io.ktor.utils.io.jvm.javaio.copyTo
-import com.github.yumeyucca.yumebox.core.util.LenientJson
+import java.io.File
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -27,15 +31,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import org.tukaani.xz.XZInputStream
 import timber.log.Timber
-import java.io.File
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
-import java.util.concurrent.ConcurrentHashMap
 
 /** Downloadable `libmihomocore.so` catalog and installer. Bundled Alpha remains the fallback. */
 object KernelManager {
-    const val INDEX_URL =
-        "https://github.com/YumeYucca/Kernel-Builder/releases/download/kernel/kernel-index.json"
+    const val INDEX_URL = "https://github.com/YumeYucca/Kernel-Builder/releases/download/kernel/kernel-index.json"
     const val BUNDLED_ALPHA_ID = "bundled-alpha"
     private const val CORE_FILE_PREFIX = "libmihomocore-"
     private const val CORE_METADATA_SUFFIX = ".json"
@@ -52,9 +51,8 @@ object KernelManager {
     private val installMutex = Mutex()
     // Do not initialize the HTTP engine while the local/bundled core is starting. The network
     // client is only needed after the user opens Kernel settings or selects a remote slot.
-    private val client: HttpClient by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        HttpClient(OkHttp) { expectSuccess = false }
-    }
+    private val client: HttpClient by
+        lazy(LazyThreadSafetyMode.SYNCHRONIZED) { HttpClient(OkHttp) { expectSuccess = false } }
 
     /** Verdict of the whole-file ELF scan, keyed by path and invalidated by size/mtime. */
     private val verifiedCores = ConcurrentHashMap<String, CoreVerdict>()
@@ -95,14 +93,15 @@ object KernelManager {
         val capabilities: Set<String> = emptySet(),
     )
 
-    suspend fun fetchIndex(url: String = INDEX_URL): Index = withContext(Dispatchers.IO) {
-        require(url.startsWith("https://")) { "Kernel index must use HTTPS" }
-        val response = client.get(url)
-        check(response.status.isSuccess()) { "Kernel index request failed: ${response.status}" }
-        val index = json.decodeFromString<Index>(response.bodyAsText())
-        validateIndex(index)
-        index
-    }
+    suspend fun fetchIndex(url: String = INDEX_URL): Index =
+        withContext(Dispatchers.IO) {
+            require(url.startsWith("https://")) { "Kernel index must use HTTPS" }
+            val response = client.get(url)
+            check(response.status.isSuccess()) { "Kernel index request failed: ${response.status}" }
+            val index = json.decodeFromString<Index>(response.bodyAsText())
+            validateIndex(index)
+            index
+        }
 
     suspend fun install(context: Context, kernel: Kernel): File = installMutex.withLock {
         withContext(Dispatchers.IO) {
@@ -133,9 +132,8 @@ object KernelManager {
             if (metadata.exists()) check(metadata.delete()) { "Unable to replace kernel metadata" }
             replace(target, expanded)
             verifiedCores.remove(target.absolutePath)
-            runCatching { writeInstalledKernel(context, kernel) }.onFailure {
-                Timber.tag("KernelManager").w(it, "Unable to save installed kernel version")
-            }
+            runCatching { writeInstalledKernel(context, kernel) }
+                .onFailure { Timber.tag("KernelManager").w(it, "Unable to save installed kernel version") }
         } finally {
             verifiedCores.remove(expanded.absolutePath)
             expanded.delete()
@@ -143,16 +141,14 @@ object KernelManager {
         return target
     }
 
-    fun libraryFile(context: Context, id: String): File =
-        File(libraryDirectory(context), "$CORE_FILE_PREFIX$id.so")
+    fun libraryFile(context: Context, id: String): File = File(libraryDirectory(context), "$CORE_FILE_PREFIX$id.so")
 
     fun activeKernelId(context: Context): String =
         runCatching {
             File(libraryDirectory(context), ACTIVE_FILE).takeIf(File::isFile)?.readText()?.trim()
         }
             .getOrNull()
-            ?.takeIf { it == BUNDLED_ALPHA_ID || (isKernelId(it) && isInstalled(context, it)) }
-            ?: BUNDLED_ALPHA_ID
+            ?.takeIf { it == BUNDLED_ALPHA_ID || (isKernelId(it) && isInstalled(context, it)) } ?: BUNDLED_ALPHA_ID
 
     fun activate(context: Context, id: String) {
         require(id == BUNDLED_ALPHA_ID || isKernelId(id)) { "Invalid kernel id" }
@@ -169,12 +165,13 @@ object KernelManager {
     fun isEbpfKernelActive(context: Context): Boolean {
         val id = activeKernelId(context)
         if (id == BUNDLED_ALPHA_ID || !isInstalled(context, id)) return false
-        return CAPABILITY_EBPF in readInstalledKernel(context, id)?.capabilities.orEmpty() ||
-            id == LEGACY_EBPF_ID
+        return CAPABILITY_EBPF in readInstalledKernel(context, id)?.capabilities.orEmpty() || id == LEGACY_EBPF_ID
     }
 
     fun installedKernelIds(context: Context): List<String> =
-        libraryDirectory(context).listFiles().orEmpty()
+        libraryDirectory(context)
+            .listFiles()
+            .orEmpty()
             .asSequence()
             .map { it.name }
             .filter { it.startsWith(CORE_FILE_PREFIX) && it.endsWith(CORE_METADATA_SUFFIX) }
@@ -188,9 +185,7 @@ object KernelManager {
         readInstalledKernel(context, id)?.name?.takeIf { it.isNotBlank() } ?: id
 
     fun installed(context: Context): File? =
-        activeKernelId(context)
-            .takeIf { it != BUNDLED_ALPHA_ID }
-            ?.let { libraryFile(context, it).takeIf(File::isFile) }
+        activeKernelId(context).takeIf { it != BUNDLED_ALPHA_ID }?.let { libraryFile(context, it).takeIf(File::isFile) }
 
     fun isInstalled(context: Context, id: String): Boolean =
         id == BUNDLED_ALPHA_ID || (isKernelId(id) && libraryFile(context, id).let(::isAndroidArm64Core))
@@ -198,7 +193,9 @@ object KernelManager {
     /** Returns the source commit tied to the installed file, never the latest remote commit. */
     fun installedCommit(context: Context, id: String): String? {
         if (id == BUNDLED_ALPHA_ID || !isInstalled(context, id)) return null
-        readInstalledKernel(context, id)?.let { return it.commit }
+        readInstalledKernel(context, id)?.let {
+            return it.commit
+        }
 
         // Kernels installed before metadata support still contain the build-stamped version.
         val commit = readEmbeddedCommit(libraryFile(context, id), id) ?: return null
@@ -213,9 +210,8 @@ object KernelManager {
                     capabilities = if (id == LEGACY_EBPF_ID) setOf(CAPABILITY_EBPF) else emptySet(),
                 ),
             )
-        }.onFailure {
-            Timber.tag("KernelManager").w(it, "Unable to cache embedded kernel version")
         }
+            .onFailure { Timber.tag("KernelManager").w(it, "Unable to cache embedded kernel version") }
         return commit
     }
 
@@ -226,9 +222,7 @@ object KernelManager {
         response.headers[HttpHeaders.ContentLength]?.toLongOrNull()?.let { length ->
             check(length == kernel.sizeBytes) { "Kernel archive size does not match the index" }
         }
-        target.outputStream().buffered().use { output ->
-            response.bodyAsChannel().copyTo(output)
-        }
+        target.outputStream().buffered().use { output -> response.bodyAsChannel().copyTo(output) }
         check(target.length() == kernel.sizeBytes) { "Kernel archive size does not match the index" }
     }
 
@@ -267,21 +261,18 @@ object KernelManager {
         check(kernel.capabilities.all(::isCapability)) { "Invalid kernel capability" }
     }
 
-    private fun isKernelId(id: String): Boolean =
-        id.matches(Regex("[a-z0-9][a-z0-9-]*")) && id.length <= 48
+    private fun isKernelId(id: String): Boolean = id.matches(Regex("[a-z0-9][a-z0-9-]*")) && id.length <= 48
 
-    private fun isCapability(value: String): Boolean =
-        value.matches(Regex("[a-z0-9][a-z0-9-]*")) && value.length <= 48
+    private fun isCapability(value: String): Boolean = value.matches(Regex("[a-z0-9][a-z0-9-]*")) && value.length <= 48
 
     private fun metadataFile(context: Context, id: String): File =
         File(libraryDirectory(context), "$CORE_FILE_PREFIX$id$CORE_METADATA_SUFFIX")
 
-    private fun readInstalledKernel(context: Context, id: String): InstalledKernel? =
-        runCatching {
-            json.decodeFromString<InstalledKernel>(metadataFile(context, id).readText())
-        }.getOrNull()?.takeIf { metadata ->
-            metadata.id == id && metadata.commit.matches(Regex("[0-9a-f]{6,40}"))
-        }
+    private fun readInstalledKernel(context: Context, id: String): InstalledKernel? = runCatching {
+        json.decodeFromString<InstalledKernel>(metadataFile(context, id).readText())
+    }
+        .getOrNull()
+        ?.takeIf { metadata -> metadata.id == id && metadata.commit.matches(Regex("[0-9a-f]{6,40}")) }
 
     private fun writeInstalledKernel(context: Context, kernel: Kernel) =
         writeInstalledKernel(
@@ -318,19 +309,21 @@ object KernelManager {
                 val count = input.read(buffer)
                 if (count < 0) break
                 val chunk = carry + String(buffer, 0, count, StandardCharsets.ISO_8859_1)
-                versionPattern.find(chunk)?.groupValues?.get(1)?.let { return it.lowercase() }
+                versionPattern.find(chunk)?.groupValues?.get(1)?.let {
+                    return it.lowercase()
+                }
                 carry = chunk.takeLast(80)
             }
         }
         null
-    }.onFailure {
-        Timber.tag("KernelManager").w(it, "Unable to read embedded kernel version")
-    }.getOrNull()
+    }
+        .onFailure { Timber.tag("KernelManager").w(it, "Unable to read embedded kernel version") }
+        .getOrNull()
 
     /**
-     * [isInstalled] is called from composition and from non-suspend settings code, while this check
-     * reads the whole `.so` looking for the entry point. Memoising it per file identity keeps a
-     * recomposition from rescanning every installed kernel.
+     * [isInstalled] is called from composition and from non-suspend settings code, while this check reads the whole
+     * `.so` looking for the entry point. Memoising it per file identity keeps a recomposition from rescanning every
+     * installed kernel.
      */
     private fun isAndroidArm64Core(file: File): Boolean {
         val path = file.absolutePath
@@ -338,7 +331,9 @@ object KernelManager {
         val modifiedAt = file.lastModified()
         verifiedCores[path]
             ?.takeIf { it.length == length && it.modifiedAt == modifiedAt }
-            ?.let { return it.valid }
+            ?.let {
+                return it.valid
+            }
         val valid = scanAndroidArm64Core(file)
         verifiedCores[path] = CoreVerdict(length, modifiedAt, valid)
         return valid
@@ -359,12 +354,15 @@ object KernelManager {
             while (true) {
                 val value = input.read()
                 if (value < 0) break
-                matched = if (value.toByte() == needle[matched]) matched + 1 else if (value.toByte() == needle[0]) 1 else 0
+                matched =
+                    if (value.toByte() == needle[matched]) matched + 1 else if (value.toByte() == needle[0]) 1 else 0
                 if (matched == needle.size) return true
             }
             false
         }
-    }.onFailure { Timber.tag("KernelManager").w(it, "Kernel verification failed") }.getOrDefault(false)
+    }
+        .onFailure { Timber.tag("KernelManager").w(it, "Kernel verification failed") }
+        .getOrDefault(false)
 
     private fun libraryDirectory(context: Context): File = context.filesDir.resolve("lib")
 

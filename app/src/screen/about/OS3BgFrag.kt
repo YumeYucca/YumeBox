@@ -5,7 +5,8 @@
 
 package com.github.yumeyucca.yumebox.screen.about
 
-internal const val OS3_BG_FRAG = """
+internal const val OS3_BG_FRAG =
+    """
     uniform vec2 uResolution;
     uniform float uAnimTime;
     uniform vec4 uBound;
@@ -91,4 +92,3 @@ internal const val OS3_BG_FRAG = """
         return vec4(color.rgb * color.a, color.a);
     }
 """
-

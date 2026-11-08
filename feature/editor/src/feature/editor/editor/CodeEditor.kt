@@ -90,26 +90,25 @@ fun CodeEditor(
         }
     }
 
-    LaunchedEffect(fontSizeSp) {
-        editorRef.value?.setTextSize(fontSizeSp)
-    }
+    LaunchedEffect(fontSizeSp) { editorRef.value?.setTextSize(fontSizeSp) }
 
     Box(modifier = modifier) {
         AndroidView(
             factory = { ctx ->
                 createCodeEditor(
-                    ctx,
-                    state,
-                    editorThemeState.isDark,
-                    fontSizeSp,
-                    onScroll,
-                    onTextChange,
-                    selectionMenuController::update,
-                ).also { editor ->
-                    state.editor = editor
-                    state.refreshHistoryState()
-                    editorRef.value = editor
-                }
+                        ctx,
+                        state,
+                        editorThemeState.isDark,
+                        fontSizeSp,
+                        onScroll,
+                        onTextChange,
+                        selectionMenuController::update,
+                    )
+                    .also { editor ->
+                        state.editor = editor
+                        state.refreshHistoryState()
+                        editorRef.value = editor
+                    }
             },
             modifier = Modifier.fillMaxSize(),
             onRelease = { editor ->
@@ -186,11 +185,7 @@ private fun createCodeEditor(
         setHighlightBracketPair(true)
         registerInlayHintRenderers(
             TextInlayHintRenderer.DefaultInstance,
-            ColorInlayHintRenderer(
-                ResolvableColor { scheme ->
-                    scheme.getColor(EditorColorScheme.TEXT_NORMAL)
-                }
-            ),
+            ColorInlayHintRenderer(ResolvableColor { scheme -> scheme.getColor(EditorColorScheme.TEXT_NORMAL) }),
         )
 
         nonPrintablePaintingFlags = CodeEditor.FLAG_DRAW_LINE_SEPARATOR
@@ -216,28 +211,20 @@ private fun createCodeEditor(
             if (!event.isSelected || getEventHandler().isDragSelecting()) {
                 onSelectionMenuChange(null)
             } else {
-                postInLifecycle {
-                    onSelectionMenuChange(buildSelectionMenuState(this))
-                }
+                postInLifecycle { onSelectionMenuChange(buildSelectionMenuState(this)) }
             }
         }
         subscribeAlways<DragSelectStopEvent> {
-            postInLifecycle {
-                onSelectionMenuChange(buildSelectionMenuState(this))
-            }
+            postInLifecycle { onSelectionMenuChange(buildSelectionMenuState(this)) }
         }
         subscribeAlways<HandleStateChangeEvent> { event ->
             if (event.isHeld) {
                 onSelectionMenuChange(null)
             } else if (getCursor().isSelected()) {
-                postInLifecycle {
-                    onSelectionMenuChange(buildSelectionMenuState(this))
-                }
+                postInLifecycle { onSelectionMenuChange(buildSelectionMenuState(this)) }
             }
         }
-        subscribeAlways<EditorFocusChangeEvent> { event ->
-            if (!event.isGainFocus) onSelectionMenuChange(null)
-        }
+        subscribeAlways<EditorFocusChangeEvent> { event -> if (!event.isGainFocus) onSelectionMenuChange(null) }
 
         Timber.d("CodeEditor created: language=${state.language}")
     }

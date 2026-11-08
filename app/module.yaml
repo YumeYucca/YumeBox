@@ -3,6 +3,7 @@ apply:
   - //compose.module-template.yaml
 plugins:
   build-logic: enabled
+  ktfmt: enabled
 settings:
   android:
     applicationId: com.github.yumeyucca.yumebox

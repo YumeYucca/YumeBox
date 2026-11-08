@@ -39,16 +39,17 @@ class AppUpdateRepository {
             var connection: HttpURLConnection? = null
             try {
                 val url = URL("${baseUrl.trimEnd('/')}/releases/$channel/latest.json")
-                val opened = (url.openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    connectTimeout = 5_000
-                    readTimeout = 5_000
-                    instanceFollowRedirects = true
-                    useCaches = false
-                    setRequestProperty("Accept", "application/json")
-                    setRequestProperty("User-Agent", "YumeBox")
-                    setRequestProperty("Cache-Control", "no-cache")
-                }
+                val opened =
+                    (url.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        connectTimeout = 5_000
+                        readTimeout = 5_000
+                        instanceFollowRedirects = true
+                        useCaches = false
+                        setRequestProperty("Accept", "application/json")
+                        setRequestProperty("User-Agent", "YumeBox")
+                        setRequestProperty("Cache-Control", "no-cache")
+                    }
                 connection = opened
                 if (opened.responseCode !in 200..299) return@withContext null
                 val body = opened.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
@@ -66,9 +67,9 @@ class AppUpdateRepository {
     /**
      * Streams the update package to [destination] and reports progress as bytes are written.
      *
-     * [expectedSize] comes from the manifest and backs the progress ratio when the server does not
-     * send a usable `Content-Length`; when neither is available the callback reports a non-positive
-     * total so the UI can fall back to an indeterminate indicator.
+     * [expectedSize] comes from the manifest and backs the progress ratio when the server does not send a usable
+     * `Content-Length`; when neither is available the callback reports a non-positive total so the UI can fall back to
+     * an indeterminate indicator.
      */
     suspend fun download(
         downloadUrl: String,
@@ -79,14 +80,15 @@ class AppUpdateRepository {
         withContext(Dispatchers.IO) {
             var connection: HttpURLConnection? = null
             try {
-                val opened = (URL(downloadUrl).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    connectTimeout = 15_000
-                    readTimeout = 30_000
-                    instanceFollowRedirects = true
-                    useCaches = false
-                    setRequestProperty("User-Agent", "YumeBox")
-                }
+                val opened =
+                    (URL(downloadUrl).openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        connectTimeout = 15_000
+                        readTimeout = 30_000
+                        instanceFollowRedirects = true
+                        useCaches = false
+                        setRequestProperty("User-Agent", "YumeBox")
+                    }
                 connection = opened
                 if (opened.responseCode !in 200..299) error("HTTP " + opened.responseCode)
                 val contentLength = opened.contentLengthLong

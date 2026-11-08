@@ -48,9 +48,7 @@ internal fun LazyListScope.accessControlAppItems(
         AccessControlAppCard(
             app = app,
             selected = app.packageName in uiState.selectedPackages,
-            onSelectionChange = { checked ->
-                viewModel.onAppSelectionChange(app.packageName, checked)
-            },
+            onSelectionChange = { checked -> viewModel.onAppSelectionChange(app.packageName, checked) },
         )
     }
 }

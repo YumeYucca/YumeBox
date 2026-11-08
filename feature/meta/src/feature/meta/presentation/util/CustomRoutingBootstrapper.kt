@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.feature.meta.presentation.util
 
-
 import com.github.yumeyucca.yumebox.core.model.OverrideInternalConstants
 import com.github.yumeyucca.yumebox.data.store.OverrideConfigStore
 
@@ -35,9 +34,7 @@ class CustomRoutingBootstrapper(private val overrideConfigRepository: OverrideCo
             // routing override in a profile chain only when the metadata entry exists, so
             // re-save here to heal the metadata when it is absent.
             val hasMetadata =
-                overrideConfigRepository.getById(
-                    OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
-                ) != null
+                overrideConfigRepository.getById(OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID) != null
             if (!hasMetadata) {
                 overrideConfigRepository.saveCustomRoutingContent(existingContent)
             }

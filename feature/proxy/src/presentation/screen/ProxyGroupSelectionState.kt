@@ -35,12 +35,12 @@ import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 /**
  * 选中分组的唯一可变入口。
  *
- * 页面不再区分"选中项由谁托管":本地保存([rememberSelectedGroupController])和分栏共享
- * ViewModel 的那份([rememberSelectedGroupController] 的托管重载)都只是这个 holder 的两种
- * 构造,调用方只需交出一个 holder,而不是"名字 + 回调"两个参数。
+ * 页面不再区分"选中项由谁托管":本地保存([rememberSelectedGroupController])和分栏共享 ViewModel 的那份([rememberSelectedGroupController]
+ * 的托管重载)都只是这个 holder 的两种 构造,调用方只需交出一个 holder,而不是"名字 + 回调"两个参数。
  */
 @Stable
-class SelectedGroupController internal constructor(
+class SelectedGroupController
+internal constructor(
     val name: String?,
     private val onSelect: (String?) -> Unit,
 ) {
@@ -73,9 +73,7 @@ fun rememberSelectedGroupController(
 ): SelectedGroupController {
     // 回调每次重组都会换实例,用 rememberUpdatedState 兜住,holder 才能只随 name 重建。
     val latestOnSelect by rememberUpdatedState(onSelect)
-    return remember(name) {
-        SelectedGroupController(name) { next -> latestOnSelect(next) }
-    }
+    return remember(name) { SelectedGroupController(name) { next -> latestOnSelect(next) } }
 }
 
 /** [SelectedGroupController.name] 在 [proxyGroups] 里解析出的分组;纯值,不含回调。 */
@@ -97,9 +95,7 @@ fun rememberProxyGroupSelectionState(
     val selectedGroupSnapshotState = remember { mutableStateOf<ProxyGroupInfo?>(null) }
     val selectedGroup =
         remember(selectedGroupName, proxyGroups) {
-            selectedGroupName?.let { groupName ->
-                proxyGroups.firstOrNull { group -> group.name == groupName }
-            }
+            selectedGroupName?.let { groupName -> proxyGroups.firstOrNull { group -> group.name == groupName } }
         }
     val displayGroup =
         remember(selectedGroup, selectedGroupSnapshotState.value, retainLastKnownGroup) {

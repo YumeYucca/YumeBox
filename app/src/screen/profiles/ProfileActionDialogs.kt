@@ -22,22 +22,19 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-
 import android.content.Intent
 import androidx.core.content.FileProvider
 import com.github.yumeyucca.yumebox.App
-import com.github.yumeyucca.yumebox.common.util.toast
-import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.common.util.startActivitySafely
+import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.runtime.api.Profile
 
 internal fun shareProfileFile(profile: Profile) {
     val context = App.instance
     val file = importedConfigFile(profile)
     if (!file.exists()) {
-        context.toast(
-            YumeTxt.ProfilesPage.ShareDialog.ImportedConfigMissing.format(file.absolutePath)
-        )
+        context.toast(YumeTxt.ProfilesPage.ShareDialog.ImportedConfigMissing.format(file.absolutePath))
         return
     }
 

@@ -20,29 +20,21 @@
 
 package com.github.yumeyucca.yumebox.runtime.service.core
 
-import java.util.*
-
-/** Compiled config together with the controller bearer its core will actually enforce. */
-internal class ControllerConfig(
-    val yaml: String,
-    val secret: String,
-)
-
-/** Mints a bearer the controller accepts; never empty, so REST auth stays consistent. */
-internal fun newControllerSecret(): String = UUID.randomUUID().toString().replace("-", "")
-
 /**
- * Rewrites the top-level `secret:` of [yaml] to [secret] (or adds one) so the launched core and
- * the app agree on the bearer without exposing it in argv.
+ * The top-level `secret:` a compiled config carries, or "" when the profile sets none.
+ *
+ * The app never mints or rewrites a bearer: the profile's own secret is what the core enforces, and a profile without
+ * one launches a controller that asks for no auth. The local controller is a unix socket in the app-owned runtime
+ * directory, so an empty bearer is not reachable by other apps; only a user-configured remote controller needs a secret
+ * of its own.
  */
-internal fun patchControllerSecret(yaml: String, secret: String = newControllerSecret()): ControllerConfig {
-    val line = "secret: \"$secret\""
-    val lines = yaml.lineSequence().toMutableList()
-    val index = lines.indexOfFirst { it.startsWith("secret:") }
-    if (index >= 0) {
-        lines[index] = line
-    } else {
-        lines.add(0, line)
-    }
-    return ControllerConfig(lines.joinToString("\n"), secret)
+internal fun controllerSecretFromConfig(yaml: String): String {
+    val raw =
+        yaml
+            .lineSequence()
+            .firstOrNull { it.trimStart().startsWith("secret:") }
+            ?.substringAfter("secret:")
+            ?.trim()
+            ?: return ""
+    return raw.trim('"', '\'').trim()
 }

@@ -49,8 +49,7 @@ interface IPrivilegedService : IInterface {
         }
 
         companion object {
-            private const val DESCRIPTOR =
-                "com.github.yumeyucca.yumebox.runtime.service.shizuku.IPrivilegedService"
+            private const val DESCRIPTOR = "com.github.yumeyucca.yumebox.runtime.service.shizuku.IPrivilegedService"
             private const val TRANSACTION_SET_PACKAGE_NETWORKING_ENABLED = FIRST_CALL_TRANSACTION
             /** ShizukuApiConstants.USER_SERVICE_TRANSACTION_destroy. */
             private const val TRANSACTION_DESTROY = 16_777_115

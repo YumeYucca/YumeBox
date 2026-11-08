@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.moe
 
-
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -40,8 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.layout.DialogDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -62,9 +61,7 @@ internal fun HomePreviewGuideDialog(
 
     var page by remember { mutableStateOf(GuidePage.Preview) }
     var accessGranted by remember { mutableStateOf(SystemWallpaperAccess.isGranted(context)) }
-    LaunchedEffect(show) {
-        if (show) page = GuidePage.Preview
-    }
+    LaunchedEffect(show) { if (show) page = GuidePage.Preview }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -94,10 +91,7 @@ internal fun HomePreviewGuideDialog(
         content = {
             Column(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = contentMaxHeight)
-                        .verticalScroll(rememberScrollState()),
+                    Modifier.fillMaxWidth().heightIn(max = contentMaxHeight).verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(spacing.space18),
             ) {
@@ -106,10 +100,10 @@ internal fun HomePreviewGuideDialog(
                     transitionSpec = {
                         val forward = targetState.ordinal > initialState.ordinal
                         (slideInHorizontally(tween(320)) { w -> if (forward) w else -w } +
-                                fadeIn(tween(220))) togetherWith
-                                (slideOutHorizontally(tween(320)) { w -> if (forward) -w else w } +
-                                        fadeOut(tween(180))) using
-                                SizeTransform(clip = false)
+                            fadeIn(tween(220))) togetherWith
+                            (slideOutHorizontally(tween(320)) { w -> if (forward) -w else w } +
+                                fadeOut(tween(180))) using
+                            SizeTransform(clip = false)
                     },
                     label = "guide_page",
                 ) { p ->
@@ -135,8 +129,7 @@ internal fun HomePreviewGuideDialog(
                     GuidePage.entries.forEach { entry ->
                         Box(
                             modifier =
-                                Modifier
-                                    .size(7.dp)
+                                Modifier.size(7.dp)
                                     .clip(CircleShape)
                                     .background(
                                         if (entry == page) colorScheme.primary
@@ -176,32 +169,32 @@ private enum class GuidePage {
     Preview,
     Wallpaper,
     Swipe,
-    Add,
-    ;
+    Add;
 
     val text: GuidePageText
-        get() = when (this) {
-            Preview ->
-                GuidePageText(
-                    YumeTxt.Home.PreviewGuide.Title,
-                    YumeTxt.Home.PreviewGuide.Description,
-                )
-            Wallpaper ->
-                GuidePageText(
-                    YumeTxt.Home.PreviewGuide.WallpaperTitle,
-                    YumeTxt.Home.PreviewGuide.WallpaperDescription,
-                )
-            Swipe ->
-                GuidePageText(
-                    YumeTxt.Home.PreviewGuide.SwipeTitle,
-                    YumeTxt.Home.PreviewGuide.SwipeDescription,
-                )
-            Add ->
-                GuidePageText(
-                    YumeTxt.Home.PreviewGuide.AddTitle,
-                    YumeTxt.Home.PreviewGuide.AddDescription,
-                )
-        }
+        get() =
+            when (this) {
+                Preview ->
+                    GuidePageText(
+                        YumeTxt.Home.PreviewGuide.Title,
+                        YumeTxt.Home.PreviewGuide.Description,
+                    )
+                Wallpaper ->
+                    GuidePageText(
+                        YumeTxt.Home.PreviewGuide.WallpaperTitle,
+                        YumeTxt.Home.PreviewGuide.WallpaperDescription,
+                    )
+                Swipe ->
+                    GuidePageText(
+                        YumeTxt.Home.PreviewGuide.SwipeTitle,
+                        YumeTxt.Home.PreviewGuide.SwipeDescription,
+                    )
+                Add ->
+                    GuidePageText(
+                        YumeTxt.Home.PreviewGuide.AddTitle,
+                        YumeTxt.Home.PreviewGuide.AddDescription,
+                    )
+            }
 }
 
 private data class GuidePageText(val title: String, val summary: String)

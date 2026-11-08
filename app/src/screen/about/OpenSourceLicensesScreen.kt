@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.about
 
-
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -36,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import com.github.yumeyucca.yumebox.App
 import com.github.yumeyucca.yumebox.common.util.openUrl
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
@@ -43,7 +43,6 @@ import com.mikepenz.aboutlibraries.entity.Library
 import com.mikepenz.aboutlibraries.ui.compose.produceLibraries
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleSurface
@@ -60,19 +59,17 @@ fun OpenSourceLicensesScreen(navigator: Navigator) {
 
     val libraries by produceLibraries {
         withContext(Dispatchers.IO) {
-            val stream = requireNotNull(App::class.java.classLoader?.getResourceAsStream("aboutlibraries.json")) {
-                "Missing dependency license metadata"
-            }
+            val stream =
+                requireNotNull(App::class.java.classLoader?.getResourceAsStream("aboutlibraries.json")) {
+                    "Missing dependency license metadata"
+                }
             stream.bufferedReader(Charsets.UTF_8).use { it.readText() }
         }
     }
     val libraryItems = remember(libraries) { libraries?.libraries.orEmpty() }
 
-    GlassScaffold(
-        topBar = {
-            TopBar(title = YumeTxt.OpenSourceLicenses.Title, scrollBehavior = scrollBehavior)
-        }
-    ) { innerPadding ->
+    GlassScaffold(topBar = { TopBar(title = YumeTxt.OpenSourceLicenses.Title, scrollBehavior = scrollBehavior) }) {
+        innerPadding ->
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
@@ -83,9 +80,7 @@ fun OpenSourceLicensesScreen(navigator: Navigator) {
             if (libraryItems.isNotEmpty()) {
                 items(
                     items = libraryItems,
-                    key = { library ->
-                        "${library.uniqueId}:${library.artifactId}:${library.name}"
-                    },
+                    key = { library -> "${library.uniqueId}:${library.artifactId}:${library.name}" },
                 ) { library ->
                     LibraryItem(
                         library = library,
@@ -115,8 +110,7 @@ private fun LibraryItem(library: Library, onClick: () -> Unit) {
     ) {
         Column(
             modifier =
-                Modifier
-                    .fillMaxWidth()
+                Modifier.fillMaxWidth()
                     .then(
                         if (hasUrl) {
                             Modifier.clickable(onClick = onClick)
@@ -193,8 +187,7 @@ private fun LicenseChip(licenseName: String) {
 
     Box(
         modifier =
-            Modifier
-                .squircleSurface(MiuixTheme.colorScheme.primary.copy(alpha = opacity.subtle), radii.radius12)
+            Modifier.squircleSurface(MiuixTheme.colorScheme.primary.copy(alpha = opacity.subtle), radii.radius12)
                 .padding(horizontal = spacing.space10, vertical = spacing.space4)
     ) {
         Text(

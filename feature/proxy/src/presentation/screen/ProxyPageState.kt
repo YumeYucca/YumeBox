@@ -28,8 +28,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -52,18 +52,18 @@ import com.github.yumeyucca.yumebox.runtime.client.ProxyGroupSyncSource
 /**
  * 代理页的全部非渲染状态。
  *
- * 分组分区、tab 选择、节点搜索开关、列表滚动位置、分组 tab 分页状态和选中项的派生值都收在
- * 这里,页面只读结果并渲染,不再自己摊开二十个 local。
+ * 分组分区、tab 选择、节点搜索开关、列表滚动位置、分组 tab 分页状态和选中项的派生值都收在 这里,页面只读结果并渲染,不再自己摊开二十个 local。
  *
- * 实例每次重组都会重建:会随数据变化的值都在工厂里重新算(`remember` 的记忆化语义保持不变),
- * 需要跨重组存活的那几个 `rememberSaveable` 值由工厂创建后以 [MutableState] 传入,
+ * 实例每次重组都会重建:会随数据变化的值都在工厂里重新算(`remember` 的记忆化语义保持不变), 需要跨重组存活的那几个 `rememberSaveable` 值由工厂创建后以 [MutableState] 传入,
  * 所以换实例不会丢状态。
  */
 @Stable
 internal class ProxyPageState(
     private val proxyListTabIndexState: MutableState<Int>,
-    private val twoColumnNodesState: MutableState<Boolean>,
-    private val groupTabsModeState: MutableState<Boolean>,
+    private val twoColumnNodesValue: Boolean,
+    private val onTwoColumnNodesChange: (Boolean) -> Unit,
+    private val groupTabsModeValue: Boolean,
+    private val onGroupTabsModeChange: (Boolean) -> Unit,
     private val nodeSearchQueryState: MutableState<String>,
     private val proxyViewModel: ProxyViewModel,
     private val selectionController: SelectedGroupController,
@@ -89,15 +89,15 @@ internal class ProxyPageState(
         get() = proxyListTabIndexState.value
 
     var twoColumnNodes: Boolean
-        get() = twoColumnNodesState.value
+        get() = twoColumnNodesValue
         set(value) {
-            twoColumnNodesState.value = value
+            if (value != twoColumnNodesValue) onTwoColumnNodesChange(value)
         }
 
     var groupTabsMode: Boolean
-        get() = groupTabsModeState.value
+        get() = groupTabsModeValue
         set(value) {
-            groupTabsModeState.value = value
+            if (value != groupTabsModeValue) onGroupTabsModeChange(value)
         }
 
     var nodeSearchQuery: String
@@ -132,8 +132,7 @@ internal class ProxyPageState(
 /**
  * [ProxyPageState] 的唯一构造入口。
  *
- * 它读页面自己的 `remember` / `rememberSaveable`,因此返回值只在本次组合内有效;
- * 渲染侧对它的读取都发生在 `ProxyPageShell` 里,状态一变页面(以及这里)就重新执行。
+ * 它读页面自己的 `remember` / `rememberSaveable`,因此返回值只在本次组合内有效; 渲染侧对它的读取都发生在 `ProxyPageShell` 里,状态一变页面(以及这里)就重新执行。
  */
 @Composable
 internal fun rememberProxyPageState(
@@ -142,6 +141,10 @@ internal fun rememberProxyPageState(
     proxyViewModel: ProxyViewModel,
     proxyGroups: List<ProxyGroupInfo>,
     nodeSearchVisible: Boolean,
+    twoColumnNodes: Boolean,
+    onTwoColumnNodesChange: (Boolean) -> Unit,
+    groupTabsMode: Boolean,
+    onGroupTabsModeChange: (Boolean) -> Unit,
     selectionController: SelectedGroupController,
 ): ProxyPageState {
     // zashboard 式拆分:策略组 = 成员里含其他分组;节点组 = 成员全是节点(典型如地域组)。
@@ -161,13 +164,6 @@ internal fun rememberProxyPageState(
             }
         }
     val proxyListTabIndexState = rememberSaveable { mutableStateOf(0) }
-    val twoColumnNodesState =
-        rememberSaveable(pane) {
-            mutableStateOf(pane != ProxyPageMode.Compact)
-        }
-    // Group-tab mode replaces the category/group drill-down with one swipeable group strip.
-    val groupTabsModeState = rememberSaveable(pane) { mutableStateOf(false) }
-    val groupTabsMode = groupTabsModeState.value
     val proxyListTabIndex = proxyListTabIndexState.value
     val displayedProxyGroups =
         when {
@@ -224,16 +220,14 @@ internal fun rememberProxyPageState(
         }
     }
 
-    // One step back at a time: tabs mode collapses to the group list first, then the open group
-    // closes. Leaving the page is the root stack's job, not this handler's.
-    BackHandler(
-        enabled = pane == ProxyPageMode.Compact && isActive && (groupTabsMode || selectedGroupName != null)
-    ) {
-        if (groupTabsMode) groupTabsModeState.value = false else selectionController.clear()
+    // Tabs mode is a layout preference, not a navigation level: back must not silently flip the
+    // page back to the group drill-down. Only an open group is a level to close; leaving the page
+    // is the root stack's job, not this handler's.
+    BackHandler(enabled = pane == ProxyPageMode.Compact && isActive && !groupTabsMode && selectedGroupName != null) {
+        selectionController.clear()
     }
 
-    val coreSource =
-        if (pane == ProxyPageMode.SplitDetail) ProxyGroupSyncSource.Detail else ProxyGroupSyncSource.Page
+    val coreSource = if (pane == ProxyPageMode.SplitDetail) ProxyGroupSyncSource.Detail else ProxyGroupSyncSource.Page
     LaunchedEffect(proxyViewModel, isActive, coreSource) {
         proxyViewModel.ensureCoreLoaded(isActive, source = coreSource)
     }
@@ -242,8 +236,7 @@ internal fun rememberProxyPageState(
     }
 
     val categoryTabInset = if (proxyListTabs.isEmpty()) UiDp.dp0 else ProxyTabBandInset
-    val showsGroupList =
-        pane == ProxyPageMode.SplitMaster || (!groupTabsMode && selectedGroupName == null)
+    val showsGroupList = pane == ProxyPageMode.SplitMaster || (!groupTabsMode && selectedGroupName == null)
     val activeListState =
         when {
             showsGroupList -> groupListState
@@ -257,7 +250,7 @@ internal fun rememberProxyPageState(
             else -> nodeGridState
         }
     val activeScrollSurface: Any? =
-        if (showsGroupList || !twoColumnNodesState.value) activeListState else activeGridState
+        if (showsGroupList || !twoColumnNodes) activeListState else activeGridState
     val activeIsAtTop =
         remember(activeScrollSurface) {
             derivedStateOf {
@@ -268,14 +261,14 @@ internal fun rememberProxyPageState(
                 }
             }
         }
-    LaunchedEffect(activeIsAtTop.value) {
-        tabCollapseState.syncContent(activeIsAtTop.value)
-    }
+    LaunchedEffect(activeIsAtTop.value) { tabCollapseState.syncContent(activeIsAtTop.value) }
 
     return ProxyPageState(
         proxyListTabIndexState = proxyListTabIndexState,
-        twoColumnNodesState = twoColumnNodesState,
-        groupTabsModeState = groupTabsModeState,
+        twoColumnNodesValue = twoColumnNodes,
+        onTwoColumnNodesChange = onTwoColumnNodesChange,
+        groupTabsModeValue = groupTabsMode,
+        onGroupTabsModeChange = onGroupTabsModeChange,
         nodeSearchQueryState = nodeSearchQueryState,
         proxyViewModel = proxyViewModel,
         selectionController = selectionController,

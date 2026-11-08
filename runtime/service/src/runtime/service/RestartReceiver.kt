@@ -34,8 +34,7 @@ class RestartReceiver : BroadcastReceiver() {
                 else -> return
             }
         val serviceIntent =
-            Intent(context, AutoRestartService::class.java)
-                .putExtra(AutoRestartService.EXTRA_REASON, reason)
+            Intent(context, AutoRestartService::class.java).putExtra(AutoRestartService.EXTRA_REASON, reason)
         runCatching { context.startForegroundService(serviceIntent) }
             .onFailure { error -> Timber.e(error, "Start auto-restart service failed") }
     }

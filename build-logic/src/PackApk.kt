@@ -175,8 +175,7 @@ class ApkPacker(
     }
 
     private fun nativePayload(zip: ZipFile, entry: ZipEntry): NativePayloadEntry {
-        val match =
-            NATIVE_LIBRARY.matchEntire(entry.name) ?: error("Invalid native library: ${entry.name}")
+        val match = NATIVE_LIBRARY.matchEntire(entry.name) ?: error("Invalid native library: ${entry.name}")
         val abi = match.groupValues[1]
         val packagedName = match.groupValues[2]
         val packagedBytes = zip.getInputStream(entry).use { it.readBytes() }
@@ -261,19 +260,16 @@ class ApkPacker(
     }
 
     private fun executable(name: String): String =
-        if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) "$name.exe"
-        else name
+        if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) "$name.exe" else name
 
-    private fun javaExecutable(): String =
-        File(System.getProperty("java.home"), "bin/java").absolutePath
+    private fun javaExecutable(): String = File(System.getProperty("java.home"), "bin/java").absolutePath
 
     private fun runCommand(
         command: List<String>,
         failure: String,
         environment: Map<String, String> = emptyMap(),
     ) {
-        val process =
-            ProcessBuilder(command).apply { environment().putAll(environment) }.inheritIO().start()
+        val process = ProcessBuilder(command).apply { environment().putAll(environment) }.inheritIO().start()
         check(process.waitFor() == 0) { failure }
     }
 
@@ -293,8 +289,7 @@ class ApkPacker(
         closeEntry()
     }
 
-    private fun sha256(bytes: ByteArray): ByteArray =
-        MessageDigest.getInstance("SHA-256").digest(bytes)
+    private fun sha256(bytes: ByteArray): ByteArray = MessageDigest.getInstance("SHA-256").digest(bytes)
 
     private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
 
@@ -324,8 +319,7 @@ class ApkPacker(
         //  - libmihomo.so and libpreview.so are tiny PIE shells. A non-root app can only
         //    execve() files living in nativeLibraryDir; both dlopen the compressed core payload.
         val BOOTSTRAP_LIBRARY = Regex("lib/[^/]+/(?:libloader|libmihomo|libpreview)\\.so")
-        val SIGNATURE_ENTRY =
-            Regex("META-INF/[^/]+\\.(?:MF|SF|RSA|DSA|EC)", RegexOption.IGNORE_CASE)
+        val SIGNATURE_ENTRY = Regex("META-INF/[^/]+\\.(?:MF|SF|RSA|DSA|EC)", RegexOption.IGNORE_CASE)
         const val FIXED_TIMESTAMP = 315_532_800_000L
     }
 }

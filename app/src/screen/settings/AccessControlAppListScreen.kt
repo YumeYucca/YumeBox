@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.AccessControlSortMode
 import com.github.yumeyucca.yumebox.presentation.component.*
+import com.github.yumeyucca.yumebox.presentation.component.rememberCollapsedTopPadding
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Bolt
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ListChevronsUpDown
@@ -42,7 +43,6 @@ import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import com.github.yumeyucca.yumebox.presentation.component.rememberCollapsedTopPadding
 
 @Composable
 fun AccessControlAppListScreen() {
@@ -77,9 +77,14 @@ fun AccessControlAppListScreen() {
 
     Box(modifier = Modifier.fillMaxSize()) {
         AccessControlAppListScaffold(
-            search = search, scrollBehavior = scrollBehavior, uiState = uiState,
-            viewModel = viewModel, backdrop = backdrop, topPadding = dynamicTopPadding,
-            apps = filteredApps, listState = mainListState,
+            search = search,
+            scrollBehavior = scrollBehavior,
+            uiState = uiState,
+            viewModel = viewModel,
+            backdrop = backdrop,
+            topPadding = dynamicTopPadding,
+            apps = filteredApps,
+            listState = mainListState,
         )
 
         AccessControlAppListSearch(
@@ -125,7 +130,7 @@ private fun AccessControlAppListScaffold(
                 startPadding = startPadding,
                 endPadding = endPadding,
             )
-        },
+        }
     ) { innerPadding ->
         val combinedInnerPadding = standalonePageInnerPadding(innerPadding)
 
@@ -192,8 +197,8 @@ private fun AccessControlAppListTopBar(
 /**
  * Sort and batch-operation buttons, sharing one glass pill.
  *
- * The two popup flags and their anchors belong to the menus they open, so they are remembered here
- * instead of by the screen.
+ * The two popup flags and their anchors belong to the menus they open, so they are remembered here instead of by the
+ * screen.
  */
 @Composable
 private fun AccessControlAppListTopActions(
@@ -239,15 +244,13 @@ private fun AccessControlAppListTopActions(
                             actions =
                                 remember(viewModel) {
                                     AccessControlMenuActions(
-                                        onShowSystemAppsChange =
-                                            viewModel::onShowSystemAppsChange,
+                                        onShowSystemAppsChange = viewModel::onShowSystemAppsChange,
                                         onSelectedFirstChange = viewModel::onSelectedFirstChange,
                                         onSelectAll = viewModel::selectAll,
                                         onDeselectAll = viewModel::deselectAll,
                                         onInvertSelection = viewModel::invertSelection,
                                         onSelectChinaApps = viewModel::selectChinaAppsInCurrentList,
-                                        onSelectNonChinaApps =
-                                            viewModel::selectNonChinaAppsInCurrentList,
+                                        onSelectNonChinaApps = viewModel::selectNonChinaAppsInCurrentList,
                                     )
                                 },
                         )
@@ -275,9 +278,7 @@ private fun AccessControlAppListScrollToTopEffect(
         listState.scrollToItem(0)
         // LazyColumn may re-apply its key-based scroll anchor on the next layout pass.
         withFrameNanos {}
-        listState
-            .takeUnless { it.firstVisibleItemIndex == 0 && it.firstVisibleItemScrollOffset == 0 }
-            ?.scrollToItem(0)
+        listState.takeUnless { it.firstVisibleItemIndex == 0 && it.firstVisibleItemScrollOffset == 0 }?.scrollToItem(0)
     }
 }
 
@@ -291,8 +292,7 @@ private fun AccessControlAppListLoading(
 ) {
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
+            Modifier.fillMaxSize()
                 .padding(
                     top = topPadding,
                     start = startPadding,

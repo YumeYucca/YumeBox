@@ -51,8 +51,8 @@ internal class ProxyGroupSorter {
         sortMode: StateFlow<ProxySortMode>,
     ): StateFlow<List<ProxyGroupInfo>> =
         combine(proxyGroups, sortMode, groupOriginalOrder) { groups, mode, originalOrderCache ->
-            buildSortedProxyGroups(groups, mode, originalOrderCache)
-        }
+                buildSortedProxyGroups(groups, mode, originalOrderCache)
+            }
             .flowOn(Dispatchers.Default)
             .stateIn(
                 scope = scope,
@@ -68,8 +68,7 @@ internal class ProxyGroupSorter {
         when (sortMode) {
             ProxySortMode.DEFAULT -> reorderByNameSequence(proxies, originalOrder)
             ProxySortMode.BY_NAME -> {
-                val originalIndex =
-                    originalOrder.withIndex().associate { (index, name) -> name to index }
+                val originalIndex = originalOrder.withIndex().associate { (index, name) -> name to index }
                 proxies
                     .sortedWith(
                         compareBy<Proxy>(
@@ -81,8 +80,7 @@ internal class ProxyGroupSorter {
             }
 
             ProxySortMode.BY_LATENCY -> {
-                val originalIndex =
-                    originalOrder.withIndex().associate { (index, name) -> name to index }
+                val originalIndex = originalOrder.withIndex().associate { (index, name) -> name to index }
                 proxies
                     .sortedWith(
                         compareBy<Proxy>(
@@ -141,9 +139,7 @@ internal class ProxyGroupSorter {
             val resolved = resolvedGroups[index]
             val cached =
                 previousCache[group.name]?.takeIf { entry ->
-                    entry.sourceGroup == resolved &&
-                            entry.sortMode == mode &&
-                            entry.originalOrder == originalOrder
+                    entry.sourceGroup == resolved && entry.sortMode == mode && entry.originalOrder == originalOrder
                 }
             if (cached != null) {
                 nextCache[group.name] = cached
@@ -162,11 +158,11 @@ internal class ProxyGroupSorter {
                         resolved.copy(proxies = sortedProxies)
                     }
                 SortedGroupCacheEntry(
-                    sourceGroup = resolved,
-                    sortMode = mode,
-                    originalOrder = originalOrder,
-                    result = result,
-                )
+                        sourceGroup = resolved,
+                        sortMode = mode,
+                        originalOrder = originalOrder,
+                        result = result,
+                    )
                     .also { nextCache[group.name] = it }
                     .result
             }

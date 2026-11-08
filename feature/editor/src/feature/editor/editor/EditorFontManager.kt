@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.feature.editor.editor
 
-
 import android.content.Context
 import android.graphics.Typeface
 import com.github.yumeyucca.yumebox.feature.editor.R
@@ -39,10 +38,7 @@ object EditorFontManager {
                     cachedFont = it
                     Timber.d("JetBrainsMono font loaded successfully")
                 }
-            } catch (
-                error:
-                Exception
-            ) { // fault barrier: createFromAsset throws undocumented
+            } catch (error: Exception) { // fault barrier: createFromAsset throws undocumented
                 // RuntimeException
                 Timber.w(error, "Failed to load JetBrainsMono font, falling back to MONOSPACE")
                 Typeface.MONOSPACE

@@ -35,8 +35,8 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
- * Feeds [ConnectionHistoryManager] from `/connections`, but only while an activity is visible:
- * nothing reads the history in the background, so polling there only wakes the core.
+ * Feeds [ConnectionHistoryManager] from `/connections`, but only while an activity is visible: nothing reads the
+ * history in the background, so polling there only wakes the core.
  */
 internal class ConnectionTracker(
     private val context: Context,
@@ -56,10 +56,11 @@ internal class ConnectionTracker(
                         runCatching {
                             val snapshot = CoreProcess.controller(context).queryConnections()
                             ConnectionHistoryManager.updateConnections(snapshot.connections)
-                        }.onFailure { error ->
-                            if (error is CancellationException) throw error
-                            Timber.d(error, "connection poll failed")
                         }
+                            .onFailure { error ->
+                                if (error is CancellationException) throw error
+                                Timber.d(error, "connection poll failed")
+                            }
                     }
                 }
             }

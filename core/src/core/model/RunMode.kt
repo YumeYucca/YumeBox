@@ -24,25 +24,17 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * The single proxy run-mode key shared across UI, runtime, launcher, owner, and compiler.
- * [VpnService] is the non-root Android VpnService path; [Tun] and [Ebpf] are root libsu-daemon
- * paths. The serialized names are the contract with the core's `--mode` and
- * the compiler's `run_mode`.
+ * The single proxy run-mode key shared across UI, runtime, launcher, owner, and compiler. [VpnService] is the non-root
+ * Android VpnService path; [Tun] and [Ebpf] are root libsu-daemon paths. The serialized names are the contract with the
+ * core's `--mode` and the compiler's `run_mode`.
  */
 @Serializable
 enum class RunMode {
-    @SerialName("vpn")
-    VpnService,
-    @SerialName("tun")
-    Tun,
+    @SerialName("vpn") VpnService,
+    @SerialName("tun") Tun,
+    @SerialName("ebpf") Ebpf;
 
-    @SerialName("ebpf")
-    Ebpf;
-
-    /**
-     * The token this mode maps to for the native core's `--mode` flag and the persisted daemon
-     * record.
-     */
+    /** The token this mode maps to for the native core's `--mode` flag and the persisted daemon record. */
     val coreArg: String
         get() =
             when (this) {

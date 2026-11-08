@@ -31,12 +31,11 @@ import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.resolve
 import top.yukonga.miuix.kmp.basic.SmallTitle
 
-@Composable
-internal fun smallTitleColor(): Color = AppTheme.colors.title.resolve()
+@Composable internal fun smallTitleColor(): Color = AppTheme.colors.title.resolve()
 
 /**
- * App-level wrapper around Miuix `Title`. Keeps YumeBox default spacing while avoiding direct Miuix
- * usage at call sites.
+ * App-level wrapper around Miuix `Title`. Keeps YumeBox default spacing while avoiding direct Miuix usage at call
+ * sites.
  */
 @Composable
 fun Title(text: String, topPadding: Dp = AppTheme.spacing.space8) {

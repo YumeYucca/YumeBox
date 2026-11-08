@@ -28,12 +28,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 /**
- * The "leave the editor?" guard shared by every editor screen: a back press with unsaved edits asks
- * before throwing them away, otherwise it leaves immediately.
+ * The "leave the editor?" guard shared by every editor screen: a back press with unsaved edits asks before throwing
+ * them away, otherwise it leaves immediately.
  *
  * Extracted because preview, fullscreen and the config editor each owned a copy of the same
- * dialog-state + [BackHandler] + [DiscardChangesDialog] trio and had started to drift in what they
- * considered dirty.
+ * dialog-state + [BackHandler] + [DiscardChangesDialog] trio and had started to drift in what they considered dirty.
  */
 @Composable
 internal fun EditorExitGuard(

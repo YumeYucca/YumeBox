@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.feature.meta.presentation.component
 
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -66,10 +65,7 @@ internal fun ConnectionLeadingIcon(
         Image(
             bitmap = bitmap,
             contentDescription = identity.appName.ifEmpty { network },
-            modifier =
-                modifier
-                    .size(resolvedSize)
-                    .clip(RoundedCornerShape(sizes.connectionLeadingIconCornerRadius)),
+            modifier = modifier.size(resolvedSize).clip(RoundedCornerShape(sizes.connectionLeadingIconCornerRadius)),
         )
         return
     }
@@ -93,11 +89,7 @@ private fun ProtocolFallbackIcon(
             modifier
                 .size(resolvedSize)
                 .clip(RoundedCornerShape(sizes.connectionLeadingIconCornerRadius))
-                .background(
-                    neutral.copy(
-                        alpha = AppTheme.opacity.ultraSubtle + AppTheme.opacity.ambientShadow
-                    )
-                ),
+                .background(neutral.copy(alpha = AppTheme.opacity.ultraSubtle + AppTheme.opacity.ambientShadow)),
         contentAlignment = Alignment.Center,
     ) {
         Text(

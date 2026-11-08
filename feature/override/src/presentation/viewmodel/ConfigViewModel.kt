@@ -24,6 +24,7 @@ package com.github.yumeyucca.yumebox.feature.override.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.OverrideInternalConstants
 import com.github.yumeyucca.yumebox.data.controller.ActiveProfileOverrideReloader
 import com.github.yumeyucca.yumebox.data.controller.OverrideResolver
@@ -32,6 +33,12 @@ import com.github.yumeyucca.yumebox.data.model.OverrideContentType
 import com.github.yumeyucca.yumebox.data.model.OverrideMetadata
 import com.github.yumeyucca.yumebox.data.store.OverrideConfigStore
 import com.github.yumeyucca.yumebox.data.store.ProfileBindingProvider
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLDecoder
+import java.util.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,14 +49,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import timber.log.Timber
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLDecoder
-import java.util.*
 
 class OverrideConfigViewModel(
     private val configRepo: OverrideConfigStore,
@@ -79,9 +79,7 @@ class OverrideConfigViewModel(
 
     init {
         refresh()
-        viewModelScope.launch {
-            bindingProvider.getAllBindingsFlow().collectLatest { loadUsageCounts() }
-        }
+        viewModelScope.launch { bindingProvider.getAllBindingsFlow().collectLatest { loadUsageCounts() } }
     }
 
     fun refresh() {
@@ -173,8 +171,7 @@ class OverrideConfigViewModel(
         if (isBuiltInConfig(id)) return
         viewModelScope.launch {
             runCatching {
-                val shouldResyncRuntime =
-                    activeProfileOverrideReloader.isActiveProfileUsingOverride(id)
+                val shouldResyncRuntime = activeProfileOverrideReloader.isActiveProfileUsingOverride(id)
                 val deleted = configRepo.delete(id)
                 if (deleted && shouldResyncRuntime) {
                     activeProfileOverrideReloader.reapplyActiveProfileOverride()
@@ -237,25 +234,19 @@ class OverrideConfigViewModel(
                 ?: fallbackContentType
                 ?: return Result.failure(
                     IllegalArgumentException(
-                        YumeTxt.Override.Import.Failed.format(
-                            YumeTxt.Override.Import.UnsupportedType
-                        )
+                        YumeTxt.Override.Import.Failed.format(YumeTxt.Override.Import.UnsupportedType)
                     )
                 )
         if (contentType == OverrideContentType.JavaScript && content.isBlank()) {
             return Result.failure(
-                IllegalArgumentException(
-                    YumeTxt.Override.Import.Failed.format(YumeTxt.Override.Import.EmptyJavaScript)
-                )
+                IllegalArgumentException(YumeTxt.Override.Import.Failed.format(YumeTxt.Override.Import.EmptyJavaScript))
             )
         }
 
         val config =
             OverrideConfig(
                 id = OverrideMetadata.generateId(),
-                name =
-                    normalizeImportedConfigSourceName(sourceName)
-                        ?: YumeTxt.Override.Save.ImportDefaultName,
+                name = normalizeImportedConfigSourceName(sourceName) ?: YumeTxt.Override.Save.ImportDefaultName,
                 contentType = contentType,
                 content = content,
                 createdAt = System.currentTimeMillis(),
@@ -281,8 +272,7 @@ class OverrideConfigViewModel(
             runCatching {
                 val url = URL(rawUrl.trim())
                 require(
-                    url.protocol.equals("http", ignoreCase = true) ||
-                            url.protocol.equals("https", ignoreCase = true)
+                    url.protocol.equals("http", ignoreCase = true) || url.protocol.equals("https", ignoreCase = true)
                 ) {
                     YumeTxt.Override.Import.InvalidUrl
                 }
@@ -297,13 +287,10 @@ class OverrideConfigViewModel(
 
                 try {
                     val responseCode = connection.responseCode
-                    require(responseCode in 200..299) {
-                        YumeTxt.Override.Import.HttpError.format(responseCode)
-                    }
+                    require(responseCode in 200..299) { YumeTxt.Override.Import.HttpError.format(responseCode) }
 
                     require(
-                        connection.contentLengthLong < 0L ||
-                                connection.contentLengthLong <= NETWORK_IMPORT_MAX_BYTES
+                        connection.contentLengthLong < 0L || connection.contentLengthLong <= NETWORK_IMPORT_MAX_BYTES
                     ) {
                         networkImportTooLargeMessage(NETWORK_IMPORT_MAX_BYTES)
                     }
@@ -312,25 +299,21 @@ class OverrideConfigViewModel(
                     val sourceName =
                         resolveNetworkImportSourceName(
                             url = url,
-                            contentDisposition =
-                                connection.getHeaderField("Content-Disposition"),
+                            contentDisposition = connection.getHeaderField("Content-Disposition"),
                             contentType = contentTypeHeader,
                         )
                     val content =
-                        connection.inputStream.use { input ->
-                            readUtf8TextLimited(input, NETWORK_IMPORT_MAX_BYTES)
-                        }
+                        connection.inputStream.use { input -> readUtf8TextLimited(input, NETWORK_IMPORT_MAX_BYTES) }
                     val inferredContentType =
                         OverrideContentType.fromFileName(sourceName)
                             ?: inferContentTypeFromHeader(contentTypeHeader)
                             ?: inferContentTypeFromContent(content)
-                    val normalizedSourceName =
-                        ensureSourceNameExtension(sourceName, inferredContentType)
+                    val normalizedSourceName = ensureSourceNameExtension(sourceName, inferredContentType)
                     importConfig(
-                        content = content,
-                        sourceName = normalizedSourceName,
-                        fallbackContentType = inferredContentType,
-                    )
+                            content = content,
+                            sourceName = normalizedSourceName,
+                            fallbackContentType = inferredContentType,
+                        )
                         .getOrThrow()
                 } finally {
                     connection.disconnect()
@@ -396,21 +379,17 @@ private fun resolveNetworkImportSourceName(
 
     if (pathName.isNotBlank()) return pathName
 
-    val extension =
-        inferContentTypeFromHeader(contentType)?.extension ?: OverrideContentType.Yaml.extension
+    val extension = inferContentTypeFromHeader(contentType)?.extension ?: OverrideContentType.Yaml.extension
     return "${url.host.ifBlank { YumeTxt.Override.Save.ImportDefaultName }}.$extension"
 }
 
 private fun parseFilenameFromContentDisposition(contentDisposition: String?): String? {
     val value = contentDisposition?.takeIf(String::isNotBlank) ?: return null
-    val encodedMatch =
-        Regex("""filename\*=([^']*)'[^']*'([^;]+)""", RegexOption.IGNORE_CASE).find(value)
+    val encodedMatch = Regex("""filename\*=([^']*)'[^']*'([^;]+)""", RegexOption.IGNORE_CASE).find(value)
     if (encodedMatch != null) {
         val charset = encodedMatch.groupValues[1].ifBlank { Charsets.UTF_8.name() }
         val encodedName = encodedMatch.groupValues[2].trim().trim('"', '\'')
-        return runCatching { URLDecoder.decode(encodedName, charset).trim() }
-            .getOrNull()
-            ?.takeIf(String::isNotBlank)
+        return runCatching { URLDecoder.decode(encodedName, charset).trim() }.getOrNull()?.takeIf(String::isNotBlank)
     }
 
     return Regex("""filename=([^;]+)""", RegexOption.IGNORE_CASE)
@@ -450,18 +429,13 @@ private fun ensureSourceNameExtension(
 
 private fun normalizeImportedConfigSourceName(sourceName: String?): String? {
     var normalizedName =
-        sourceName
-            ?.substringAfterLast('/')
-            ?.substringAfterLast('\\')
-            ?.trim()
-            ?.takeIf(String::isNotBlank) ?: return null
+        sourceName?.substringAfterLast('/')?.substringAfterLast('\\')?.trim()?.takeIf(String::isNotBlank) ?: return null
 
     val removableSuffixes = listOf(".yaml", ".yml", ".js")
     while (true) {
         val matchedSuffix =
             removableSuffixes.firstOrNull { suffix ->
-                normalizedName.length > suffix.length &&
-                        normalizedName.endsWith(suffix, ignoreCase = true)
+                normalizedName.length > suffix.length && normalizedName.endsWith(suffix, ignoreCase = true)
             } ?: break
         normalizedName = normalizedName.dropLast(matchedSuffix.length).trimEnd()
     }

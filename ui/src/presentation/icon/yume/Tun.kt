@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -39,12 +38,12 @@ val Yume.Tun: ImageVector
         }
         tunVector =
             ImageVector.Builder(
-                name = "MonitorCog",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            )
+                    name = "MonitorCog",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                )
                 .apply {
                     path(
                         stroke = SolidColor(Color.Black),
@@ -208,5 +207,4 @@ val Yume.Tun: ImageVector
         return tunVector!!
     }
 
-@Suppress("ObjectPropertyName")
-private var tunVector: ImageVector? = null
+@Suppress("ObjectPropertyName") private var tunVector: ImageVector? = null

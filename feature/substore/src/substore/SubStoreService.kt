@@ -46,10 +46,7 @@ class SubStoreService : Service() {
         }
 
         return runCatching {
-            if (
-                NetworkUtil.isPortInUse(request.frontendPort) ||
-                NetworkUtil.isPortInUse(request.backendPort)
-            ) {
+            if (NetworkUtil.isPortInUse(request.frontendPort) || NetworkUtil.isPortInUse(request.backendPort)) {
                 error("Port ${request.frontendPort} or ${request.backendPort} is already in use")
             }
 
@@ -62,9 +59,7 @@ class SubStoreService : Service() {
                     backendPort = request.backendPort,
                     frontendPort = request.frontendPort,
                     allowLan = request.allowLan,
-                    onTerminated = { terminated ->
-                        mainHandler.post { handleEngineTermination(terminated, startId) }
-                    },
+                    onTerminated = { terminated -> mainHandler.post { handleEngineTermination(terminated, startId) } },
                 )
             caseEngine = engine
 

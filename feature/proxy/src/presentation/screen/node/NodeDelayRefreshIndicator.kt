@@ -36,15 +36,15 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.TextStyle
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.StateFlow
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlin.math.roundToInt
 
 @Composable
 internal fun GroupDelayRefreshIndicator(
@@ -69,36 +69,27 @@ internal fun NodeDelayRefreshIndicator(
     modifier: Modifier = Modifier,
     textStyle: TextStyle = MiuixTheme.textStyles.subtitle,
 ) {
-    val reveal by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec =
-            tween(
-                durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration,
-                easing =
-                    if (visible) {
-                        AnimationSpecs.EmphasizedDecelerate
-                    } else {
-                        AnimationSpecs.EmphasizedAccelerate
-                    },
-            ),
-        label = "delay_refresh_reveal",
-    )
+    val reveal by
+        animateFloatAsState(
+            targetValue = if (visible) 1f else 0f,
+            animationSpec =
+                tween(
+                    durationMillis = AnimationSpecs.Proxy.RefreshIndicatorDuration,
+                    easing =
+                        if (visible) {
+                            AnimationSpecs.EmphasizedDecelerate
+                        } else {
+                            AnimationSpecs.EmphasizedAccelerate
+                        },
+                ),
+            label = "delay_refresh_reveal",
+        )
     if (!visible && reveal == 0f) return
     // Measure the bar once at its full height, then report only the revealed slice. Children keep
     // stable constraints, so the lazy list repositions instead of remeasuring every row.
-    Box(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .clipToBounds()
-                .revealDown(reveal),
-    ) {
+    Box(modifier = modifier.fillMaxWidth().clipToBounds().revealDown(reveal)) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer { alpha = reveal }
-                    .padding(vertical = UiDp.dp12),
+            modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = reveal }.padding(vertical = UiDp.dp12),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(UiDp.dp6),
         ) {
@@ -108,14 +99,11 @@ internal fun NodeDelayRefreshIndicator(
     }
 }
 
-private fun Modifier.revealDown(reveal: Float): Modifier =
-    layout { measurable, constraints ->
-        val placeable = measurable.measure(constraints)
-        val height = (placeable.height * reveal).roundToInt().coerceIn(0, placeable.height)
-        layout(placeable.width, height) {
-            placeable.place(0, 0)
-        }
-    }
+private fun Modifier.revealDown(reveal: Float): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints)
+    val height = (placeable.height * reveal).roundToInt().coerceIn(0, placeable.height)
+    layout(placeable.width, height) { placeable.place(0, 0) }
+}
 
 @Composable
 private fun DelayTestSpinner() {

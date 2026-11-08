@@ -28,17 +28,16 @@ import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * Themed root every Activity composes into: reads the theme triple (mode / seed / inverted primary
- * colours) from [AppSettingsViewModel] once, installs the Android system-bar effect and wraps
- * [content] in [YumeTheme]. Activities must not re-wire those three states themselves.
+ * Themed root every Activity composes into: reads the theme triple (mode / seed / inverted primary colours) from
+ * [AppSettingsViewModel] once, installs the Android system-bar effect and wraps [content] in [YumeTheme]. Activities
+ * must not re-wire those three states themselves.
  */
 @Composable
 fun YumeAppShell(content: @Composable () -> Unit) {
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
     val themeMode = appSettingsViewModel.themeMode.state.collectAsState().value
     val themeSeedColorArgb = appSettingsViewModel.themeSeedColorArgb.state.collectAsState().value
-    val invertOnPrimaryColors =
-        appSettingsViewModel.invertOnPrimaryColors.state.collectAsState().value
+    val invertOnPrimaryColors = appSettingsViewModel.invertOnPrimaryColors.state.collectAsState().value
     ProvideAndroidPlatformTheme {
         YumeTheme(
             themeMode = themeMode,

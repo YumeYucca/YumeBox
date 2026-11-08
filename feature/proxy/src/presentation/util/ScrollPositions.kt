@@ -28,10 +28,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 /**
  * The proxy feature's one definition of "where a scroll surface is".
  *
- * The collapsing tab strip and the two sheet/page lists all need the same two answers — "is this
- * surface still at its first pixel" and "a saved state keyed by which page" — so they live here
- * instead of being re-derived per call site (one of which had grown the inverted `isScrolledFromTop`
- * copy of the same test).
+ * The collapsing tab strip and the two sheet/page lists all need the same two answers — "is this surface still at its
+ * first pixel" and "a saved state keyed by which page" — so they live here instead of being re-derived per call site
+ * (one of which had grown the inverted `isScrolledFromTop` copy of the same test).
  */
 @Composable
 internal fun rememberSavedListState(input: Any? = Unit): LazyListState =

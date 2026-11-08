@@ -31,13 +31,11 @@ object SubscriptionUserAgent {
     private const val CUSTOM_USER_AGENT_KEY = "customUserAgent"
 
     fun resolve(): String {
-        val custom =
-            runCatching {
-                    MMKV.mmkvWithID(SETTINGS_STORE_ID, MMKV.MULTI_PROCESS_MODE)
-                        .decodeString(CUSTOM_USER_AGENT_KEY)
-                }
-                .getOrNull()
-                ?.trim()
+        val custom = runCatching {
+            MMKV.mmkvWithID(SETTINGS_STORE_ID, MMKV.MULTI_PROCESS_MODE).decodeString(CUSTOM_USER_AGENT_KEY)
+        }
+            .getOrNull()
+            ?.trim()
         return custom?.takeIf { it.isNotEmpty() } ?: DEFAULT
     }
 }

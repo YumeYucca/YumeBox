@@ -30,10 +30,10 @@ import timber.log.Timber
 /**
  * Starts [intent] and reports whether the system had something to start.
  *
- * Every launch can fail for the same reason: nothing on the device resolves the action, and
- * `startActivity` throws [ActivityNotFoundException] at the caller. Android has no way to ask in
- * advance, so the miss is logged here once instead of being handled — or crashing — at each call
- * site. Callers that show a waiting state must inspect the result and undo it.
+ * Every launch can fail for the same reason: nothing on the device resolves the action, and `startActivity` throws
+ * [ActivityNotFoundException] at the caller. Android has no way to ask in advance, so the miss is logged here once
+ * instead of being handled — or crashing — at each call site. Callers that show a waiting state must inspect the result
+ * and undo it.
  */
 fun Context.startActivitySafely(intent: Intent): Boolean =
     try {
@@ -50,8 +50,8 @@ fun Context.startActivitySafely(intent: Intent): Boolean =
 /**
  * Opens [url] in whichever app the system resolves for it.
  *
- * A device that has no browser, or that has disabled the scheme, resolves nothing; a tapped link
- * must not take the app down with it, so [startActivitySafely] logs the miss.
+ * A device that has no browser, or that has disabled the scheme, resolves nothing; a tapped link must not take the app
+ * down with it, so [startActivitySafely] logs the miss.
  */
 fun Context.openUrl(url: String) {
     startActivitySafely(Intent(Intent.ACTION_VIEW, url.toUri()))

@@ -27,6 +27,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumeyucca.yumebox.common.util.DeviceUtil
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.util.PollingTimerSpecs
 import com.github.yumeyucca.yumebox.core.util.PollingTimers
 import com.github.yumeyucca.yumebox.data.model.RemoteProtocol
@@ -45,7 +46,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 /** Independently downloadable payloads of the Sub-Store runtime. */
 enum class SubStoreResource {
@@ -128,22 +128,22 @@ class FeatureViewModel(
 
     val screenState: StateFlow<FeatureScreenState> =
         combine(
-            serviceState,
-            _downloading,
-            _isJavetLoaded,
-            selectedPanelType.state.map { SubStorePanel.fromIndex(it) },
-        ) { service, downloading, javetLoaded, panelType ->
-            service.copy(
-                downloading = downloading,
-                isJavetLoaded = javetLoaded,
-                panelType = panelType,
+                serviceState,
+                _downloading,
+                _isJavetLoaded,
+                selectedPanelType.state.map { SubStorePanel.fromIndex(it) },
+            ) { service, downloading, javetLoaded, panelType ->
+                service.copy(
+                    downloading = downloading,
+                    isJavetLoaded = javetLoaded,
+                    panelType = panelType,
+                )
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = FeatureScreenState(panelType = SubStorePanel.fromIndex(selectedPanelType.value)),
             )
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue =
-                FeatureScreenState(panelType = SubStorePanel.fromIndex(selectedPanelType.value)),
-        )
 
     fun startService() {
         if (DeviceUtil.is32BitDevice()) {
@@ -216,8 +216,7 @@ class FeatureViewModel(
 
     private fun initializeJavetStatus() {
         NativeLibraryManager.initialize(application)
-        _isJavetLoaded.value =
-            NativeLibraryManager.isLibraryAvailable() && NativeLibraryManager.loadJniLibrary()
+        _isJavetLoaded.value = NativeLibraryManager.isLibraryAvailable() && NativeLibraryManager.loadJniLibrary()
     }
 
     fun setSelectedPanelType(panelType: SubStorePanel) {
@@ -227,8 +226,8 @@ class FeatureViewModel(
     fun setPanelProtocol(protocol: RemoteProtocol) = panelProtocol.set(protocol)
 
     /**
-     * Installs the runtime first when missing, then fetches the frontend and backend payloads.
-     * The two payloads are independent downloads, so they run concurrently.
+     * Installs the runtime first when missing, then fetches the frontend and backend payloads. The two payloads are
+     * independent downloads, so they run concurrently.
      */
     fun installResources() {
         viewModelScope.launch {
@@ -270,8 +269,7 @@ class FeatureViewModel(
             SubStorePaths.ensureStructure()
             SubStorePaths.frontendDir.apply { if (!exists()) mkdirs() }
             downloadClient.downloadAndExtract(
-                url =
-                    "https://github.com/sub-store-org/Sub-Store-Front-End/releases/latest/download/dist.zip",
+                url = "https://github.com/sub-store-org/Sub-Store-Front-End/releases/latest/download/dist.zip",
                 targetDir = SubStorePaths.frontendDir,
             )
         }
@@ -286,17 +284,15 @@ class FeatureViewModel(
             SubStorePaths.ensureStructure()
             SubStorePaths.backendDir.apply { if (!exists()) mkdirs() }
             downloadClient.download(
-                url =
-                    "https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store.bundle.js",
+                url = "https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store.bundle.js",
                 targetFile = SubStorePaths.backendBundle,
             )
         }
     }
 
     /**
-     * Runs one download with the shared toasts and bookkeeping, and skips it when the same
-     * resource is already downloading. Suspends until the download has finished, so callers can
-     * chain payloads without polling.
+     * Runs one download with the shared toasts and bookkeeping, and skips it when the same resource is already
+     * downloading. Suspends until the download has finished, so callers can chain payloads without polling.
      */
     @Suppress("TooGenericExceptionCaught")
     private suspend fun runResourceDownload(
@@ -316,14 +312,8 @@ class FeatureViewModel(
             success
         } catch (error: CancellationException) {
             throw error
-        } catch (
-            error: Exception
-        ) { // fault barrier: one failed payload toasts instead of aborting the batch
-            showToast(
-                YumeTxt.Feature.SubStore.DownloadError.format(
-                    error.message ?: YumeTxt.Util.Error.UnknownError,
-                ),
-            )
+        } catch (error: Exception) { // fault barrier: one failed payload toasts instead of aborting the batch
+            showToast(YumeTxt.Feature.SubStore.DownloadError.format(error.message ?: YumeTxt.Util.Error.UnknownError))
             false
         } finally {
             _downloading.update { it - resource }
@@ -332,27 +322,23 @@ class FeatureViewModel(
 
     private fun showToast(msg: String) = application.toast(msg)
 
-    private fun Int.toAutoCloseMode(): AutoCloseMode =
-        AutoCloseMode.entries.getOrNull(this) ?: AutoCloseMode.ALWAYS_ON
+    private fun Int.toAutoCloseMode(): AutoCloseMode = AutoCloseMode.entries.getOrNull(this) ?: AutoCloseMode.ALWAYS_ON
 
-    private fun setupAutoCloseTimer(
-        mode: AutoCloseMode = autoCloseModePreference.value.toAutoCloseMode(),
-    ) {
+    private fun setupAutoCloseTimer(mode: AutoCloseMode = autoCloseModePreference.value.toAutoCloseMode()) {
         cancelAutoCloseTimer()
         mode.minutes?.let { minutes ->
-            autoCloseJob =
-                viewModelScope.launch {
-                    val timeoutMillis = minutes * 60 * 1000L
-                    PollingTimers.awaitTick(
-                        PollingTimerSpecs.dynamic(
-                            name = "substore_auto_close",
-                            intervalMillis = timeoutMillis,
-                            initialDelayMillis = timeoutMillis,
-                        ),
+            autoCloseJob = viewModelScope.launch {
+                val timeoutMillis = minutes * 60 * 1000L
+                PollingTimers.awaitTick(
+                    PollingTimerSpecs.dynamic(
+                        name = "substore_auto_close",
+                        intervalMillis = timeoutMillis,
+                        initialDelayMillis = timeoutMillis,
                     )
-                    showToast(YumeTxt.Feature.ServiceStatus.AutoClosed)
-                    stopService()
-                }
+                )
+                showToast(YumeTxt.Feature.ServiceStatus.AutoClosed)
+                stopService()
+            }
         }
     }
 

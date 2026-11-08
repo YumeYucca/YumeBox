@@ -37,7 +37,9 @@ import kotlinx.coroutines.withContext
 import java.io.FileNotFoundException
 import java.util.*
 
-class ProfileService(private val context: Context) : ProfileApi {
+class ProfileService(
+    private val context: Context,
+) : ProfileApi {
     private val store = ServiceStore()
 
     override suspend fun create(
@@ -73,8 +75,7 @@ class ProfileService(private val context: Context) : ProfileApi {
     override suspend fun clone(uuid: UUID): UUID {
         val newUUID = generateProfileUUID()
 
-        val imported =
-            ImportedDao.queryByUUID(uuid) ?: throw FileNotFoundException("profile $uuid not found")
+        val imported = ImportedDao.queryByUUID(uuid) ?: throw FileNotFoundException("profile $uuid not found")
 
         val now = System.currentTimeMillis()
         val newImported =
@@ -113,8 +114,7 @@ class ProfileService(private val context: Context) : ProfileApi {
         updateAgeSecretKey: Boolean,
         ageSecretKey: String?,
     ) {
-        val imported =
-            ImportedDao.queryByUUID(uuid) ?: throw FileNotFoundException("profile $uuid not found")
+        val imported = ImportedDao.queryByUUID(uuid) ?: throw FileNotFoundException("profile $uuid not found")
 
         val updated =
             imported.copy(
@@ -133,9 +133,10 @@ class ProfileService(private val context: Context) : ProfileApi {
         context.sendProfileChanged(uuid, affectsRuntime = store.activeProfile == uuid)
     }
 
-    override suspend fun update(uuid: UUID, callback: FetchObserver?): ProfileUpdateReport {
-        return ProfileProcessor.update(context, uuid, callback)
-    }
+    override suspend fun update(
+        uuid: UUID,
+        callback: FetchObserver?,
+    ): ProfileUpdateReport = ProfileProcessor.update(context, uuid, callback)
 
     override suspend fun delete(uuid: UUID) {
         ProfileProcessor.delete(context, uuid)
@@ -146,12 +147,9 @@ class ProfileService(private val context: Context) : ProfileApi {
     override suspend fun queryAll(): List<Profile> {
         val uuids = withContext(Dispatchers.IO) { ImportedDao.queryAllUUIDs() }
 
-        val orderIndex =
-            ProfileStore.loadProfileOrder().withIndex().associate { it.value to it.index }
+        val orderIndex = ProfileStore.loadProfileOrder().withIndex().associate { it.value to it.index }
 
-        return uuids
-            .mapNotNull { resolveProfile(it) }
-            .sortedBy { orderIndex[it.uuid] ?: Int.MAX_VALUE }
+        return uuids.mapNotNull { resolveProfile(it) }.sortedBy { orderIndex[it.uuid] ?: Int.MAX_VALUE }
     }
 
     override suspend fun queryActive(): Profile? {
@@ -181,10 +179,11 @@ class ProfileService(private val context: Context) : ProfileApi {
         val existing = ImportedDao.queryAllUUIDs()
         val existingSet = existing.toSet()
 
-        val normalized = buildList {
-            uuids.forEach { uuid -> if (uuid in existingSet && uuid !in this) add(uuid) }
-            existing.forEach { uuid -> if (uuid !in this) add(uuid) }
-        }
+        val normalized =
+            buildList {
+                uuids.forEach { uuid -> if (uuid in existingSet && uuid !in this) add(uuid) }
+                existing.forEach { uuid -> if (uuid !in this) add(uuid) }
+            }
 
         ProfileStore.saveProfileOrder(normalized)
     }
@@ -211,9 +210,7 @@ class ProfileService(private val context: Context) : ProfileApi {
         )
     }
 
-    private fun resolveUpdatedAt(uuid: UUID): Long =
-        context.importedDir.resolve(uuid.toString()).directoryLastModified ?: -1
+    private fun resolveUpdatedAt(uuid: UUID): Long = context.importedDir.resolve(uuid.toString()).directoryLastModified ?: -1
 
-    private fun normalizeAgeSecretKey(value: String?): String? =
-        value?.trim()?.takeIf { it.isNotEmpty() }
+    private fun normalizeAgeSecretKey(value: String?): String? = value?.trim()?.takeIf { it.isNotEmpty() }
 }

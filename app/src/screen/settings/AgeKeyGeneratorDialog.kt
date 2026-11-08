@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.settings
 
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,22 +29,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.github.yumeyucca.yumebox.core.bridge.Compiler
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.AppDialog
 import com.github.yumeyucca.yumebox.presentation.component.OemTextField
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.TextButton
 
 /**
- * Age key generator dialog. The secret/public fields are editable so a key can be typed or pasted,
- * then "Derive Public Key" derives the public key from the entered secret, or "Generate" creates a
- * fresh key pair (x25519 or post-quantum hybrid) through the native JNI surface. Generated/entered
- * keys are usable end to end — the Rust override decryptor supports both x25519 and mlkem768x25519
- * hybrid identities at runtime.
+ * Age key generator dialog. The secret/public fields are editable so a key can be typed or pasted, then "Derive Public
+ * Key" derives the public key from the entered secret, or "Generate" creates a fresh key pair (x25519 or post-quantum
+ * hybrid) through the native JNI surface. Generated/entered keys are usable end to end — the Rust override decryptor
+ * supports both x25519 and mlkem768x25519 hybrid identities at runtime.
  */
 @Composable
 fun AgeKeyGeneratorDialog(
@@ -62,9 +60,7 @@ fun AgeKeyGeneratorDialog(
 
     AppDialog(
         show = show,
-        title =
-            if (hybrid) YumeTxt.MetaFeature.AgeKey.HybridTitle
-            else YumeTxt.MetaFeature.AgeKey.X25519Title,
+        title = if (hybrid) YumeTxt.MetaFeature.AgeKey.HybridTitle else YumeTxt.MetaFeature.AgeKey.X25519Title,
         onDismissRequest = onDismiss,
     ) {
         Column(
@@ -96,9 +92,7 @@ fun AgeKeyGeneratorDialog(
                         scope.launch {
                             val derived =
                                 withContext(Dispatchers.Default) {
-                                    Compiler.nativeAgePublicKey(secretKey).takeIf {
-                                        it.isNotBlank()
-                                    }
+                                    Compiler.nativeAgePublicKey(secretKey).takeIf { it.isNotBlank() }
                                 }
                             if (!derived.isNullOrBlank()) {
                                 publicKey = derived
@@ -120,8 +114,7 @@ fun AgeKeyGeneratorDialog(
                                     // supported by the compiler crate; falls back to x25519).
                                     runCatching {
                                         kotlinx.serialization.json.Json.decodeFromString(
-                                            com.github.yumeyucca.yumebox.core.model.AgeKeyPair
-                                                .serializer(),
+                                            com.github.yumeyucca.yumebox.core.model.AgeKeyPair.serializer(),
                                             Compiler.nativeGenAgeKey(),
                                         )
                                     }

@@ -29,6 +29,7 @@ import com.github.yumeyucca.yumebox.BuildInfo
 import com.github.yumeyucca.yumebox.common.util.XiaomiAutoStart
 import com.github.yumeyucca.yumebox.common.util.stateInWhileSubscribed
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.util.moeWallpaperFile
 import com.github.yumeyucca.yumebox.data.controller.AppSettingsController
 import com.github.yumeyucca.yumebox.data.model.AppColorTheme
@@ -49,7 +50,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 class AppSettingsViewModel(
     private val application: Application,
@@ -63,14 +63,12 @@ class AppSettingsViewModel(
     val themeSeedColorArgb: Preference<Long> = settings.themeAccentColorArgb
     val invertOnPrimaryColors: Preference<Boolean> = settings.invertOnPrimaryColors
     val automaticRestart: Preference<Boolean> = settings.automaticRestart
-    val autoUpdateCurrentProfileOnStart: Preference<Boolean> =
-        settings.autoUpdateCurrentProfileOnStart
+    val autoUpdateCurrentProfileOnStart: Preference<Boolean> = settings.autoUpdateCurrentProfileOnStart
     val excludeFromRecents: Preference<Boolean> = settings.excludeFromRecents
     val showTrafficNotification: Preference<Boolean> = settings.showTrafficNotification
     val liveUpdatesEnabled: Preference<Boolean> = settings.liveUpdatesEnabled
     val notificationFirstLine: Preference<NotificationLineContent> = settings.notificationFirstLine
-    val notificationSecondLine: Preference<NotificationLineContent> =
-        settings.notificationSecondLine
+    val notificationSecondLine: Preference<NotificationLineContent> = settings.notificationSecondLine
     val notificationFirstLineText: Preference<String> = settings.notificationFirstLineText
     val notificationSecondLineText: Preference<String> = settings.notificationSecondLineText
     val bottomBarAutoHide: Preference<Boolean> = settings.bottomBarAutoHide
@@ -103,20 +101,18 @@ class AppSettingsViewModel(
     )
 
     val behaviorSectionState: StateFlow<BehaviorSectionState> =
-        combine(automaticRestart.state, autoUpdateCurrentProfileOnStart.state) { restart, autoUpdate
-            ->
+        combine(automaticRestart.state, autoUpdateCurrentProfileOnStart.state) { restart, autoUpdate ->
             BehaviorSectionState(
                 automaticRestart = restart,
                 autoUpdateCurrentProfileOnStart = autoUpdate,
             )
-        }
-            .stateInWhileSubscribed(
-                viewModelScope,
-                BehaviorSectionState(
-                    automaticRestart = automaticRestart.value,
-                    autoUpdateCurrentProfileOnStart = autoUpdateCurrentProfileOnStart.value,
-                ),
-            )
+        }.stateInWhileSubscribed(
+            viewModelScope,
+            BehaviorSectionState(
+                automaticRestart = automaticRestart.value,
+                autoUpdateCurrentProfileOnStart = autoUpdateCurrentProfileOnStart.value,
+            ),
+        )
 
     data class InterfaceSectionState(
         val themeMode: ThemeMode = ThemeMode.Auto,
@@ -167,21 +163,20 @@ class AppSettingsViewModel(
                 classicHomeEnabled = extra.classicHomeEnabled,
                 useSystemWallpaper = extra.useSystemWallpaper,
             )
-        }
-            .stateInWhileSubscribed(
-                viewModelScope,
-                InterfaceSectionState(
-                    themeMode = themeMode.value,
-                    appLanguage = appLanguage.value,
-                    themeSeedColorArgb = themeSeedColorArgb.value,
-                    invertOnPrimaryColors = invertOnPrimaryColors.value,
-                    bottomBarAutoHide = bottomBarAutoHide.value,
-                    topBarBlurEnabled = topBarBlurEnabled.value,
-                    pageScale = pageScale.value,
-                    classicHomeEnabled = classicHomeEnabled.value,
-                    useSystemWallpaper = useSystemWallpaper.value,
-                ),
-            )
+        }.stateInWhileSubscribed(
+            viewModelScope,
+            InterfaceSectionState(
+                themeMode = themeMode.value,
+                appLanguage = appLanguage.value,
+                themeSeedColorArgb = themeSeedColorArgb.value,
+                invertOnPrimaryColors = invertOnPrimaryColors.value,
+                bottomBarAutoHide = bottomBarAutoHide.value,
+                topBarBlurEnabled = topBarBlurEnabled.value,
+                pageScale = pageScale.value,
+                classicHomeEnabled = classicHomeEnabled.value,
+                useSystemWallpaper = useSystemWallpaper.value,
+            ),
+        )
 
     private data class InterfaceSectionExtras(
         val topBarBlurEnabled: Boolean,
@@ -205,8 +200,7 @@ class AppSettingsViewModel(
                 }
     }
 
-    private val _shizukuAccess =
-        MutableStateFlow(ShizukuAccessState(islandSupported = HyperOsIsland.isSupported()))
+    private val _shizukuAccess = MutableStateFlow(ShizukuAccessState(islandSupported = HyperOsIsland.isSupported()))
     val shizukuAccess: StateFlow<ShizukuAccessState> = _shizukuAccess.asStateFlow()
 
     /** Called when the section appears and on every resume. */
@@ -237,7 +231,7 @@ class AppSettingsViewModel(
                 application.toast(YumeTxt.AppSettings.ServiceSection.ShizukuReady)
             }
 
-            else ->
+            else -> {
                 ShizukuManager.requestPermission { allowed ->
                     viewModelScope.launch {
                         refreshShizukuAccess()
@@ -246,10 +240,11 @@ class AppSettingsViewModel(
                                 YumeTxt.AppSettings.ServiceSection.ShizukuReady
                             } else {
                                 YumeTxt.AppSettings.ServiceSection.ShizukuPermissionRequired
-                            }
+                            },
                         )
                     }
                 }
+            }
         }
     }
 
@@ -258,14 +253,11 @@ class AppSettingsViewModel(
     )
 
     val privacySectionState: StateFlow<PrivacySectionState> =
-        excludeFromRecents.state.map { exclude ->
-            PrivacySectionState(excludeFromRecents = exclude)
-        }
+        excludeFromRecents.state
+            .map { exclude -> PrivacySectionState(excludeFromRecents = exclude) }
             .stateInWhileSubscribed(
                 viewModelScope,
-                PrivacySectionState(
-                    excludeFromRecents = excludeFromRecents.value,
-                ),
+                PrivacySectionState(excludeFromRecents = excludeFromRecents.value),
             )
 
     data class NetworkSectionState(
@@ -285,16 +277,14 @@ class AppSettingsViewModel(
                 customUserAgent = userAgent,
                 updateChannel = AppUpdateChannel.resolve(channel, BuildInfo.UPDATE_CHANNEL),
             )
-        }
-            .stateInWhileSubscribed(
-                viewModelScope,
-                NetworkSectionState(
-                    autoCheckUpdate = autoCheckUpdate.value,
-                    customUserAgent = customUserAgent.value,
-                    updateChannel =
-                        AppUpdateChannel.resolve(updateChannel.value, BuildInfo.UPDATE_CHANNEL),
-                ),
-            )
+        }.stateInWhileSubscribed(
+            viewModelScope,
+            NetworkSectionState(
+                autoCheckUpdate = autoCheckUpdate.value,
+                customUserAgent = customUserAgent.value,
+                updateChannel = AppUpdateChannel.resolve(updateChannel.value, BuildInfo.UPDATE_CHANNEL),
+            ),
+        )
 
     data class MoeHomeSectionState(
         val themeMode: ThemeMode = ThemeMode.Auto,
@@ -319,17 +309,16 @@ class AppSettingsViewModel(
                 moeHomeQuote = quote,
                 sidebarExpanded = sidebar,
             )
-        }
-            .stateInWhileSubscribed(
-                viewModelScope,
-                MoeHomeSectionState(
-                    themeMode = themeMode.value,
-                    classicHomeEnabled = classicHomeEnabled.value,
-                    useSystemWallpaper = useSystemWallpaper.value,
-                    moeHomeQuote = moeHomeQuote.value,
-                    sidebarExpanded = moeSidebarExpanded.value,
-                ),
-            )
+        }.stateInWhileSubscribed(
+            viewModelScope,
+            MoeHomeSectionState(
+                themeMode = themeMode.value,
+                classicHomeEnabled = classicHomeEnabled.value,
+                useSystemWallpaper = useSystemWallpaper.value,
+                moeHomeQuote = moeHomeQuote.value,
+                sidebarExpanded = moeSidebarExpanded.value,
+            ),
+        )
 
     fun onThemeModeChange(mode: ThemeMode) = themeMode.set(mode)
 
@@ -343,20 +332,22 @@ class AppSettingsViewModel(
 
     fun onTopBarBlurEnabledChange(enabled: Boolean) = topBarBlurEnabled.set(enabled)
 
-    fun onPredictiveBackMaxProgressChange(progress: Float) =
-        predictiveBackMaxProgress.set(progress.coerceIn(1f, 100f))
+    fun onPredictiveBackMaxProgressChange(progress: Float) = predictiveBackMaxProgress.set(progress.coerceIn(1f, 100f))
 
     fun onPredictiveBackEnabledChange(enabled: Boolean) = predictiveBackEnabled.set(enabled)
 
     fun onUseSystemWallpaperChange(enabled: Boolean) = useSystemWallpaper.set(enabled)
 
     /**
-     * Persists the selected Moe wallpaper by copying [sourceUri] into the app-private files dir and
-     * storing the resulting `file://` path as [moeWallpaperUri], while remembering the original
-     * source in [moeWallpaperSourceUri] for lazy re-import. If the copy fails the original source
-     * URI is persisted directly (degraded but working) and a toast is shown.
+     * Persists the selected Moe wallpaper by copying [sourceUri] into the app-private files dir and storing the
+     * resulting `file://` path as [moeWallpaperUri], while remembering the original source in [moeWallpaperSourceUri]
+     * for lazy re-import. If the copy fails the original source URI is persisted directly (degraded but working) and a
+     * toast is shown.
      */
-    fun applyMoeWallpaper(sourceUri: String, onApplied: () -> Unit) {
+    fun applyMoeWallpaper(
+        sourceUri: String,
+        onApplied: () -> Unit,
+    ) {
         viewModelScope.launch {
             useSystemWallpaper.set(false)
             val localPath = MoeWallpaperImporter.importToLocal(application, sourceUri)
@@ -372,7 +363,11 @@ class AppSettingsViewModel(
         }
     }
 
-    fun onMoeWallpaperCropChange(zoom: Float, biasX: Float, biasY: Float) {
+    fun onMoeWallpaperCropChange(
+        zoom: Float,
+        biasX: Float,
+        biasY: Float,
+    ) {
         moeWallpaperZoom.set(zoom.coerceIn(1f, 5f))
         moeWallpaperBiasX.set(biasX.coerceIn(-1f, 1f))
         moeWallpaperBiasY.set(biasY.coerceIn(-1f, 1f))
@@ -382,28 +377,27 @@ class AppSettingsViewModel(
 
     fun onMoeHomeQuoteAuthorChange(author: String) = moeHomeQuoteAuthor.set(author)
 
-
     fun onMoeSidebarExpandedChange(expanded: Boolean) = moeSidebarExpanded.set(expanded)
 
     fun onMoeStatusBarSpacingChange(enabled: Boolean) = moeStatusBarSpacing.set(enabled)
 
-    fun onSplitLeftRatioChange(ratio: Float) =
-        splitLeftRatio.set(ratio.coerceIn(0.05f, 0.95f))
+    fun onSplitLeftRatioChange(ratio: Float) = splitLeftRatio.set(ratio.coerceIn(0.05f, 0.95f))
 
-    fun clearMoeWallpaperUri() {
+    fun clearMoeWallpaperUri(onCleared: () -> Unit = {}) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { runCatching { application.moeWallpaperFile().delete() } }
             moeWallpaperUri.set("")
             moeWallpaperSourceUri.set("")
             onMoeWallpaperCropChange(zoom = 1f, biasX = 0f, biasY = 0f)
+            onCleared()
         }
     }
 
     fun onPageScaleChange(scale: Float) = pageScale.set(scale)
 
     /**
-     * One switch owns boot autostart. On MIUI/HyperOS the ROM additionally gates the boot dispatch
-     * behind a private autostart switch, so enabling sends the user there when it is still off.
+     * One switch owns boot autostart. On MIUI/HyperOS the ROM additionally gates the boot dispatch behind a private
+     * autostart switch, so enabling sends the user there when it is still off.
      */
     fun onAutomaticRestartChange(enabled: Boolean) {
         automaticRestart.set(enabled)
@@ -413,9 +407,7 @@ class AppSettingsViewModel(
         XiaomiAutoStart.openSettings(application)
     }
 
-    fun onAutoUpdateCurrentProfileOnStartChange(enabled: Boolean) =
-        autoUpdateCurrentProfileOnStart.set(enabled)
-
+    fun onAutoUpdateCurrentProfileOnStartChange(enabled: Boolean) = autoUpdateCurrentProfileOnStart.set(enabled)
 
     fun onExcludeFromRecentsChange(exclude: Boolean) = excludeFromRecents.set(exclude)
 
@@ -423,11 +415,9 @@ class AppSettingsViewModel(
 
     fun onLiveUpdatesEnabledChange(enabled: Boolean) = liveUpdatesEnabled.set(enabled)
 
-    fun onNotificationFirstLineChange(content: NotificationLineContent) =
-        notificationFirstLine.set(content)
+    fun onNotificationFirstLineChange(content: NotificationLineContent) = notificationFirstLine.set(content)
 
-    fun onNotificationSecondLineChange(content: NotificationLineContent) =
-        notificationSecondLine.set(content)
+    fun onNotificationSecondLineChange(content: NotificationLineContent) = notificationSecondLine.set(content)
 
     fun onNotificationFirstLineTextChange(text: String) = notificationFirstLineText.set(text)
 

@@ -48,12 +48,10 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /**
  * Update/changelog dialog with a GitHub-flavored Markdown body and an optional download state.
  *
- * The caller supplies the title and action labels so the update flow can keep its own wording;
- * the body grows with its content up to a fixed cap and scrolls internally for long changelogs.
- * While the changelog is still loading the body shows the same refresh indicator as [busy] and
- * swaps to the measured height once the page reports it.
- * While [busy] is true the body swaps to the same refresh indicator the app uses elsewhere,
- * with [busyText] underneath.
+ * The caller supplies the title and action labels so the update flow can keep its own wording; the body grows with its
+ * content up to a fixed cap and scrolls internally for long changelogs. While the changelog is still loading the body
+ * shows the same refresh indicator as [busy] and swaps to the measured height once the page reports it. While [busy] is
+ * true the body swaps to the same refresh indicator the app uses elsewhere, with [busyText] underneath.
  */
 @Composable
 fun AppMarkdownDialog(
@@ -77,9 +75,7 @@ fun AppMarkdownDialog(
         AppDialogColumn(modifier = Modifier.animateContentSize()) {
             if (busy) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = UiDp.dp24),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = UiDp.dp24),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
                 ) {
@@ -103,11 +99,7 @@ fun AppMarkdownDialog(
                             UiDp.dp56
                         }
                     }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(bodyHeight),
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().height(bodyHeight)) {
                     MarkdownContent(
                         content = markdown,
                         modifier = Modifier.fillMaxWidth(),

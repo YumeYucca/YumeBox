@@ -28,11 +28,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.util.isYamlConfigFileName
 import com.github.yumeyucca.yumebox.presentation.util.readDisplayName
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import timber.log.Timber
 
 /** Picks a local YAML config file; the add sheet and the 编辑配置 page both use it. */
@@ -55,10 +55,7 @@ internal fun rememberProfileConfigFilePicker(
                     uri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION,
                 )
-            }
-                .onFailure { error ->
-                    Timber.w(error, "Persist profile source permission failed: %s", uri)
-                }
+            }.onFailure { error -> Timber.w(error, "Persist profile source permission failed: %s", uri) }
             onFileSelected(uri, fileName)
         }
     return { file.launch(arrayOf("*/*")) }
@@ -66,7 +63,10 @@ internal fun rememberProfileConfigFilePicker(
 
 /** Picks a QR image and decodes its payload off the main thread. */
 @Composable
-internal fun rememberQrImagePicker(context: Context, onQrDecoded: (String) -> Unit): () -> Unit {
+internal fun rememberQrImagePicker(
+    context: Context,
+    onQrDecoded: (String) -> Unit,
+): () -> Unit {
     val scope = rememberCoroutineScope()
     val qrImage =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -84,7 +84,8 @@ internal fun rememberQrImagePicker(context: Context, onQrDecoded: (String) -> Un
                 } catch (error: Exception) {
                     if (error is CancellationException) throw error
                     context.toast(
-                        YumeTxt.ProfilesPage.QrScanner.RecognizeError.format(error.message ?: "")
+                        YumeTxt.ProfilesPage.QrScanner.RecognizeError
+                            .format(error.message ?: ""),
                     )
                 }
             }

@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.screen.node
 
-
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -37,8 +36,8 @@ import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.data.model.normalizeProxySheetHeightFraction
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumeyucca.yumebox.domain.model.isSelectable
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeaderDefaults
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.isAtTop
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyDelayTestProgress
 import kotlinx.coroutines.flow.StateFlow
@@ -57,27 +56,23 @@ val NodeSheetContentPadding =
         bottom = UiDp.dp16,
     )
 
-/**
- * 节点行的唯一点击语义:可选中分组点击即选中;不可选中的分组(自动选择/负载均衡)没有可选
- * 目标,点击改测速。分组页、sheet 页和多列网格共用这一份,不再各写一遍 if。
- */
+/** 节点行的唯一点击语义:可选中分组点击即选中;不可选中的分组(自动选择/负载均衡)没有可选 目标,点击改测速。分组页、sheet 页和多列网格共用这一份,不再各写一遍 if。 */
 internal fun nodeClickHandler(
     group: ProxyGroupInfo,
     onSelectProxy: (String) -> Unit,
     onTestDelay: () -> Unit,
-): (String) -> Unit =
-    { proxyName ->
-        if (group.isSelectable) {
-            onSelectProxy(proxyName)
-        } else {
-            onTestDelay()
-        }
+): (String) -> Unit = { proxyName ->
+    if (group.isSelectable) {
+        onSelectProxy(proxyName)
+    } else {
+        onTestDelay()
     }
+}
 
 /**
- * The node-card rows shared by the sheet list and the multi-column page: one card per proxy, keyed by
- * name, with the outer/item padding the caller's layout needs (the grid column passes none of its
- * own, the page passes the horizontal gutter).
+ * The node-card rows shared by the sheet list and the multi-column page: one card per proxy, keyed by name, with the
+ * outer/item padding the caller's layout needs (the grid column passes none of its own, the page passes the horizontal
+ * gutter).
  */
 internal fun LazyListScope.nodeGridItems(
     proxies: List<Proxy>,
@@ -101,17 +96,18 @@ internal fun LazyListScope.nodeGridItems(
             isDelayTesting = testingProxyNames.contains(proxy.name),
             showCountryFlag = true,
             modifier =
-                Modifier.padding(
-                    horizontal = outerHorizontalPadding,
-                    vertical = itemVerticalPadding,
-                ),
+                Modifier.animateItem()
+                    .padding(
+                        horizontal = outerHorizontalPadding,
+                        vertical = itemVerticalPadding,
+                    ),
         )
     }
 }
 
 /**
- * The one sheet list shape: full width, capped at the sheet fraction, same spacing and padding.
- * Both the group list and the node list are this list, so they cannot drift apart.
+ * The one sheet list shape: full width, capped at the sheet fraction, same spacing and padding. Both the group list and
+ * the node list are this list, so they cannot drift apart.
  */
 @Composable
 private fun NodeSheetList(
@@ -121,8 +117,7 @@ private fun NodeSheetList(
 ) {
     LazyColumn(
         modifier =
-            Modifier
-                .fillMaxWidth()
+            Modifier.fillMaxWidth()
                 // Wrap up to the fraction cap instead of always forcing it: short group/node lists
                 // get a content-sized sheet (NexioSchedule semantics), long ones cap and scroll.
                 .heightIn(max = sheetHeight)

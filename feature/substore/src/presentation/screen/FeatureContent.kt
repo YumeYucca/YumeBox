@@ -27,13 +27,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.github.yumeyucca.yumebox.common.util.DeviceUtil
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.RemoteProtocol
 import com.github.yumeyucca.yumebox.data.model.SubStorePanel
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.viewmodel.FeatureViewModel
 import com.github.yumeyucca.yumebox.substore.model.AutoCloseMode
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 
 @Composable
@@ -61,7 +61,6 @@ fun FeatureContent(
     LaunchedEffect(Unit) { viewModel.initializeSubStoreStatus() }
 
     GlassScaffold(topBar = { TopBar(title = YumeTxt.Feature.Title, scrollBehavior = scrollBehavior) }) { innerPadding ->
-
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
@@ -108,9 +107,7 @@ fun FeatureContent(
                     PreferenceSwitchItem(
                         title = YumeTxt.Feature.ServiceStatus.SwitchStartSubStore,
                         checked = screen.isServiceRunning,
-                        onCheckedChange = {
-                            if (it) viewModel.startService() else viewModel.stopService()
-                        },
+                        onCheckedChange = { if (it) viewModel.startService() else viewModel.stopService() },
                     )
                     PreferenceArrowItem(
                         title = YumeTxt.Feature.ServiceStatus.OpenSubStorePanel,

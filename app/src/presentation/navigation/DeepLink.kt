@@ -27,21 +27,17 @@ import com.github.yumeyucca.yumebox.screen.rules.RulesProvidersTab
 /** A `yumebox://` link, already resolved to the thing it opens. */
 sealed interface DeepLink {
     /** A bottom-bar page; the shell scrolls to it. */
-    data class Page(
-        val destination: BottomBarDestination,
-    ) : DeepLink
+    data class Page(val destination: BottomBarDestination) : DeepLink
 
     /** A screen route; the shell opens or replaces it like any other navigation. */
-    data class Screen(
-        val route: Route,
-    ) : DeepLink
+    data class Screen(val route: Route) : DeepLink
 }
 
 /**
  * Parses `yumebox://page/<name>` and `yumebox://screen/<name>`.
  *
- * Returns `null` for anything unrecognised, so an old link from a previous release simply does
- * nothing instead of landing the user on an arbitrary page.
+ * Returns `null` for anything unrecognised, so an old link from a previous release simply does nothing instead of
+ * landing the user on an arbitrary page.
  */
 internal fun deepLinkOf(uri: Uri): DeepLink? =
     when (uri.host) {

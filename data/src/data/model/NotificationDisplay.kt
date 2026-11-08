@@ -37,9 +37,8 @@ enum class NotificationLineContent {
 }
 
 /**
- * Text values shared by the service renderer and the in-app notification preview. Building the
- * values in each process keeps the selection logic identical without coupling the preview to the
- * runtime service implementation.
+ * Text values shared by the service renderer and the in-app notification preview. Building the values in each process
+ * keeps the selection logic identical without coupling the preview to the runtime service implementation.
  */
 data class NotificationLineValues(
     val profileName: String,

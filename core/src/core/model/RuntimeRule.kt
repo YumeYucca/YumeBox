@@ -23,8 +23,8 @@ package com.github.yumeyucca.yumebox.core.model
 import kotlinx.serialization.Serializable
 
 /**
- * One entry from the mihomo `GET /rules` endpoint (runtime rule table). [disabled] is temporary and
- * cleared when the core restarts.
+ * One entry from the mihomo `GET /rules` endpoint (runtime rule table). [disabled] is temporary and cleared when the
+ * core restarts.
  */
 @Serializable
 data class RuntimeRule(

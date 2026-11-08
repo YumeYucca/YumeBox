@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel
 
-
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -99,9 +98,7 @@ class ConnectionViewModel(private val appContext: Context) : ViewModel() {
     private suspend fun pollOnce() {
         try {
             refreshConnections()
-        } catch (
-            error: Exception
-        ) { // fault barrier: keep the polling loop alive on any failure
+        } catch (error: Exception) { // fault barrier: keep the polling loop alive on any failure
             if (error is CancellationException) throw error
             Timber.w(error, "Failed to poll connections")
             _state.update { it.copy(error = error.message) }
@@ -131,17 +128,17 @@ class ConnectionViewModel(private val appContext: Context) : ViewModel() {
 
     suspend fun closeConnection(id: String): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching {
-                RuntimeAccess.connect(appContext)
-                RuntimeAccess.core().closeConnection(id)
+                runCatching {
+                        RuntimeAccess.connect(appContext)
+                        RuntimeAccess.core().closeConnection(id)
+                    }
+                    .onFailure { error ->
+                        if (error is CancellationException) throw error
+                        Timber.w(error, "Failed to close connection: %s", id)
+                        _state.update { it.copy(error = error.message) }
+                    }
+                    .getOrDefault(false)
             }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    Timber.w(error, "Failed to close connection: %s", id)
-                    _state.update { it.copy(error = error.message) }
-                }
-                .getOrDefault(false)
-        }
             .also { refreshConnections() }
 
     @Suppress("TooGenericExceptionCaught")
@@ -158,14 +155,10 @@ class ConnectionViewModel(private val appContext: Context) : ViewModel() {
                         isLoading = false,
                     )
                 }
-            } catch (
-                error: Exception
-            ) { // fault barrier: service IPC failure becomes UI error state
+            } catch (error: Exception) { // fault barrier: service IPC failure becomes UI error state
                 if (error is CancellationException) throw error
                 Timber.w(error, "Failed to query connections")
-                _state.update {
-                    it.copy(error = error.message, isLoading = false)
-                }
+                _state.update { it.copy(error = error.message, isLoading = false) }
             }
         }
     }
@@ -188,10 +181,7 @@ class ConnectionViewModel(private val appContext: Context) : ViewModel() {
                     val chains = conn.chains.joinToString(" ").lowercase()
                     val rule = conn.rule.lowercase()
 
-                    host.contains(query) ||
-                            process.contains(query) ||
-                            chains.contains(query) ||
-                            rule.contains(query)
+                    host.contains(query) || process.contains(query) || chains.contains(query) || rule.contains(query)
                 }
             }
 

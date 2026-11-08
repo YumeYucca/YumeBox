@@ -61,9 +61,7 @@ class OverrideService(
             notifyRuntimeOverrideChanged()
 
             true
-        } catch (
-            error: Exception
-        ) { // fault barrier: any resolver/broadcast failure degrades to false
+        } catch (error: Exception) { // fault barrier: any resolver/broadcast failure degrades to false
             if (error is CancellationException) throw error
             Timber.e(error, "Failed to apply override for profile: %s", profileId)
             false
@@ -72,8 +70,7 @@ class OverrideService(
 
     private fun notifyRuntimeOverrideChanged() {
         appContext.sendBroadcast(
-            Intent(Intents.actionOverrideChanged(appContext.packageName))
-                .setPackage(appContext.packageName)
+            Intent(Intents.actionOverrideChanged(appContext.packageName)).setPackage(appContext.packageName)
         )
     }
 }

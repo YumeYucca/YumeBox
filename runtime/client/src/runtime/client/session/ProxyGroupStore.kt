@@ -34,9 +34,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Proxy-group view state extracted from `ProxyFacade`: caches the last published group list,
- * dedupes republishes by content summary, and resolves the primary end node by walking the
- * selection chain. Publishing also reports readiness back so the runtime snapshot can track it.
+ * Proxy-group view state extracted from `ProxyFacade`: caches the last published group list, dedupes republishes by
+ * content summary, and resolves the primary end node by walking the selection chain. Publishing also reports readiness
+ * back so the runtime snapshot can track it.
  */
 internal class ProxyGroupStore(
     private val isRuntimeRunning: () -> Boolean,
@@ -97,9 +97,8 @@ internal class ProxyGroupStore(
     }
 
     /**
-     * Applies one measured batch to the live per-node flows and shields it from aggregate
-     * snapshots that have not caught up yet. The immutable group list stays untouched until
-     * [commitDirectDelays] folds the finished run in.
+     * Applies one measured batch to the live per-node flows and shields it from aggregate snapshots that have not
+     * caught up yet. The immutable group list stays untouched until [commitDirectDelays] folds the finished run in.
      */
     @Synchronized
     fun recordDirectDelays(delays: Map<String, Int>) {
@@ -107,15 +106,13 @@ internal class ProxyGroupStore(
         if (measured.isEmpty()) return
         val currentGroups = _groups.value
         if (currentGroups.isNotEmpty()) {
-            val index =
-                proxyToGroupIndex.ifEmpty {
-                    buildProxyToGroupIndex(currentGroups).also { proxyToGroupIndex = it }
-                }
+            val index = proxyToGroupIndex.ifEmpty {
+                buildProxyToGroupIndex(currentGroups).also { proxyToGroupIndex = it }
+            }
             val affectedMembers = HashMap<String, MutableSet<String>>()
             measured.keys.forEach { name ->
                 index[name]?.forEach { groupIndex ->
-                    affectedMembers.getOrPut(currentGroups[groupIndex].name) { mutableSetOf() } +=
-                        name
+                    affectedMembers.getOrPut(currentGroups[groupIndex].name) { mutableSetOf() } += name
                 }
             }
             if (affectedMembers.isNotEmpty()) overlay.recordDelays(measured, affectedMembers)
@@ -142,16 +139,14 @@ internal class ProxyGroupStore(
     private fun buildProxyToGroupIndex(groups: List<ProxyGroupInfo>): Map<String, List<Int>> {
         val index = HashMap<String, MutableList<Int>>()
         groups.forEachIndexed { i, group ->
-            group.proxies.forEach { proxy ->
-                index.getOrPut(proxy.name) { mutableListOf() } += i
-            }
+            group.proxies.forEach { proxy -> index.getOrPut(proxy.name) { mutableListOf() } += i }
         }
         return index
     }
 
     /**
-     * The controller's aggregate proxy snapshot can lag behind a direct `/delay` or selector write.
-     * Keep the direct result until an equal snapshot arrives or a short grace window expires.
+     * The controller's aggregate proxy snapshot can lag behind a direct `/delay` or selector write. Keep the direct
+     * result until an equal snapshot arrives or a short grace window expires.
      */
     @Synchronized
     fun mergeReportedDelays(incoming: List<ProxyGroupInfo>): List<ProxyGroupInfo> {
@@ -173,7 +168,7 @@ internal class ProxyGroupStore(
                                     previousDelay = previousDelay,
                                 )
                         )
-                    }
+                    },
             )
         }
     }

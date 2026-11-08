@@ -23,9 +23,9 @@ package com.github.yumeyucca.yumebox.presentation.component
 /**
  * The last navigation events, kept so a crash report can say which push died and where.
  *
- * TEMPORARY DIAGNOSTIC: a navigation crash loses its own breadcrumbs the moment the process dies,
- * so they are buffered here (no I/O, no locks worth the name) and dumped by the application's
- * uncaught-exception handler. Remove this file once the navigation fault is understood.
+ * TEMPORARY DIAGNOSTIC: a navigation crash loses its own breadcrumbs the moment the process dies, so they are buffered
+ * here (no I/O, no locks worth the name) and dumped by the application's uncaught-exception handler. Remove this file
+ * once the navigation fault is understood.
  */
 object NavTrace {
     private const val LIMIT = 40
@@ -37,6 +37,5 @@ object NavTrace {
         while (events.size > LIMIT) events.removeFirst()
     }
 
-    @Synchronized
-    fun dump(): String = events.joinToString("\n")
+    @Synchronized fun dump(): String = events.joinToString("\n")
 }

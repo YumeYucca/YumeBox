@@ -24,9 +24,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
@@ -45,12 +45,12 @@ import com.github.panpf.sketch.util.Size
 import com.github.yumeyucca.yumebox.R
 import com.github.yumeyucca.yumebox.presentation.component.calculateWallpaperViewportLayout
 import com.github.yumeyucca.yumebox.presentation.theme.isDarkSurface
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal val LocalUseSystemWallpaper = compositionLocalOf { false }
 internal val LocalWallpaperRefreshKey = compositionLocalOf { 0 }
@@ -70,22 +70,22 @@ internal fun MoeWallpaperBackground(
     val useSystemWallpaper = LocalUseSystemWallpaper.current
     val wallpaperRefreshKey = LocalWallpaperRefreshKey.current
     val model by
-    produceState(bundledWallpaper, wallpaperUri, useSystemWallpaper, wallpaperRefreshKey) {
-        value =
-            withContext(Dispatchers.IO) {
-                val sourceUri =
-                    if (useSystemWallpaper) {
-                        copySystemWallpaper(context)
-                    } else {
-                        wallpaperUri
-                    }
-                resolveWallpaperModel(context, sourceUri)
-            }
-    }
+        produceState(bundledWallpaper, wallpaperUri, useSystemWallpaper, wallpaperRefreshKey) {
+            value =
+                withContext(Dispatchers.IO) {
+                    val sourceUri =
+                        if (useSystemWallpaper) {
+                            copySystemWallpaper(context)
+                        } else {
+                            wallpaperUri
+                        }
+                    resolveWallpaperModel(context, sourceUri)
+                }
+        }
     val imageBounds by
-    produceState<Pair<Int, Int>?>(null, model) {
-        value = if (model == bundledWallpaper) null else readImageBounds(context, model)
-    }
+        produceState<Pair<Int, Int>?>(null, model) {
+            value = if (model == bundledWallpaper) null else readImageBounds(context, model)
+        }
 
     BoxWithConstraints(modifier = modifier) {
         val width = with(density) { maxWidth.toPx() }.coerceAtLeast(1f)
@@ -96,12 +96,8 @@ internal fun MoeWallpaperBackground(
             calculateWallpaperViewportLayout(
                 containerWidthPx = width,
                 containerHeightPx = height,
-                imageWidthPx =
-                    intrinsic.width.takeIf { it > 0f && it.isFinite() }
-                        ?: imageBounds?.first?.toFloat(),
-                imageHeightPx =
-                    intrinsic.height.takeIf { it > 0f && it.isFinite() }
-                        ?: imageBounds?.second?.toFloat(),
+                imageWidthPx = intrinsic.width.takeIf { it > 0f && it.isFinite() } ?: imageBounds?.first?.toFloat(),
+                imageHeightPx = intrinsic.height.takeIf { it > 0f && it.isFinite() } ?: imageBounds?.second?.toFloat(),
                 zoom = wallpaperZoom.coerceIn(1f, 5f),
                 biasX = wallpaperBiasX,
                 biasY = wallpaperBiasY,
@@ -111,9 +107,7 @@ internal fun MoeWallpaperBackground(
             contentDescription = null,
             contentScale = ContentScale.Crop,
             alignment = BiasAlignment(layout.biasX, layout.biasY),
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxSize(),
+            modifier = Modifier.align(Alignment.Center).fillMaxSize(),
         )
     }
 }
@@ -152,9 +146,7 @@ private suspend fun readImageBounds(context: Context, model: String): Pair<Int, 
             context.contentResolver.openInputStream(model.toUri())?.use { input ->
                 BitmapFactory.Options()
                     .apply { inJustDecodeBounds = true }
-                    .also { options ->
-                        BitmapFactory.decodeStream(input, null, options)
-                    }
+                    .also { options -> BitmapFactory.decodeStream(input, null, options) }
                     .takeIf { it.outWidth > 0 && it.outHeight > 0 }
                     ?.let { it.outWidth to it.outHeight }
             }
@@ -186,13 +178,14 @@ private fun copySystemWallpaper(context: Context): String {
     if (!SystemWallpaperAccess.isGranted(context)) return ""
     val target = File(context.cacheDir, "system-wallpaper.jpg")
     return runCatching {
-        WallpaperManager.getInstance(context).getWallpaperFile(WallpaperManager.FLAG_SYSTEM)?.use {
-            ParcelFileDescriptor.AutoCloseInputStream(it).use { input ->
-                target.outputStream().use { output -> input.copyTo(output) }
-            }
-        } ?: return ""
-        "file://${target.absolutePath}"
-    }.getOrDefault("")
+            WallpaperManager.getInstance(context).getWallpaperFile(WallpaperManager.FLAG_SYSTEM)?.use {
+                ParcelFileDescriptor.AutoCloseInputStream(it).use { input ->
+                    target.outputStream().use { output -> input.copyTo(output) }
+                }
+            } ?: return ""
+            "file://${target.absolutePath}"
+        }
+        .getOrDefault("")
 }
 
 @Composable
@@ -211,35 +204,34 @@ internal fun rememberMoeWallpaperAccentColor(
             value =
                 withContext(Dispatchers.IO) {
                     runCatching {
-                        val sourceUri =
-                            if (useSystemWallpaper) copySystemWallpaper(context) else wallpaperUri
-                        val model = resolveWallpaperModel(context, sourceUri)
-                        decodeWallpaperAccentSample(context, model)
-                            ?.let { bitmap -> wallpaperAccentColor(bitmap, surfaceIsDark, fallback) }
-                            ?: fallback
-                    }.getOrDefault(fallback)
+                            val sourceUri = if (useSystemWallpaper) copySystemWallpaper(context) else wallpaperUri
+                            val model = resolveWallpaperModel(context, sourceUri)
+                            decodeWallpaperAccentSample(context, model)?.let { bitmap ->
+                                wallpaperAccentColor(bitmap, surfaceIsDark, fallback)
+                            } ?: fallback
+                        }
+                        .getOrDefault(fallback)
                 }
         }
     return accent
 }
 
-private fun decodeWallpaperAccentSample(context: Context, model: String): Bitmap? =
-    runCatching {
-        openWallpaperStream(context, model)?.use { input ->
-            BitmapFactory.decodeStream(
-                input,
-                null,
-                BitmapFactory.Options().apply {
-                    inSampleSize = 8
-                    inPreferredConfig = Bitmap.Config.RGB_565
-                },
-            )
-        }
-    }.getOrNull()
+private fun decodeWallpaperAccentSample(context: Context, model: String): Bitmap? = runCatching {
+    openWallpaperStream(context, model)?.use { input ->
+        BitmapFactory.decodeStream(
+            input,
+            null,
+            BitmapFactory.Options().apply {
+                inSampleSize = 8
+                inPreferredConfig = Bitmap.Config.RGB_565
+            },
+        )
+    }
+}
+    .getOrNull()
 
 private fun openWallpaperStream(context: Context, model: String): InputStream? {
-    fun bundled(): InputStream? =
-        runCatching { context.resources.openRawResource(R.drawable.wallpaper) }.getOrNull()
+    fun bundled(): InputStream? = runCatching { context.resources.openRawResource(R.drawable.wallpaper) }.getOrNull()
 
     if (model.isBlank()) return bundled()
     val direct =

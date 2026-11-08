@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.settings
 
-
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
@@ -31,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.RunMode
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
@@ -42,15 +42,13 @@ import io.github.yumeyucca.lucide.Lucide
 import io.github.yumeyucca.lucide.lucide.Ghost
 import io.github.yumeyucca.lucide.lucide.MonitorSmartphone
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
 
 /**
- * Network settings entry point. Top: a "run mode" dropdown row shaped like the active-kernel
- * picker, listing VpnService, Tun and eBPF. `VpnService` is always selectable; Tun needs root and
- * eBPF needs root plus an eBPF-capable kernel, and an unavailable mode is greyed out in the list
- * instead of being hidden. Below: advanced options (service config + disable-overrides) and the
- * kernel section.
+ * Network settings entry point. Top: a "run mode" dropdown row shaped like the active-kernel picker, listing
+ * VpnService, Tun and eBPF. `VpnService` is always selectable; Tun needs root and eBPF needs root plus an eBPF-capable
+ * kernel, and an unavailable mode is greyed out in the list instead of being hidden. Below: advanced options (service
+ * config + disable-overrides) and the kernel section.
  */
 @Composable
 fun NetworkSettingsScreen(navigator: Navigator) {
@@ -65,10 +63,8 @@ fun NetworkSettingsScreen(navigator: Navigator) {
     val ebpfAvailable = screen.ebpfAvailable
     var showKernelDialog by remember { mutableStateOf(false) }
 
-    GlassScaffold(
-        topBar = { TopBar(title = YumeTxt.NetworkSettings.Title, scrollBehavior = scrollBehavior) }
-    ) { innerPadding ->
-
+    GlassScaffold(topBar = { TopBar(title = YumeTxt.NetworkSettings.Title, scrollBehavior = scrollBehavior) }) {
+        innerPadding ->
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
@@ -102,11 +98,7 @@ fun NetworkSettingsScreen(navigator: Navigator) {
             show = showKernelDialog,
             screen = screen,
             onRefresh = viewModel::refreshKernels,
-            onDownload = { ids ->
-                viewModel.downloadKernels(ids) { success ->
-                    if (success) showKernelDialog = false
-                }
-            },
+            onDownload = { ids -> viewModel.downloadKernels(ids) { success -> if (success) showKernelDialog = false } },
             onDismiss = { showKernelDialog = false },
         )
     }
@@ -195,8 +187,7 @@ private fun KernelSection(
         // Installed kernels come from the view model, which reads them off the main
         // thread; probing them here would run an ELF scan per candidate per frame.
         val installed = screen.installedKernels.associateBy { it.id }
-        val kernelIds =
-            (listOf(KernelManager.BUNDLED_ALPHA_ID) + installed.keys).distinct()
+        val kernelIds = (listOf(KernelManager.BUNDLED_ALPHA_ID) + installed.keys).distinct()
         GlassDropdownPreference(
             title = YumeTxt.NetworkSettings.Kernel.ActiveTitle,
             summary = null,
@@ -239,15 +230,16 @@ private val RunMode.icon: ImageVector
         }
 
 private fun kernelLabel(id: String, commit: String? = null, name: String? = null): String {
-    val label = when (id) {
-        KernelManager.BUNDLED_ALPHA_ID -> YumeTxt.NetworkSettings.Kernel.BundledAlpha
-        "alpha" -> "Alpha"
-        "mate" -> "Mate"
-        "meta" -> "Meta"
-        "smart" -> "Smart"
-        "ebpf" -> "eBPF"
-        else -> name ?: id
-    }
+    val label =
+        when (id) {
+            KernelManager.BUNDLED_ALPHA_ID -> YumeTxt.NetworkSettings.Kernel.BundledAlpha
+            "alpha" -> "Alpha"
+            "mate" -> "Mate"
+            "meta" -> "Meta"
+            "smart" -> "Smart"
+            "ebpf" -> "eBPF"
+            else -> name ?: id
+        }
     return if (id == KernelManager.BUNDLED_ALPHA_ID || commit == null) {
         label
     } else {
@@ -256,7 +248,11 @@ private fun kernelLabel(id: String, commit: String? = null, name: String? = null
 }
 
 /** What the kernel download dialog shows: a spinner, a fetch button, or the kernel list. */
-private enum class KernelDialogContent { Busy, Empty, List }
+private enum class KernelDialogContent {
+    Busy,
+    Empty,
+    List,
+}
 
 @Composable
 private fun KernelSelectionDialog(
@@ -272,9 +268,7 @@ private fun KernelSelectionDialog(
     val toggleSelection: (String) -> Unit = { id ->
         selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
     }
-    LaunchedEffect(show) {
-        if (show) onRefresh()
-    }
+    LaunchedEffect(show) { if (show) onRefresh() }
     LaunchedEffect(show, screen.kernels) {
         if (show && screen.kernels.isNotEmpty() && !initialized) {
             selectedIds = screen.kernels.map { it.id }.toSet()
@@ -282,24 +276,21 @@ private fun KernelSelectionDialog(
         }
     }
     AppDialog(show = show, title = YumeTxt.NetworkSettings.Kernel.DownloadTitle, onDismissRequest = onDismiss) {
-        val content = when {
-            screen.kernelBusy -> KernelDialogContent.Busy
-            screen.kernels.isEmpty() -> KernelDialogContent.Empty
-            else -> KernelDialogContent.List
-        }
+        val content =
+            when {
+                screen.kernelBusy -> KernelDialogContent.Busy
+                screen.kernels.isEmpty() -> KernelDialogContent.Empty
+                else -> KernelDialogContent.List
+            }
         AnimatedContent(
             targetState = content,
-            transitionSpec = {
-                fadeIn(tween(140)) togetherWith fadeOut(tween(90)) using SizeTransform(clip = false)
-            },
+            transitionSpec = { fadeIn(tween(140)) togetherWith fadeOut(tween(90)) using SizeTransform(clip = false) },
             label = "kernel_dialog_content",
         ) { state ->
             when (state) {
                 KernelDialogContent.Busy ->
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = spacing.space24),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.space24),
                         horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                     ) {
                         InfiniteProgressIndicator(modifier = Modifier.size(32.dp))
@@ -308,18 +299,16 @@ private fun KernelSelectionDialog(
                     TextButton(
                         text = YumeTxt.NetworkSettings.Kernel.FetchButton,
                         onClick = onRefresh,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = spacing.space8),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.space8),
                         colors = ButtonDefaults.textButtonColorsPrimary(),
                     )
                 KernelDialogContent.List ->
                     Column(verticalArrangement = Arrangement.spacedBy(spacing.space4)) {
-                        screen.kernels.map { kernel ->
-                            val installedName =
-                                screen.installedKernels.firstOrNull { it.id == kernel.id }?.name
-                            kernel.id to kernelLabel(kernel.id, kernel.commit, installedName)
-                        }
+                        screen.kernels
+                            .map { kernel ->
+                                val installedName = screen.installedKernels.firstOrNull { it.id == kernel.id }?.name
+                                kernel.id to kernelLabel(kernel.id, kernel.commit, installedName)
+                            }
                             .forEach { (id, label) ->
                                 BasicComponent(
                                     title = label,
@@ -336,9 +325,7 @@ private fun KernelSelectionDialog(
                             text = YumeTxt.NetworkSettings.Kernel.DownloadButton,
                             onClick = { onDownload(selectedIds) },
                             enabled = selectedIds.isNotEmpty(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = spacing.space16),
+                            modifier = Modifier.fillMaxWidth().padding(top = spacing.space16),
                             colors = ButtonDefaults.textButtonColorsPrimary(),
                         )
                     }

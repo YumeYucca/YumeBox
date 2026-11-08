@@ -30,9 +30,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * The VPN data plane of one `TunService` instance:
- * one compile per start/reload, one fork, then a `/group` readiness probe. Callers serialize all
- * calls; cancellation aborts between the blocking steps.
+ * The VPN data plane of one `TunService` instance: one compile per start/reload, one fork, then a `/group` readiness
+ * probe. Callers serialize all calls; cancellation aborts between the blocking steps.
  */
 internal class VpnSession(service: VpnService) {
     private val context = service.appContextOrSelf
@@ -52,9 +51,8 @@ internal class VpnSession(service: VpnService) {
     }
 
     /**
-     * Swaps the running config. If the new one does not come up, the previous one is relaunched
-     * and [ReloadRejectedException] reports the rejected config; any other throw means nothing is
-     * serving any more.
+     * Swaps the running config. If the new one does not come up, the previous one is relaunched and
+     * [ReloadRejectedException] reports the rejected config; any other throw means nothing is serving any more.
      */
     suspend fun reload(spec: RuntimeSpec) {
         val previous = checkNotNull(loaded) { "runtime not started" }
@@ -75,8 +73,7 @@ internal class VpnSession(service: VpnService) {
     /** Blocking: returns after the child core has exited. */
     fun stop() {
         loaded = null
-        runCatching { transport.stop() }
-            .onFailure { error -> log.e(RuntimeLog.Type.Session, "stop failed", error) }
+        runCatching { transport.stop() }.onFailure { error -> log.e(RuntimeLog.Type.Session, "stop failed", error) }
     }
 
     private suspend fun launch(runtime: LoadedRuntime) {
@@ -92,10 +89,7 @@ internal class VpnSession(service: VpnService) {
         ControllerReadiness.await(
             ensureAlive = {
                 if (!CoreProcess.isLocalCoreAlive()) {
-                    error(
-                        "core process exited before controller became ready" +
-                            coreTailSuffix()
-                    )
+                    error("core process exited before controller became ready" + coreTailSuffix())
                 }
             },
             probe = {
@@ -109,8 +103,7 @@ internal class VpnSession(service: VpnService) {
                         "runtime loaded but exposed 0 proxy groups; " +
                             "expected=${expectedGroups.size} sample=${expectedGroups.take(5)}"
                     } else {
-                        "core controller unavailable during startup" +
-                            (lastError?.message?.let { ": $it" }.orEmpty())
+                        "core controller unavailable during startup" + (lastError?.message?.let { ": $it" }.orEmpty())
                     }
                 log.w(RuntimeLog.Type.Verify, detail)
                 throw IllegalStateException(detail + coreTailSuffix(), lastError)
@@ -119,8 +112,7 @@ internal class VpnSession(service: VpnService) {
         log.i(RuntimeLog.Type.Verify, "success: controller ready")
     }
 
-    private fun coreTailSuffix(): String =
-        CoreProcess.coreLogTail(context)?.let { " ($it)" }.orEmpty()
+    private fun coreTailSuffix(): String = CoreProcess.coreLogTail(context)?.let { " ($it)" }.orEmpty()
 
     private fun elapsedSince(startedAt: Long): Long = SystemClock.elapsedRealtime() - startedAt
 }

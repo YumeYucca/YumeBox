@@ -27,6 +27,8 @@ import android.os.Build
 import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.github.yumeyucca.yumebox.screen.settings.ChinaAppDetector.Companion.MAX_SCANNABLE_DEX_BYTES
 import com.tencent.mmkv.MMKV
+import java.io.File
+import java.util.zip.ZipFile
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -34,23 +36,21 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import java.io.File
-import java.util.zip.ZipFile
 
 /**
- * Heuristic detector for apps of Chinese origin, used by the access-control region quick select.
- * Detection escalates through four tiers:
+ * Heuristic detector for apps of Chinese origin, used by the access-control region quick select. Detection escalates
+ * through four tiers:
  *
  * 1. skip allowlist (well-known overseas vendors) -> not China;
  * 2. package-name heuristics (`cn.` segments + vendor/SDK prefix regex) -> China;
  * 3. manifest component class names matched against the same prefix regex (catches apps embedding
  *    Tencent/Umeng/Bugly/... SDK components);
- * 4. APK deep scan: a `firebase-*` zip entry short-circuits to NOT China, otherwise dex class names
- *    are prefix-matched against the China vendor/SDK package prefixes; oversized (>100 MB) or
- *    unparsable dex entries are skipped as inconclusive.
+ * 4. APK deep scan: a `firebase-*` zip entry short-circuits to NOT China, otherwise dex class names are prefix-matched
+ *    against the China vendor/SDK package prefixes; oversized (>100 MB) or unparsable dex entries are skipped as
+ *    inconclusive.
  *
- * Tier 3/4 verdicts are cached in a dedicated MMKV keyed by package name and invalidated via the
- * app's lastUpdateTime, so only the first scan after an (un)install is expensive.
+ * Tier 3/4 verdicts are cached in a dedicated MMKV keyed by package name and invalidated via the app's lastUpdateTime,
+ * so only the first scan after an (un)install is expensive.
  */
 class ChinaAppDetector(context: Context) {
     data class Candidate(val packageName: String, val lastUpdateTime: Long)
@@ -60,17 +60,15 @@ class ChinaAppDetector(context: Context) {
     private val cache by lazy { MMKV.mmkvWithID(CACHE_ID) }
 
     /**
-     * Deep scans buffer whole dex entries in memory (up to [MAX_SCANNABLE_DEX_BYTES] each), so
-     * unbounded parallelism could transiently hold hundreds of MB. Fast-path prefix checks stay
-     * fully parallel; only the expensive scan path is throttled.
+     * Deep scans buffer whole dex entries in memory (up to [MAX_SCANNABLE_DEX_BYTES] each), so unbounded parallelism
+     * could transiently hold hundreds of MB. Fast-path prefix checks stay fully parallel; only the expensive scan path
+     * is throttled.
      */
     private val deepScanPermits = Semaphore(MAX_CONCURRENT_DEEP_SCANS)
 
     suspend fun detectChinaPackages(candidates: List<Candidate>): Set<String> = coroutineScope {
         candidates
-            .map { candidate ->
-                async(Dispatchers.Default) { candidate.takeIf { isChinaPackage(it) } }
-            }
+            .map { candidate -> async(Dispatchers.Default) { candidate.takeIf { isChinaPackage(it) } } }
             .awaitAll()
             .filterNotNull()
             .mapTo(linkedSetOf()) { it.packageName }
@@ -83,11 +81,7 @@ class ChinaAppDetector(context: Context) {
                 return false
             }
         }
-        if (
-            normalized.startsWith("cn.") ||
-            normalized.contains(".cn.") ||
-            normalized.endsWith(".cn")
-        ) {
+        if (normalized.startsWith("cn.") || normalized.contains(".cn.") || normalized.endsWith(".cn")) {
             return true
         }
         if (normalized.matches(chinaAppRegex)) {
@@ -98,8 +92,7 @@ class ChinaAppDetector(context: Context) {
 
     private fun cachedDeepScan(candidate: Candidate): Boolean {
         cache.decodeString(candidate.packageName)?.let { cached ->
-            val (stamp, verdict) =
-                cached.split('|', limit = 2).takeIf { it.size == 2 } ?: return@let
+            val (stamp, verdict) = cached.split('|', limit = 2).takeIf { it.size == 2 } ?: return@let
             if (stamp == candidate.lastUpdateTime.toString()) {
                 return verdict.toBoolean()
             }
@@ -113,10 +106,10 @@ class ChinaAppDetector(context: Context) {
         return try {
             val flags =
                 PackageManager.MATCH_UNINSTALLED_PACKAGES or
-                        PackageManager.GET_ACTIVITIES or
-                        PackageManager.GET_SERVICES or
-                        PackageManager.GET_RECEIVERS or
-                        PackageManager.GET_PROVIDERS
+                    PackageManager.GET_ACTIVITIES or
+                    PackageManager.GET_SERVICES or
+                    PackageManager.GET_RECEIVERS or
+                    PackageManager.GET_PROVIDERS
             val packageInfo =
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     packageManager.getPackageInfo(

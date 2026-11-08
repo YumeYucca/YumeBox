@@ -48,9 +48,7 @@ fun calculateWallpaperViewportLayout(
     val renderedHeightPx: Float
 
     if (safeImageWidth != null && safeImageHeight != null) {
-        val coverScale =
-            max(safeContainerWidth / safeImageWidth, safeContainerHeight / safeImageHeight) *
-                    safeZoom
+        val coverScale = max(safeContainerWidth / safeImageWidth, safeContainerHeight / safeImageHeight) * safeZoom
         renderedWidthPx = safeImageWidth * coverScale
         renderedHeightPx = safeImageHeight * coverScale
     } else {

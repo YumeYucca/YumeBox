@@ -20,14 +20,14 @@
 
 package com.github.yumeyucca.yumebox.runtime.service.notification
 
-import org.json.JSONObject
-import java.util.concurrent.atomic.AtomicLong
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import java.util.concurrent.atomic.AtomicLong
+import org.json.JSONObject
 
 /**
- * Builds the HyperOS Super Island payload that the system reads from the `miui.focus.param`
- * notification extra: base info (the configured notification lines), a hint block for the expanded area
- * (current node and compact traffic text) and the island area definitions.
+ * Builds the HyperOS Super Island payload that the system reads from the `miui.focus.param` notification extra: base
+ * info (the configured notification lines), a hint block for the expanded area (current node and compact traffic text)
+ * and the island area definitions.
  */
 object MiuiIslandParams {
     private const val BUSINESS = "yumebox_service"
@@ -36,14 +36,14 @@ object MiuiIslandParams {
     private const val ISLAND_TIMEOUT_SECONDS = 7 * 24 * 60 * 60
 
     /**
-     * The island renderer drops updates whose sequence did not grow, so seed it from the clock to
-     * avoid replaying the previous process' sequence.
+     * The island renderer drops updates whose sequence did not grow, so seed it from the clock to avoid replaying the
+     * previous process' sequence.
      */
     private val sequence = AtomicLong(System.currentTimeMillis() / 1000)
 
     /**
-     * @param promote true only for the first frame of an island session. That frame may expand once.
-     * Updates must stay collapsed; repeating the first-frame flags replays the appear animation.
+     * @param promote true only for the first frame of an island session. That frame may expand once. Updates must stay
+     *   collapsed; repeating the first-frame flags replays the appear animation.
      */
     fun build(
         profileName: String,

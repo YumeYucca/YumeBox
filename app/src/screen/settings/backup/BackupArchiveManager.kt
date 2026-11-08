@@ -21,17 +21,15 @@
 package com.github.yumeyucca.yumebox.screen.settings.backup
 
 import com.github.yumeyucca.yumebox.core.util.PrettyPersistedJson
-import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
+import kotlinx.serialization.json.Json
 
-class BackupArchiveManager(
-    private val json: Json = PrettyPersistedJson,
-) {
+class BackupArchiveManager(private val json: Json = PrettyPersistedJson) {
     data class BackupFiles(
         val importedDir: File,
         val overridesDir: File,
@@ -88,8 +86,7 @@ class BackupArchiveManager(
                 val entry = zip.nextEntry ?: break
                 val target = canonicalRoot.resolve(entry.name).canonicalFile
                 require(
-                    target.path == canonicalRoot.path ||
-                            target.path.startsWith(canonicalRoot.path + File.separator)
+                    target.path == canonicalRoot.path || target.path.startsWith(canonicalRoot.path + File.separator)
                 ) {
                     "Backup contains an unsafe path: ${entry.name}"
                 }

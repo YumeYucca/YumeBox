@@ -25,11 +25,11 @@ package com.github.yumeyucca.yumebox.data.controller
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
-import java.util.concurrent.ConcurrentHashMap
 
 data class AppIdentity(
     val appKey: String,
@@ -44,12 +44,10 @@ class AppIdentityResolver(context: Context) {
     private val labelCache = ConcurrentHashMap<String, String>()
     private val uidCache = ConcurrentHashMap<Int, String?>()
 
-    @Volatile
-    private var installedAppsCache: List<InstalledAppIdentity>? = null
+    @Volatile private var installedAppsCache: List<InstalledAppIdentity>? = null
 
     fun resolve(metadata: JsonObject): AppIdentity {
-        val explicitPackageName =
-            metadata["packageName"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+        val explicitPackageName = metadata["packageName"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
         val processName = metadata["process"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
         val uid = metadata["uid"]?.jsonPrimitive?.intOrNull
         return resolve(
@@ -72,9 +70,7 @@ class AppIdentityResolver(context: Context) {
         }
 
         val packageName =
-            findInstalledPackage(explicitPackageName)
-                ?: resolveByUid(uid)
-                ?: resolveByProcess(processName)
+            findInstalledPackage(explicitPackageName) ?: resolveByUid(uid) ?: resolveByProcess(processName)
 
         val identity =
             when {
@@ -115,8 +111,7 @@ class AppIdentityResolver(context: Context) {
         if (uid == null || uid <= 0) return null
         if (uidCache.containsKey(uid)) return uidCache[uid]
 
-        val packageName =
-            packageManager.getPackagesForUid(uid)?.firstNotNullOfOrNull(::findInstalledPackage)
+        val packageName = packageManager.getPackagesForUid(uid)?.firstNotNullOfOrNull(::findInstalledPackage)
         uidCache[uid] = packageName
         return packageName
     }
@@ -140,10 +135,10 @@ class AppIdentityResolver(context: Context) {
             .firstOrNull { app ->
                 candidates.any { candidate ->
                     candidate.equals(app.packageName, ignoreCase = true) ||
-                            candidate.equals(app.processName, ignoreCase = true) ||
-                            candidate.equals(app.label, ignoreCase = true) ||
-                            candidate.startsWith("${app.packageName}:", ignoreCase = true) ||
-                            candidate.startsWith("${app.processName}:", ignoreCase = true)
+                        candidate.equals(app.processName, ignoreCase = true) ||
+                        candidate.equals(app.label, ignoreCase = true) ||
+                        candidate.startsWith("${app.packageName}:", ignoreCase = true) ||
+                        candidate.startsWith("${app.processName}:", ignoreCase = true)
                 }
             }
             ?.packageName
@@ -161,9 +156,7 @@ class AppIdentityResolver(context: Context) {
                 InstalledAppIdentity(
                     packageName = app.packageName,
                     processName = app.processName?.trim().orEmpty(),
-                    label =
-                        runCatching { app.loadLabel(packageManager).toString().trim() }
-                            .getOrDefault(""),
+                    label = runCatching { app.loadLabel(packageManager).toString().trim() }.getOrDefault(""),
                 )
             }
         installedAppsCache = apps
@@ -182,9 +175,9 @@ class AppIdentityResolver(context: Context) {
     private fun resolveLabel(packageName: String): String =
         labelCache.getOrPut(packageName) {
             runCatching {
-                val info = packageManager.getApplicationInfo(packageName, 0)
-                packageManager.getApplicationLabel(info).toString().trim()
-            }
+                    val info = packageManager.getApplicationInfo(packageName, 0)
+                    packageManager.getApplicationLabel(info).toString().trim()
+                }
                 .getOrDefault(packageName)
         }
 
