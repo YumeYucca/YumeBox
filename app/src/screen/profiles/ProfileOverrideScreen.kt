@@ -22,11 +22,11 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
@@ -34,28 +34,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.Dp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.OverrideConfig
+import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.BadgePlus
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Check
 import com.github.yumeyucca.yumebox.presentation.icon.yume.List
-import com.github.yumeyucca.yumebox.presentation.component.*
-import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import org.koin.androidx.compose.koinViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import androidx.compose.foundation.lazy.LazyItemScope
 
 /**
  * Standalone "覆写" page for one profile: custom routing and the profile's override selection.
  *
- * The edit page no longer carries this state; overrides are committed from this page's top bar and
- * are applied to the running session when this profile is the active one.
+ * The edit page no longer carries this state; overrides are committed from this page's top bar and are applied to the
+ * running session when this profile is the active one.
  */
 @Composable
 fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
@@ -65,9 +64,7 @@ fun ProfileOverrideScreen(navigator: Navigator, profileId: String) {
     val pageListState = rememberLazyListState()
 
     val profiles by profilesViewModel.profiles.collectAsState()
-    val profile = remember(profiles, profileId) {
-        profiles.firstOrNull { it.uuid.toString() == profileId }
-    }
+    val profile = remember(profiles, profileId) { profiles.firstOrNull { it.uuid.toString() == profileId } }
 
     val draft = rememberProfileOverrideDraft(profileId = profileId, profile = profile)
     val overrideReorderState = rememberProfileOverrideReorderState(draft)
@@ -126,8 +123,8 @@ private fun ProfileOverrideCustomRoutingSection(
 /**
  * The add dropdown and the profile's override rows, in one card and capped at [maxHeight].
  *
- * [draft] is this page's own state holder: it owns the list state, the selection and the row order,
- * so the section reads them from it instead of taking each one as a parameter.
+ * [draft] is this page's own state holder: it owns the list state, the selection and the row order, so the section
+ * reads them from it instead of taking each one as a parameter.
  */
 @Composable
 private fun ProfileOverrideRowList(
@@ -149,9 +146,7 @@ private fun ProfileOverrideRowList(
             title = YumeTxt.Override.Dialog.Create.Title,
             enabled = draft.isLoaded,
             maxHeight = maxHeight,
-            modifier =
-                Modifier
-                    .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             onSelected = { overrideId ->
                 if (draft.isAttached(overrideId)) {
                     draft.detach(overrideId)
@@ -164,10 +159,7 @@ private fun ProfileOverrideRowList(
         if (draft.rowIds.isNotEmpty()) {
             LazyColumn(
                 state = draft.overrideListState,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = maxHeight),
+                modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight),
             ) {
                 items(draft.rowIds, key = { id -> "override-$id" }) { id ->
                     val config = draft.configFor(id) ?: return@items
@@ -194,8 +186,7 @@ private fun ProfileOverrideRowList(
 /**
  * One override row: a left drag handle, the name and the enable checkbox.
  *
- * [reorderKey] must match the key the list item was declared with, or dragging would address a
- * different item.
+ * [reorderKey] must match the key the list item was declared with, or dragging would address a different item.
  */
 @Composable
 private fun LazyItemScope.ProfileOverrideConfigRow(
@@ -219,10 +210,7 @@ private fun LazyItemScope.ProfileOverrideConfigRow(
             isSelected = isSelected,
             enabled = enabled,
             onSelectedChange = onSelectedChange,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .alpha(if (isDragging) 0.9f else 1f),
+            modifier = Modifier.fillMaxWidth().alpha(if (isDragging) 0.9f else 1f),
             dragHandleModifier = Modifier.draggableHandle(),
         )
     }
@@ -247,10 +235,7 @@ private fun ProfileOverrideRowContent(
                 imageVector = Yume.List,
                 contentDescription = null,
                 tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier =
-                    dragHandleModifier
-                        .padding(end = UiDp.dp12)
-                        .size(UiDp.dp24),
+                modifier = dragHandleModifier.padding(end = UiDp.dp12).size(UiDp.dp24),
             )
         },
         endActions = {
@@ -262,9 +247,7 @@ private fun ProfileOverrideRowContent(
                         ToggleableState.Off
                     },
                 enabled = enabled,
-                onClick = {
-                    onSelectedChange(!isSelected)
-                },
+                onClick = { onSelectedChange(!isSelected) },
             )
         },
         onClick = {
@@ -274,4 +257,3 @@ private fun ProfileOverrideRowContent(
         },
     )
 }
-

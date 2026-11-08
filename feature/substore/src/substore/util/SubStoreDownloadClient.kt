@@ -30,17 +30,16 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.utils.io.jvm.javaio.*
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.io.File
 
 private enum class ArchiveFormat(val suffix: String, private val extractor: (File, File) -> Boolean) {
     Zip(".zip", ArchiveUtil::unzipZip),
     TarGz(".tar.gz", ArchiveUtil::untarGz),
     Tgz(".tgz", ArchiveUtil::untarGz),
-    Tar(".tar", ArchiveUtil::untar),
-    ;
+    Tar(".tar", ArchiveUtil::untar);
 
     fun extract(archive: File, targetDir: File): Boolean = extractor(archive, targetDir)
 
@@ -109,8 +108,7 @@ class SubStoreDownloadClient(
     ): Boolean =
         withContext(Dispatchers.IO) {
             val format = ArchiveFormat.fromUrl(url)
-            val tempFile =
-                File(application.cacheDir, "temp_${System.currentTimeMillis()}${format.suffix}")
+            val tempFile = File(application.cacheDir, "temp_${System.currentTimeMillis()}${format.suffix}")
             val downloadSuccess = download(url, tempFile)
             if (!downloadSuccess) {
                 return@withContext false

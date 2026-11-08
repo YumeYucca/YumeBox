@@ -38,7 +38,6 @@ internal fun resolveProxyDisplayPresentation(
 
     return ProxyDisplayPresentation(
         countryCode = primary.countryCode ?: fallback.countryCode,
-        displayName =
-            primary.displayName.ifBlank { fallback.displayName.ifBlank { normalizedName } },
+        displayName = primary.displayName.ifBlank { fallback.displayName.ifBlank { normalizedName } },
     )
 }

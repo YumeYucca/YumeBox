@@ -32,8 +32,8 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.github.yumeyucca.yumebox.common.util.XiaomiAutoStart
-import com.github.yumeyucca.yumebox.core.util.AutoStartSessionGate
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.util.AutoStartSessionGate
 import com.github.yumeyucca.yumebox.core.util.StartupTaskCoordinator
 import com.github.yumeyucca.yumebox.data.model.RunMode
 import com.github.yumeyucca.yumebox.data.store.*
@@ -69,9 +69,7 @@ class AutoRestartService : Service() {
     private val mmkvProvider by lazy { MMKVProvider() }
     private val appSettingsStorage by lazy { AppSettingsStore(mmkvProvider.getMMKV("settings")) }
     private val featureStore by lazy { FeatureStore(mmkvProvider.getMMKV("substore")) }
-    private val networkSettingsStorage by lazy {
-        NetworkSettingsStore(mmkvProvider.getMMKV("network_settings"))
-    }
+    private val networkSettingsStorage by lazy { NetworkSettingsStore(mmkvProvider.getMMKV("network_settings")) }
     private val serviceCache by lazy { mmkvProvider.getMMKV("service_cache") }
     private val profileManager by lazy { ProfileService(applicationContext) }
     private var autoStartJob: Job? = null
@@ -192,15 +190,14 @@ class AutoRestartService : Service() {
         }
         if (RuntimeCoordinator.state.value.phase == RuntimePhase.Running) {
             log.i(RuntimeLog.Type.AutoStart, "success: running reason=$reason mode=$runMode")
-            Timber.tag(TAG)
-                .i("Auto start active: reason=$reason profile=${activeProfile.name}, mode=$runMode")
+            Timber.tag(TAG).i("Auto start active: reason=$reason profile=${activeProfile.name}, mode=$runMode")
         }
     }
 
     /**
-     * Records what this start attempt is: the gate line is the first evidence the broadcast reached
-     * the app, so a boot with no line at all means the process was never started (on MIUI/HyperOS
-     * that is autostart not being allowed), and the system's own answer is logged beside it.
+     * Records what this start attempt is: the gate line is the first evidence the broadcast reached the app, so a boot
+     * with no line at all means the process was never started (on MIUI/HyperOS that is autostart not being allowed),
+     * and the system's own answer is logged beside it.
      */
     private fun logStartAttempt(reason: String, runMode: RunMode, log: RuntimeLog.Writer) {
         log.i(RuntimeLog.Type.AutoStart, "check reason=$reason mode=$runMode")
@@ -213,16 +210,13 @@ class AutoRestartService : Service() {
     }
 
     /**
-     * An APK replacement kills app-owned services but not the detached root daemon. Tear it down
-     * before the restart preference is consulted, so no process keeps running replaced code;
-     * [RuntimeCoordinator.verify] first reattaches a surviving daemon so the owner check below can
-     * see it.
+     * An APK replacement kills app-owned services but not the detached root daemon. Tear it down before the restart
+     * preference is consulted, so no process keeps running replaced code; [RuntimeCoordinator.verify] first reattaches
+     * a surviving daemon so the owner check below can see it.
      */
     private suspend fun dropReplacedRootDaemon(reason: String) {
         RuntimeCoordinator.verify()
-        if (reason == REASON_PACKAGE_REPLACED &&
-            RuntimeCoordinator.state.value.owner == RuntimeOwner.RootDaemon
-        ) {
+        if (reason == REASON_PACKAGE_REPLACED && RuntimeCoordinator.state.value.owner == RuntimeOwner.RootDaemon) {
             RuntimeCoordinator.stop()
         }
     }

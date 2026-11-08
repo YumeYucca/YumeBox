@@ -30,10 +30,10 @@ import com.github.yumeyucca.yumebox.core.util.RULE_PROVIDER_SCOPE
 import com.github.yumeyucca.yumebox.core.util.YamlCodec
 import com.github.yumeyucca.yumebox.core.util.profileProviderScopeDir
 import com.github.yumeyucca.yumebox.runtime.service.session.CompiledConfigPipeline
-import timber.log.Timber
 import java.io.File
 import java.security.MessageDigest
 import java.util.*
+import timber.log.Timber
 
 internal data class ExternalProvider(
     val name: String,
@@ -50,8 +50,7 @@ internal data class ProviderDiscovery(
     val pathMapSourceFallback: Boolean,
 )
 
-private val providerPathPrefixes =
-    setOf("providers", "provider", "clash", "ruleset", "rules", "proxies")
+private val providerPathPrefixes = setOf("providers", "provider", "clash", "ruleset", "rules", "proxies")
 
 private val PROVIDER_PATH_TAIL = Regex("""(?:^|/)providers/(proxies|rules)/(.+)$""")
 
@@ -60,9 +59,9 @@ internal val HTTP_URL_IN_TEXT = Regex("""https?://\S+""", RegexOption.IGNORE_CAS
 private val PROVIDER_ENTRY_NAME = Regex("""^([^:#{}\[\]]+)\s*:$""")
 
 /**
- * Compiles the staged config and returns a map of `scope:name -> relative path under
- * providers/{scope}/`. Used only for path alignment with runtime; URL discovery always reads
- * the source config so a liboverride empty result cannot skip downloads.
+ * Compiles the staged config and returns a map of `scope:name -> relative path under providers/{scope}/`. Used only for
+ * path alignment with runtime; URL discovery always reads the source config so a liboverride empty result cannot skip
+ * downloads.
  */
 internal fun loadLiboverrideProviderPaths(
     context: Context,
@@ -76,40 +75,34 @@ internal fun loadLiboverrideProviderPaths(
         return emptyMap<String, String>() to true
     }
     var sourceFallback = false
-    val map =
-        runCatching {
-                val overrides =
-                    runCatching {
-                            CompiledConfigPipeline(context).resolveOverrideSpecs(uuid.toString())
-                        }
-                        .onFailure { Timber.w(it, "Resolve overrides for provider path map failed") }
-                        .getOrDefault(emptyList())
-                val request =
-                    CompileRequest(
-                        profileUuid = uuid.toString(),
-                        profileDir = profileDir.absolutePath,
-                        profilePath = stagingDir.resolve("config.yaml").absolutePath,
-                        overrides = overrides,
-                        outputPath = "",
-                        ageSecretKey = null,
-                    )
-                val result =
-                    PersistedJson.decodeFromString(
-                        CompileResult.serializer(),
-                        Compiler.nativeCompile(
-                            PersistedJson.encodeToString(CompileRequest.serializer(), request)
-                        ),
-                    )
-                check(result.success) {
-                    result.error ?: "liboverride compile failed for provider path map"
-                }
-                extractProviderPathMap(result.finalYaml)
-            }
-            .onFailure {
-                sourceFallback = true
-                Timber.w(it, "liboverride provider path map failed; using source paths")
-            }
-            .getOrDefault(emptyMap())
+    val map = runCatching {
+        val overrides = runCatching {
+            CompiledConfigPipeline(context).resolveOverrideSpecs(uuid.toString())
+        }
+            .onFailure { Timber.w(it, "Resolve overrides for provider path map failed") }
+            .getOrDefault(emptyList())
+        val request =
+            CompileRequest(
+                profileUuid = uuid.toString(),
+                profileDir = profileDir.absolutePath,
+                profilePath = stagingDir.resolve("config.yaml").absolutePath,
+                overrides = overrides,
+                outputPath = "",
+                ageSecretKey = null,
+            )
+        val result =
+            PersistedJson.decodeFromString(
+                CompileResult.serializer(),
+                Compiler.nativeCompile(PersistedJson.encodeToString(CompileRequest.serializer(), request)),
+            )
+        check(result.success) { result.error ?: "liboverride compile failed for provider path map" }
+        extractProviderPathMap(result.finalYaml)
+    }
+        .onFailure {
+            sourceFallback = true
+            Timber.w(it, "liboverride provider path map failed; using source paths")
+        }
+        .getOrDefault(emptyMap())
     return map to sourceFallback
 }
 
@@ -144,8 +137,8 @@ private fun providerRelativeFromRewritten(rewrittenPath: String, scope: String):
 }
 
 /**
- * Discovers downloadable providers from the source config. Prefer liboverride-rewritten
- * relative paths when available; otherwise use the same normalization runtime expects.
+ * Discovers downloadable providers from the source config. Prefer liboverride-rewritten relative paths when available;
+ * otherwise use the same normalization runtime expects.
  */
 internal fun collectDownloadableProviders(
     configText: String,
@@ -183,13 +176,12 @@ internal fun collectDownloadableProviders(
     )
 }
 
-internal fun parseConfigMap(content: String): Map<String, Any?>? =
-    runCatching {
-            val loaded = YamlCodec.loadMap(content)
-            loaded.takeIf { it.isNotEmpty() }
-        }
-        .onFailure { Timber.w(it, "YAML parse failed for provider collection") }
-        .getOrNull()
+internal fun parseConfigMap(content: String): Map<String, Any?>? = runCatching {
+    val loaded = YamlCodec.loadMap(content)
+    loaded.takeIf { it.isNotEmpty() }
+}
+    .onFailure { Timber.w(it, "YAML parse failed for provider collection") }
+    .getOrNull()
 
 @Suppress("UNCHECKED_CAST")
 private fun collectProvidersFromRoot(
@@ -236,8 +228,7 @@ private fun buildExternalProvider(
 
     val extension =
         if (
-            scope == RULE_PROVIDER_SCOPE &&
-                definition["format"]?.toString()?.equals("mrs", ignoreCase = true) == true
+            scope == RULE_PROVIDER_SCOPE && definition["format"]?.toString()?.equals("mrs", ignoreCase = true) == true
         ) {
             "mrs"
         } else {
@@ -263,8 +254,8 @@ private fun buildExternalProvider(
 }
 
 /**
- * Last-resort extractor when SnakeYAML cannot load the document as a map (merge keys / odd
- * tags). Walks proxy-providers / rule-providers blocks and pulls `url:` / simple `header:` entries.
+ * Last-resort extractor when SnakeYAML cannot load the document as a map (merge keys / odd tags). Walks proxy-providers
+ * / rule-providers blocks and pulls `url:` / simple `header:` entries.
  */
 private fun collectProvidersByTextScan(
     configText: String,
@@ -295,10 +286,7 @@ private fun collectProvidersByTextScan(
                 val type = currentType.orEmpty().trim()
                 if (name.isNotEmpty() && url.isHttpUrl() && !type.equals("inline", true)) {
                     val extension =
-                        if (
-                            scope == RULE_PROVIDER_SCOPE &&
-                                currentFormat?.equals("mrs", ignoreCase = true) == true
-                        ) {
+                        if (scope == RULE_PROVIDER_SCOPE && currentFormat?.equals("mrs", ignoreCase = true) == true) {
                             "mrs"
                         } else {
                             "yaml"
@@ -345,12 +333,7 @@ private fun collectProvidersByTextScan(
 
                 // New provider entry at indent 2 (or any non-nested map key with trailing ':')
                 val nameMatch = PROVIDER_ENTRY_NAME.find(content)
-                if (
-                    indent <= 2 &&
-                        nameMatch != null &&
-                        !content.contains(": ") &&
-                        content.endsWith(":")
-                ) {
+                if (indent <= 2 && nameMatch != null && !content.contains(": ") && content.endsWith(":")) {
                     flush()
                     currentName = nameMatch.groupValues[1].trim().trim('"', '\'')
                     return@forEach
@@ -409,8 +392,7 @@ private fun collectProvidersByTextScan(
 }
 
 private fun extractTopLevelSection(configText: String, key: String): String? {
-    val header =
-        Regex("^$key\\s*:\\s*(?:#.*)?$", RegexOption.MULTILINE).find(configText) ?: return null
+    val header = Regex("^$key\\s*:\\s*(?:#.*)?$", RegexOption.MULTILINE).find(configText) ?: return null
     val start = header.range.last + 1
     val rest = configText.substring(start)
     val nextTop = Regex("^[A-Za-z0-9_.-]+\\s*:", RegexOption.MULTILINE).find(rest)
@@ -480,9 +462,7 @@ internal fun providerHeaders(definition: Map<*, *>): List<Pair<String, String>> 
             if (name.isBlank()) return@forEach
             when (rawValue) {
                 is Iterable<*> ->
-                    rawValue.forEach { value ->
-                        value?.toString()?.takeIf(String::isNotBlank)?.let { add(name to it) }
-                    }
+                    rawValue.forEach { value -> value?.toString()?.takeIf(String::isNotBlank)?.let { add(name to it) } }
 
                 else -> rawValue?.toString()?.takeIf(String::isNotBlank)?.let { add(name to it) }
             }
@@ -496,6 +476,4 @@ internal fun String.isHttpUrl(): Boolean =
 internal fun readConfigText(config: File): String = config.readText().removePrefix("\uFEFF")
 
 internal fun sha256(value: String): String =
-    MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") {
-        "%02x".format(it)
-    }
+    MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }

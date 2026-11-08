@@ -22,6 +22,5 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon
 
-
 /** Receiver for the generated `yume` icon extensions in the `icon/yume/` package. */
 object Yume

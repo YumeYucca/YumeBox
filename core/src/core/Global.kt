@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.core
 
-
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

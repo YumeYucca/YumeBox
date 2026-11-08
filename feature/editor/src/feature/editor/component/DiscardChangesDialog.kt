@@ -26,8 +26,8 @@ import com.github.yumeyucca.yumebox.presentation.component.AppDialog
 import com.github.yumeyucca.yumebox.presentation.component.DialogButtonRow
 
 /**
- * The one "discard unsaved edits?" confirmation every editor surface shows, so the wording and the
- * dismiss/discard split cannot drift between the preview, the config editor and fullscreen mode.
+ * The one "discard unsaved edits?" confirmation every editor surface shows, so the wording and the dismiss/discard
+ * split cannot drift between the preview, the config editor and fullscreen mode.
  */
 @Composable
 fun DiscardChangesDialog(

@@ -40,8 +40,7 @@ private val nodeKeywords =
         "GPT",
     )
 
-private val multiplierRegex =
-    Regex("""(?<![.\d])[xX×✕](\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)[xX×✕](?![.\d])""")
+private val multiplierRegex = Regex("""(?<![.\d])[xX×✕](\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)[xX×✕](?![.\d])""")
 
 data class NodeTags(
     val keywords: List<String>,

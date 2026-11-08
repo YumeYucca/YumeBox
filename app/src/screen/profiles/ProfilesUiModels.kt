@@ -20,9 +20,9 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.FetchStatus
 import com.github.yumeyucca.yumebox.presentation.base.LoadableState
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 data class ProfilesUiState(
     override val isLoading: Boolean = false,
@@ -54,8 +54,7 @@ internal fun FetchStatus.toDownloadProgress(): DownloadProgress {
                     detail.ifBlank { YumeTxt.ProfilesPage.Progress.Downloading }
                 }
 
-            FetchStatus.Action.FetchProviders ->
-                detail.ifBlank { YumeTxt.ProfilesPage.Progress.Downloading }
+            FetchStatus.Action.FetchProviders -> detail.ifBlank { YumeTxt.ProfilesPage.Progress.Downloading }
 
             FetchStatus.Action.SubscriptionInfo -> ""
             FetchStatus.Action.Verifying -> detail.ifBlank { YumeTxt.ProfilesVM.Progress.Verifying }

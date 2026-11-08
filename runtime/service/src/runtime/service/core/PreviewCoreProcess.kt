@@ -12,65 +12,67 @@ import com.github.yumeyucca.yumebox.core.bridge.NativeProcess
 import com.github.yumeyucca.yumebox.core.util.runtimeHomeDir
 import com.github.yumeyucca.yumebox.runtime.service.controller.CoreController
 import com.github.yumeyucca.yumebox.runtime.service.util.awaitProcessGone
-import java.io.File
 import timber.log.Timber
+import java.io.File
 
 /**
- * Owns the inspect-only core child. It does not share the root record, the VPN endpoint, or the
- * socket-owner channel. A real core launch reaps this child, and this child does not fork while
- * that core is alive.
+ * Owns the inspect-only core child. It does not share the root record, the VPN endpoint, or the socket-owner channel. A
+ * real core launch reaps this child, and this child does not fork while that core is alive.
  */
-class PreviewCoreProcess(private val context: Context) {
+class PreviewCoreProcess(
+    private val context: Context,
+) {
     private var process: NativeProcess? = null
     private var controller: CoreController? = null
 
-    fun start(config: String): Unit = CoreProcess.withLifecycleLock {
-        synchronized(gate) {
-            if (CoreProcess.realCoreReserved()) {
-                error("preview refused while a runtime core is active")
-            }
-            stopLocked()
-            // Compiled provider paths and the geo/MMDB assets are rooted at runtimeHomeDir. Keep that
-            // as the core home, but use a nested process workdir so preview diagnostics cannot overwrite
-            // the real core's core.log.
-            val home = context.runtimeHomeDir.apply { mkdirs() }
-            val workdir = File(home, PREVIEW_WORKDIR).apply { mkdirs() }
-            File(home, SOCK).delete()
-            val controllerConfig = patchControllerSecret(config)
-            val nextEndpoint = CoreEndpoint(File(home, SOCK).absolutePath, controllerConfig.secret)
-            val args =
-                arrayOf(
-                    "--home",
-                    home.absolutePath,
-                    "--controller",
-                    nextEndpoint.sock,
-                    "--mode",
-                    "preview",
-                )
-            val proc = spawn(home, workdir, args)
-            try {
-                Channel(proc.channelFd).use { channel ->
-                    val bytes = controllerConfig.yaml.toByteArray(Charsets.UTF_8)
-                    var offset = 0
-                    while (offset < bytes.size) {
-                        val length = minOf(CHUNK, bytes.size - offset)
-                        channel.writeMessage(bytes, offset, length)
-                        offset += length
-                    }
-                    // Closing the parent socket is the complete preview handoff. No descriptor and no
-                    // post-start RPC are ever sent to this process.
+    fun start(config: String): Unit =
+        CoreProcess.withLifecycleLock {
+            synchronized(gate) {
+                if (CoreProcess.realCoreReserved()) {
+                    error("preview refused while a runtime core is active")
                 }
-            } catch (error: Throwable) {
-                runCatching { proc.kill() }
-                waitUntilExited(proc.pid, PREVIEW_STOP_GRACE_MS)
-                throw IllegalStateException("preview config handoff failed", error)
+                stopLocked()
+                // Compiled provider paths and the geo/MMDB assets are rooted at runtimeHomeDir. Keep that
+                // as the core home, but use a nested process workdir so preview diagnostics cannot overwrite
+                // the real core's core.log.
+                val home = context.runtimeHomeDir.apply { mkdirs() }
+                val workdir = File(home, PREVIEW_WORKDIR).apply { mkdirs() }
+                File(home, SOCK).delete()
+                val controllerSecret = controllerSecretFromConfig(config)
+                val nextEndpoint = CoreEndpoint(File(home, SOCK).absolutePath, controllerSecret)
+                val args =
+                    arrayOf(
+                        "--home",
+                        home.absolutePath,
+                        "--controller",
+                        nextEndpoint.sock,
+                        "--mode",
+                        "preview",
+                    )
+                val proc = spawn(home, workdir, args)
+                try {
+                    Channel(proc.channelFd).use { channel ->
+                        val bytes = config.toByteArray(Charsets.UTF_8)
+                        var offset = 0
+                        while (offset < bytes.size) {
+                            val length = minOf(CHUNK, bytes.size - offset)
+                            channel.writeMessage(bytes, offset, length)
+                            offset += length
+                        }
+                        // Closing the parent socket is the complete preview handoff. No descriptor and no
+                        // post-start RPC are ever sent to this process.
+                    }
+                } catch (error: Throwable) {
+                    runCatching { proc.kill() }
+                    waitUntilExited(proc.pid, PREVIEW_STOP_GRACE_MS)
+                    throw IllegalStateException("preview config handoff failed", error)
+                }
+                process = proc
+                active = this
+                controller = CoreController(local = CoreController.Local(nextEndpoint.sock) { nextEndpoint.secret })
+                Timber.tag(TAG).i("preview core launched, pid=%d", proc.pid)
             }
-            process = proc
-            active = this
-            controller = CoreController(local = CoreController.Local(nextEndpoint.sock) { nextEndpoint.secret })
-            Timber.tag(TAG).i("preview core launched, pid=%d", proc.pid)
         }
-    }
 
     fun stop() {
         synchronized(gate) { stopLocked() }
@@ -89,19 +91,22 @@ class PreviewCoreProcess(private val context: Context) {
         }
     }
 
-    fun isAlive(): Boolean = synchronized(gate) {
-        val pid = process?.pid ?: return@synchronized false
-        // On some Android builds `kill(pid, 0)` from the app process is intermittently denied
-        // while a just-forked child is still completing exec. The preview PID is app-owned and
-        // short-lived, so its proc entry is the reliable liveness signal for this handle.
-        File("/proc/$pid").exists()
-    }
+    fun isAlive(): Boolean =
+        synchronized(gate) {
+            val pid = process?.pid ?: return@synchronized false
+            // On some Android builds `kill(pid, 0)` from the app process is intermittently denied
+            // while a just-forked child is still completing exec. The preview PID is app-owned and
+            // short-lived, so its proc entry is the reliable liveness signal for this handle.
+            File("/proc/$pid").exists()
+        }
 
-    fun controller(): CoreController = synchronized(gate) {
-        checkNotNull(controller) { "Preview core is not running" }
-    }
+    fun controller(): CoreController = synchronized(gate) { checkNotNull(controller) { "Preview core is not running" } }
 
-    private fun spawn(home: File, workdir: File, args: Array<String>): NativeProcess {
+    private fun spawn(
+        home: File,
+        workdir: File,
+        args: Array<String>,
+    ): NativeProcess {
         val launchArgs = CoreArtifacts.previewArguments(context, args)
         return try {
             NativeProcess.start(CoreArtifacts.previewShell(context).absolutePath, launchArgs, workdir.absolutePath)
@@ -146,7 +151,9 @@ class PreviewCoreProcess(private val context: Context) {
             waitUntilExited(process.pid, PREVIEW_STOP_KILL_WAIT_MS)
         }
 
-        private fun waitUntilExited(pid: Int, timeoutMs: Long): Boolean =
-            awaitProcessGone(timeoutMs, PREVIEW_STOP_POLL_MS) { File("/proc/$pid").exists() }
+        private fun waitUntilExited(
+            pid: Int,
+            timeoutMs: Long,
+        ): Boolean = awaitProcessGone(timeoutMs, PREVIEW_STOP_POLL_MS) { File("/proc/$pid").exists() }
     }
 }

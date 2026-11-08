@@ -53,11 +53,7 @@ class RulesViewModel(private val appContext: Context) : ViewModel() {
                 RuntimeAccess.connect(appContext)
                 RuntimeAccess.core().queryRules()
             }
-                .onSuccess { rules ->
-                    _uiState.update {
-                        it.copy(rules = rules, isLoading = false, isRunning = true)
-                    }
-                }
+                .onSuccess { rules -> _uiState.update { it.copy(rules = rules, isLoading = false, isRunning = true) } }
                 .onFailure { error ->
                     // Cancellation must not be published as "runtime not running" with no rules.
                     if (error is CancellationException) throw error
@@ -74,21 +70,19 @@ class RulesViewModel(private val appContext: Context) : ViewModel() {
     }
 
     /**
-     * Toggle a single rule. Switch ON means the rule is **enabled** (disabled=false). PATCH
-     * /rules/disable uses { index: disabled }.
+     * Toggle a single rule. Switch ON means the rule is **enabled** (disabled=false). PATCH /rules/disable uses {
+     * index: disabled }.
      */
     fun setRuleEnabled(index: Int, enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             toggleMutex.withLock {
                 val disabled = !enabled
-                val originalRule =
-                    _uiState.value.rules.firstOrNull { it.index == index } ?: return@withLock
+                val originalRule = _uiState.value.rules.firstOrNull { it.index == index } ?: return@withLock
                 _uiState.update { state ->
                     state.copy(
                         rules =
                             state.rules.map { rule ->
-                                rule.takeUnless { it.index == index }
-                                    ?: rule.copy(disabled = disabled)
+                                rule.takeUnless { it.index == index } ?: rule.copy(disabled = disabled)
                             },
                         togglingIndexes = state.togglingIndexes + index,
                         toggleError = null,
@@ -113,10 +107,7 @@ class RulesViewModel(private val appContext: Context) : ViewModel() {
                         Timber.w(error, "setRuleDisabled failed")
                         _uiState.update { state ->
                             state.copy(
-                                rules =
-                                    state.rules.map { rule ->
-                                        rule.takeIf { it.index != index } ?: originalRule
-                                    },
+                                rules = state.rules.map { rule -> rule.takeIf { it.index != index } ?: originalRule },
                                 togglingIndexes = state.togglingIndexes - index,
                                 toggleError = error.message ?: error.javaClass.simpleName,
                             )

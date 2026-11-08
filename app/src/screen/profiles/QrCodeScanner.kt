@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
@@ -44,11 +43,11 @@ import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import java.util.concurrent.Executors
+import kotlin.coroutines.resume
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
-import java.util.concurrent.Executors
-import kotlin.coroutines.resume
 
 @Composable
 internal fun StableQrScanner(onScanned: (String) -> Unit) {
@@ -58,18 +57,14 @@ internal fun StableQrScanner(onScanned: (String) -> Unit) {
     val barcodeScanner = remember { createBarcodeScannerOrNull() }
 
     val currentOnScanned by rememberUpdatedState(onScanned)
-    val hasScanned = remember {
-        java.util.concurrent.atomic.AtomicBoolean(false)
-    }
+    val hasScanned = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
 
     DisposableEffect(barcodeScanner) { onDispose { barcodeScanner?.close() } }
 
     DisposableEffect(cameraExecutor) { onDispose { cameraExecutor.shutdown() } }
 
     AndroidView(
-        modifier = Modifier
-            .fillMaxSize()
-            .clipToBounds(),
+        modifier = Modifier.fillMaxSize().clipToBounds(),
         factory = { context ->
             val previewView =
                 PreviewView(context).apply {
@@ -81,22 +76,18 @@ internal fun StableQrScanner(onScanned: (String) -> Unit) {
                         )
                 }
 
-            val previewUseCase =
-                Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
+            val previewUseCase = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
 
             val imageAnalysisUseCase = barcodeScanner?.let { scanner ->
-                ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                    .also {
-                        it.setAnalyzer(cameraExecutor) { imageProxy ->
-                            processStableQrImage(scanner, imageProxy) { text ->
-                                if (hasScanned.compareAndSet(false, true)) {
-                                    currentOnScanned(text)
-                                }
+                ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build().also {
+                    it.setAnalyzer(cameraExecutor) { imageProxy ->
+                        processStableQrImage(scanner, imageProxy) { text ->
+                            if (hasScanned.compareAndSet(false, true)) {
+                                currentOnScanned(text)
                             }
                         }
                     }
+                }
             }
 
             coroutineScope.launch {
@@ -167,8 +158,7 @@ internal suspend fun Context.getStableCameraProvider(): ProcessCameraProvider =
                 {
                     if (!continuation.isActive) return@addListener
                     // Callback only fires after completion, so get() does not block.
-                    @Suppress("BlockingMethodInNonBlockingContext")
-                    continuation.resume(future.get())
+                    @Suppress("BlockingMethodInNonBlockingContext") continuation.resume(future.get())
                 },
                 ContextCompat.getMainExecutor(this),
             )
@@ -211,4 +201,5 @@ internal suspend fun readQrFromImage(context: Context, uri: Uri): String? =
 
 private fun createBarcodeScannerOrNull(): BarcodeScanner? = runCatching {
     BarcodeScanning.getClient()
-}.getOrNull()
+}
+    .getOrNull()

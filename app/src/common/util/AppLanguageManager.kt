@@ -28,17 +28,15 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
-import com.github.yumeyucca.yumebox.data.model.AppLanguage
 import com.github.yumeyucca.yumebox.core.locale.YumeLocaleManager
+import com.github.yumeyucca.yumebox.data.model.AppLanguage
 import java.util.*
 
 @SuppressLint("AppBundleLocaleChanges")
 object AppLanguageManager {
-    @Volatile
-    private var activeLanguage: AppLanguage = AppLanguage.System
+    @Volatile private var activeLanguage: AppLanguage = AppLanguage.System
 
-    @Volatile
-    private var activeLocale: Locale = Locale.getDefault()
+    @Volatile private var activeLocale: Locale = Locale.getDefault()
 
     fun apply(language: AppLanguage) {
         activeLanguage = language
@@ -58,24 +56,26 @@ object AppLanguageManager {
 
         Locale.setDefault(locale)
         LocaleUtil.setCurrentLocale(locale)
-        val lyricistTag = when (language) {
-            AppLanguage.System ->
-                if (locale.language.equals("zh", ignoreCase = true) &&
-                    (locale.script.equals("Hant", ignoreCase = true) ||
-                     locale.country.equals("TW", ignoreCase = true) ||
-                     locale.country.equals("HK", ignoreCase = true) ||
-                     locale.country.equals("MO", ignoreCase = true))
-                ) {
-                    "zh-tw"
-                } else {
-                    locale.toLanguageTag().lowercase()
-                }
-            AppLanguage.Zh -> "zh-cn"
-            AppLanguage.ZhHant -> "zh-tw"
-            AppLanguage.En -> "en"
-            AppLanguage.Ja -> "ja"
-            AppLanguage.Ru -> "ru"
-        }
+        val lyricistTag =
+            when (language) {
+                AppLanguage.System ->
+                    if (
+                        locale.language.equals("zh", ignoreCase = true) &&
+                            (locale.script.equals("Hant", ignoreCase = true) ||
+                                locale.country.equals("TW", ignoreCase = true) ||
+                                locale.country.equals("HK", ignoreCase = true) ||
+                                locale.country.equals("MO", ignoreCase = true))
+                    ) {
+                        "zh-tw"
+                    } else {
+                        locale.toLanguageTag().lowercase()
+                    }
+                AppLanguage.Zh -> "zh-cn"
+                AppLanguage.ZhHant -> "zh-tw"
+                AppLanguage.En -> "en"
+                AppLanguage.Ja -> "ja"
+                AppLanguage.Ru -> "ru"
+            }
         YumeLocaleManager.updateLocale(lyricistTag)
     }
 

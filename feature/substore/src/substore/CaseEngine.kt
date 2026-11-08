@@ -25,9 +25,9 @@ import com.caoccao.javet.interception.logging.JavetStandardConsoleInterceptor
 import com.caoccao.javet.interop.NodeRuntime
 import com.caoccao.javet.interop.V8Host
 import com.caoccao.javet.interop.options.NodeRuntimeOptions
-import timber.log.Timber
 import java.io.Closeable
 import java.io.File
+import timber.log.Timber
 
 class CaseEngine(
     backendPort: Int,
@@ -40,11 +40,9 @@ class CaseEngine(
     private var nodeRuntime: NodeRuntime? = null
     private lateinit var thread: Thread
 
-    @Volatile
-    private var shouldAwait = true
+    @Volatile private var shouldAwait = true
 
-    @Volatile
-    private var isRunning = false
+    @Volatile private var isRunning = false
 
     private val argv2EnvScript =
         """
@@ -87,9 +85,7 @@ class CaseEngine(
 
             runtime.allowEval(true)
             runtime.getExecutor(argv2EnvScript).executeVoid()
-        } catch (
-            error: Exception
-        ) { // fault barrier: Javet engine init throws unspecified exceptions
+        } catch (error: Exception) { // fault barrier: Javet engine init throws unspecified exceptions
             Timber.e(error, "CaseEngine init failed")
         }
     }
@@ -111,18 +107,13 @@ class CaseEngine(
         thread =
             Thread {
                 try {
-                    runtime
-                        .getExecutor("process.chdir(process.env.SUB_STORE_WORKING_DIR)")
-                        .executeVoid()
+                    runtime.getExecutor("process.chdir(process.env.SUB_STORE_WORKING_DIR)").executeVoid()
 
                     runtime.getExecutor(codeFile).executeVoid()
                     while (shouldAwait) {
                         runtime.await(V8AwaitMode.RunNoWait)
                     }
-                } catch (_: InterruptedException) {
-                } catch (
-                    error: Exception
-                ) { // fault barrier: embedded JS engine
+                } catch (_: InterruptedException) {} catch (error: Exception) { // fault barrier: embedded JS engine
                     Timber.e(error, "CaseEngine run failed")
                 } finally {
                     cleanup()

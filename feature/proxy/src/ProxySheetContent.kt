@@ -34,12 +34,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.PROXY_SHEET_HEIGHT_FRACTION_DEFAULT
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
+import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeader
 import com.github.yumeyucca.yumebox.presentation.component.GlassTopActionDefaults
 import com.github.yumeyucca.yumebox.presentation.component.SheetHeaderIconButton
-import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeader
 import com.github.yumeyucca.yumebox.presentation.component.rememberSurfaceBackdrop
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ListChevronsUpDown
@@ -54,21 +55,20 @@ import com.github.yumeyucca.yumebox.presentation.screen.rememberSelectedGroupCon
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.util.rememberSavedListState
-import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import top.yukonga.miuix.kmp.blur.layerBackdrop
 import com.github.yumeyucca.yumebox.presentation.viewmodel.DelayTestState
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
 import com.github.yumeyucca.yumebox.runtime.client.ProxyGroupSyncSource
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Back
-import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
 import top.yukonga.miuix.kmp.glass.glassPopupAnchor
 import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
 import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
-import top.yukonga.miuix.kmp.glass.GlassBottomSheet
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** Kept off the tail of the sheet enter/exit so the two panes never overlap mid-flight. */
 private const val SheetTransitionTrimMillis = 20
@@ -150,13 +150,12 @@ private fun ProxySheetHost(
         onDispose { proxyViewModel.ensureCoreLoaded(false, source = ProxyGroupSyncSource.Sheet) }
     }
 
-    val dismissSheet =
-        remember {
-            {
-                showSortPopup.value = false
-                showSheet.value = false
-            }
+    val dismissSheet = remember {
+        {
+            showSortPopup.value = false
+            showSheet.value = false
         }
+    }
     GlassBottomSheet(
         show = showSheet.value,
         // The panel never samples the page (solid fill). The library's title row is left empty
@@ -174,9 +173,7 @@ private fun ProxySheetHost(
         insideMargin = DpSize(0.dp, UiDp.dp16),
         enableNestedScroll = false,
     ) {
-        Box(Modifier.fillMaxWidth()) {
-            content()
-        }
+        Box(Modifier.fillMaxWidth()) { content() }
     }
 }
 
@@ -196,9 +193,7 @@ private fun ProxySheetPanes(
             transitionSpec = { proxySheetContentTransform(selection.name != null) },
             label = "notification_node_sheet_content",
         ) { targetGroupName ->
-            val targetGroup = targetGroupName?.let { name ->
-                proxyGroups.firstOrNull { group -> group.name == name }
-            }
+            val targetGroup = targetGroupName?.let { name -> proxyGroups.firstOrNull { group -> group.name == name } }
             if (targetGroup == null) {
                 SheetGroupPane(
                     groups = proxyGroups,
@@ -297,8 +292,7 @@ private fun SheetSortAction(
                     contentDescription = YumeTxt.Proxy.Action.Sort,
                     onClick = { showSortPopup.value = true },
                     iconModifier =
-                        Modifier
-                            .glassPopupAnchor(
+                        Modifier.glassPopupAnchor(
                                 anchor = anchor,
                                 cornerRadius = GlassTopActionDefaults.IconSize / 2,
                                 // This icon sits in the sheet header, not over the page like

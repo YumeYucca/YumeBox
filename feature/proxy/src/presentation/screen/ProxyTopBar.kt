@@ -45,13 +45,10 @@ import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 /**
  * 顶栏"更多"弹窗的锚点与展开态。
  *
- * 锚点必须由顶栏持有(它贴在胶囊里的排序钮上),菜单内容则由调用方按 [ProxyTopBar] 的
- * menu 槽组合;这样顶栏不再逐个转发菜单数据,只做 chrome。
+ * 锚点必须由顶栏持有(它贴在胶囊里的排序钮上),菜单内容则由调用方按 [ProxyTopBar] 的 menu 槽组合;这样顶栏不再逐个转发菜单数据,只做 chrome。
  */
 @Stable
-internal class ProxyMenuState internal constructor(
-    internal val anchor: GlassPopupAnchor,
-) {
+internal class ProxyMenuState internal constructor(internal val anchor: GlassPopupAnchor) {
     var expanded by mutableStateOf(false)
         private set
 

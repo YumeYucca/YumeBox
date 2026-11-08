@@ -26,10 +26,10 @@ import android.os.Parcel
 import android.os.Parcelable
 import com.github.yumeyucca.yumebox.core.util.DateSerializer
 import com.github.yumeyucca.yumebox.core.util.Parcelizer
+import java.util.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
-import java.util.*
 
 @Serializable
 data class LogMessage(
@@ -39,18 +39,12 @@ data class LogMessage(
 ) : Parcelable {
     @Serializable
     enum class Level {
-        @SerialName("debug")
-        Debug,
-        @SerialName("info")
-        Info,
-        @SerialName("warning")
-        Warning,
-        @SerialName("error")
-        Error,
-        @SerialName("silent")
-        Silent,
-        @SerialName("unknown")
-        Unknown,
+        @SerialName("debug") Debug,
+        @SerialName("info") Info,
+        @SerialName("warning") Warning,
+        @SerialName("error") Error,
+        @SerialName("silent") Silent,
+        @SerialName("unknown") Unknown,
     }
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {

@@ -93,16 +93,20 @@ fun ScreenLazyColumn(
 }
 
 /**
- * Stacks two padding sets: the page's own start/end from [localPadding] and the extra bottom inset
- * [mainPadding] reserves for the floating bar.
+ * Stacks two padding sets: the page's own start/end from [localPadding] and the extra bottom inset [mainPadding]
+ * reserves for the floating bar.
  */
 @Composable
-fun combinePaddingValues(localPadding: PaddingValues, mainPadding: PaddingValues): PaddingValues {
+fun combinePaddingValues(
+    localPadding: PaddingValues,
+    mainPadding: PaddingValues,
+): PaddingValues {
     val layoutDirection = LocalLayoutDirection.current
     return PaddingValues(
         top = localPadding.calculateTopPadding(),
         bottom =
-            localPadding.calculateBottomPadding()
+            localPadding
+                .calculateBottomPadding()
                 .plus(mainPadding.calculateBottomPadding())
                 .plus(AppTheme.spacing.space12),
         start = localPadding.calculateStartPadding(layoutDirection),
@@ -111,8 +115,8 @@ fun combinePaddingValues(localPadding: PaddingValues, mainPadding: PaddingValues
 }
 
 /**
- * [ScreenLazyColumn] for a standalone page: [scaffoldPadding] is the Scaffold's own padding and the
- * floating bottom bar's reserve is added here, so pages do not restate that policy themselves.
+ * [ScreenLazyColumn] for a standalone page: [scaffoldPadding] is the Scaffold's own padding and the floating bottom
+ * bar's reserve is added here, so pages do not restate that policy themselves.
  */
 @Composable
 fun StandalonePageList(
@@ -138,9 +142,9 @@ fun StandalonePageList(
 }
 
 /**
- * Inner padding for a standalone page: the scaffold's padding plus the height the floating bottom
- * bar reserves, plus the spacing step that keeps the last row clear of it. Prefer this over holding
- * [rememberStandalonePageMainPadding] unless the page also needs the raw reserved height elsewhere.
+ * Inner padding for a standalone page: the scaffold's padding plus the height the floating bottom bar reserves, plus
+ * the spacing step that keeps the last row clear of it. Prefer this over holding [rememberStandalonePageMainPadding]
+ * unless the page also needs the raw reserved height elsewhere.
  */
 @Composable
 fun standalonePageInnerPadding(scaffoldPadding: PaddingValues): PaddingValues =
@@ -152,7 +156,5 @@ fun standalonePageInnerPadding(scaffoldPadding: PaddingValues): PaddingValues =
 @Composable
 fun rememberStandalonePageMainPadding(): PaddingValues {
     val reservedBottomBarHeight = rememberBottomBarReservedHeight()
-    return remember(reservedBottomBarHeight) {
-        PaddingValues(bottom = reservedBottomBarHeight)
-    }
+    return remember(reservedBottomBarHeight) { PaddingValues(bottom = reservedBottomBarHeight) }
 }

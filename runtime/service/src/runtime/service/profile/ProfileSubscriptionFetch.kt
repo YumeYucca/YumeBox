@@ -42,9 +42,8 @@ internal data class SubscriptionInfo(
 )
 
 /**
- * Downloads a subscription URL to `stagingDir/config.yaml` with progress, parsing the
- * `subscription-userinfo` header into a SubscriptionInfo (deep config validation happens at
- * compile time).
+ * Downloads a subscription URL to `stagingDir/config.yaml` with progress, parsing the `subscription-userinfo` header
+ * into a SubscriptionInfo (deep config validation happens at compile time).
  */
 internal suspend fun fetchSubscription(
     stagingDir: File,
@@ -59,10 +58,7 @@ internal suspend fun fetchSubscription(
         .use { client ->
             // Airports gate the real config on a recognized Clash-client User-Agent; "YumeBox"
             // gets a crippled response, so send the user's custom UA or the airport default.
-            val response =
-                client.get(url) {
-                    header(HttpHeaders.UserAgent, SubscriptionUserAgent.resolve())
-                }
+            val response = client.get(url) { header(HttpHeaders.UserAgent, SubscriptionUserAgent.resolve()) }
             check(response.status.isSuccess()) { "HTTP ${response.status.value}" }
             val body = response.bodyAsText()
             stagingDir.mkdirs()
@@ -79,15 +75,10 @@ internal suspend fun fetchSubscription(
                     }
                     ?.toMap()
                     .orEmpty()
-            val title =
-                decodeSubscriptionTitle(
-                    headers["profile-title"] ?: headers["subscription-title"]
-                )
+            val title = decodeSubscriptionTitle(headers["profile-title"] ?: headers["subscription-title"])
             val filename = parseContentDispositionFilename(headers["content-disposition"])
             val interval =
-                (headers["profile-update-interval"] ?: headers["subscription-update-interval"])
-                    ?.trim()
-                    ?.toLongOrNull()
+                (headers["profile-update-interval"] ?: headers["subscription-update-interval"])?.trim()?.toLongOrNull()
 
             // Emit the subscription-info status unconditionally: a server may send profile-title
             // (airport name) without subscription-userinfo, and vice versa.
@@ -102,8 +93,7 @@ internal suspend fun fetchSubscription(
                     subTotal = fields["total"]?.toLongOrNull(),
                     // `expire` here is a Unix timestamp in SECONDS, but the UI renders
                     // Profile.expire as epoch MILLIS — convert, or a real future date reads as 1970.
-                    subExpire =
-                        fields["expire"]?.toLongOrNull()?.takeIf { it > 0 }?.let { it * 1000L },
+                    subExpire = fields["expire"]?.toLongOrNull()?.takeIf { it > 0 }?.let { it * 1000L },
                     subUpdateInterval = interval,
                     subTitle = title,
                     subFilename = filename,
@@ -175,24 +165,21 @@ private fun decodeBase64OrNull(encoded: String): String? {
 }
 
 /**
- * Extracts the filename from a Content-Disposition header — RFC 5987 `filename*=charset''…`
- * (url-decoded) and plain `filename=…`, stopping at the next `;` so trailing params aren't
- * swallowed.
+ * Extracts the filename from a Content-Disposition header — RFC 5987 `filename*=charset''…` (url-decoded) and plain
+ * `filename=…`, stopping at the next `;` so trailing params aren't swallowed.
  */
 private fun parseContentDispositionFilename(contentDisposition: String?): String? {
     val cd = contentDisposition?.takeIf { it.isNotBlank() } ?: return null
     return runCatching {
         if (cd.contains("filename*=", ignoreCase = true)) {
-                Regex("""filename\*=([^']*)'([^']*)'([^;]+)""", RegexOption.IGNORE_CASE)
-                    .find(cd)
-                    ?.let { match ->
-                        val charset = match.groupValues[1].ifBlank { "UTF-8" }
-                        val encoded = match.groupValues[3].trim().trim('"', '\'')
-                        val safeCharset =
-                            runCatching { java.nio.charset.Charset.forName(charset).name() }
-                                .getOrDefault("UTF-8")
-                        URLDecoder.decode(encoded, safeCharset).trim()
-                    }
+                Regex("""filename\*=([^']*)'([^']*)'([^;]+)""", RegexOption.IGNORE_CASE).find(cd)?.let { match ->
+                    val charset = match.groupValues[1].ifBlank { "UTF-8" }
+                    val encoded = match.groupValues[3].trim().trim('"', '\'')
+                    val safeCharset = runCatching {
+                        java.nio.charset.Charset.forName(charset).name()
+                    }.getOrDefault("UTF-8")
+                    URLDecoder.decode(encoded, safeCharset).trim()
+                }
             } else {
                 Regex("""filename=([^;]+)""", RegexOption.IGNORE_CASE)
                     .find(cd)

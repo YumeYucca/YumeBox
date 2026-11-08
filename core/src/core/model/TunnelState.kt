@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.core.model
 
-
 import android.os.Parcel
 import android.os.Parcelable
 import com.github.yumeyucca.yumebox.core.util.Parcelizer
@@ -33,14 +32,10 @@ import kotlinx.serialization.Serializable
 data class TunnelState(val mode: Mode) : Parcelable {
     @Serializable
     enum class Mode {
-        @SerialName("direct")
-        Direct,
-        @SerialName("global")
-        Global,
-        @SerialName("rule")
-        Rule,
-        @SerialName("script")
-        Script,
+        @SerialName("direct") Direct,
+        @SerialName("global") Global,
+        @SerialName("rule") Rule,
+        @SerialName("script") Script,
     }
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -50,8 +45,7 @@ data class TunnelState(val mode: Mode) : Parcelable {
     override fun describeContents(): Int = 0
 
     companion object CREATOR : Parcelable.Creator<TunnelState> {
-        override fun createFromParcel(parcel: Parcel): TunnelState =
-            Parcelizer.decodeFromParcel(serializer(), parcel)
+        override fun createFromParcel(parcel: Parcel): TunnelState = Parcelizer.decodeFromParcel(serializer(), parcel)
 
         override fun newArray(size: Int): Array<TunnelState?> = arrayOfNulls(size)
     }

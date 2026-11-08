@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.screen.settings
 
-
 import android.content.Context
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
@@ -37,6 +36,7 @@ import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.substore.util.SubStoreDownloadClient
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -45,7 +45,6 @@ import org.koin.compose.koinInject
 import org.koin.core.qualifier.named
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import java.io.File
 
 private data class GeoFileStatus(
     val item: GeoXItem,
@@ -53,8 +52,8 @@ private data class GeoFileStatus(
 )
 
 /**
- * What the AGE key dialog is doing. [Closed] keeps the last generated key type so the exit tween
- * does not swap the dialog title and reset its fields while it fades out.
+ * What the AGE key dialog is doing. [Closed] keeps the last generated key type so the exit tween does not swap the
+ * dialog title and reset its fields while it fades out.
  */
 private sealed interface AgeKeyDialog {
     val hybrid: Boolean
@@ -75,24 +74,23 @@ fun MetaFeatureScreen(navigator: Navigator) {
 
     var geoRefreshKey by remember { mutableStateOf(0) }
     val runtimeHome = context.runtimeHomeDir
-    val geoStatuses by produceState(
-        geoXItems.map { GeoFileStatus(it, null) },
-        runtimeHome,
-        geoRefreshKey,
-    ) {
-        value =
-            withContext(Dispatchers.IO) {
-                geoXItems.map { item ->
-                    val file = File(runtimeHome, item.fileName)
-                    GeoFileStatus(item, if (file.exists()) file.lastModified() else null)
+    val geoStatuses by
+        produceState(
+            geoXItems.map { GeoFileStatus(it, null) },
+            runtimeHome,
+            geoRefreshKey,
+        ) {
+            value =
+                withContext(Dispatchers.IO) {
+                    geoXItems.map { item ->
+                        val file = File(runtimeHome, item.fileName)
+                        GeoFileStatus(item, if (file.exists()) file.lastModified() else null)
+                    }
                 }
-            }
-    }
+        }
     val lastUpdated = geoStatuses.mapNotNull { it.lastModified }.maxOrNull()
     val lastUpdatedText = remember(lastUpdated) { formatGeoLastUpdated(lastUpdated) }
-    var ageKeyDialog by remember {
-        mutableStateOf<AgeKeyDialog>(AgeKeyDialog.Closed(hybrid = false))
-    }
+    var ageKeyDialog by remember { mutableStateOf<AgeKeyDialog>(AgeKeyDialog.Closed(hybrid = false)) }
 
     Scaffold(
         topBar = {
@@ -102,7 +100,6 @@ fun MetaFeatureScreen(navigator: Navigator) {
             )
         }
     ) { innerPadding ->
-
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
@@ -182,11 +179,7 @@ private fun GeoXOnlineUpdateSection(
             },
         )
     }
-    SectionSummary(
-        YumeTxt.MetaFeature.GeoX.OnlineUpdateSummary.format(
-            lastUpdatedText
-        )
-    )
+    SectionSummary(YumeTxt.MetaFeature.GeoX.OnlineUpdateSummary.format(lastUpdatedText))
 }
 
 /** The two AGE key generators; [onGenerate] receives whether the hybrid variant was picked. */
@@ -204,7 +197,6 @@ private fun AgeKeySection(onGenerate: (Boolean) -> Unit) {
         )
     }
 }
-
 
 private fun formatGeoLastUpdated(timestamp: Long?): String =
     if (timestamp == null || timestamp <= 0L) "—" else formatDateTime(timestamp, "yyyy-MM-dd HH:mm")
@@ -229,8 +221,6 @@ private fun downloadGeoXFiles(
             }
         }
         onComplete()
-        context.toast(
-            YumeTxt.MetaFeature.Download.DownloadComplete.format(successCount, items.size)
-        )
+        context.toast(YumeTxt.MetaFeature.Download.DownloadComplete.format(successCount, items.size))
     }
 }

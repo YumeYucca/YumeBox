@@ -30,10 +30,8 @@ enum class OverrideContentType(
     /** Legacy extensions still accepted when reading existing files. */
     val previousExtensions: List<String> = emptyList(),
 ) {
-    @SerialName("yaml")
-    Yaml("yaml", "YAML", previousExtensions = listOf("yml")),
-    @SerialName("js")
-    JavaScript("js", "JavaScript");
+    @SerialName("yaml") Yaml("yaml", "YAML", previousExtensions = listOf("yml")),
+    @SerialName("js") JavaScript("js", "JavaScript");
 
     companion object {
         /** Every filename extension an override config file may use. */
@@ -42,9 +40,7 @@ enum class OverrideContentType(
 
         fun fromExtension(extension: String?): OverrideContentType? {
             val normalized = extension?.lowercase()?.removePrefix(".") ?: return null
-            return entries.firstOrNull {
-                normalized == it.extension || normalized in it.previousExtensions
-            }
+            return entries.firstOrNull { normalized == it.extension || normalized in it.previousExtensions }
         }
 
         fun fromFileName(fileName: String?): OverrideContentType? =

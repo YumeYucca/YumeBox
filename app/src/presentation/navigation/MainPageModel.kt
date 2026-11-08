@@ -36,13 +36,12 @@ import com.github.yumeyucca.yumebox.presentation.component.rememberMainPagerStat
 import com.github.yumeyucca.yumebox.screen.moe.calculateHomeVisibility
 
 /**
- * The bottom pager of one screen: which pages the bar offers, which one it rests on, where a swipe is
- * heading, and the two answers the shell derives from that.
+ * The bottom pager of one screen: which pages the bar offers, which one it rests on, where a swipe is heading, and the
+ * two answers the shell derives from that.
  *
- * [MainDestinationState] and [MainPagerState] cannot be read independently — a page count change, a
- * page change and the end of a swipe each have to be reconciled against the other, and the effects in
- * [rememberMainPageModel] are the whole reconciliation. Holding them together keeps "which
- * destination is selected" answered in exactly one place.
+ * [MainDestinationState] and [MainPagerState] cannot be read independently — a page count change, a page change and the
+ * end of a swipe each have to be reconciled against the other, and the effects in [rememberMainPageModel] are the whole
+ * reconciliation. Holding them together keeps "which destination is selected" answered in exactly one place.
  */
 @Stable
 internal class MainPageModel(
@@ -65,8 +64,8 @@ internal class MainPageModel(
         get() = destinations.previousSettled
 
     /**
-     * The floating bar shows on every page except the home, which has its own chrome; it also stays
-     * hidden while a swipe towards home has selected but not settled.
+     * The floating bar shows on every page except the home, which has its own chrome; it also stays hidden while a
+     * swipe towards home has selected but not settled.
      */
     val bottomBarVisible: Boolean
         get() = selected != BottomBarDestination.Home && settled != BottomBarDestination.Home
@@ -80,10 +79,10 @@ internal class MainPageModel(
 /**
  * Remembers the page model and reconciles its three sources of change.
  *
- * Every `LaunchedEffect` here exists because a different thing changed — the visible page set, the
- * selected page, or the end of a scroll — and each would be wrong to fold into another: settling on a
- * page change alone would report a destination the pager has not reached, and reconciling visibility
- * while scrolling would move the user's page out from under the gesture.
+ * Every `LaunchedEffect` here exists because a different thing changed — the visible page set, the selected page, or
+ * the end of a scroll — and each would be wrong to fold into another: settling on a page change alone would report a
+ * destination the pager has not reached, and reconciling visibility while scrolling would move the user's page out from
+ * under the gesture.
  */
 @Composable
 internal fun rememberMainPageModel(
@@ -140,7 +139,5 @@ internal fun rememberMainPageModel(
             }
         }
 
-    return remember(destinations, pager, homeVisibility) {
-        MainPageModel(destinations, pager, homeVisibility)
-    }
+    return remember(destinations, pager, homeVisibility) { MainPageModel(destinations, pager, homeVisibility) }
 }

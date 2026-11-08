@@ -22,7 +22,6 @@ package com.github.yumeyucca.yumebox.di
 
 import com.github.yumeyucca.yumebox.feature.override.di.featureOverrideModules
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
-import com.github.yumeyucca.yumebox.update.AppUpdateViewModel
 import com.github.yumeyucca.yumebox.screen.log.LogViewModel
 import com.github.yumeyucca.yumebox.screen.profiles.ProfilesViewModel
 import com.github.yumeyucca.yumebox.screen.rules.RulesViewModel
@@ -34,6 +33,7 @@ import com.github.yumeyucca.yumebox.screen.settings.WifiAutomationViewModel
 import com.github.yumeyucca.yumebox.screen.settings.backup.BackupRepository
 import com.github.yumeyucca.yumebox.screen.settings.backup.BackupRestoreViewModel
 import com.github.yumeyucca.yumebox.screen.settings.backup.BackupStoreAdapter
+import com.github.yumeyucca.yumebox.update.AppUpdateViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
@@ -81,8 +81,4 @@ val appModule: List<Module> =
         appDataRuntimeModule,
         appIntegrationModule,
         appViewModelModule,
-    ) +
-        featureSubStoreModules +
-        featureProxyModules +
-        featureOverrideModules +
-        featureMetaModules
+    ) + featureSubStoreModules + featureProxyModules + featureOverrideModules + featureMetaModules

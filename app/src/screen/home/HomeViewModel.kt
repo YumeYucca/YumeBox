@@ -27,10 +27,10 @@ import com.github.yumeyucca.yumebox.common.util.stateInWhileSubscribed
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.core.model.RunMode
-import com.github.yumeyucca.yumebox.presentation.base.AndroidContractStateViewModel
 import com.github.yumeyucca.yumebox.core.util.AutoStartSessionGate
 import com.github.yumeyucca.yumebox.core.util.BuiltinGeoAssetsRequiredException
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
+import com.github.yumeyucca.yumebox.presentation.base.AndroidContractStateViewModel
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.runtime.api.RuntimeOwner
 import com.github.yumeyucca.yumebox.runtime.api.RuntimePhase
@@ -58,9 +58,7 @@ class HomeViewModel(
 
     val runtimeSnapshot = proxyFacade.runtimeSnapshot
     val isRunning =
-        runtimeSnapshot
-            .map { it.running }
-            .stateInWhileSubscribed(viewModelScope, runtimeSnapshot.value.running)
+        runtimeSnapshot.map { it.running }.stateInWhileSubscribed(viewModelScope, runtimeSnapshot.value.running)
     val isRemoteController: StateFlow<Boolean> =
         runtimeSnapshot
             .map { it.owner == RuntimeOwner.RemoteController }
@@ -83,8 +81,8 @@ class HomeViewModel(
 
     val controlState: StateFlow<HomeProxyControlState> =
         combine(runtimeSnapshot, _startAttempt) { snapshot, attempt ->
-            resolveHomeControlState(snapshot.owner, snapshot.phase, attempt)
-        }
+                resolveHomeControlState(snapshot.owner, snapshot.phase, attempt)
+            }
             .stateInWhileSubscribed(
                 viewModelScope,
                 resolveHomeControlState(
@@ -108,61 +106,60 @@ class HomeViewModel(
                 if (node == null) {
                     flowOf(null)
                 } else {
-                    proxyFacade.proxyDelayFlow(node.name)
-                        .map { liveDelay -> (liveDelay ?: node.delay).takeIf { it > 0 } }
+                    proxyFacade.proxyDelayFlow(node.name).map { liveDelay ->
+                        (liveDelay ?: node.delay).takeIf { it > 0 }
+                    }
                 }
             }
             .stateInWhileSubscribed(viewModelScope, null)
 
     val screenState: StateFlow<HomeScreenState> =
         combine(
-            combine(
-                controlState,
-                trafficNow,
-                _homeProfiles,
-            ) { control, traffic, homeProfiles ->
-                HomeScreenState(
-                    controlState = control,
-                    trafficNow = traffic,
-                    profiles = homeProfiles?.all ?: emptyList(),
-                    profilesLoaded = homeProfiles != null,
-                    hasEnabledProfile = homeProfiles?.hasEnabled ?: false,
-                    recommendedProfile = homeProfiles?.recommended,
+                combine(
+                    controlState,
+                    trafficNow,
+                    _homeProfiles,
+                ) { control, traffic, homeProfiles ->
+                    HomeScreenState(
+                        controlState = control,
+                        trafficNow = traffic,
+                        profiles = homeProfiles?.all ?: emptyList(),
+                        profilesLoaded = homeProfiles != null,
+                        hasEnabledProfile = homeProfiles?.hasEnabled ?: false,
+                        recommendedProfile = homeProfiles?.recommended,
+                    )
+                },
+                combine(
+                    currentProfile,
+                    selectedServerName,
+                    selectedServerPing,
+                ) { current, serverName, serverPing ->
+                    HomeProfileSummary(
+                        currentProfile = current,
+                        selectedServerName = serverName,
+                        selectedServerPing = serverPing,
+                    )
+                },
+                combine(
+                    isRemoteController,
+                    uiState,
+                ) { remote, ui ->
+                    HomeRuntimeSummary(
+                        isRemoteController = remote,
+                        uiState = ui,
+                    )
+                },
+            ) { base, profile, runtime ->
+                base.copy(
+                    currentProfile = profile.currentProfile,
+                    selectedServerName = profile.selectedServerName,
+                    selectedServerPing = profile.selectedServerPing,
+                    isRemoteController = runtime.isRemoteController,
+                    uiMessage = runtime.uiState.message,
+                    uiError = runtime.uiState.error,
                 )
-            },
-            combine(
-                currentProfile,
-                selectedServerName,
-                selectedServerPing,
-            ) { current, serverName, serverPing ->
-                HomeProfileSummary(
-                    currentProfile = current,
-                    selectedServerName = serverName,
-                    selectedServerPing = serverPing,
-                )
-            },
-            combine(
-                isRemoteController,
-                uiState,
-            ) { remote, ui ->
-                HomeRuntimeSummary(
-                    isRemoteController = remote,
-                    uiState = ui,
-                )
-            },
-        ) { base, profile, runtime ->
-            base.copy(
-                currentProfile = profile.currentProfile,
-                selectedServerName = profile.selectedServerName,
-                selectedServerPing = profile.selectedServerPing,
-                isRemoteController = runtime.isRemoteController,
-                uiMessage = runtime.uiState.message,
-                uiError = runtime.uiState.error,
-            )
-        }
-            .combine(runtimeSnapshot) { screen, snapshot ->
-                screen.copy(runtimeStartedAt = snapshot.startedAt)
             }
+            .combine(runtimeSnapshot) { screen, snapshot -> screen.copy(runtimeStartedAt = snapshot.startedAt) }
             .stateInWhileSubscribed(viewModelScope, HomeScreenState())
 
     init {
@@ -195,10 +192,7 @@ class HomeViewModel(
 
     private fun observeProfileChanges() {
         viewModelScope.launch {
-            proxyFacade.currentProfile
-                .map { it?.uuid }
-                .distinctUntilChanged()
-                .collect { refreshProfiles() }
+            proxyFacade.currentProfile.map { it?.uuid }.distinctUntilChanged().collect { refreshProfiles() }
         }
     }
 
@@ -228,8 +222,7 @@ class HomeViewModel(
                         // Keep that intermediate state while the runtime still reports Idle;
                         // otherwise the button briefly jumps back to Start until the kernel
                         // eventually reports Starting.
-                        RuntimePhase.Idle ->
-                            if (!_startAttempt.value.isStartup) resetPendingStart()
+                        RuntimePhase.Idle -> if (!_startAttempt.value.isStartup) resetPendingStart()
 
                         RuntimePhase.Failed -> resetPendingStart()
                     }
@@ -342,8 +335,7 @@ class HomeViewModel(
     }
 
     @Suppress("UnusedSymbol")
-    private fun showMessage(message: String) =
-        postMessage(message, HomeUiEffect.ShowMessage(message))
+    private fun showMessage(message: String) = postMessage(message, HomeUiEffect.ShowMessage(message))
 
     private fun showError(error: String) = postError(error, HomeUiEffect.ShowError(error))
 
@@ -367,9 +359,7 @@ class HomeViewModel(
                 proxyFacade.startProxy(request.mode)
             }
 
-            Timber.i(
-                "Home startProxy completed in ${System.currentTimeMillis() - startedAt}ms, mode=${request.mode}"
-            )
+            Timber.i("Home startProxy completed in ${System.currentTimeMillis() - startedAt}ms, mode=${request.mode}")
 
             // With a remote controller active ProxyFacade.startProxy() is a no-op, so no runtime
             // phase change will arrive to clear the pending transition; clear it here instead of
@@ -391,11 +381,7 @@ class HomeViewModel(
             // startProxyInternal already surfaces the failure; skip the duplicate Failed-phase toast.
             suppressNextRuntimeFailureToast = true
             lastPresentedFailureGeneration = runtimeSnapshot.value.generation
-            showError(
-                YumeTxt.Home.Message.StartFailed.format(
-                    readableStartupError(error.message)
-                )
-            )
+            showError(YumeTxt.Home.Message.StartFailed.format(readableStartupError(error.message)))
         }
     }
 
@@ -404,8 +390,8 @@ class HomeViewModel(
     }
 
     /**
-     * Intermediate bundle for the screen-state assembly: `combine` takes at most five flows, so the
-     * inputs are folded in three groups before the final merge.
+     * Intermediate bundle for the screen-state assembly: `combine` takes at most five flows, so the inputs are folded
+     * in three groups before the final merge.
      */
     private data class HomeProfileSummary(
         val currentProfile: Profile?,

@@ -160,8 +160,7 @@ private fun bigIntegerToAddressString(value: BigInteger, bitSize: Int): String {
     return checkNotNull(InetAddress.getByAddress(normalized).hostAddress)
 }
 
-private fun rootRouteAddress(bitSize: Int): String =
-    "0.0.0.0".takeIf { bitSize == IPV4_BITS } ?: "::"
+private fun rootRouteAddress(bitSize: Int): String = "0.0.0.0".takeIf { bitSize == IPV4_BITS } ?: "::"
 
 private const val IPV4_BITS = 32
 private const val IPV6_BITS = 128

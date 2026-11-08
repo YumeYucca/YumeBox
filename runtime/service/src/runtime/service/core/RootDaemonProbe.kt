@@ -25,8 +25,8 @@ import com.topjohnwu.superuser.Shell
 import java.io.File
 
 /**
- * Root pid checks go through libsu's persistent shell. [CoreProcess] still owns the lifecycle
- * lock and the controller endpoint.
+ * Root pid checks go through libsu's persistent shell. [CoreProcess] still owns the lifecycle lock and the controller
+ * endpoint.
  */
 internal object RootDaemonProbe {
     fun trackedAlive(): Boolean {
@@ -47,23 +47,20 @@ internal object RootDaemonProbe {
         ) {
             return cached.alive
         }
-        val alive =
-            identity(record)
-                ?: return cached != null && cached.pid == record.pid && cached.alive
+        val alive = identity(record) ?: return cached != null && cached.pid == record.pid && cached.alive
         liveness = Liveness(record.pid, record.startTimeTicks, alive, now)
         return alive
     }
 
     /**
-     * Null when the root shell itself failed. False is a dead or reused pid. Only a definite
-     * answer is cached, so a failed shell does not mark the daemon stopped.
+     * Null when the root shell itself failed. False is a dead or reused pid. Only a definite answer is cached, so a
+     * failed shell does not mark the daemon stopped.
      */
     fun identity(record: RootDaemonState.Record): Boolean? =
         when (val state = pidState(record.pid)) {
             PidState.Unreachable -> null
             PidState.Gone -> false
-            is PidState.Present ->
-                if (state.executable in EXECUTABLE_NAMES) startTimeMatches(record) else false
+            is PidState.Present -> if (state.executable in EXECUTABLE_NAMES) startTimeMatches(record) else false
         }
 
     fun reap(record: RootDaemonState.Record): Boolean =
@@ -137,7 +134,8 @@ internal object RootDaemonProbe {
     private fun exec(command: String) = runCatching { Shell.cmd(command).exec() }.getOrNull()
 
     private fun startTimeTicks(stat: String): Long? =
-        stat.substringAfterLast(") ", missingDelimiterValue = "")
+        stat
+            .substringAfterLast(") ", missingDelimiterValue = "")
             .split(Regex("\\s+"))
             .getOrNull(START_TIME_INDEX_AFTER_COMM)
             ?.toLongOrNull()

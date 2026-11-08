@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel
 
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumeyucca.yumebox.core.model.OverrideInternalConstants
@@ -45,8 +44,7 @@ class CustomRoutingViewModel(
     private val customRoutingBootstrapper: CustomRoutingBootstrapper,
 ) : ViewModel() {
     private val presetSelectionState = MutableStateFlow(defaultOverridePresetTemplateSelection())
-    val presetSelection: StateFlow<OverridePresetTemplateSelection> =
-        presetSelectionState.asStateFlow()
+    val presetSelection: StateFlow<OverridePresetTemplateSelection> = presetSelectionState.asStateFlow()
 
     private val customRoutingContentState = MutableStateFlow("")
     val customRoutingContent: StateFlow<String> = customRoutingContentState.asStateFlow()
@@ -67,14 +65,13 @@ class CustomRoutingViewModel(
         }
     }
 
-    suspend fun savePresetSelection(
-        updatedPresetSelection: OverridePresetTemplateSelection
-    ): Result<Unit> = saveOutcome {
-        check(templateRoundTripSafeState.value) {
-            "Preset changes cannot overwrite manually edited custom routing YAML"
+    suspend fun savePresetSelection(updatedPresetSelection: OverridePresetTemplateSelection): Result<Unit> =
+        saveOutcome {
+            check(templateRoundTripSafeState.value) {
+                "Preset changes cannot overwrite manually edited custom routing YAML"
+            }
+            persist(dumpPreset(updatedPresetSelection))
         }
-        persist(dumpPreset(updatedPresetSelection))
-    }
 
     suspend fun saveCustomRoutingYaml(content: String): Result<Unit> = saveOutcome {
         val contentToSave =
@@ -88,15 +85,15 @@ class CustomRoutingViewModel(
     }
 
     /**
-     * Renders one preset. The dump is dozens of providers, groups and rules plus a re-load
-     * self-check, so it stays off the main thread: saves are launched from the composition scope.
+     * Renders one preset. The dump is dozens of providers, groups and rules plus a re-load self-check, so it stays off
+     * the main thread: saves are launched from the composition scope.
      */
     private suspend fun dumpPreset(selection: OverridePresetTemplateSelection): String =
         withContext(Dispatchers.Default) { buildPresetTemplateYaml(selection) }
 
     /**
-     * A failed save is a [Result] the screen toasts, but a cancelled one is not: leaving the screen
-     * mid-save has to cancel this work instead of reporting a failure that never happened.
+     * A failed save is a [Result] the screen toasts, but a cancelled one is not: leaving the screen mid-save has to
+     * cancel this work instead of reporting a failure that never happened.
      */
     private suspend fun saveOutcome(block: suspend () -> Unit): Result<Unit> =
         try {

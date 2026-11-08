@@ -57,8 +57,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 private val TabBandInset = 66.dp
 
 /**
- * Which of the two lists the shared page opens on. Public because [Route.RulesAndProviders] carries it
- * as its navigation argument.
+ * Which of the two lists the shared page opens on. Public because [Route.RulesAndProviders] carries it as its
+ * navigation argument.
  */
 enum class RulesProvidersTab {
     Rules,
@@ -96,29 +96,28 @@ fun RulesAndProvidersScreen(
         },
         contentOverlay = { scaffoldPadding ->
             val density = LocalDensity.current
-            val tabRestTopPx =
-                with(density) { (scaffoldPadding.calculateTopPadding() + UiDp.dp20).toPx() }
+            val tabRestTopPx = with(density) { (scaffoldPadding.calculateTopPadding() + UiDp.dp20).toPx() }
             val tabZonePx = with(density) { UiDp.dp46.toPx() }
-            val tabScrollPx by remember(activeListState, tabRestTopPx) {
-                derivedStateOf {
-                    if (activeListState.firstVisibleItemIndex == 0) {
-                        activeListState.firstVisibleItemScrollOffset.toFloat()
-                    } else {
-                        tabRestTopPx + tabZonePx
+            val tabScrollPx by
+                remember(activeListState, tabRestTopPx) {
+                    derivedStateOf {
+                        if (activeListState.firstVisibleItemIndex == 0) {
+                            activeListState.firstVisibleItemScrollOffset.toFloat()
+                        } else {
+                            tabRestTopPx + tabZonePx
+                        }
                     }
                 }
-            }
             Box(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
+                    Modifier.fillMaxWidth()
                         .graphicsLayer { translationY = tabRestTopPx - tabScrollPx }
                         .background(MiuixTheme.colorScheme.surface)
                         .padding(
                             start = UiDp.dp12,
                             end = UiDp.dp12,
                             bottom = UiDp.dp4,
-                        ),
+                        )
             ) {
                 SegmentedTabRow(
                     tabs = tabs,
@@ -130,8 +129,7 @@ fun RulesAndProvidersScreen(
             }
         },
     ) { innerPadding ->
-        val basePadding =
-            standalonePageInnerPadding(innerPadding)
+        val basePadding = standalonePageInnerPadding(innerPadding)
         val layoutDirection = LocalLayoutDirection.current
         val contentPadding =
             PaddingValues(

@@ -30,8 +30,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 
 @Composable
 fun AppFormDialog(
@@ -65,15 +65,13 @@ fun AppFormDialog(
         // A form can be taller than the screen, so its fields scroll while the button row stays put.
         Column(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .let { base ->
-                        if (scrollable) {
-                            base.heightIn(max = UiDp.dp420).verticalScroll(rememberScrollState())
-                        } else {
-                            base
-                        }
-                    },
+                Modifier.fillMaxWidth().let { base ->
+                    if (scrollable) {
+                        base.heightIn(max = UiDp.dp420).verticalScroll(rememberScrollState())
+                    } else {
+                        base
+                    }
+                },
             verticalArrangement = Arrangement.spacedBy(UiDp.dp12),
         ) {
             content()

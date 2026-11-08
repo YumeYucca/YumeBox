@@ -39,11 +39,15 @@ private val Profile.totalBytes: Long?
 private val Profile.expireAt: Long?
     get() = if (expire > 0) expire else null
 
-/** Traffic summary for the card: remaining value expressed in the total's unit, like "0.50 / 100.00 GB". */
+/**
+ * Traffic summary for the card: the headline shows the remaining value in the total's unit, like "0.50 / 100.00 GB",
+ * while [usedRatio] drives the progress bar so the accent colour reflects the traffic already consumed rather than the
+ * remaining traffic.
+ */
 data class ProfileTrafficPreview(
     val remainingNumber: String,
     val totalText: String,
-    val ratio: Float,
+    val usedRatio: Float,
     val lowTraffic: Boolean,
 )
 
@@ -63,12 +67,13 @@ val Profile.trafficPreview: ProfileTrafficPreview?
                 )
             }
         // totalBytes is non-null only when total > 0, so the division is safe.
-        val ratio = (remainingBytes.toFloat() / totalBytesValue).coerceIn(0f, 1f)
+        val usedRatio = (usedBytes.toFloat() / totalBytesValue).coerceIn(0f, 1f)
+        val remainingRatio = 1f - usedRatio
         return ProfileTrafficPreview(
             remainingNumber = remainingNumber,
             totalText = ByteFormatter.format(totalBytesValue),
-            ratio = ratio,
-            lowTraffic = ratio <= 0.2f,
+            usedRatio = usedRatio,
+            lowTraffic = remainingRatio <= 0.2f,
         )
     }
 
@@ -82,10 +87,7 @@ data class ProfileExpiryPreview(
 val Profile.expiryPreview: ProfileExpiryPreview?
     get() {
         val expireAtValue = expireAt ?: return null
-        val date =
-            Instant.ofEpochMilli(expireAtValue)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate()
+        val date = Instant.ofEpochMilli(expireAtValue).atZone(ZoneId.systemDefault()).toLocalDate()
         val daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), date)
         return ProfileExpiryPreview(
             daysLeft = daysLeft,
@@ -95,4 +97,3 @@ val Profile.expiryPreview: ProfileExpiryPreview?
     }
 
 private const val EXPIRY_WARNING_DAYS = 10L
-

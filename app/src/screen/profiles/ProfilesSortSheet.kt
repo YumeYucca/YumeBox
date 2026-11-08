@@ -45,9 +45,9 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.PROXY_SHEET_HEIGHT_FRACTION_DEFAULT
-import com.github.yumeyucca.yumebox.presentation.component.SheetHeaderIconButton
 import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeader
 import com.github.yumeyucca.yumebox.presentation.component.FloatingSheetHeaderDefaults
+import com.github.yumeyucca.yumebox.presentation.component.SheetHeaderIconButton
 import com.github.yumeyucca.yumebox.presentation.component.rememberSurfaceBackdrop
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Check
@@ -60,18 +60,15 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.glass.GlassBottomSheet
-import top.yukonga.miuix.kmp.blur.layerBackdrop
 
 /**
- * 拖拽排序配置的底部 sheet(参考系统"自定义排序"弹窗):每行一张卡片,名称在左,
- * 拖拽手柄(≡)在右侧,无勾选态。chrome 与节点弹窗对齐(NexioSchedule BlurBottomSheet
- * 结构):库层标题传 null,标题与关闭/保存玻璃钮渲染进 76dp 悬浮头,列表从常驻渐变
- * 遮罩下滚过;高度固定为屏幕默认比例,长列表内部滚动。拖动只调整本地草稿序,点右上角
- * 保存按钮才通过 [onOrderCommitted] 整份应用一次;关闭(左上角 X / 背板 / 返回)
- * 丢弃未保存的调整。
+ * 拖拽排序配置的底部 sheet(参考系统"自定义排序"弹窗):每行一张卡片,名称在左, 拖拽手柄(≡)在右侧,无勾选态。chrome 与节点弹窗对齐(NexioSchedule BlurBottomSheet 结构):库层标题传
+ * null,标题与关闭/保存玻璃钮渲染进 76dp 悬浮头,列表从常驻渐变 遮罩下滚过;高度固定为屏幕默认比例,长列表内部滚动。拖动只调整本地草稿序,点右上角 保存按钮才通过 [onOrderCommitted]
+ * 整份应用一次;关闭(左上角 X / 背板 / 返回) 丢弃未保存的调整。
  */
 @Composable
 internal fun ProfilesSortSheet(
@@ -143,9 +140,7 @@ private fun ProfilesSortList(
     val configuration = LocalConfiguration.current
     // 与节点弹窗(NodeSheetContent)同高:屏幕高度 × 默认比例,固定高度,长列表内部滚动。
     val sheetHeight =
-        remember(configuration.screenHeightDp) {
-            configuration.screenHeightDp.dp * PROXY_SHEET_HEIGHT_FRACTION_DEFAULT
-        }
+        remember(configuration.screenHeightDp) { configuration.screenHeightDp.dp * PROXY_SHEET_HEIGHT_FRACTION_DEFAULT }
     val listState = rememberLazyListState()
     // reorderable 库持有的 onDrag 闭包可能停在首帧,经 rememberUpdatedState 中转,
     // 保证拖动换位时读到的是最新草稿序。
@@ -153,16 +148,13 @@ private fun ProfilesSortList(
     val latestOnDraftChange by rememberUpdatedState(onDraftChange)
     val reorderState =
         rememberReorderableLazyListState(listState) { from, to ->
-            latestOnDraftChange(
-                latestDraft.toMutableList().apply { add(to.index, removeAt(from.index)) },
-            )
+            latestOnDraftChange(latestDraft.toMutableList().apply { add(to.index, removeAt(from.index)) })
         }
 
     LazyColumn(
         state = listState,
         modifier =
-            Modifier
-                .fillMaxWidth()
+            Modifier.fillMaxWidth()
                 // 短列表按内容收高、长列表封顶内滚(节点弹窗 heightIn(max) 同款、NexioSchedule 语义),
                 // 而不是无条件撑满屏幕比例 —— 否则标题带会被顶到屏幕上更高的位置。
                 .heightIn(max = sheetHeight)

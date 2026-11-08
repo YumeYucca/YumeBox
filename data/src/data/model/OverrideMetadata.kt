@@ -20,7 +20,6 @@
 
 package com.github.yumeyucca.yumebox.data.model
 
-
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -40,8 +39,7 @@ data class OverrideMetadata(
         /** Whether [id] is a leftover from the old bundled-preset scheme. */
         fun isLegacyPresetId(id: String): Boolean = id.startsWith(LEGACY_SYSTEM_PREFIX)
 
-        fun generateId(): String =
-            "$ID_PREFIX${System.currentTimeMillis()}-${(1000..9999).random()}"
+        fun generateId(): String = "$ID_PREFIX${System.currentTimeMillis()}-${(1000..9999).random()}"
     }
 
     fun duplicateAsUser(): OverrideMetadata {
@@ -65,40 +63,31 @@ data class MetadataIndex(
 ) {
     fun getById(id: String): OverrideMetadata? = configs[id]
 
-    fun upsert(metadata: OverrideMetadata): MetadataIndex =
-        copy(configs = configs + (metadata.id to metadata))
+    fun upsert(metadata: OverrideMetadata): MetadataIndex = copy(configs = configs + (metadata.id to metadata))
 
     fun remove(id: String): MetadataIndex = copy(configs = configs - id)
 
     fun removeOverrideFromProfileChains(overrideId: String): MetadataIndex =
-        copy(
-            profileChains =
-                profileChains.mapValues { (_, binding) -> binding.removeOverride(overrideId) }
-        )
+        copy(profileChains = profileChains.mapValues { (_, binding) -> binding.removeOverride(overrideId) })
 
     /**
-     * Drops override references [against] cannot satisfy: legacy preset leftovers and ids whose
-     * config is gone. A stale id must never survive a metadata write, and both metadata owners
-     * (configs and profile bindings) must agree on that filter.
+     * Drops override references [against] cannot satisfy: legacy preset leftovers and ids whose config is gone. A stale
+     * id must never survive a metadata write, and both metadata owners (configs and profile bindings) must agree on
+     * that filter.
      */
-    fun withSanitizedBindings(
-        against: Map<String, OverrideMetadata> = configs,
-    ): MetadataIndex {
-        val sanitized =
-            profileChains.mapValues { (_, binding) ->
-                val sanitizedIds =
-                    binding.overrideIds.filterNot { overrideId ->
-                        OverrideMetadata.isLegacyPresetId(overrideId) ||
-                                (overrideId.startsWith(OverrideMetadata.ID_PREFIX) &&
-                                        overrideId !in against)
-                    }
-                val attachedIds = sanitizedIds.toSet()
-                binding.copy(
-                    overrideIds = sanitizedIds,
-                    disabledOverrideIds =
-                        binding.disabledOverrideIds.filter(attachedIds::contains),
-                )
-            }
+    fun withSanitizedBindings(against: Map<String, OverrideMetadata> = configs): MetadataIndex {
+        val sanitized = profileChains.mapValues { (_, binding) ->
+            val sanitizedIds =
+                binding.overrideIds.filterNot { overrideId ->
+                    OverrideMetadata.isLegacyPresetId(overrideId) ||
+                        (overrideId.startsWith(OverrideMetadata.ID_PREFIX) && overrideId !in against)
+                }
+            val attachedIds = sanitizedIds.toSet()
+            binding.copy(
+                overrideIds = sanitizedIds,
+                disabledOverrideIds = binding.disabledOverrideIds.filter(attachedIds::contains),
+            )
+        }
         return if (sanitized == profileChains) this else copy(profileChains = sanitized)
     }
 
@@ -110,8 +99,7 @@ data class MetadataIndex(
                 .thenBy(OverrideMetadata::createdAt)
         )
 
-    fun nextUserSortOrder(): Long =
-        sortedUserMetadata().maxOfOrNull(OverrideMetadata::sortOrder)?.plus(1L) ?: 1L
+    fun nextUserSortOrder(): Long = sortedUserMetadata().maxOfOrNull(OverrideMetadata::sortOrder)?.plus(1L) ?: 1L
 
     fun normalizeUserSortOrders(): MetadataIndex {
         val updatedConfigs = configs.toMutableMap()

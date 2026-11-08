@@ -28,13 +28,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.RemoteBackend
 import com.github.yumeyucca.yumebox.data.model.RemoteProtocol
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.screen.settings.RemoteControllerViewModel
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -271,10 +271,7 @@ private fun BackendEditSheet(
                         text = YumeTxt.Feature.RemoteController.Delete,
                         onClick = onDelete,
                         modifier = Modifier.weight(1f),
-                        colors =
-                            ButtonDefaults.textButtonColors(
-                                textColor = MiuixTheme.colorScheme.error,
-                            ),
+                        colors = ButtonDefaults.textButtonColors(textColor = MiuixTheme.colorScheme.error),
                     )
                 } else {
                     TextButton(

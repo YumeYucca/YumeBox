@@ -35,9 +35,9 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.util.*
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import java.util.*
 import kotlin.math.max
 
@@ -50,8 +50,7 @@ internal fun AddProfileSheet(
     form: ProfileAddFormState,
     onDismiss: () -> Unit,
     importUrl: String? = null,
-    onAddProfile:
-        (
+    onAddProfile: (
         name: String,
         source: String,
         type: Profile.Type,
@@ -64,8 +63,7 @@ internal fun AddProfileSheet(
 ) {
     val configuration = LocalConfiguration.current
     val downloadSheetContentHeight = configuration.screenHeightDp.dp * DownloadSheetHeightFraction
-    val downloadCompleteSheetContentHeight =
-        configuration.screenHeightDp.dp * DownloadCompleteSheetHeightFraction
+    val downloadCompleteSheetContentHeight = configuration.screenHeightDp.dp * DownloadCompleteSheetHeightFraction
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     var selectedImportType by form.importType
@@ -93,20 +91,15 @@ internal fun AddProfileSheet(
         }
     }
 
-    val applyNameText: (String) -> Unit = { updatedText ->
-        nameTextFieldValue = textValueAtEnd(updatedText)
-    }
-    val applyUrlText: (String) -> Unit = { updatedText ->
-        urlTextFieldValue = textValueAtEnd(updatedText)
-    }
+    val applyNameText: (String) -> Unit = { updatedText -> nameTextFieldValue = textValueAtEnd(updatedText) }
+    val applyUrlText: (String) -> Unit = { updatedText -> urlTextFieldValue = textValueAtEnd(updatedText) }
     val applyScannedUrl: (String) -> Unit = { url ->
         applyUrlText(url)
         selectedImportType = ProfileImportType.Url
     }
     var hasCameraPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                    PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED,
         )
     }
 
@@ -125,11 +118,7 @@ internal fun AddProfileSheet(
         }
     }
 
-    val showCameraPreview =
-        show &&
-                selectedImportType == ProfileImportType.Qr &&
-                !isDownloading &&
-                hasCameraPermission
+    val showCameraPreview = show && selectedImportType == ProfileImportType.Qr && !isDownloading && hasCameraPermission
 
     LaunchedEffect(show, importUrl) {
         if (show) {
@@ -156,17 +145,14 @@ internal fun AddProfileSheet(
                         profileNameFromConfigFileName(
                             fileName,
                             YumeTxt.ProfilesPage.Input.NewProfile,
-                        )
+                        ),
                     )
                 }
             },
             onUnsupportedFile = { error = YumeTxt.ProfilesPage.Validation.YamlOnly },
         )
 
-    val dismissSheet =
-        {
-            if (!isDownloading) onDismiss()
-        }
+    val dismissSheet = { if (!isDownloading) onDismiss() }
 
     val actions =
         ProfileAddSheetActions(

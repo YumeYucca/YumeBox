@@ -38,15 +38,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.Ok
-import top.yukonga.miuix.kmp.glass.GlassBottomSheet
-import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.layout.BottomSheetDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -57,16 +57,14 @@ object AppBottomSheetDefaults {
     val OutsideMargin = DpSize(UiDp.dp0, UiDp.dp0)
 
     /**
-     * Top inset for content that scrolls under the floating 76dp title band, so the first row
-     * starts at the band's lower edge instead of beneath it.
+     * Top inset for content that scrolls under the floating 76dp title band, so the first row starts at the band's
+     * lower edge instead of beneath it.
      */
     val ContentTopGap = FloatingSheetHeaderDefaults.ContentTopInset
 
-    @Composable
-    fun backgroundColor(): Color = MiuixTheme.colorScheme.surface
+    @Composable fun backgroundColor(): Color = MiuixTheme.colorScheme.surface
 
-    @Composable
-    fun dragHandleColor(): Color = MiuixTheme.colorScheme.onSurfaceVariantActions
+    @Composable fun dragHandleColor(): Color = MiuixTheme.colorScheme.onSurfaceVariantActions
 
     @Composable
     fun actionIconTint(enabled: Boolean): Color =
@@ -140,18 +138,16 @@ fun AppBottomSheetConfirmAction(
 /**
  * 通用底部弹窗:76dp 浮动标题带 + 标题栏 42dp 图标按钮 + 自滚动内容列。
  *
- * [content] 始终渲染在 `Column(verticalScroll(rememberScrollState()))` 内(带 [insideMargin] 水平内缩
- * 与 [AppBottomSheetDefaults.ContentTopGap] 顶部留白),因此内容里不能放高度不受限的懒加载列表:
- * `LazyColumn` 套在 `verticalScroll` 里会抛
- * "Vertically scrollable component was measured with an infinity maximum height constraints"。
- * 需要列表时给列表一个上界,例如 `Modifier.heightIn(max = 360.dp)`(WifiAutomationSheets 的用法)。
+ * [content] 始终渲染在 `Column(verticalScroll(rememberScrollState()))` 内(带 [insideMargin] 水平内缩 与
+ * [AppBottomSheetDefaults.ContentTopGap] 顶部留白),因此内容里不能放高度不受限的懒加载列表: `LazyColumn` 套在 `verticalScroll` 里会抛 "Vertically
+ * scrollable component was measured with an infinity maximum height constraints"。 需要列表时给列表一个上界,例如
+ * `Modifier.heightIn(max = 360.dp)`(WifiAutomationSheets 的用法)。
  *
- * [startAction] 默认就是关闭按钮(`AppBottomSheetCloseAction([onDismissRequest])`);需要别的起始动作
- * (ProxySheetContent 的“面板切换”)才传自己的 lambda,完全不需要时传 `null`。
+ * [startAction] 默认就是关闭按钮(`AppBottomSheetCloseAction([onDismissRequest])`);需要别的起始动作 (ProxySheetContent 的“面板切换”)才传自己的
+ * lambda,完全不需要时传 `null`。
  *
  * 这里刻意不再透传 `GlassBottomSheet` 的尺寸/退场参数(容器色、圆角、最大宽、外边距、拖拽条颜色、
- * 遮罩、`allowDismiss`、嵌套滚动、`renderInRootScaffold`):没有任何调用点需要它们,而透传只会让
- * 每个弹窗各自决定外观。确实需要这些选项时直接用 `GlassBottomSheet`。
+ * 遮罩、`allowDismiss`、嵌套滚动、`renderInRootScaffold`):没有任何调用点需要它们,而透传只会让 每个弹窗各自决定外观。确实需要这些选项时直接用 `GlassBottomSheet`。
  */
 @Composable
 fun AppActionBottomSheet(
@@ -211,10 +207,9 @@ fun AppActionBottomSheet(
                         // with the IME consuming half the window.
                         Column(
                             modifier =
-                                Modifier
-                                    .fillMaxWidth()
+                                Modifier.fillMaxWidth()
                                     .verticalScroll(rememberScrollState())
-                                    .padding(horizontal = insideMargin.width),
+                                    .padding(horizontal = insideMargin.width)
                         ) {
                             Spacer(modifier = Modifier.height(AppBottomSheetDefaults.ContentTopGap))
                             content()

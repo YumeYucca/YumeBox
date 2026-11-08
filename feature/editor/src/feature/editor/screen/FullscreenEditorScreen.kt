@@ -28,10 +28,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.feature.editor.component.EditorExitGuard
 import com.github.yumeyucca.yumebox.feature.editor.component.EditorSurface
 import com.github.yumeyucca.yumebox.feature.editor.editor.rememberConfiguredCodeEditorState
-import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
@@ -109,5 +109,4 @@ fun FullscreenEditorScreen(
             paddingValues = paddingValues,
         )
     }
-
 }

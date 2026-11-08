@@ -33,15 +33,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 
 /**
- * Android host of the VPN core. It only owns what Android requires of a VpnService (the
- * foreground notification, revoke and destroy callbacks); [RuntimeCoordinator] decides when the
- * [session] starts, reloads and stops.
+ * Android host of the VPN core. It only owns what Android requires of a VpnService (the foreground notification, revoke
+ * and destroy callbacks); [RuntimeCoordinator] decides when the [session] starts, reloads and stops.
  */
 class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.Default) {
     internal val session by lazy { VpnSession(this) }
-    private val notificationManager by lazy {
-        ServiceNotificationManager(this, ServiceNotificationManager.vpnConfig)
-    }
+    private val notificationManager by lazy { ServiceNotificationManager(this, ServiceNotificationManager.vpnConfig) }
     private var notificationJob: Job? = null
 
     override fun onCreate() {

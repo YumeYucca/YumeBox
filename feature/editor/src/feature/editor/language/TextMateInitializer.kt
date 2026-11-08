@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.feature.editor.language
 
-
 import android.content.Context
 import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import io.github.rosemoe.sora.langs.textmate.TextMateLanguage
@@ -77,8 +76,7 @@ object TextMateInitializer {
 
     private fun registerFileProvider(context: Context) {
         Timber.tag(TAG).d("Registering file provider...")
-        FileProviderRegistry.getInstance()
-            .addFileProvider(AssetsFileResolver(context.applicationContext.assets))
+        FileProviderRegistry.getInstance().addFileProvider(AssetsFileResolver(context.applicationContext.assets))
     }
 
     private fun loadThemes() {
@@ -158,13 +156,10 @@ object TextMateInitializer {
         }
 
         try {
-            val definition =
-                grammarDefinitions[language] ?: error("Grammar not found: ${language.scopeName}")
+            val definition = grammarDefinitions[language] ?: error("Grammar not found: ${language.scopeName}")
             val themeRegistry = ThemeRegistry.getInstance()
             val grammarRegistry =
-                GrammarRegistry(GrammarRegistry.getInstance()).apply {
-                    setTheme(themeRegistry.currentThemeModel)
-                }
+                GrammarRegistry(GrammarRegistry.getInstance()).apply { setTheme(themeRegistry.currentThemeModel) }
             val textMateLanguage =
                 TextMateLanguage.create(
                     definition,

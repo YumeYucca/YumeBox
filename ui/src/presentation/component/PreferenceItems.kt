@@ -69,8 +69,8 @@ fun PreferenceArrowItem(
 }
 
 /**
- * A preference row that picks one entry of [values]. Only the ordered entries and their labels are
- * given, so a label can never drift out of step with the value it describes.
+ * A preference row that picks one entry of [values]. Only the ordered entries and their labels are given, so a label
+ * can never drift out of step with the value it describes.
  */
 @Composable
 fun <T> PreferenceEnumItem(

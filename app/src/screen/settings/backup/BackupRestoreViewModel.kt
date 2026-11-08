@@ -24,13 +24,13 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 data class BackupRestoreUiState(val isBusy: Boolean = false)
 
@@ -58,18 +58,16 @@ class BackupRestoreViewModel(
 
     fun exportBackup(uri: Uri) {
         launchBusy {
-            application.contentResolver.openOutputStream(uri)?.use { output ->
-                repository.exportBackup(output)
-            } ?: error(YumeTxt.Feature.BackupRestore.Error.OpenOutputFailed)
+            application.contentResolver.openOutputStream(uri)?.use { output -> repository.exportBackup(output) }
+                ?: error(YumeTxt.Feature.BackupRestore.Error.OpenOutputFailed)
             emitMessage(YumeTxt.Feature.BackupRestore.Message.ExportSuccess)
         }
     }
 
     internal fun restoreBackup(uri: Uri, strategy: BackupRestoreStrategy) {
         launchBusy {
-            application.contentResolver.openInputStream(uri)?.use { input ->
-                repository.restoreBackup(input, strategy)
-            } ?: error(YumeTxt.Feature.BackupRestore.Error.OpenInputFailed)
+            application.contentResolver.openInputStream(uri)?.use { input -> repository.restoreBackup(input, strategy) }
+                ?: error(YumeTxt.Feature.BackupRestore.Error.OpenInputFailed)
             emitMessage(YumeTxt.Feature.BackupRestore.Message.RestoreSuccess)
         }
     }
@@ -83,9 +81,7 @@ class BackupRestoreViewModel(
                 withContext(Dispatchers.IO) { block() }
             } catch (error: CancellationException) {
                 throw error
-            } catch (
-                error: Exception
-            ) { // fault barrier: a failed operation becomes a message, never a crash
+            } catch (error: Exception) { // fault barrier: a failed operation becomes a message, never a crash
                 emitMessage(
                     YumeTxt.Feature.BackupRestore.Error.OperationFailed.format(
                         error.message ?: YumeTxt.Util.Error.UnknownError

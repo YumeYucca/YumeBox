@@ -105,8 +105,7 @@ class AppNavigationComponent(
     fun handleDeepLink(link: DeepLink, inDetailPane: Boolean) {
         when (link) {
             is DeepLink.Page -> updateMainDestination(link.destination)
-            is DeepLink.Screen ->
-                (if (inDetailPane) detailNavigator else navigator).push(link.route)
+            is DeepLink.Screen -> (if (inDetailPane) detailNavigator else navigator).push(link.route)
         }
     }
 }
@@ -115,13 +114,14 @@ class AppNavigationComponent(
 fun AppNavContainer(component: AppNavigationComponent) {
     val predictiveBackEnabled = component.predictiveBackEnabledAtLaunch
     val commitBack = remember(component) { component::navigateBack }
-    val animation: StackAnimation<Any, RouteChild> = remember(component) {
-        if (predictiveBackEnabled) {
-            yumeAnimation(component.componentContext.backHandler, commitBack)
-        } else {
-            yumeStackAnimation()
+    val animation: StackAnimation<Any, RouteChild> =
+        remember(component) {
+            if (predictiveBackEnabled) {
+                yumeAnimation(component.componentContext.backHandler, commitBack)
+            } else {
+                yumeStackAnimation()
+            }
         }
-    }
 
     // Deep links belong to the retained navigation component, not to Route.Main's composition.
     // They therefore work even when a child route is currently covering the main pager.
@@ -134,14 +134,15 @@ fun AppNavContainer(component: AppNavigationComponent) {
     }
 
     val onDestinationSettled = remember(component) { component::updateMainDestination }
-    val mainRouteArgs = remember(component) {
-        MainRouteArgs(
-            destination = { component.mainDestination },
-            onDestinationSettled = onDestinationSettled,
-            rootStack = component.routeStack,
-            detailStack = component.detailStack,
-        )
-    }
+    val mainRouteArgs =
+        remember(component) {
+            MainRouteArgs(
+                destination = { component.mainDestination },
+                onDestinationSettled = onDestinationSettled,
+                rootStack = component.routeStack,
+                detailStack = component.detailStack,
+            )
+        }
     CompositionLocalProvider(LocalMainRouteArgs provides mainRouteArgs) {
         RouteStackHost(stack = component.routeStack, animation = animation)
     }

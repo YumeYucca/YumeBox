@@ -27,12 +27,10 @@ import kotlinx.serialization.json.jsonPrimitive
 private const val DEFAULT_NETWORK = "TCP"
 
 /** Raw string of a metadata field; the core omits absent fields entirely. */
-internal fun JsonObject.stringOrEmpty(key: String): String =
-    get(key)?.jsonPrimitive?.content.orEmpty()
+internal fun JsonObject.stringOrEmpty(key: String): String = get(key)?.jsonPrimitive?.content.orEmpty()
 
 /** Transport of a connection; the core leaves plain TCP implicit. */
-internal fun ConnectionInfo.networkName(): String =
-    metadata.stringOrEmpty("network").ifEmpty { DEFAULT_NETWORK }
+internal fun ConnectionInfo.networkName(): String = metadata.stringOrEmpty("network").ifEmpty { DEFAULT_NETWORK }
 
 /** `host:port` when the port is known, the bare host otherwise, and empty without a host. */
 internal fun hostPort(host: String, port: String): String =
@@ -43,8 +41,8 @@ internal fun hostPort(host: String, port: String): String =
     }
 
 /**
- * Single-line target identifying a connection: card title, detail header, and the search / sort
- * key. Host wins over destination, which wins over source; the port is appended when known.
+ * Single-line target identifying a connection: card title, detail header, and the search / sort key. Host wins over
+ * destination, which wins over source; the port is appended when known.
  */
 internal fun ConnectionInfo.displayTarget(): String {
     val host = metadata.stringOrEmpty("host")

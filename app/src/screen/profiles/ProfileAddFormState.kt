@@ -33,11 +33,11 @@ internal enum class ProfileSheetPhase {
     Downloading,
 
     /** The work finished; the sheet holds the completed state until it closes. */
-    Completed,
-    ;
+    Completed;
 
     /** True while the sheet shows progress instead of the form. */
-    val showsProgress: Boolean get() = this != Editing
+    val showsProgress: Boolean
+        get() = this != Editing
 }
 
 @Stable
@@ -86,4 +86,3 @@ internal fun profileSheetPhase(
         downloadCompleted -> ProfileSheetPhase.Completed
         else -> ProfileSheetPhase.Downloading
     }
-

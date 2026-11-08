@@ -28,14 +28,14 @@ import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.utils.io.*
+import java.io.IOException
+import java.util.*
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import timber.log.Timber
-import java.io.IOException
-import java.util.*
-import java.util.concurrent.atomic.AtomicReference
 
 /** Owns the single REST log-stream subscription for one controller endpoint. */
 internal class CoreControllerLogStream(
@@ -121,7 +121,8 @@ internal class CoreControllerLogStream(
         when (raw.trim().lowercase()) {
             "debug" -> LogMessage.Level.Debug
             "info" -> LogMessage.Level.Info
-            "warning", "warn" -> LogMessage.Level.Warning
+            "warning",
+            "warn" -> LogMessage.Level.Warning
             "error" -> LogMessage.Level.Error
             "silent" -> LogMessage.Level.Silent
             else -> LogMessage.Level.Unknown

@@ -40,14 +40,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.common.util.formatDateTime
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.Provider
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.viewmodel.ProvidersViewModel
-import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.viewmodel.providerKey
+import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -125,14 +125,12 @@ fun ProvidersContent(
 
     val sections =
         remember(providers) {
-            val (proxyProviders, ruleProviders) =
-                providers.partition { it.type == Provider.Type.Proxy }
+            val (proxyProviders, ruleProviders) = providers.partition { it.type == Provider.Type.Proxy }
             buildList {
                 if (proxyProviders.isNotEmpty()) {
                     add(
                         ProviderSection(
-                            title =
-                                YumeTxt.Providers.Type.ProxyProviders.format(proxyProviders.size),
+                            title = YumeTxt.Providers.Type.ProxyProviders.format(proxyProviders.size),
                             providers = proxyProviders,
                         )
                     )
@@ -162,8 +160,7 @@ fun ProvidersContent(
         )
     } else {
         val showProviderTabs = sections.size >= 2
-        val activeSectionIndex =
-            if (showProviderTabs) selectedSectionIndex.coerceIn(0, sections.lastIndex) else 0
+        val activeSectionIndex = if (showProviderTabs) selectedSectionIndex.coerceIn(0, sections.lastIndex) else 0
         // A provider refresh can drop a section; keep the stored index inside the list instead of
         // leaving a value that only looks right while it is being read.
         LaunchedEffect(sections.size, activeSectionIndex) {
@@ -215,10 +212,7 @@ private fun ProviderCard(
 
     AppCard(modifier = Modifier.padding(vertical = UiDp.dp4)) {
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = UiDp.dp16, vertical = UiDp.dp12),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = UiDp.dp16, vertical = UiDp.dp12),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -259,10 +253,8 @@ private fun ProviderCard(
             // vehicleType instead: HTTP always updates via PUT; File can upload only when
             // path is known (local import path). Inline/Compatible have no actions.
             val canUpdate =
-                provider.vehicleType == Provider.VehicleType.HTTP ||
-                        provider.vehicleType == Provider.VehicleType.File
-            val canUpload =
-                provider.vehicleType == Provider.VehicleType.File && provider.path.isNotBlank()
+                provider.vehicleType == Provider.VehicleType.HTTP || provider.vehicleType == Provider.VehicleType.File
+            val canUpload = provider.vehicleType == Provider.VehicleType.File && provider.path.isNotBlank()
 
             if (canUpdate || canUpload) {
                 // Update and upload share one control: a provider that offers only one of them
@@ -295,10 +287,7 @@ private fun ProviderCard(
                             horizontalArrangement = Arrangement.spacedBy(UiDp.dp2),
                         ) {
                             Icon(
-                                modifier =
-                                    Modifier
-                                        .size(UiDp.dp20)
-                                        .glassPopupAnchorContent(actionAnchor),
+                                modifier = Modifier.size(UiDp.dp20).glassPopupAnchorContent(actionAnchor),
                                 imageVector = MiuixIcons.Edit,
                                 tint = updateTint,
                                 contentDescription = YumeTxt.Providers.Action.Operation,

@@ -18,9 +18,9 @@ import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
 import androidx.annotation.RequiresApi
+import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.coroutines.resume
 
 sealed interface WifiSsidObservation {
     data class Connected(val ssid: String) : WifiSsidObservation
@@ -35,8 +35,8 @@ sealed interface WifiSsidObservation {
 /**
  * Observes the currently connected physical Wi-Fi network without triggering a scan.
  *
- * Android 12+ requires FLAG_INCLUDE_LOCATION_INFO for SSID-bearing transport information. On
- * older releases WifiManager.connectionInfo is the supported compatibility path.
+ * Android 12+ requires FLAG_INCLUDE_LOCATION_INFO for SSID-bearing transport information. On older releases
+ * WifiManager.connectionInfo is the supported compatibility path.
  */
 class WifiSsidObserver(
     context: Context,
@@ -70,10 +70,12 @@ class WifiSsidObserver(
             if (started) return
             started = true
         }
-        val manager = connectivity ?: run {
-            emit(WifiSsidObservation.Unavailable)
-            return
-        }
+        val manager =
+            connectivity
+                ?: run {
+                    emit(WifiSsidObservation.Unavailable)
+                    return
+                }
         runCatching { manager.registerNetworkCallback(request, callback) }
             .onSuccess { emitInitialObservation() }
             .onFailure { emit(WifiSsidObservation.Unavailable) }
@@ -82,7 +84,8 @@ class WifiSsidObserver(
     fun stop() {
         val shouldUnregister =
             synchronized(lock) {
-                if (!started) false else {
+                if (!started) false
+                else {
                     started = false
                     legacyNetworks.clear()
                     capabilityObservations.clear()
@@ -123,8 +126,7 @@ class WifiSsidObserver(
         object : ConnectivityManager.NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
                 val observation =
-                    normalizeSsid((capabilities.transportInfo as? WifiInfo)?.ssid)
-                        ?.let(WifiSsidObservation::Connected)
+                    normalizeSsid((capabilities.transportInfo as? WifiInfo)?.ssid)?.let(WifiSsidObservation::Connected)
                         ?: WifiSsidObservation.Unavailable
                 val selected =
                     synchronized(lock) {
@@ -148,20 +150,16 @@ class WifiSsidObserver(
     private fun emitLegacyObservation() {
         val hasWifi = synchronized(lock) { legacyNetworks.isNotEmpty() }
         val observation =
-            normalizeSsid(wifiManager?.connectionInfo?.ssid)
-                ?.let(WifiSsidObservation::Connected)
+            normalizeSsid(wifiManager?.connectionInfo?.ssid)?.let(WifiSsidObservation::Connected)
                 ?: if (hasWifi) WifiSsidObservation.Unavailable else WifiSsidObservation.NoWifi
         emit(observation)
     }
 
     private fun emitInitialObservation() {
         val wifiNetwork =
-            connectivity
-                ?.allNetworks
-                ?.firstOrNull { network ->
-                    connectivity.getNetworkCapabilities(network)
-                        ?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
-                }
+            connectivity?.allNetworks?.firstOrNull { network ->
+                connectivity.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+            }
         if (wifiNetwork == null) {
             emit(WifiSsidObservation.NoWifi)
             return
@@ -169,14 +167,10 @@ class WifiSsidObserver(
 
         val observation =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val wifiInfo =
-                    connectivity.getNetworkCapabilities(wifiNetwork)?.transportInfo as? WifiInfo
-                normalizeSsid(wifiInfo?.ssid)
-                    ?.let(WifiSsidObservation::Connected)
-                    ?: WifiSsidObservation.Unavailable
+                val wifiInfo = connectivity.getNetworkCapabilities(wifiNetwork)?.transportInfo as? WifiInfo
+                normalizeSsid(wifiInfo?.ssid)?.let(WifiSsidObservation::Connected) ?: WifiSsidObservation.Unavailable
             } else {
-                normalizeSsid(wifiManager?.connectionInfo?.ssid)
-                    ?.let(WifiSsidObservation::Connected)
+                normalizeSsid(wifiManager?.connectionInfo?.ssid)?.let(WifiSsidObservation::Connected)
                     ?: WifiSsidObservation.Unavailable
             }
         emit(observation)
@@ -229,8 +223,7 @@ class WifiSsidObserver(
 
         /** Removes Android's legacy display quotes but preserves every other SSID byte/character. */
         fun normalizeSsid(raw: String?): String? =
-            raw
-                ?.takeUnless { it == WifiManager.UNKNOWN_SSID }
+            raw?.takeUnless { it == WifiManager.UNKNOWN_SSID }
                 ?.let { value ->
                     if (value.length >= 2 && value.first() == '"' && value.last() == '"') {
                         value.substring(1, value.length - 1)

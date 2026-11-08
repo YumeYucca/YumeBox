@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.common.util.ByteFormatter
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.ConnectionInfo
 import com.github.yumeyucca.yumebox.feature.meta.presentation.util.displayTarget
 import com.github.yumeyucca.yumebox.feature.meta.presentation.util.hostPort
@@ -50,7 +51,6 @@ import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import java.time.DateTimeException
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -61,8 +61,8 @@ private const val CONNECTION_LEADING_ICON_BITMAP_SIZE = 96
 private const val EmptyDurationText = "00:00:00"
 
 /**
- * Full-page connection detail body. Mirrors the settings-style label/value rows (screenshot
- * reference: large title + card groups) instead of the old bottom sheet.
+ * Full-page connection detail body. Mirrors the settings-style label/value rows (screenshot reference: large title +
+ * card groups) instead of the old bottom sheet.
  */
 @Composable
 fun ConnectionDetailContent(
@@ -153,9 +153,7 @@ fun ConnectionDetailContent(
             InterruptConnectionButton(
                 isInterrupting = isInterrupting,
                 onInterrupt = onInterrupt,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.screenHorizontal),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.screenHorizontal),
             )
             Spacer(modifier = Modifier.height(spacing.space12))
         }
@@ -167,10 +165,7 @@ private fun ConnectionHeaderRow(state: ConnectionDetailState) {
     val spacing = AppTheme.spacing
     val sizes = AppTheme.sizes
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.space16, vertical = spacing.space12),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space16, vertical = spacing.space12),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(spacing.space12),
     ) {
@@ -286,8 +281,7 @@ private fun ChainNode(name: String, isActive: Boolean) {
 
     Row(
         modifier =
-            Modifier
-                .clip(RoundedCornerShape(radii.radius8))
+            Modifier.clip(RoundedCornerShape(radii.radius8))
                 .background(backgroundColor)
                 .padding(
                     horizontal = sizes.nodeChainNodeHorizontalPadding,
@@ -299,8 +293,7 @@ private fun ChainNode(name: String, isActive: Boolean) {
         if (isActive) {
             Box(
                 modifier =
-                    Modifier
-                        .size(sizes.nodeChainIndicatorSize)
+                    Modifier.size(sizes.nodeChainIndicatorSize)
                         .clip(CircleShape)
                         .background(appColors.connection.chainActive)
             )
@@ -341,8 +334,8 @@ internal fun ConnectionInfo.toDetailState(): ConnectionDetailState {
 }
 
 /**
- * Elapsed time of a live connection, recomputed on every second so the row is not frozen at the
- * moment the detail page opened.
+ * Elapsed time of a live connection, recomputed on every second so the row is not frozen at the moment the detail page
+ * opened.
  */
 @Composable
 private fun rememberElapsedDuration(start: String): String {
@@ -353,9 +346,7 @@ private fun rememberElapsedDuration(start: String): String {
             ticks.intValue += 1
         }
     }
-    return remember(start, ticks.intValue) {
-        if (start.isEmpty()) EmptyDurationText else calculateDuration(start)
-    }
+    return remember(start, ticks.intValue) { if (start.isEmpty()) EmptyDurationText else calculateDuration(start) }
 }
 
 private fun calculateDuration(start: String): String =

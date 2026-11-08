@@ -43,9 +43,7 @@ object DashboardShortcutHelper {
     ) {
         if (url.isBlank()) return
         val icon =
-            withContext(Dispatchers.IO) {
-                iconUri?.let { loadIconFromUri(context, it) } ?: fetchFavicon(context, url)
-            }
+            withContext(Dispatchers.IO) { iconUri?.let { loadIconFromUri(context, it) } ?: fetchFavicon(context, url) }
         val shortcut =
             ShortcutInfoCompat.Builder(context, "panel_" + url.hashCode())
                 .setShortLabel(label.ifBlank { "Dashboard" })
@@ -72,12 +70,9 @@ object DashboardShortcutHelper {
                 null
             } else {
                 val options =
-                    BitmapFactory.Options().apply {
-                        inSampleSize = iconSampleSize(bounds.outWidth, bounds.outHeight)
-                    }
+                    BitmapFactory.Options().apply { inSampleSize = iconSampleSize(bounds.outWidth, bounds.outHeight) }
                 resolver.openInputStream(uri)?.use { input ->
-                    BitmapFactory.decodeStream(input, null, options)
-                        ?.let(IconCompat::createWithBitmap)
+                    BitmapFactory.decodeStream(input, null, options)?.let(IconCompat::createWithBitmap)
                 }
             }
         }
@@ -86,10 +81,7 @@ object DashboardShortcutHelper {
 
     private fun iconSampleSize(width: Int, height: Int): Int {
         var sampleSize = 1
-        while (
-            width / (sampleSize * 2) >= MAX_ICON_EDGE_PX &&
-                height / (sampleSize * 2) >= MAX_ICON_EDGE_PX
-        ) {
+        while (width / (sampleSize * 2) >= MAX_ICON_EDGE_PX && height / (sampleSize * 2) >= MAX_ICON_EDGE_PX) {
             sampleSize *= 2
         }
         return sampleSize
@@ -108,9 +100,7 @@ object DashboardShortcutHelper {
             try {
                 conn.inputStream.use { input ->
                     val bytes = input.readBytes()
-                    val bmp =
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                            ?: return@runCatching null
+                    val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@runCatching null
                     IconCompat.createWithBitmap(bmp)
                 }
             } finally {

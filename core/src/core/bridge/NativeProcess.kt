@@ -22,20 +22,19 @@
 
 package com.github.yumeyucca.yumebox.core.bridge
 
-
 import androidx.annotation.Keep
 
 /**
- * A handle to the PIE core shell running as a child process, launched via fork+execve with a
- * socketpair control channel. YumeBox's equivalent of CFA's `AndroidProcess`.
+ * A handle to the PIE core shell running as a child process, launched via fork+execve with a socketpair control
+ * channel. YumeBox's equivalent of CFA's `AndroidProcess`.
  *
- * [channelFd] is the parent-side end of the socketpair; wrap it in a [Channel] to exchange control
- * messages (and to hand the TUN fd to the core via SCM_RIGHTS in the non-root path). The core reads
- * its own end from the `CHANNEL` environment variable.
+ * [channelFd] is the parent-side end of the socketpair; wrap it in a [Channel] to exchange control messages (and to
+ * hand the TUN fd to the core via SCM_RIGHTS in the non-root path). The core reads its own end from the `CHANNEL`
+ * environment variable.
  *
- * NOTE: this is the *non-root* launch primitive (the app fork+execs the binary directly). The root
- * path launches the same binary through `su` (libsu `Shell`) instead and talks to it purely over
- * the UNIX controller socket; it does not use [start].
+ * NOTE: this is the *non-root* launch primitive (the app fork+execs the binary directly). The root path launches the
+ * same binary through `su` (libsu `Shell`) instead and talks to it purely over the UNIX controller socket; it does not
+ * use [start].
  */
 @Keep
 class NativeProcess
@@ -55,18 +54,16 @@ private constructor(
         }
 
         /**
-         * Fork and execve [path] (which must be readable and executable — i.e. an
-         * extracted-and-chmod'd copy under the app's storage, or a file living in
-         * `nativeLibraryDir`). [args] are appended after `argv[0] = path`. The child `chdir`s into
-         * [workdir] (the core home) before exec, redirects stdout/stderr to `<workdir>/core.log`,
-         * and receives the channel socket fd through `CHANNEL=<fd>`.
+         * Fork and execve [path] (which must be readable and executable — i.e. an extracted-and-chmod'd copy under the
+         * app's storage, or a file living in `nativeLibraryDir`). [args] are appended after `argv[0] = path`. The child
+         * `chdir`s into [workdir] (the core home) before exec, redirects stdout/stderr to `<workdir>/core.log`, and
+         * receives the channel socket fd through `CHANNEL=<fd>`.
          *
-         * The call blocks until the child has execve'd (or failed to): a pre-exec failure in the
-         * child is reported back and rethrown here, so a returned handle always means the core is
-         * running.
+         * The call blocks until the child has execve'd (or failed to): a pre-exec failure in the child is reported back
+         * and rethrown here, so a returned handle always means the core is running.
          *
-         * @throws java.io.IOException if the file is not executable, chdir/socketpair/fork fails,
-         *   or the child could not exec [path].
+         * @throws java.io.IOException if the file is not executable, chdir/socketpair/fork fails, or the child could
+         *   not exec [path].
          */
         fun start(path: String, args: Array<String>, workdir: String): NativeProcess {
             val handle = nativeStart(path, args, workdir)
@@ -80,10 +77,8 @@ private constructor(
             workdir: String,
         ): IntArray
 
-        @JvmStatic
-        private external fun nativeTerminate(pid: Int)
+        @JvmStatic private external fun nativeTerminate(pid: Int)
 
-        @JvmStatic
-        private external fun nativeKill(pid: Int)
+        @JvmStatic private external fun nativeKill(pid: Int)
     }
 }

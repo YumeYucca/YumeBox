@@ -23,9 +23,9 @@ package com.github.yumeyucca.yumebox.runtime.api
 import android.content.ComponentName
 
 /**
- * Activity entry points consumed by runtime notifications/tiles. Injected by the app module during
- * Application.onCreate — the runtime layer must not hardcode app class names, and the app process
- * always initializes before any of these consumers run.
+ * Activity entry points consumed by runtime notifications/tiles. Injected by the app module during Application.onCreate
+ * — the runtime layer must not hardcode app class names, and the app process always initializes before any of these
+ * consumers run.
  */
 object Components {
     lateinit var MAIN_ACTIVITY: ComponentName

@@ -35,11 +35,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import com.github.yumeyucca.yumebox.common.util.ByteFormatter
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.OverrideConfig
 import com.github.yumeyucca.yumebox.data.model.OverrideContentType
 import com.github.yumeyucca.yumebox.presentation.component.AppActionBottomSheet
-import com.github.yumeyucca.yumebox.common.util.ByteFormatter
 import com.github.yumeyucca.yumebox.presentation.component.AppBottomSheetConfirmAction
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.component.AppTextFieldDialog
@@ -48,11 +49,10 @@ import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownOption
 import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference
 import com.github.yumeyucca.yumebox.presentation.component.PreferenceArrowItem
 import com.github.yumeyucca.yumebox.presentation.component.SegmentedTabRow
-import com.github.yumeyucca.yumebox.presentation.util.readDisplaySize
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.util.readDisplaySize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
@@ -86,45 +86,41 @@ internal fun CreateConfigDialog(
     // Exposed as state (not a plain val) because it is read inside the sheet's endAction lambda:
     // the overlay-hosted title-bar row can be re-rendered from a stale composable after the app
     // returns from background, and only a state read there keeps it subscribed to updates.
-    val canConfirm by rememberUpdatedState(
-        when (inputMode) {
-            OverrideConfigInputMode.CreateNew -> nameTextFieldValueState.value.text.isNotBlank()
-            OverrideConfigInputMode.LocalFile ->
-                selectedImportUri != null && selectedImportFileName.isNotBlank()
+    val canConfirm by
+        rememberUpdatedState(
+            when (inputMode) {
+                OverrideConfigInputMode.CreateNew -> nameTextFieldValueState.value.text.isNotBlank()
+                OverrideConfigInputMode.LocalFile -> selectedImportUri != null && selectedImportFileName.isNotBlank()
 
-            OverrideConfigInputMode.NetworkUrl -> networkImportUrl.isNotBlank() && !isImporting
-        }
-    )
+                OverrideConfigInputMode.NetworkUrl -> networkImportUrl.isNotBlank() && !isImporting
+            }
+        )
     val importConfigLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
             selectedImportUri = uri
             selectedImportFileName =
                 uri?.let { selectedUri ->
-                    context.contentResolver
-                        .query(
-                            selectedUri,
-                            arrayOf(OpenableColumns.DISPLAY_NAME),
-                            null,
-                            null,
-                            null,
-                        )
-                        ?.use { cursor ->
-                            val columnIndex =
-                                cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                            if (cursor.moveToFirst() && columnIndex >= 0) {
-                                cursor.getString(columnIndex)
-                            } else {
-                                ""
+                        context.contentResolver
+                            .query(
+                                selectedUri,
+                                arrayOf(OpenableColumns.DISPLAY_NAME),
+                                null,
+                                null,
+                                null,
+                            )
+                            ?.use { cursor ->
+                                val columnIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                                if (cursor.moveToFirst() && columnIndex >= 0) {
+                                    cursor.getString(columnIndex)
+                                } else {
+                                    ""
+                                }
                             }
-                        }
-                        .orEmpty()
-                        .ifBlank {
-                            selectedUri.lastPathSegment
-                                ?.substringAfterLast('/')
-                                ?.substringAfterLast('\\')
-                                .orEmpty()
-                        }
-                }
+                            .orEmpty()
+                            .ifBlank {
+                                selectedUri.lastPathSegment?.substringAfterLast('/')?.substringAfterLast('\\').orEmpty()
+                            }
+                    }
                     .orEmpty()
             selectedImportFileSize = uri?.let { readDisplaySize(context, it) } ?: 0L
         }
@@ -147,14 +143,11 @@ internal fun CreateConfigDialog(
                         }
 
                         OverrideConfigInputMode.LocalFile -> {
-                            val importUri = selectedImportUri
-                                ?: return@AppBottomSheetConfirmAction
+                            val importUri = selectedImportUri ?: return@AppBottomSheetConfirmAction
                             runCatching {
-                                context.contentResolver
-                                    .openInputStream(importUri)
-                                    ?.bufferedReader()
-                                    ?.use { reader -> reader.readText() }
-                                    ?: error(YumeTxt.Override.Import.ReadError)
+                                context.contentResolver.openInputStream(importUri)?.bufferedReader()?.use { reader ->
+                                    reader.readText()
+                                } ?: error(YumeTxt.Override.Import.ReadError)
                             }
                                 .onSuccess { content ->
                                     scope.launch {
@@ -164,20 +157,13 @@ internal fun CreateConfigDialog(
                                             .onFailure { error ->
                                                 // Cancelled by leaving the dialog, not a failed read.
                                                 if (error is CancellationException) throw error
-                                                context.toast(
-                                                    error.message
-                                                        ?: YumeTxt.Override.Import.ReadError
-                                                )
+                                                context.toast(error.message ?: YumeTxt.Override.Import.ReadError)
                                             }
                                         isImporting = false
                                     }
                                 }
                                 .onFailure { error ->
-                                    context.toast(
-                                        YumeTxt.Override.Import.FileError.format(
-                                            error.message
-                                        )
-                                    )
+                                    context.toast(YumeTxt.Override.Import.FileError.format(error.message))
                                 }
                         }
 
@@ -192,8 +178,7 @@ internal fun CreateConfigDialog(
                                         if (error is CancellationException) throw error
                                         context.toast(
                                             YumeTxt.Override.Import.NetworkError.format(
-                                                error.message
-                                                    ?: YumeTxt.Util.Error.UnknownError
+                                                error.message ?: YumeTxt.Util.Error.UnknownError
                                             )
                                         )
                                     }
@@ -208,8 +193,7 @@ internal fun CreateConfigDialog(
     ) {
         Column(
             modifier =
-                Modifier
-                    .fillMaxWidth()
+                Modifier.fillMaxWidth()
                     .wrapContentHeight()
                     .animateContentSize(animationSpec = tween(200, easing = FastOutSlowInEasing))
                     .padding(bottom = UiDp.dp16),
@@ -273,9 +257,7 @@ private fun OverrideInputModeSelector(
     SegmentedTabRow(
         tabs = inputModeOptions.map(OverrideConfigInputMode::label),
         selectedTabIndex = selectedModeIndex,
-        onTabSelected = { index ->
-            inputModeOptions.getOrNull(index)?.let(onSelectedModeChange)
-        },
+        onTabSelected = { index -> inputModeOptions.getOrNull(index)?.let(onSelectedModeChange) },
         modifier = Modifier.fillMaxWidth(),
     )
 }

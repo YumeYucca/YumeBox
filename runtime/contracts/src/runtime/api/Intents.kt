@@ -21,14 +21,11 @@
 package com.github.yumeyucca.yumebox.runtime.api
 
 object Intents {
-    private fun intentAction(packageName: String, actionName: String): String =
-        "$packageName.intent.action.$actionName"
+    private fun intentAction(packageName: String, actionName: String): String = "$packageName.intent.action.$actionName"
 
-    fun actionProfileChanged(packageName: String): String =
-        intentAction(packageName, "PROFILE_CHANGED")
+    fun actionProfileChanged(packageName: String): String = intentAction(packageName, "PROFILE_CHANGED")
 
-    fun actionOverrideChanged(packageName: String): String =
-        intentAction(packageName, "OVERRIDE_CHANGED")
+    fun actionOverrideChanged(packageName: String): String = intentAction(packageName, "OVERRIDE_CHANGED")
 
     val ACTION_PROFILE_CHANGED: String
         get() = actionProfileChanged(packageName)

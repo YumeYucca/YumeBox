@@ -23,6 +23,7 @@ package com.github.yumeyucca.yumebox.presentation.viewmodel
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.Provider
 import com.github.yumeyucca.yumebox.data.controller.ProvidersController
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
@@ -31,11 +32,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 /**
- * The one identity of a provider: type plus name. The list key and the "being updated" set must
- * agree, so both are derived from this instead of repeating the concatenation.
+ * The one identity of a provider: type plus name. The list key and the "being updated" set must agree, so both are
+ * derived from this instead of repeating the concatenation.
  */
 internal fun providerKey(provider: Provider): String = "${provider.type}_${provider.name}"
 
@@ -77,9 +77,9 @@ class ProvidersViewModel(
     }
 
     /**
-     * One provider, one request: mark it busy, run it, refresh on success with a message, report the
-     * failure message on error, clear the mark either way. Only the request and the two texts differ
-     * between "update" and "upload", so they are arguments instead of a second copy of the flow.
+     * One provider, one request: mark it busy, run it, refresh on success with a message, report the failure message on
+     * error, clear the mark either way. Only the request and the two texts differ between "update" and "upload", so
+     * they are arguments instead of a second copy of the flow.
      */
     private fun runProviderUpdate(
         provider: Provider,
@@ -115,8 +115,7 @@ class ProvidersViewModel(
 
     fun updateAllProviders() {
         viewModelScope.launch {
-            val httpProviders =
-                _providers.value.filter { it.vehicleType == Provider.VehicleType.HTTP }
+            val httpProviders = _providers.value.filter { it.vehicleType == Provider.VehicleType.HTTP }
             if (httpProviders.isEmpty()) return@launch
 
             _uiState.update { it.copy(isUpdatingAll = true) }

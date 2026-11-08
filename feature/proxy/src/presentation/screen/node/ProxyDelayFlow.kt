@@ -31,9 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 private val NoProxyDelay = MutableStateFlow<Int?>(null)
 
 /** Resolves the live delay flow for a node without rebuilding the group list on every result. */
-internal val LocalProxyDelayFlow = staticCompositionLocalOf<(String) -> StateFlow<Int?>> {
-    { NoProxyDelay }
-}
+internal val LocalProxyDelayFlow = staticCompositionLocalOf<(String) -> StateFlow<Int?>> { { NoProxyDelay } }
 
 @Composable
 internal fun ProvideProxyDelayFlows(

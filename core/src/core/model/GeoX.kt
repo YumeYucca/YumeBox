@@ -22,13 +22,12 @@
 
 package com.github.yumeyucca.yumebox.core.model
 
-
 enum class GeoFileType {
     GeoIP,
     GeoSite,
     Country,
     ASN,
-    Model
+    Model,
 }
 
 data class GeoXItem(
@@ -68,6 +67,6 @@ val geoXItems =
             GeoFileType.Model,
             "Model.bin",
             "https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model-large.bin",
-            "Model.bin"
-        )
+            "Model.bin",
+        ),
     )

@@ -33,12 +33,11 @@ object RootPackageShell {
     fun hasRootAccess(): Boolean = runCatching { Shell.getShell().isRoot }.getOrDefault(false)
 
     /**
-     * Uids of [packages] (every package when null or empty), or null without root. A package
-     * missing from the cached listing forces a fresh one, so new installs resolve immediately.
+     * Uids of [packages] (every package when null or empty), or null without root. A package missing from the cached
+     * listing forces a fresh one, so new installs resolve immediately.
      */
     fun queryPackageUidMap(packages: Set<String>? = null): Map<String, Int>? {
-        val wanted =
-            packages?.map(String::trim)?.filter(String::isNotEmpty)?.toSet()?.takeIf { it.isNotEmpty() }
+        val wanted = packages?.map(String::trim)?.filter(String::isNotEmpty)?.toSet()?.takeIf { it.isNotEmpty() }
         val cached = freshCache()
         val uids =
             if (cached != null && (wanted == null || wanted.all(cached::containsKey))) {
@@ -67,7 +66,9 @@ object RootPackageShell {
                     match.groupValues[1] to uid
                 }
                 .toMap()
-                .ifEmpty { return null }
+                .ifEmpty {
+                    return null
+                }
         cache = CacheEntry(uids, System.currentTimeMillis())
         return uids
     }

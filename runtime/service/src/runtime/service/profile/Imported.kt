@@ -24,9 +24,9 @@ package com.github.yumeyucca.yumebox.runtime.service.profile
 
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.runtime.api.UUIDSerializer
+import java.util.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
-import java.util.*
 
 @Serializable
 data class Imported(

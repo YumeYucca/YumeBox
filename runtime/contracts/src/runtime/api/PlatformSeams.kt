@@ -24,10 +24,10 @@ import com.github.yumeyucca.yumebox.core.model.RunMode
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * The one authoritative lifecycle state of the local core. [owner] is [RuntimeOwner.VpnService]
- * or [RuntimeOwner.RootDaemon] while anything is starting, running or stopping; [mode] is the
- * concrete run mode of that owner. [lastError] survives into Idle/Failed so callers can show why
- * the last session ended. [generation] increases on every published transition.
+ * The one authoritative lifecycle state of the local core. [owner] is [RuntimeOwner.VpnService] or
+ * [RuntimeOwner.RootDaemon] while anything is starting, running or stopping; [mode] is the concrete run mode of that
+ * owner. [lastError] survives into Idle/Failed so callers can show why the last session ended. [generation] increases
+ * on every published transition.
  */
 data class RuntimeState(
     val owner: RuntimeOwner = RuntimeOwner.None,
@@ -53,10 +53,9 @@ enum class RuntimeStartSource {
 }
 
 /**
- * Single entry point for starting, stopping and reloading the local core. Every call is
- * serialized; [start] returns once the core answers on its controller socket and throws (after
- * publishing Failed) when it cannot get there. Starting a different owner stops the current one
- * first.
+ * Single entry point for starting, stopping and reloading the local core. Every call is serialized; [start] returns
+ * once the core answers on its controller socket and throws (after publishing Failed) when it cannot get there.
+ * Starting a different owner stops the current one first.
  */
 interface RuntimeControl {
     val state: StateFlow<RuntimeState>

@@ -37,12 +37,14 @@ enum class TunStack {
         }
 
     /**
-     * VpnService attaches an app-owned TUN fd, so only userspace stacks work. System/Mixed need a
-     * kernel TUN and fall back to gVisor.
+     * VpnService attaches an app-owned TUN fd, so only userspace stacks work. System/Mixed need a kernel TUN and fall
+     * back to gVisor.
      */
     fun forVpnService(): TunStack =
         when (this) {
             Mips -> Mips
-            System, GVisor, Mixed -> GVisor
+            System,
+            GVisor,
+            Mixed -> GVisor
         }
 }

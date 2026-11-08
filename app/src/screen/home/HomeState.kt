@@ -106,8 +106,7 @@ internal fun resolveHomeControlState(
     if (owner == RuntimeOwner.RemoteController && phase == RuntimePhase.Failed) {
         return HomeProxyControlState.Lost
     }
-    val phaseStillActive =
-        phase != RuntimePhase.Stopping && phase != RuntimePhase.Idle && phase != RuntimePhase.Failed
+    val phaseStillActive = phase != RuntimePhase.Stopping && phase != RuntimePhase.Idle && phase != RuntimePhase.Failed
     if (startAttempt == StartAttempt.Stopping && phaseStillActive) {
         return HomeProxyControlState.Disconnecting
     }
@@ -135,12 +134,7 @@ internal fun readableStartupError(raw: String?): String {
         return YumeTxt.Home.Message.RuntimeUnavailable
     }
     // Prefer the first actionable line; strip huge core.log tails and stack noise.
-    val firstLine =
-        message
-            .lineSequence()
-            .map { it.trim() }
-            .firstOrNull { it.isNotEmpty() }
-            ?: message
+    val firstLine = message.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() } ?: message
     val cleaned =
         firstLine
             .removePrefix("java.lang.IllegalStateException:")

@@ -1,0 +1,13 @@
+tasks:
+  formatKtfmt:
+    action: !dev.yume.ktfmt.formatKtfmt
+      projectRootDir: ${project.rootDir}
+      write: true
+  checkKtfmt:
+    action: !dev.yume.ktfmt.formatKtfmt
+      projectRootDir: ${project.rootDir}
+      write: false
+
+commands:
+  - formatKtfmt
+  - checkKtfmt

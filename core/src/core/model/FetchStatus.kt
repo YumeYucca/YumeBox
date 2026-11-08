@@ -53,8 +53,7 @@ data class FetchStatus(
     }
 
     companion object CREATOR : Parcelable.Creator<FetchStatus> {
-        override fun createFromParcel(parcel: Parcel): FetchStatus =
-            Parcelizer.decodeFromParcel(serializer(), parcel)
+        override fun createFromParcel(parcel: Parcel): FetchStatus = Parcelizer.decodeFromParcel(serializer(), parcel)
 
         override fun newArray(size: Int): Array<FetchStatus?> = arrayOfNulls(size)
     }

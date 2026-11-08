@@ -25,9 +25,7 @@ import io.github.rosemoe.sora.lang.styling.inlayHint.InlayHintProvider
 import io.github.rosemoe.sora.lang.styling.inlayHint.InlayHintsContainer
 import io.github.rosemoe.sora.widget.CodeEditor
 
-internal class ColorInlayHintProvider(
-    private val editor: CodeEditor,
-) : InlayHintProvider {
+internal class ColorInlayHintProvider(private val editor: CodeEditor) : InlayHintProvider {
     override fun provideInlayHints(container: InlayHintsContainer) {
         val content = editor.text
         for (line in 0 until content.lineCount) {
@@ -60,9 +58,6 @@ internal class ColorInlayHintProvider(
     }
 
     private companion object {
-        val HexColorPattern =
-            Regex(
-                pattern = """(?i)#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![0-9a-f])""",
-            )
+        val HexColorPattern = Regex(pattern = """(?i)#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![0-9a-f])""")
     }
 }

@@ -41,9 +41,7 @@ fun BackupRestoreScreen() {
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
         ) {
-            item {
-                BackupRestoreSection()
-            }
+            item { BackupRestoreSection() }
         }
     }
 }

@@ -41,11 +41,14 @@ import com.github.yumeyucca.yumebox.presentation.screen.node.NodeCard
 import com.github.yumeyucca.yumebox.presentation.screen.node.NodeSearchToolbar
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeClickHandler
 import com.github.yumeyucca.yumebox.presentation.screen.node.nodeGridItems
-import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import com.github.yumeyucca.yumebox.presentation.util.KeepLazyGridTopAnchorOnReorder
 import com.github.yumeyucca.yumebox.presentation.util.KeepLazyListTopAnchorOnReorder
+import com.github.yumeyucca.yumebox.presentation.viewmodel.ProxyViewModel
+import top.yukonga.miuix.kmp.utils.overScrollVertical
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
     val normalizedQuery = query.trim()
@@ -57,10 +60,7 @@ private fun ProxyGroupInfo.filterNodes(query: String): List<Proxy> {
     }
 }
 
-/**
- * 一页节点列表。宿主只决定取值([ProxyNodePageState]),这里只负责把这一页画出来,
- * 所以不需要把 13 个取值再展开成 17 个参数。
- */
+/** 一页节点列表。宿主只决定取值([ProxyNodePageState]),这里只负责把这一页画出来, 所以不需要把 13 个取值再展开成 17 个参数。 */
 @Composable
 internal fun ProxyNodePage(
     page: ProxyNodePageState,
@@ -87,6 +87,8 @@ internal fun ProxyNodePage(
     val spacing = AppTheme.spacing
     val visibleProxies = remember(group.proxies, searchQuery) { group.filterNodes(searchQuery) }
     val listItemKeys = remember(group.proxies) { group.proxies.map { it.name } }
+    // 列表和网格都常驻这两个前置项,所以重排锚定的键表前面也要带上它们,indexOf 才是真实下标。
+    val anchoredItemKeys = remember(listItemKeys) { listOf("__node_search__", "__refresh_indicator__") + listItemKeys }
     val resolvedGridState = if (twoColumnGrid) gridState ?: rememberLazyGridState() else null
     // 可选中分组点击即选中;不可选中的分组(自动选择/负载均衡)没有可选目标,点击改测速。
     val nodeClick =
@@ -98,10 +100,18 @@ internal fun ProxyNodePage(
             )
         }
 
+    GroupDelayTestGridAnchor(
+        gridState = resolvedGridState,
+        itemKeys = anchoredItemKeys,
+        sortByLatency = sortMode == ProxySortMode.BY_LATENCY,
+        groupName = group.name,
+        testingGroupNames = testingGroupNames,
+    )
+
     GroupDelayTestListAnchor(
         listState = listState,
-        itemKeys = listItemKeys,
-        sortByLatency = sortMode == ProxySortMode.BY_LATENCY && !twoColumnGrid,
+        itemKeys = anchoredItemKeys,
+        sortByLatency = sortMode == ProxySortMode.BY_LATENCY,
         groupName = group.name,
         testingGroupNames = testingGroupNames,
     )
@@ -112,8 +122,7 @@ internal fun ProxyNodePage(
             end = UiDp.dp12,
             top =
                 outerInnerPadding.calculateTopPadding() +
-                    (if (topOverlayInset > UiDp.dp0) topOverlayInset else UiDp.dp20) +
-                    (if (twoColumnGrid) UiDp.dp5 else UiDp.dp0),
+                    (if (topOverlayInset > UiDp.dp0) topOverlayInset else UiDp.dp20),
             bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
         )
 
@@ -124,29 +133,29 @@ internal fun ProxyNodePage(
             state = activeGridState,
             contentPadding = contentPadding,
             horizontalArrangement = Arrangement.spacedBy(UiDp.dp8),
-            verticalArrangement = Arrangement.spacedBy(UiDp.dp8),
             modifier =
                 Modifier
                     .fillMaxSize()
+                    .overScrollVertical()
+                    .scrollEndHaptic()
                     .nestedScroll(scrollBehavior.nestedScrollConnection),
+            overscrollEffect = null,
         ) {
-            if (searchVisible) {
-                item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
-                    NodeSearchSlot(
-                        visible = true,
-                        query = searchQuery,
-                        onQueryChange = onSearchQueryChange,
-                    )
-                }
+            // 和单列同一套槽位:两个前置项常驻,只有它们自己的高度在动。测速开始/结束、搜索
+            // 框开合都不会再把整片卡片瞬间顶下去或拽上来。
+            item(key = "__node_search__", span = { GridItemSpan(maxLineSpan) }) {
+                NodeSearchSlot(
+                    visible = searchVisible,
+                    query = searchQuery,
+                    onQueryChange = onSearchQueryChange,
+                )
             }
-            if (group.name in testingGroupNames) {
-                item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
-                    GroupDelayRefreshIndicator(
-                        groupName = group.name,
-                        testingGroupNames = testingGroupNames,
-                        progress = delayTestProgress,
-                    )
-                }
+            item(key = "__refresh_indicator__", span = { GridItemSpan(maxLineSpan) }) {
+                GroupDelayRefreshIndicator(
+                    groupName = group.name,
+                    testingGroupNames = testingGroupNames,
+                    progress = delayTestProgress,
+                )
             }
             itemsIndexed(items = visibleProxies, key = { _, proxy -> proxy.name }) { _, proxy ->
                 NodeCard(
@@ -157,7 +166,8 @@ internal fun ProxyNodePage(
                     isDelayTesting = testingProxyNames.contains(proxy.name),
                     showCountryFlag = true,
                     compact = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    // 网格不能用 verticalArrangement:折叠为 0 高度的前置项也会各占一份行距。
+                    modifier = Modifier.fillMaxWidth().animateItem().padding(vertical = UiDp.dp5),
                 )
             }
         }
@@ -198,6 +208,23 @@ internal fun ProxyNodePage(
 }
 
 @Composable
+private fun GroupDelayTestGridAnchor(
+    gridState: LazyGridState?,
+    itemKeys: List<String>,
+    sortByLatency: Boolean,
+    groupName: String,
+    testingGroupNames: Set<String>,
+) {
+    if (gridState == null) return
+    KeepLazyGridTopAnchorOnReorder(
+        gridState = gridState,
+        itemKeys = itemKeys,
+        enabled = sortByLatency && groupName !in testingGroupNames,
+        scrollToTopOnEnabled = true,
+    )
+}
+
+@Composable
 private fun NodeSearchSlot(
     visible: Boolean,
     query: String,
@@ -206,13 +233,11 @@ private fun NodeSearchSlot(
     AnimatedVisibility(
         visible = visible,
         enter =
-            expandVertically(
-                tween(durationMillis = 280, easing = AnimationSpecs.Legacy)
-            ) + fadeIn(tween(durationMillis = 160, easing = AnimationSpecs.Legacy)),
+            expandVertically(tween(durationMillis = 280, easing = AnimationSpecs.Legacy)) +
+                fadeIn(tween(durationMillis = 160, easing = AnimationSpecs.Legacy)),
         exit =
-            shrinkVertically(
-                tween(durationMillis = 240, easing = AnimationSpecs.Legacy)
-            ) + fadeOut(tween(durationMillis = 120, easing = AnimationSpecs.Legacy)),
+            shrinkVertically(tween(durationMillis = 240, easing = AnimationSpecs.Legacy)) +
+                fadeOut(tween(durationMillis = 120, easing = AnimationSpecs.Legacy)),
     ) {
         NodeSearchToolbar(
             query = query,

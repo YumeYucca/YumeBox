@@ -94,5 +94,4 @@ class NetworkSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = e
     // Empty string means "do not switch" when the corresponding fallback action is Start.
     val wifiAutomationOtherWifiProfileUuid by strFlow("")
     val wifiAutomationNoWifiProfileUuid by strFlow("")
-
 }

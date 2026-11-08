@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.core.model
 
-
 enum class LanguageScope(
     val scopeName: String,
     val displayName: String,
@@ -43,7 +42,6 @@ enum class LanguageScope(
                 else -> Text
             }
 
-        fun fromScopeName(scopeName: String): LanguageScope =
-            entries.find { it.scopeName == scopeName } ?: Text
+        fun fromScopeName(scopeName: String): LanguageScope = entries.find { it.scopeName == scopeName } ?: Text
     }
 }

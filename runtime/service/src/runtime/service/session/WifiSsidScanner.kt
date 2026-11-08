@@ -18,9 +18,9 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
+import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.coroutines.resume
 
 sealed interface WifiSsidScanResult {
     data class Success(val networks: List<WifiSsidNetwork>) : WifiSsidScanResult
@@ -49,19 +49,17 @@ object WifiSsidScanner {
     @Suppress("DEPRECATION")
     suspend fun scanOnce(context: Context): WifiSsidScanResult {
         val appContext = context.applicationContext
-        val wifiManager = appContext.getSystemService(WifiManager::class.java)
-            ?: return WifiSsidScanResult.Unavailable
+        val wifiManager = appContext.getSystemService(WifiManager::class.java) ?: return WifiSsidScanResult.Unavailable
 
         return withTimeoutOrNull(SCAN_TIMEOUT_MILLIS) {
             suspendCancellableCoroutine { continuation ->
                 var registered = false
                 lateinit var receiver: BroadcastReceiver
 
-                fun snapshot(): WifiSsidScanResult =
-                    runCatching {
-                        WifiSsidScanResult.Success(scanNetworks(wifiManager))
-                    }
-                        .getOrElse { WifiSsidScanResult.Unavailable }
+                fun snapshot(): WifiSsidScanResult = runCatching {
+                    WifiSsidScanResult.Success(scanNetworks(wifiManager))
+                }
+                    .getOrElse { WifiSsidScanResult.Unavailable }
 
                 fun finish(result: WifiSsidScanResult) {
                     if (registered) {
@@ -87,32 +85,35 @@ object WifiSsidScanner {
                     )
                     registered = true
                     if (!wifiManager.startScan()) finish(snapshot())
-                }.onFailure { finish(WifiSsidScanResult.Unavailable) }
+                }
+                    .onFailure { finish(WifiSsidScanResult.Unavailable) }
 
                 continuation.invokeOnCancellation {
                     if (registered) runCatching { appContext.unregisterReceiver(receiver) }
                 }
             }
-        } ?: runCatching {
-            WifiSsidScanResult.Success(scanNetworks(wifiManager))
-        }.getOrElse { WifiSsidScanResult.Unavailable }
+        }
+            ?: runCatching {
+                WifiSsidScanResult.Success(scanNetworks(wifiManager))
+            }
+                .getOrElse { WifiSsidScanResult.Unavailable }
     }
 
     @Suppress("DEPRECATION")
     private fun scanNetworks(wifiManager: WifiManager): List<WifiSsidNetwork> =
         wifiManager.scanResults
-            .mapNotNull { result ->
-                WifiSsidObserver.normalizeSsid(result.SSID)?.let { ssid -> ssid to result }
-            }
+            .mapNotNull { result -> WifiSsidObserver.normalizeSsid(result.SSID)?.let { ssid -> ssid to result } }
             .groupBy({ it.first }, { it.second })
             .map { (ssid, results) ->
-                results.maxBy { it.level }.let { result ->
-                    WifiSsidNetwork(
-                        ssid = ssid,
-                        band = frequencyBand(result.frequency),
-                        wifiGeneration = wifiGeneration(result),
-                    )
-                }
+                results
+                    .maxBy { it.level }
+                    .let { result ->
+                        WifiSsidNetwork(
+                            ssid = ssid,
+                            band = frequencyBand(result.frequency),
+                            wifiGeneration = wifiGeneration(result),
+                        )
+                    }
             }
             .sortedBy(WifiSsidNetwork::ssid)
 

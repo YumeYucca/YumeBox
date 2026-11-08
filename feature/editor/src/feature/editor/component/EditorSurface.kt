@@ -32,18 +32,14 @@ import com.github.yumeyucca.yumebox.feature.editor.editor.CodeEditor
 import com.github.yumeyucca.yumebox.feature.editor.editor.CodeEditorState
 
 /**
- * The editing surface every editor screen shows: the code field filling the scaffold body below the
- * top bar, insets consumed so the caret never hides under the IME.
+ * The editing surface every editor screen shows: the code field filling the scaffold body below the top bar, insets
+ * consumed so the caret never hides under the IME.
  *
- * Extracted because both screens that fill a scaffold body with the bare field drew this exact
- * inset chain by hand, and a missing [consumeWindowInsets] or [imePadding] is invisible until
- * someone types at the bottom of a file.
+ * Extracted because both screens that fill a scaffold body with the bare field drew this exact inset chain by hand, and
+ * a missing [consumeWindowInsets] or [imePadding] is invisible until someone types at the bottom of a file.
  */
 internal fun Modifier.editorBodyInsets(paddingValues: PaddingValues): Modifier =
-    fillMaxSize()
-        .padding(paddingValues)
-        .consumeWindowInsets(paddingValues)
-        .imePadding()
+    fillMaxSize().padding(paddingValues).consumeWindowInsets(paddingValues).imePadding()
 
 @Composable
 internal fun EditorSurface(
@@ -52,9 +48,7 @@ internal fun EditorSurface(
     paddingValues: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier.editorBodyInsets(paddingValues)
-    ) {
+    Box(modifier = modifier.editorBodyInsets(paddingValues)) {
         CodeEditor(
             state = state,
             modifier = Modifier.fillMaxSize(),

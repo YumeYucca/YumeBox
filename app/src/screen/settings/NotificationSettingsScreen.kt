@@ -68,27 +68,26 @@ import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import com.github.yumeyucca.yumebox.presentation.component.PreferenceArrowItem
 import com.github.yumeyucca.yumebox.presentation.component.PreferenceEnumItem
 import com.github.yumeyucca.yumebox.presentation.component.PreferenceSwitchItem
-import com.github.yumeyucca.yumebox.presentation.component.StandalonePageList
 import com.github.yumeyucca.yumebox.presentation.component.SectionSummary
-import com.github.yumeyucca.yumebox.presentation.component.rememberAppIconBitmap
+import com.github.yumeyucca.yumebox.presentation.component.StandalonePageList
 import com.github.yumeyucca.yumebox.presentation.component.Title
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
+import com.github.yumeyucca.yumebox.presentation.component.rememberAppIconBitmap
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
-import org.koin.androidx.compose.koinViewModel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Date
+import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.basic.ScrollBehavior
 
 /** Entries the first notification line can show; the second line may also stay [NotificationLineContent.Hidden]. */
-private val firstLineOptions =
-    NotificationLineContent.entries.filter { it != NotificationLineContent.Hidden }
+private val firstLineOptions = NotificationLineContent.entries.filter { it != NotificationLineContent.Hidden }
 
 /** The notification preview badge mirrors the real one, so it decodes at 2x its 40dp draw size. */
 private const val NotificationPreviewIconPx = 96
@@ -114,7 +113,6 @@ fun NotificationSettingsScreen() {
             )
         }
     ) { innerPadding ->
-
         NotificationSettingsContent(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
@@ -125,8 +123,8 @@ fun NotificationSettingsScreen() {
 }
 
 /**
- * Collects the notification settings state and lays the sections into the page list. The
- * preview state lives in [NotificationPreviewSection] because nothing else renders it.
+ * Collects the notification settings state and lays the sections into the page list. The preview state lives in
+ * [NotificationPreviewSection] because nothing else renders it.
  */
 @Composable
 private fun NotificationSettingsContent(
@@ -147,7 +145,7 @@ private fun NotificationSettingsContent(
     // Refreshes on first composition and on every resume, matching what the section shows.
     LifecycleResumeEffect(Unit) {
         viewModel.refreshShizukuAccess()
-        onPauseOrDispose { }
+        onPauseOrDispose {}
     }
 
     val displaySettings =
@@ -210,17 +208,11 @@ private fun NotificationPreviewSection(
     val trafficTotal by homeViewModel.trafficTotal.collectAsState()
     val isRunning by homeViewModel.isRunning.collectAsState()
 
-    val appName =
-        remember(context) {
-            context.applicationInfo.loadLabel(context.packageManager).toString()
-        }
+    val appName = remember(context) { context.applicationInfo.loadLabel(context.packageManager).toString() }
     val appIcon = rememberAppIconBitmap(context.packageName, NotificationPreviewIconPx)
-    val traffic = remember(trafficNow, isRunning) {
-        if (isRunning) TrafficData.from(trafficNow) else TrafficData.zero
-    }
-    val sessionTraffic = remember(trafficTotal, isRunning) {
-        if (isRunning) TrafficData.from(trafficTotal) else TrafficData.zero
-    }
+    val traffic = remember(trafficNow, isRunning) { if (isRunning) TrafficData.from(trafficNow) else TrafficData.zero }
+    val sessionTraffic =
+        remember(trafficTotal, isRunning) { if (isRunning) TrafficData.from(trafficTotal) else TrafficData.zero }
     val previewValues =
         remember(profile, currentNode, traffic, sessionTraffic, isRunning, appName) {
             buildPreviewValues(
@@ -294,7 +286,7 @@ private fun NotificationLiveUpdatesSection(
 
     LifecycleResumeEffect(Unit) {
         promotionAllowed = LiveUpdateSupport.isPromotionAllowed(context)
-        onPauseOrDispose { }
+        onPauseOrDispose {}
     }
 
     Title(YumeTxt.AppSettings.Notification.LiveUpdatesSection)
@@ -417,9 +409,8 @@ private fun NotificationCustomTextPreference(
 }
 
 /**
- * Builds the notification-line values shown in the preview, falling back to representative sample
- * data whenever a live value is missing. Every fallback is non-empty, so the formatted fields below
- * never render blank.
+ * Builds the notification-line values shown in the preview, falling back to representative sample data whenever a live
+ * value is missing. Every fallback is non-empty, so the formatted fields below never render blank.
  */
 private fun buildPreviewValues(
     profile: Profile?,
@@ -430,28 +421,19 @@ private fun buildPreviewValues(
     appName: String,
 ): NotificationLineValues {
     val usedBytes =
-        profile
-            ?.let { (it.upload + it.download).coerceAtLeast(0L) }
-            ?.takeIf { it > 0L }
-            ?: SAMPLE_USED_BYTES
-    val totalBytes =
-        profile?.total?.coerceAtLeast(0L)?.takeIf { it > 0L } ?: SAMPLE_TOTAL_BYTES
+        profile?.let { (it.upload + it.download).coerceAtLeast(0L) }?.takeIf { it > 0L } ?: SAMPLE_USED_BYTES
+    val totalBytes = profile?.total?.coerceAtLeast(0L)?.takeIf { it > 0L } ?: SAMPLE_TOTAL_BYTES
     val sessionBytes =
-        (sessionTraffic.download + sessionTraffic.upload)
-            .coerceAtLeast(0L)
-            .takeIf { isRunning && it > 0L }
+        (sessionTraffic.download + sessionTraffic.upload).coerceAtLeast(0L).takeIf { isRunning && it > 0L }
             ?: SAMPLE_SESSION_BYTES
-    val expiry =
-        profile?.expire?.takeIf { it > 0L }?.let(::formatExpiryDate)
-            ?: LocalDate.now().plusDays(7).toString()
+    val expiry = profile?.expire?.takeIf { it > 0L }?.let(::formatExpiryDate) ?: LocalDate.now().plusDays(7).toString()
     val downSpeed = if (isRunning) traffic.download else SAMPLE_DOWN_SPEED
     val upSpeed = if (isRunning) traffic.upload else SAMPLE_UP_SPEED
     return NotificationLineValues(
         profileName = profile?.name?.takeIf { it.isNotBlank() } ?: appName,
         currentNode =
             if (isRunning) {
-                currentNode?.takeIf { it.isNotBlank() }
-                    ?: YumeTxt.Service.Notification.NoNode
+                currentNode?.takeIf { it.isNotBlank() } ?: YumeTxt.Service.Notification.NoNode
             } else {
                 SAMPLE_NODE
             },
@@ -461,10 +443,7 @@ private fun buildPreviewValues(
                 ByteFormatter.formatSpeed(upSpeed),
             ),
         usedTraffic = ByteFormatter.format(usedBytes),
-        sessionTraffic =
-            YumeTxt.Service.Notification.TotalTraffic.format(
-                ByteFormatter.format(sessionBytes),
-            ),
+        sessionTraffic = YumeTxt.Service.Notification.TotalTraffic.format(ByteFormatter.format(sessionBytes)),
         totalTraffic = ByteFormatter.format(totalBytes),
         remainingTraffic = ByteFormatter.format((totalBytes - usedBytes).coerceAtLeast(0L)),
         subscriptionUsage = "${ByteFormatter.format(usedBytes)} / ${ByteFormatter.format(totalBytes)} | $expiry",
@@ -479,17 +458,10 @@ private fun NotificationPreviewCard(
     values: NotificationLineValues,
     displaySettings: NotificationDisplaySettings,
 ) {
-    val title =
-        displaySettings.firstLine
-            .resolve(values, displaySettings.firstLineText)
-            .ifBlank { values.profileName }
-    val content =
-        displaySettings.secondLine.resolve(values, displaySettings.secondLineText)
+    val title = displaySettings.firstLine.resolve(values, displaySettings.firstLineText).ifBlank { values.profileName }
+    val content = displaySettings.secondLine.resolve(values, displaySettings.secondLineText)
     val context = LocalContext.current
-    val previewTime =
-        remember(context) {
-            DateFormat.getTimeFormat(context).format(Date())
-        }
+    val previewTime = remember(context) { DateFormat.getTimeFormat(context).format(Date()) }
 
     AppCard(insideMargin = PaddingValues(horizontal = UiDp.dp14, vertical = UiDp.dp10)) {
         Row(
@@ -502,10 +474,7 @@ private fun NotificationPreviewCard(
                     bitmap = appIcon,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier =
-                        Modifier
-                            .size(UiDp.dp40)
-                            .clip(RoundedCornerShape(UiDp.dp10)),
+                    modifier = Modifier.size(UiDp.dp40).clip(RoundedCornerShape(UiDp.dp10)),
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -546,30 +515,18 @@ private fun NotificationPreviewCard(
 /** Locale-aware label for [content], usable directly as the selector's label lambda. */
 private fun lineContentLabel(content: NotificationLineContent): String =
     when (content) {
-        NotificationLineContent.ProfileName ->
-            YumeTxt.AppSettings.Notification.LineProfileName
-        NotificationLineContent.Status ->
-            YumeTxt.AppSettings.Notification.LineStatus
-        NotificationLineContent.CurrentNode ->
-            YumeTxt.AppSettings.Notification.LineCurrentNode
-        NotificationLineContent.LiveTraffic ->
-            YumeTxt.AppSettings.Notification.LineLiveTraffic
-        NotificationLineContent.UsedTraffic ->
-            YumeTxt.AppSettings.Notification.LineUsedTraffic
-        NotificationLineContent.SessionTraffic ->
-            YumeTxt.AppSettings.Notification.LineSessionTraffic
-        NotificationLineContent.TotalTraffic ->
-            YumeTxt.AppSettings.Notification.LineTotalTraffic
-        NotificationLineContent.RemainingTraffic ->
-            YumeTxt.AppSettings.Notification.LineRemainingTraffic
-        NotificationLineContent.SubscriptionUsage ->
-            YumeTxt.AppSettings.Notification.LineSubscriptionUsage
-        NotificationLineContent.ExpiryDate ->
-            YumeTxt.AppSettings.Notification.LineExpiryDate
-        NotificationLineContent.CustomText ->
-            YumeTxt.AppSettings.Notification.LineCustomText
-        NotificationLineContent.Hidden ->
-            YumeTxt.AppSettings.Notification.LineHidden
+        NotificationLineContent.ProfileName -> YumeTxt.AppSettings.Notification.LineProfileName
+        NotificationLineContent.Status -> YumeTxt.AppSettings.Notification.LineStatus
+        NotificationLineContent.CurrentNode -> YumeTxt.AppSettings.Notification.LineCurrentNode
+        NotificationLineContent.LiveTraffic -> YumeTxt.AppSettings.Notification.LineLiveTraffic
+        NotificationLineContent.UsedTraffic -> YumeTxt.AppSettings.Notification.LineUsedTraffic
+        NotificationLineContent.SessionTraffic -> YumeTxt.AppSettings.Notification.LineSessionTraffic
+        NotificationLineContent.TotalTraffic -> YumeTxt.AppSettings.Notification.LineTotalTraffic
+        NotificationLineContent.RemainingTraffic -> YumeTxt.AppSettings.Notification.LineRemainingTraffic
+        NotificationLineContent.SubscriptionUsage -> YumeTxt.AppSettings.Notification.LineSubscriptionUsage
+        NotificationLineContent.ExpiryDate -> YumeTxt.AppSettings.Notification.LineExpiryDate
+        NotificationLineContent.CustomText -> YumeTxt.AppSettings.Notification.LineCustomText
+        NotificationLineContent.Hidden -> YumeTxt.AppSettings.Notification.LineHidden
     }
 
 private fun formatExpiryDate(expireAt: Long): String =

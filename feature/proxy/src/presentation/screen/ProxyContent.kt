@@ -56,8 +56,7 @@ internal fun ProxyContent(
                 start = UiDp.dp12,
                 end = UiDp.dp12,
                 top =
-                    innerPadding.calculateTopPadding() +
-                        if (topOverlayInset > UiDp.dp0) topOverlayInset else UiDp.dp14,
+                    innerPadding.calculateTopPadding() + if (topOverlayInset > UiDp.dp0) topOverlayInset else UiDp.dp14,
                 bottom = mainInnerPadding.calculateBottomPadding() + spacing.space12,
             ),
     ) {
@@ -71,10 +70,7 @@ internal fun ProxyContent(
     }
 }
 
-/**
- * 节点列表页的取值。三种宿主(分组 tab 分页、手机分栏、分栏右页)共用同一份,
- * 每个调用点只 copy 自己不同的几项,不再各自摆 15 个参数。
- */
+/** 节点列表页的取值。三种宿主(分组 tab 分页、手机分栏、分栏右页)共用同一份, 每个调用点只 copy 自己不同的几项,不再各自摆 15 个参数。 */
 @Immutable
 internal data class ProxyNodePageState(
     val sortMode: ProxySortMode,

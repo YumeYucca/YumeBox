@@ -54,12 +54,12 @@ object CodeFormatter {
     /**
      * Whitespace-only tidying: trailing blanks and stacked empty lines, nothing structural.
      *
-     * There is no YAML pretty-printer in this module on purpose — re-emitting a user's config
-     * through a parser would drop comments and anchors, and the preview screen formats JSON
-     * only. The name says "format" because that is what the menu action is called.
+     * There is no YAML pretty-printer in this module on purpose — re-emitting a user's config through a parser would
+     * drop comments and anchors, and the preview screen formats JSON only. The name says "format" because that is what
+     * the menu action is called.
      *
-     * A block scalar body is copied byte for byte: its trailing spaces and blank lines are the
-     * value, so tidying them would rewrite the user's content.
+     * A block scalar body is copied byte for byte: its trailing spaces and blank lines are the value, so tidying them
+     * would rewrite the user's content.
      */
     private fun formatYaml(content: String): String? {
         val tidied = ArrayList<String>()

@@ -22,13 +22,13 @@ package com.github.yumeyucca.yumebox.data.store
 
 import com.github.yumeyucca.yumebox.core.util.YamlCodec
 import com.github.yumeyucca.yumebox.data.model.MetadataIndex
-import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import timber.log.Timber
 
 /** Shared monitor for the two stores that read and rewrite overrides/metadata.yaml. */
 internal object OverrideMetadataFileLock {
@@ -55,9 +55,7 @@ internal object OverrideMetadataIO {
             return MetadataIndexLoad.Missing
         }
         return runCatching {
-            MetadataIndexLoad.Ok(
-                YamlCodec.decode(MetadataIndex.serializer(), file.readText())
-            )
+            MetadataIndexLoad.Ok(YamlCodec.decode(MetadataIndex.serializer(), file.readText()))
         }
             .getOrElse { error ->
                 Timber.w(error, "Failed to decode override metadata: %s", file.absolutePath)
@@ -65,9 +63,7 @@ internal object OverrideMetadataIO {
             }
     }
 
-    /**
-     * Index for mutation. Corrupt non-empty file throws so callers cannot save an empty wipe.
-     */
+    /** Index for mutation. Corrupt non-empty file throws so callers cannot save an empty wipe. */
     fun loadForMutation(file: File): MetadataIndex =
         when (val loaded = load(file)) {
             is MetadataIndexLoad.Ok -> loaded.index

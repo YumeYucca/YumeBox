@@ -29,14 +29,13 @@ import java.io.OutputStream
 import java.net.*
 
 /**
- * A [java.net.Socket] backed by a UNIX-domain connection to the local core's mihomo controller, so
- * an OkHttp `SocketFactory` can speak HTTP over it. YumeBox's analogue of CFA's `UnixSocket`.
+ * A [java.net.Socket] backed by a UNIX-domain connection to the local core's mihomo controller, so an OkHttp
+ * `SocketFactory` can speak HTTP over it. YumeBox's analogue of CFA's `UnixSocket`.
  *
- * Constructed with no [SocketImpl] (`super(null as SocketImpl?)`) so the JDK never allocates a real
- * TCP impl; every method OkHttp touches is overridden to delegate to the underlying fd. Stream
- * closes are decoupled from the fd (reads/writes go through [Os] on the raw descriptor, and only
- * [close] releases it) so OkHttp reading the response while the request stream is done does not
- * tear down the connection.
+ * Constructed with no [SocketImpl] (`super(null as SocketImpl?)`) so the JDK never allocates a real TCP impl; every
+ * method OkHttp touches is overridden to delegate to the underlying fd. Stream closes are decoupled from the fd
+ * (reads/writes go through [Os] on the raw descriptor, and only [close] releases it) so OkHttp reading the response
+ * while the request stream is done does not tear down the connection.
  */
 class UnixDomainSocket(private val path: String) : Socket(null as SocketImpl?) {
 
@@ -109,11 +108,9 @@ class UnixDomainSocket(private val path: String) : Socket(null as SocketImpl?) {
 
     override fun getInetAddress(): InetAddress = InetAddress.getLoopbackAddress()
 
-    override fun getRemoteSocketAddress(): SocketAddress =
-        InetSocketAddress(InetAddress.getLoopbackAddress(), 0)
+    override fun getRemoteSocketAddress(): SocketAddress = InetSocketAddress(InetAddress.getLoopbackAddress(), 0)
 
-    override fun getLocalSocketAddress(): SocketAddress =
-        InetSocketAddress(InetAddress.getLoopbackAddress(), 0)
+    override fun getLocalSocketAddress(): SocketAddress = InetSocketAddress(InetAddress.getLoopbackAddress(), 0)
 
     private class FdInputStream(private val fd: FileDescriptor) : InputStream() {
         private val one = ByteArray(1)

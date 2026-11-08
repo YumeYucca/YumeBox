@@ -61,9 +61,7 @@ fun analyzePresetTemplateContent(content: String?): OverridePresetTemplateConten
     )
 }
 
-private fun inferPresetTemplateSelection(
-    document: Map<String, Any?>
-): OverridePresetTemplateSelection? {
+private fun inferPresetTemplateSelection(document: Map<String, Any?>): OverridePresetTemplateSelection? {
     val providerKeys = document.stringKeyedMap("rule-providers").keys
     val groupNames =
         document
@@ -74,16 +72,15 @@ private fun inferPresetTemplateSelection(
 
     val hasTemplateSignals =
         providerKeys.any(templateProviderIds::contains) ||
-                groupNames.any(serviceGroupNames::contains) ||
-                groupNames.any(regionGroupNames::contains) ||
-                rules.any(::isOfficialMrsTemplateRule)
+            groupNames.any(serviceGroupNames::contains) ||
+            groupNames.any(regionGroupNames::contains) ||
+            rules.any(::isOfficialMrsTemplateRule)
 
     if (!hasTemplateSignals) {
         return null
     }
 
-    val inferredUrlTestRegions =
-        orderedRegions.filter { it.groupName in groupNames }.toCollection(linkedSetOf())
+    val inferredUrlTestRegions = orderedRegions.filter { it.groupName in groupNames }.toCollection(linkedSetOf())
     val inferredFallbackRegions =
         orderedRegions.filter { it.fallbackGroupName in groupNames }.toCollection(linkedSetOf())
     val inferredEnabledItems =
@@ -108,10 +105,7 @@ private fun inferPresetTemplateSelection(
                 if (OfficialMrs.autoGroupName in groupNames || inferredUrlTestRegions.isNotEmpty()) {
                     add(OfficialMrsHealthCheckGroupType.UrlTest)
                 }
-                if (
-                    OfficialMrs.fallbackGroupName in groupNames ||
-                    inferredFallbackRegions.isNotEmpty()
-                ) {
+                if (OfficialMrs.fallbackGroupName in groupNames || inferredFallbackRegions.isNotEmpty()) {
                     add(OfficialMrsHealthCheckGroupType.Fallback)
                 }
             },
@@ -129,14 +123,14 @@ private fun isOfficialMrsItemEnabledInConfig(
     }
     val providerIds = item.providers.map(OfficialMrsProviderSpec::id)
     return providerIds.any(providerKeys::contains) ||
-            item.detectionRules.any(rules::contains) ||
-            (item.groupName != null && item.groupName in groupNames)
+        item.detectionRules.any(rules::contains) ||
+        (item.groupName != null && item.groupName in groupNames)
 }
 
 private fun isOfficialMrsTemplateRule(rule: String): Boolean {
     val normalizedRule = rule.trim()
     return normalizedRule in templateRules ||
-            templateProviderIds.any { providerId -> normalizedRule.contains(providerId) }
+        templateProviderIds.any { providerId -> normalizedRule.contains(providerId) }
 }
 
 private fun Map<String, Any?>.stringKeyedMap(key: String): Map<String, Any?> =

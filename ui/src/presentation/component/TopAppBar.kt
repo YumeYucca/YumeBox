@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.LocalTopBarBackdrop
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
@@ -43,20 +45,16 @@ import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import androidx.compose.runtime.State
-import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 
 /**
- * Route top bar, built the way the miuix glass demo (`GlassPage.kt`) builds its bar:
- * [GlassTopAppBar] over the page's own colour band, with the large title collapsing into the
- * centred compact title as content scrolls under it.
+ * Route top bar, built the way the miuix glass demo (`GlassPage.kt`) builds its bar: [GlassTopAppBar] over the page's
+ * own colour band, with the large title collapsing into the centred compact title as content scrolls under it.
  *
- * The band is [GlassTopAppBarDefaults.bandBrush] — solid where it meets the status bar, fading out
- * past the bar's bottom edge by [GlassTopAppBarDefaults.BandOverhang] — and only shows once page
- * content has slid under the bar, so a page at rest carries no chrome. Controls sit at the demo's
- * 12dp page inset (the same inset page content uses); glass buttons in the slots inherit the bar's
- * material, so hosts that provide [LocalTopBarBackdrop] (see `GlassScaffold`) get frosted chrome
- * and hosts without it get the solid fallback.
+ * The band is [GlassTopAppBarDefaults.bandBrush] — solid where it meets the status bar, fading out past the bar's
+ * bottom edge by [GlassTopAppBarDefaults.BandOverhang] — and only shows once page content has slid under the bar, so a
+ * page at rest carries no chrome. Controls sit at the demo's 12dp page inset (the same inset page content uses); glass
+ * buttons in the slots inherit the bar's material, so hosts that provide [LocalTopBarBackdrop] (see `GlassScaffold`)
+ * get frosted chrome and hosts without it get the solid fallback.
  */
 @Composable
 fun TopBar(
@@ -80,9 +78,8 @@ fun TopBar(
 }
 
 /**
- * Compact top bar (no collapsing large title) carrying the same demo band as [TopBar]: miuix's
- * `SmallTopAppBar` for the layout, the band drawn behind it with the same overhang, so a page that
- * mixes both bars keeps one continuous chrome.
+ * Compact top bar (no collapsing large title) carrying the same demo band as [TopBar]: miuix's `SmallTopAppBar` for the
+ * layout, the band drawn behind it with the same overhang, so a page that mixes both bars keeps one continuous chrome.
  */
 @Composable
 fun SmallTopBar(
@@ -129,30 +126,28 @@ private val SmallTopBarNavigationIconPadding = UiDp.dp24
 private val TopBarBandRamp = 48.dp
 
 /**
- * The demo's band: the page colour, solid down to its halfway point and gone by the bar's bottom
- * edge, stretched [overhangPx] beyond the bar so scrolled content dissolves before it reaches the
- * title instead of ending on a hard line. [alpha] is a lambda because it is read in the
- * `graphicsLayer` block, not in composition.
+ * The demo's band: the page colour, solid down to its halfway point and gone by the bar's bottom edge, stretched
+ * [overhangPx] beyond the bar so scrolled content dissolves before it reaches the title instead of ending on a hard
+ * line. [alpha] is a lambda because it is read in the `graphicsLayer` block, not in composition.
  */
 @Composable
 private fun BoxScope.TopBarBand(alpha: () -> Float, overhangPx: Float) {
     Box(
         modifier =
-            Modifier
-                .matchParentSize()
+            Modifier.matchParentSize()
                 .graphicsLayer {
                     this.alpha = alpha()
                     transformOrigin = TransformOrigin(0.5f, 0f)
                     scaleY = if (size.height > 0f) (size.height + overhangPx) / size.height else 1f
                 }
-                .background(GlassTopAppBarDefaults.bandBrush(MiuixTheme.colorScheme.surface)),
+                .background(GlassTopAppBarDefaults.bandBrush(MiuixTheme.colorScheme.surface))
     )
 }
 
 /**
- * Padding the collapsed top bar leaves above the content: the full space-12 gap while expanded, zero
- * once collapsed. The collapse fraction is read inside a derived state, so scrolling only invalidates
- * whatever consumes the padding instead of recomposing the page.
+ * Padding the collapsed top bar leaves above the content: the full space-12 gap while expanded, zero once collapsed.
+ * The collapse fraction is read inside a derived state, so scrolling only invalidates whatever consumes the padding
+ * instead of recomposing the page.
  */
 @Composable
 fun rememberCollapsedTopPadding(scrollBehavior: ScrollBehavior): State<Dp> =

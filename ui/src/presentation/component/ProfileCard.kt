@@ -37,24 +37,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.common.util.ByteFormatter
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.horizontalPadding
 import com.github.yumeyucca.yumebox.presentation.util.*
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.glass.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlinx.coroutines.delay
 
 /**
  * 订阅卡片。
  *
- * 交互约定:点右上角开关 = 启停该配置;点卡片其余位置 = 弹出操作列表(启用 / 编辑 / 覆写 / 更新 / 分享 / 删除)。
- * 卡片本身只保留「名称 + 启用开关 + 流量 + 到期 + 波形进度」,更新时间等次要信息不再上卡。
+ * 交互约定:点右上角开关 = 启停该配置;点卡片其余位置 = 弹出操作列表(启用 / 编辑 / 覆写 / 更新 / 分享 / 删除)。 卡片本身只保留「名称 + 启用开关 + 流量 + 到期 + 波形进度」,更新时间等次要信息不再上卡。
  *
- * 动作由调用方决定:[onAction] 收到用户选中的菜单项,[canOverride] 决定菜单是否提供「覆写」行;
- * 卡片自己不判断业务,也不认识任何具体跳转。
+ * 动作由调用方决定:[onAction] 收到用户选中的菜单项,[canOverride] 决定菜单是否提供「覆写」行; 卡片自己不判断业务,也不认识任何具体跳转。
  */
 @Composable
 fun ProfileCard(
@@ -96,18 +94,26 @@ fun ProfileCard(
 
     val fallbackInfoText =
         when {
-            traffic != null -> ""
-            profile.usedBytes > 0 ->
-                YumeTxt.Component.ProfileCard.UsedTraffic.format(
-                    ByteFormatter.format(profile.usedBytes)
-                )
-            profile.type == Profile.Type.Url -> YumeTxt.Component.ProfileCard.ClickToUpdate
-            else -> YumeTxt.Component.ProfileCard.LocalConfig
+            traffic != null -> {
+                ""
+            }
+
+            profile.usedBytes > 0 -> {
+                YumeTxt.Component.ProfileCard.UsedTraffic
+                    .format(ByteFormatter.format(profile.usedBytes))
+            }
+
+            profile.type == Profile.Type.Url -> {
+                YumeTxt.Component.ProfileCard.ClickToUpdate
+            }
+
+            else -> {
+                YumeTxt.Component.ProfileCard.LocalConfig
+            }
         }
 
     // 弹窗只在被打开的那张卡上挂载:关闭动画跑完(onDismissFinished)再卸载,列表里其余卡片不常驻弹窗。
-    var actionsPhase by
-        remember(profile.uuid) { mutableStateOf<ProfileActionsPhase>(ProfileActionsPhase.Hidden) }
+    var actionsPhase by remember(profile.uuid) { mutableStateOf<ProfileActionsPhase>(ProfileActionsPhase.Hidden) }
     val beginActionsCollapse: (toggleWhenSettled: Boolean) -> Unit = { toggleWhenSettled ->
         val collapsing = actionsPhase as? ProfileActionsPhase.Collapsing
         actionsPhase =
@@ -119,11 +125,7 @@ fun ProfileCard(
     val actionsMenuAnchor = rememberGlassPopupAnchor()
 
     AppCard(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(bottom = spacing.space12)
-                .horizontalPadding(),
+        modifier = modifier.fillMaxWidth().padding(bottom = spacing.space12).horizontalPadding(),
         applyHorizontalPadding = false,
         // 底部留白由 insideMargin 统一提供,进度条不再压到卡片边框。
         insideMargin =
@@ -133,15 +135,11 @@ fun ProfileCard(
                 end = spacing.space12,
                 bottom = spacing.space12,
             ),
-        onClick = {
-            if (!isDownloading) actionsPhase = ProfileActionsPhase.Open
-        },
+        onClick = { if (!isDownloading) actionsPhase = ProfileActionsPhase.Open },
     ) {
         // 标题 + 右上角启用开关(独立点击,不触发卡片弹窗)。
         Row(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .padding(start = spacing.space2, end = spacing.space2),
+            modifier = Modifier.fillMaxWidth().padding(start = spacing.space2, end = spacing.space2),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(spacing.space8),
         ) {
@@ -208,8 +206,7 @@ fun ProfileCard(
 /**
  * 卡片操作弹窗的生命周期。
  *
- * 弹窗必须一直挂载到收起动画结束([Collapsing]),否则弹窗会在关闭动画中途被移出组合。
- * [Collapsing.toggleWhenSettled] 记录「收起后还要回写开关」:菜单里的开关项先收起弹窗再回调,
+ * 弹窗必须一直挂载到收起动画结束([Collapsing]),否则弹窗会在关闭动画中途被移出组合。 [Collapsing.toggleWhenSettled] 记录「收起后还要回写开关」:菜单里的开关项先收起弹窗再回调,
  * 开关动画必须等这次收起结束,否则药丸会在仍在收起的弹窗里抢先动起来。
  */
 private sealed interface ProfileActionsPhase {
@@ -217,7 +214,9 @@ private sealed interface ProfileActionsPhase {
 
     object Open : ProfileActionsPhase
 
-    data class Collapsing(val toggleWhenSettled: Boolean) : ProfileActionsPhase
+    data class Collapsing(
+        val toggleWhenSettled: Boolean,
+    ) : ProfileActionsPhase
 }
 
 /**
@@ -225,15 +224,12 @@ private sealed interface ProfileActionsPhase {
  *
  * 点击开关后本地先按目标态渲染,避免列表刷新把「当前配置」闪回「未启用」:
  * - [ProfileToggleSettleMillis]:列表已经回填了同一状态,再等一小段以吞掉连续多次刷新;
- * - [ProfileToggleTimeoutMillis]:列表迟迟没有回写(失败 / 离线),到点也放弃乐观态,
- *   让药丸回到列表的真实状态,而不是永久停在用户点选的位置。
+ * - [ProfileToggleTimeoutMillis]:列表迟迟没有回写(失败 / 离线),到点也放弃乐观态, 让药丸回到列表的真实状态,而不是永久停在用户点选的位置。
  */
 private const val ProfileToggleSettleMillis = 1_000L
 private const val ProfileToggleTimeoutMillis = 4_000L
 
-/**
- * 剩余流量、到期徽章与波形进度:卡片下半部分只负责排版,数据与配色由调用方给定。
- */
+/** 剩余流量、到期徽章与波形进度:卡片下半部分只负责排版,数据与配色由调用方给定。 */
 @Composable
 private fun ProfileTrafficSummary(
     traffic: ProfileTrafficPreview?,
@@ -245,9 +241,7 @@ private fun ProfileTrafficSummary(
     val warnColor = AppTheme.colors.moe.pingWarning
     // 剩余流量 + 到期徽章。
     Row(
-        modifier =
-            Modifier.fillMaxWidth()
-                .padding(top = spacing.space6, start = spacing.space2, end = spacing.space2),
+        modifier = Modifier.fillMaxWidth().padding(top = spacing.space6, start = spacing.space2, end = spacing.space2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (traffic != null) {
@@ -261,15 +255,16 @@ private fun ProfileTrafficSummary(
                     fontSize = 28.sp,
                     fontWeight = FontWeight(800),
                     letterSpacing = (-0.8).sp,
-                    color =
-                        if (traffic.lowTraffic) warnColor else colorScheme.onSurface,
+                    color = if (traffic.lowTraffic) warnColor else colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = TextStyle(fontFeatureSettings = "tnum"),
                     modifier = Modifier.alignByBaseline(),
                 )
                 Text(
-                    text = YumeTxt.Component.ProfileCard.RemainingOfTotal.format(traffic.totalText),
+                    text =
+                        YumeTxt.Component.ProfileCard.RemainingOfTotal
+                            .format(traffic.totalText),
                     fontSize = 13.sp,
                     color = colorScheme.onSurfaceVariantSummary,
                     maxLines = 1,
@@ -294,17 +289,19 @@ private fun ProfileTrafficSummary(
         }
     }
 
-    // 波形进度保留卡片内边距,不再贴住底边。
+    // 波形进度:着力色表示已用流量(文案展示的是剩余),否则会把剩余当成已用造成误导。
     if (traffic != null) {
         TrafficWaveProgress(
-            ratio = traffic.ratio,
+            ratio = traffic.usedRatio,
             warn = traffic.lowTraffic,
             modifier =
-                Modifier.fillMaxWidth().padding(
-                    top = spacing.space12,
-                    start = spacing.space2,
-                    end = spacing.space2,
-                ),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        top = spacing.space12,
+                        start = spacing.space2,
+                        end = spacing.space2,
+                    ),
         )
     }
 }

@@ -27,17 +27,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 
 /**
- * Startup wait shared by the VPN child and the root daemon: the core usually answers within a few
- * tens of milliseconds, so the retry pause starts at 25ms and backs off to 100ms inside a 2s
- * budget. Cancellation of the caller aborts the wait immediately.
+ * Startup wait shared by the VPN child and the root daemon: the core usually answers within a few tens of milliseconds,
+ * so the retry pause starts at 25ms and backs off to 100ms inside a 2s budget. Cancellation of the caller aborts the
+ * wait immediately.
  */
 internal object ControllerReadiness {
     private val BACKOFF_MS = longArrayOf(25L, 50L, 100L)
     private const val TIMEOUT_MS = 2_000L
 
     /**
-     * Returns once [probe] reports ready. [ensureAlive] runs before every attempt and throws when
-     * the core process is already gone; [onTimeout] builds the failure from the last probe error.
+     * Returns once [probe] reports ready. [ensureAlive] runs before every attempt and throws when the core process is
+     * already gone; [onTimeout] builds the failure from the last probe error.
      */
     suspend fun await(
         ensureAlive: () -> Unit,

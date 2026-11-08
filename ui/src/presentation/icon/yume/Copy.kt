@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -39,12 +38,12 @@ val Yume.Copy: ImageVector
         }
         copyVector =
             ImageVector.Builder(
-                name = "Copy",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            )
+                    name = "Copy",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                )
                 .apply {
                     path(
                         stroke = SolidColor(Color.Black),
@@ -82,5 +81,4 @@ val Yume.Copy: ImageVector
         return copyVector!!
     }
 
-@Suppress("ObjectPropertyName")
-private var copyVector: ImageVector? = null
+@Suppress("ObjectPropertyName") private var copyVector: ImageVector? = null

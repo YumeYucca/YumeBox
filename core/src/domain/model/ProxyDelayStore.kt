@@ -22,38 +22,32 @@ package com.github.yumeyucca.yumebox.domain.model
 
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.core.model.ProxyGroup
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Live delay values keyed by proxy name. Node rows observe only their own flow, so one result
- * updates one badge instead of replacing the proxy-group list.
+ * Live delay values keyed by proxy name. Node rows observe only their own flow, so one result updates one badge instead
+ * of replacing the proxy-group list.
  *
- * Zero means "not measured" and is published as null, which lets the UI fall back to the delay
- * carried by the group snapshot. Flows are never dropped: a composable that resolved a node keeps
- * a live flow for as long as it is composed.
+ * Zero means "not measured" and is published as null, which lets the UI fall back to the delay carried by the group
+ * snapshot. Flows are never dropped: a composable that resolved a node keeps a live flow for as long as it is composed.
  */
 class ProxyDelayStore {
     private val delays = ConcurrentHashMap<String, MutableStateFlow<Int?>>()
 
-    fun delayFlow(name: String): StateFlow<Int?> =
-        delays.computeIfAbsent(name) { MutableStateFlow(null) }
+    fun delayFlow(name: String): StateFlow<Int?> = delays.computeIfAbsent(name) { MutableStateFlow(null) }
 
     fun apply(measured: Map<String, Int>) {
         measured.forEach { (name, delay) -> set(name, delay) }
     }
 
     fun publish(groups: List<ProxyGroupInfo>) {
-        groups.forEach { group ->
-            group.proxies.forEach { proxy -> set(proxy.name, proxy.delay) }
-        }
+        groups.forEach { group -> group.proxies.forEach { proxy -> set(proxy.name, proxy.delay) } }
     }
 
     fun publishProxyGroups(groups: List<ProxyGroup>) {
-        groups.forEach { group ->
-            group.proxies.forEach { proxy -> set(proxy.name, proxy.delay) }
-        }
+        groups.forEach { group -> group.proxies.forEach { proxy -> set(proxy.name, proxy.delay) } }
     }
 
     fun clear() {

@@ -31,6 +31,4 @@ fun rememberConfiguredCodeEditorState(
     initialContent: String,
     language: LanguageScope,
 ): CodeEditorState =
-    remember(initialContent, language) {
-        CodeEditorState(initialContent = initialContent, language = language)
-    }
+    remember(initialContent, language) { CodeEditorState(initialContent = initialContent, language = language) }

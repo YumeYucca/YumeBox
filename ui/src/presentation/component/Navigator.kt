@@ -32,8 +32,8 @@ import com.arkivanov.decompose.value.Value
 /**
  * Sends navigation commands to one Decompose child stack.
  *
- * There is deliberately no Compose mirror of the route history. The child stack is the only source
- * of truth; UI code that needs to observe it subscribes to the stack's [Value] directly.
+ * There is deliberately no Compose mirror of the route history. The child stack is the only source of truth; UI code
+ * that needs to observe it subscribes to the stack's [Value] directly.
  */
 @Stable
 class Navigator {
@@ -46,8 +46,7 @@ class Navigator {
         this.stack = stack
     }
 
-    private fun appliedStack(): List<Any> =
-        stack?.value?.items?.map { it.configuration }.orEmpty()
+    private fun appliedStack(): List<Any> = stack?.value?.items?.map { it.configuration }.orEmpty()
 
     /** The configuration currently on top, read from Decompose at call time. */
     val currentRoute: Any?
@@ -56,8 +55,8 @@ class Navigator {
     /**
      * Pushes [key] with Decompose's own `pushNew` operation.
      *
-     * Do not add another top-of-stack check here: `pushNew` already performs it against the applied
-     * stack. A second check against a cached list is what made re-entering a page fail.
+     * Do not add another top-of-stack check here: `pushNew` already performs it against the applied stack. A second
+     * check against a cached list is what made re-entering a page fail.
      */
     fun push(key: Any) {
         NavTrace.record("push $key")

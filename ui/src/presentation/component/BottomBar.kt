@@ -50,26 +50,26 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ArrowDownUp
 import com.github.yumeyucca.yumebox.presentation.icon.yume.House
 import com.github.yumeyucca.yumebox.presentation.icon.yume.PackageCheck
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import com.github.yumeyucca.yumebox.presentation.theme.isDarkTheme
 import com.github.yumeyucca.yumebox.presentation.theme.LocalGlassBackdrop
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.YumeBlur.glassSurface
+import com.github.yumeyucca.yumebox.presentation.theme.isDarkTheme
 import com.kyant.shapes.Capsule
+import kotlin.math.max
+import kotlin.math.roundToInt
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.glass.GlassNavigationBar
 import top.yukonga.miuix.kmp.glass.GlassNavigationItem
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlin.math.max
-import kotlin.math.roundToInt
 
 private const val BottomBarLayoutAnimationDurationMillis = 380
 private const val ProxyDestinationRevealDurationMillis = 300
@@ -122,9 +122,9 @@ fun rememberBottomBarReservedHeight(): Dp {
     val systemBottomInset =
         with(density) {
             max(
-                WindowInsets.navigationBars.getBottom(this),
-                WindowInsets.systemGestures.getBottom(this),
-            )
+                    WindowInsets.navigationBars.getBottom(this),
+                    WindowInsets.systemGestures.getBottom(this),
+                )
                 .toDp()
         }
     return remember(systemBottomInset) {
@@ -152,19 +152,17 @@ fun BottomBarContent(
     // optimistically before navigation starts, which previously recolored an icon while the
     // indicator was still parked on the old page, so the settled page wins until the pager moves.
     val selectedTabIndex =
-        (
-            if (mainPagerState.isNavigating) mainPagerState.selectedPage else pagerState.currentPage
-            ) - 1
+        (if (mainPagerState.isNavigating) mainPagerState.selectedPage else pagerState.currentPage) - 1
     val tabIndex = selectedTabIndex.coerceIn(0, tabs.lastIndex)
     val indicatorProgress by
-    remember(pagerState, tabs.size) {
-        derivedStateOf {
-            (
-                pagerState.currentPage.toFloat() +
-                    pagerState.currentPageOffsetFraction - 1f
-                ).coerceIn(0f, (tabs.size - 1).toFloat())
+        remember(pagerState, tabs.size) {
+            derivedStateOf {
+                (pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction - 1f).coerceIn(
+                    0f,
+                    (tabs.size - 1).toFloat(),
+                )
+            }
         }
-    }
     val bottomBarVisible = isVisible && (bottomBarScrollBehavior?.isBottomBarVisible ?: true)
     // The proxy tab fades in the first time it becomes available; it only starts revealed once the
     // destination list contains it, so the fade also plays when a layout switch adds it later.
@@ -174,41 +172,44 @@ fun BottomBarContent(
     }
     val density = LocalDensity.current
     val opacity = AppTheme.opacity
-    val exitOffsetPx =
-        remember(density) { with(density) { MainBottomBarDefaults.ExitOffset.toPx() } }
+    val exitOffsetPx = remember(density) { with(density) { MainBottomBarDefaults.ExitOffset.toPx() } }
     // One transition drives both halves of the hide/show transform: as separate drivers, the fade and
     // the slide could be started by different effects and settle a frame apart.
     val visibility = updateTransition(targetState = bottomBarVisible, label = "bottom_bar_visibility")
     val animatedAlpha by
-    visibility.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = 180,
-                easing =
-                    if (targetState) {
-                        AnimationSpecs.EmphasizedDecelerate
-                    } else {
-                        AnimationSpecs.EmphasizedAccelerate
-                    },
-            )
-        },
-        label = "bottom_bar_alpha",
-    ) { visible -> if (visible) 1f else 0f }
+        visibility.animateFloat(
+            transitionSpec = {
+                tween(
+                    durationMillis = 180,
+                    easing =
+                        if (targetState) {
+                            AnimationSpecs.EmphasizedDecelerate
+                        } else {
+                            AnimationSpecs.EmphasizedAccelerate
+                        },
+                )
+            },
+            label = "bottom_bar_alpha",
+        ) { visible ->
+            if (visible) 1f else 0f
+        }
     val exitProgress by
-    visibility.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 280 else 220,
-                easing =
-                    if (targetState) {
-                        AnimationSpecs.EmphasizedDecelerate
-                    } else {
-                        AnimationSpecs.EmphasizedAccelerate
-                    },
-            )
-        },
-        label = "bottom_bar_exit_progress",
-    ) { visible -> if (visible) 0f else 1f }
+        visibility.animateFloat(
+            transitionSpec = {
+                tween(
+                    durationMillis = if (targetState) 280 else 220,
+                    easing =
+                        if (targetState) {
+                            AnimationSpecs.EmphasizedDecelerate
+                        } else {
+                            AnimationSpecs.EmphasizedAccelerate
+                        },
+                )
+            },
+            label = "bottom_bar_exit_progress",
+        ) { visible ->
+            if (visible) 0f else 1f
+        }
 
     // Taps go straight to the pager: it owns the "this page is already showing" rule, and re-deriving
     // it here is what let the two drift apart — the bar treated a mid-drag page as a real target and
@@ -239,8 +240,10 @@ fun BottomBarContent(
     val widthFraction by
         animateFloatAsState(
             targetValue =
-                (MainBottomBarDefaults.WidthFractionPerTab * tabs.size)
-                    .coerceIn(MainBottomBarDefaults.MinBarWidthFraction, 1f),
+                (MainBottomBarDefaults.WidthFractionPerTab * tabs.size).coerceIn(
+                    MainBottomBarDefaults.MinBarWidthFraction,
+                    1f,
+                ),
             animationSpec =
                 tween(
                     durationMillis = BottomBarLayoutAnimationDurationMillis,
@@ -251,12 +254,10 @@ fun BottomBarContent(
 
     // Both capsules share the same placement, width and hide/show transform; only the body differs.
     val barModifier =
-        Modifier.fillMaxWidth(widthFraction)
-            .padding(bottom = bottomGap)
-            .graphicsLayer {
-                alpha = animatedAlpha
-                translationY = exitProgress * exitOffsetPx
-            }
+        Modifier.fillMaxWidth(widthFraction).padding(bottom = bottomGap).graphicsLayer {
+            alpha = animatedAlpha
+            translationY = exitProgress * exitOffsetPx
+        }
 
     if (glassBackdrop != null && isRuntimeShaderSupported()) {
         GlassNavigationBar(
@@ -289,15 +290,15 @@ fun BottomBarContent(
             key(destination) {
                 val isProxy = destination == BottomBarDestination.Proxy
                 val proxyItemAlpha by
-                animateFloatAsState(
-                    targetValue = if (!isProxy || proxyTabRevealed) 1f else 0f,
-                    animationSpec =
-                        tween(
-                            durationMillis = ProxyDestinationRevealDurationMillis,
-                            easing = AnimationSpecs.EmphasizedDecelerate,
-                        ),
-                    label = "bottom_bar_proxy_item_alpha",
-                )
+                    animateFloatAsState(
+                        targetValue = if (!isProxy || proxyTabRevealed) 1f else 0f,
+                        animationSpec =
+                            tween(
+                                durationMillis = ProxyDestinationRevealDurationMillis,
+                                easing = AnimationSpecs.EmphasizedDecelerate,
+                            ),
+                        label = "bottom_bar_proxy_item_alpha",
+                    )
                 val selected = tabs.getOrNull(tabIndex) == destination
                 // The proxy tab grows from 82% as it is revealed instead of fading in alone.
                 val proxyScale = 0.82f + proxyItemAlpha * 0.18f
@@ -308,8 +309,7 @@ fun BottomBarContent(
                     color = if (selected) selectedColor else unselectedColor,
                     onClick = { onItemClick(destination) },
                     modifier =
-                        Modifier
-                            .weight(1f)
+                        Modifier.weight(1f)
                             .graphicsLayer {
                                 alpha = proxyItemAlpha
                                 scaleX = if (isProxy) proxyScale else 1f
@@ -426,10 +426,7 @@ private fun BottomNavigationBar(
                         backdrop = glassBackdrop,
                         shape = Capsule(),
                         fallbackColor = fallbackColor,
-                        tint =
-                            MiuixTheme.colorScheme.surfaceContainer.copy(
-                                alpha = if (isLightTheme) 0.5f else 0.6f,
-                            ),
+                        tint = MiuixTheme.colorScheme.surfaceContainer.copy(alpha = if (isLightTheme) 0.5f else 0.6f),
                     )
                 )
                 .edgeLight(
@@ -447,9 +444,7 @@ private fun BottomNavigationBar(
     ) {
         if (tabWidthPx > 0f) {
             BottomNavigationIndicator(
-                modifier = Modifier
-                    .padding(UiDp.dp4)
-                    .align(Alignment.CenterStart),
+                modifier = Modifier.padding(UiDp.dp4).align(Alignment.CenterStart),
                 indicatorOffsetPx = indicatorOffsetPx,
                 indicatorWidthPx = tabWidthPx,
                 indicatorContainerColor = indicatorContainerColor,
@@ -458,12 +453,7 @@ private fun BottomNavigationBar(
 
         LookaheadScope {
             Row(
-                modifier =
-                    Modifier
-                        .padding(UiDp.dp4)
-                        .height(UiDp.dp48)
-                        .fillMaxWidth()
-                        .align(Alignment.CenterStart),
+                modifier = Modifier.padding(UiDp.dp4).height(UiDp.dp48).fillMaxWidth().align(Alignment.CenterStart),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 content(this@LookaheadScope)

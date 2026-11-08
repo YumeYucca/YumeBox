@@ -22,9 +22,9 @@
 
 package com.github.yumeyucca.yumebox.presentation.component
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -65,10 +65,10 @@ import top.yukonga.miuix.kmp.glass.GlassDefaults
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchorElement
 import top.yukonga.miuix.kmp.glass.GlassShape
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.glass.glassPanel
 import top.yukonga.miuix.kmp.glass.glassPopupAnchor
 import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
-import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** NexioSchedule top-bar chrome sizing: 42dp containers carrying 22dp icons. */
@@ -91,21 +91,20 @@ data class GlassTopAction(
     /** Icon tint override; [Color.Unspecified] keeps the chrome's own on-surface tint. */
     val tint: Color = Color.Unspecified,
     /**
-     * Menu hosted by this button. Declaring it here keeps the menu next to the action that opens it,
-     * so the pill never has to guess which overlay slot belongs to which icon.
+     * Menu hosted by this button. Declaring it here keeps the menu next to the action that opens it, so the pill never
+     * has to guess which overlay slot belongs to which icon.
      */
     val popup: (@Composable () -> Unit)? = null,
     /**
-     * Anchor [popup] is placed against. The button binds itself to it, so call sites no longer have
-     * to hand-wire `glassPopupAnchor` on [modifier] and `glassPopupAnchorContent` on [iconModifier].
+     * Anchor [popup] is placed against. The button binds itself to it, so call sites no longer have to hand-wire
+     * `glassPopupAnchor` on [modifier] and `glassPopupAnchorContent` on [iconModifier].
      */
     val anchor: GlassPopupAnchor? = null,
 )
 
 /**
- * The glyph an anchored top-bar action keeps showing while its popup is collapsed into the button.
- * Shared so the anchor an icon hands to [GlassPopupHost] cannot drift in size or tint from the
- * glyph every menu redraws in its own header.
+ * The glyph an anchored top-bar action keeps showing while its popup is collapsed into the button. Shared so the anchor
+ * an icon hands to [GlassPopupHost] cannot drift in size or tint from the glyph every menu redraws in its own header.
  */
 @Composable
 fun GlassTopActionAnchorIcon(imageVector: ImageVector) {
@@ -120,9 +119,10 @@ fun GlassTopActionAnchorIcon(imageVector: ImageVector) {
 /** The popup anchor this action exposes through its own modifier, if any. */
 private val GlassTopAction.popupAnchor: GlassPopupAnchor?
     get() =
-        anchor ?: modifier.foldIn<GlassPopupAnchor?>(null) { found, element ->
-            if (element is GlassPopupAnchorElement) element.anchor else found
-        }
+        anchor
+            ?: modifier.foldIn<GlassPopupAnchor?>(null) { found, element ->
+                if (element is GlassPopupAnchorElement) element.anchor else found
+            }
 
 /** Binds this button's bounds to its own [GlassTopAction.anchor], if it declares one. */
 private val GlassTopAction.anchorModifier: Modifier
@@ -140,11 +140,10 @@ private val GlassTopAction.anchorIconModifier: Modifier
     get() = anchor?.let { Modifier.glassPopupAnchorContent(it) } ?: Modifier
 
 /**
- * NexioSchedule-style frosted top-bar actions: two or more icons share one capsule pill, single
- * icons stand in their own circles (the reference topbar's pill+circle chrome). The container
- * frosts [backdrop] under a translucent surface tint with an additive edge-light rim — the same
- * material recipe as the floating bottom bar — and falls back to a solid capsule without a live
- * backdrop or RuntimeShader. Press feedback is a glassy scale-up, no ripple.
+ * NexioSchedule-style frosted top-bar actions: two or more icons share one capsule pill, single icons stand in their
+ * own circles (the reference topbar's pill+circle chrome). The container frosts [backdrop] under a translucent surface
+ * tint with an additive edge-light rim — the same material recipe as the floating bottom bar — and falls back to a
+ * solid capsule without a live backdrop or RuntimeShader. Press feedback is a glassy scale-up, no ripple.
  */
 @Composable
 fun GlassTopActionPill(
@@ -153,11 +152,7 @@ fun GlassTopActionPill(
     modifier: Modifier = Modifier,
 ) {
     if (actions.size < 2) {
-        Row(modifier) {
-            actions.forEach { action ->
-                PillActionSlot(action) { GlassTopIconButton(action, backdrop) }
-            }
-        }
+        Row(modifier) { actions.forEach { action -> PillActionSlot(action) { GlassTopIconButton(action, backdrop) } } }
         return
     }
     val glass = rememberGlassTopActionStyle()
@@ -168,16 +163,17 @@ fun GlassTopActionPill(
     val currentPopupAnchors = rememberUpdatedState(resolvedPopupAnchors)
     val containerMaterial = GlassTopAppBarDefaults.buttonMaterial()
     val containerStroke = GlassTopAppBarDefaults.buttonStroke()
-    val popupSurface = remember(backdrop, containerMaterial, containerStroke, glass.fallbackColor) {
-        GlassAnchorSurface(
-            backdrop = backdrop,
-            style = GlassDefaults.Style,
-            material = containerMaterial,
-            underlayMaterial = null,
-            stroke = containerStroke,
-            fill = glass.fallbackColor,
-        )
-    }
+    val popupSurface =
+        remember(backdrop, containerMaterial, containerStroke, glass.fallbackColor) {
+            GlassAnchorSurface(
+                backdrop = backdrop,
+                style = GlassDefaults.Style,
+                material = containerMaterial,
+                underlayMaterial = null,
+                stroke = containerStroke,
+                fill = glass.fallbackColor,
+            )
+        }
     val collapsedSurfaceProgress = remember { mutableFloatStateOf(0f) }
     SideEffect {
         resolvedPopupAnchors.forEach { anchor ->
@@ -222,21 +218,18 @@ fun GlassTopActionPill(
         contentAlignment = Alignment.CenterStart,
     ) {
         Row(
-            modifier =
-                Modifier.padding(horizontal = GlassTopActionDefaults.PillHorizontalPadding),
+            modifier = Modifier.padding(horizontal = GlassTopActionDefaults.PillHorizontalPadding),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(GlassTopActionDefaults.PillIconGap),
         ) {
-            actions.forEach { action ->
-                PillActionSlot(action) { PillActionIcon(action, glass) }
-            }
+            actions.forEach { action -> PillActionSlot(action) { PillActionIcon(action, glass) } }
         }
     }
 }
 
 /**
- * One button of the pill together with the menu it hosts. The menu is painted in the same slot as its
- * own button, so an action carries its menu instead of the pill juggling parallel index lists.
+ * One button of the pill together with the menu it hosts. The menu is painted in the same slot as its own button, so an
+ * action carries its menu instead of the pill juggling parallel index lists.
  */
 @Composable
 private fun PillActionSlot(action: GlassTopAction, icon: @Composable () -> Unit) {
@@ -249,8 +242,8 @@ private fun PillActionSlot(action: GlassTopAction, icon: @Composable () -> Unit)
 /**
  * Single frosted circle button, the one-icon variant of [GlassTopActionPill]'s chrome.
  *
- * Always draws the app's own panel recipe rather than the library `GlassIconButton`: its rim only
- * reads once content scrolls underneath, which never happens behind a top bar at rest.
+ * Always draws the app's own panel recipe rather than the library `GlassIconButton`: its rim only reads once content
+ * scrolls underneath, which never happens behind a top bar at rest.
  */
 @Composable
 fun GlassTopIconButton(
@@ -264,15 +257,16 @@ fun GlassTopIconButton(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     // Reference LiquidTopBarButton press feedback: scale up by ~4dp over the container height.
-    val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 1f + 4f / GlassTopActionDefaults.ContainerSize.value else 1f,
-        animationSpec =
-            spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMedium,
-            ),
-        label = "glass_top_action_press_scale",
-    )
+    val pressScale by
+        animateFloatAsState(
+            targetValue = if (pressed) 1f + 4f / GlassTopActionDefaults.ContainerSize.value else 1f,
+            animationSpec =
+                spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+            label = "glass_top_action_press_scale",
+        )
     Box(
         // [GlassTopAction.modifier] belongs to the action, so it has to survive the one-icon path
         // exactly as it does on the pill path; dropping it silently broke anchor/inset overrides.
@@ -304,8 +298,7 @@ fun GlassTopIconButton(
                             fallback = Modifier.clip(circleShape).background(glass.fallbackColor),
                         )
                     } else {
-                        Modifier
-                            .clip(circleShape)
+                        Modifier.clip(circleShape)
                             .glassSurface(
                                 backdrop = backdrop,
                                 shape = circleShape,
@@ -319,7 +312,7 @@ fun GlassTopIconButton(
                                 blurRadius = EdgeLightDefaults.BlurRadius,
                                 blendMode = glass.edgeLightBlendMode,
                             )
-                    },
+                    }
                 )
                 .then(action.anchorModifier)
                 .clickable(
@@ -333,8 +326,7 @@ fun GlassTopIconButton(
             imageVector = action.icon,
             contentDescription = action.contentDescription,
             modifier =
-                Modifier
-                    .size(GlassTopActionDefaults.IconSize)
+                Modifier.size(GlassTopActionDefaults.IconSize)
                     .then(action.iconModifier)
                     .then(action.anchorIconModifier),
             tint = action.tint.takeOr(glass.iconTint),
@@ -346,15 +338,16 @@ fun GlassTopIconButton(
 private fun PillActionIcon(action: GlassTopAction, glass: GlassTopActionStyle) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.86f else 1f,
-        animationSpec =
-            spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMedium,
-            ),
-        label = "glass_top_pill_icon_press_scale",
-    )
+    val pressScale by
+        animateFloatAsState(
+            targetValue = if (pressed) 0.86f else 1f,
+            animationSpec =
+                spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+            label = "glass_top_pill_icon_press_scale",
+        )
     Box(
         modifier =
             action.modifier
@@ -372,8 +365,7 @@ private fun PillActionIcon(action: GlassTopAction, glass: GlassTopActionStyle) {
             imageVector = action.icon,
             contentDescription = action.contentDescription,
             modifier =
-                Modifier
-                    .size(GlassTopActionDefaults.IconSize)
+                Modifier.size(GlassTopActionDefaults.IconSize)
                     .then(action.iconModifier)
                     .then(action.anchorIconModifier)
                     .graphicsLayer {
@@ -386,8 +378,7 @@ private fun PillActionIcon(action: GlassTopAction, glass: GlassTopActionStyle) {
 }
 
 /** [fallback] unless this colour carries an explicit tint. */
-private fun Color.takeOr(fallback: Color): Color =
-    if (this == Color.Unspecified) fallback else this
+private fun Color.takeOr(fallback: Color): Color = if (this == Color.Unspecified) fallback else this
 
 /** Shared material recipe for the pill and circle containers, resolved per theme. */
 private class GlassTopActionStyle(
@@ -414,10 +405,7 @@ private fun rememberGlassTopActionStyle(): GlassTopActionStyle {
             // Over the top bar's own progressive blur the page behind is already washed out, so
             // the tint sits slightly denser than the bottom bar's to keep the chrome readable.
             tint = surfaceContainer.copy(alpha = if (isLightTheme) 0.62f else 0.72f),
-            shadowColor =
-                Color.Black.copy(
-                    alpha = if (isLightTheme) opacity.softOverlay else opacity.surfaceSoft,
-                ),
+            shadowColor = Color.Black.copy(alpha = if (isLightTheme) opacity.softOverlay else opacity.surfaceSoft),
             shadowElevationPx = 0f,
             edgeLightColor = EdgeLightDefaults.tint(surfaceContainer, isLightTheme),
             edgeLightWidth = EdgeLightDefaults.width(isLightTheme),

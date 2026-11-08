@@ -20,8 +20,7 @@ package com.github.yumeyucca.yumebox.update
 
 enum class AppUpdateChannel(val key: String) {
     Release("stable"),
-    Nightly("nightly"),
-    ;
+    Nightly("nightly");
 
     companion object {
         fun fromKey(key: String): AppUpdateChannel? = entries.firstOrNull { it.key == key }

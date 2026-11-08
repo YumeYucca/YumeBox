@@ -35,15 +35,21 @@ import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.runtime.api.Profile
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.RadioButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** Which permission dialog is on screen for the pending Wi-Fi action. */
-internal enum class WifiPermissionPrompt { Explanation, Approximate, Denied, Settings, Location }
+internal enum class WifiPermissionPrompt {
+    Explanation,
+    Approximate,
+    Denied,
+    Settings,
+    Location,
+}
 
 /** Shared inside margin of the Wi-Fi automation sheets. */
 private val WifiSheetInsideMargin = DpSize(UiDp.dp12, UiDp.dp8)
@@ -84,11 +90,7 @@ internal fun WifiScanSheet(
         insideMargin = WifiSheetInsideMargin,
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .animateContentSize(),
+            modifier = Modifier.fillMaxWidth().wrapContentHeight().animateContentSize(),
             verticalArrangement = Arrangement.spacedBy(spacing.space16),
         ) {
             when (phase) {
@@ -96,10 +98,11 @@ internal fun WifiScanSheet(
                     Column(
                         modifier = Modifier.fillMaxWidth().heightIn(min = UiDp.dp176),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(
-                            spacing.space12,
-                            Alignment.CenterVertically,
-                        ),
+                        verticalArrangement =
+                            Arrangement.spacedBy(
+                                spacing.space12,
+                                Alignment.CenterVertically,
+                            ),
                     ) {
                         InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp32))
                         Text(
@@ -110,7 +113,8 @@ internal fun WifiScanSheet(
                     }
                 }
 
-                WifiScanPhase.Unavailable -> BasicComponent(title = YumeTxt.NetworkSettings.WifiAutomation.ScanUnavailable)
+                WifiScanPhase.Unavailable ->
+                    BasicComponent(title = YumeTxt.NetworkSettings.WifiAutomation.ScanUnavailable)
                 WifiScanPhase.Empty -> BasicComponent(title = YumeTxt.NetworkSettings.WifiAutomation.ScanEmpty)
 
                 is WifiScanPhase.Results -> {
@@ -130,9 +134,7 @@ internal fun WifiScanSheet(
                         }
                     }
                     AppCard {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth().heightIn(max = UiDp.dp360),
-                        ) {
+                        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = UiDp.dp360)) {
                             items(phase.networks, key = { it.ssid }) { network ->
                                 WifiSsidRow(
                                     ssid = network.ssid,
@@ -165,9 +167,7 @@ internal fun WifiRuleEditSheet(
     // value, so a selection and its pending edits can never disagree.
     var draft by remember { mutableStateOf<WifiAutomationRule?>(null) }
 
-    LaunchedEffect(show) {
-        if (show) draft = null
-    }
+    LaunchedEffect(show) { if (show) draft = null }
 
     AppActionBottomSheet(
         show = show,
@@ -202,9 +202,7 @@ internal fun WifiRuleEditSheet(
                 BasicComponent(title = YumeTxt.NetworkSettings.WifiAutomation.EmptyRules)
             } else {
                 AppCard {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth().heightIn(max = UiDp.dp360),
-                    ) {
+                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = UiDp.dp360)) {
                         items(rules, key = { it.ssid }) { rule ->
                             WifiSsidRow(
                                 ssid = rule.ssid,
@@ -269,11 +267,11 @@ internal fun WifiProfileSwitchSelector(
     profileUuid: String?,
     onProfileUuidChange: (String?) -> Unit,
 ) {
-    val options = remember(profiles) {
-        listOf(
-            GlassDropdownOption<String?>(null, YumeTxt.NetworkSettings.WifiAutomation.NoSwitchAction),
-        ) + profiles.map { GlassDropdownOption<String?>(it.uuid.toString(), it.name) }
-    }
+    val options =
+        remember(profiles) {
+            listOf(GlassDropdownOption<String?>(null, YumeTxt.NetworkSettings.WifiAutomation.NoSwitchAction)) +
+                profiles.map { GlassDropdownOption<String?>(it.uuid.toString(), it.name) }
+        }
 
     GlassDropdownPreference(
         title = YumeTxt.NetworkSettings.WifiAutomation.ProfileAction,
@@ -314,8 +312,8 @@ private fun WifiActionEditor(
 /**
  * Renders the permission prompt of the pending action.
  *
- * [prompt] is non-null and deliberately outlives [show]: keeping the last prompt's text composed
- * lets the dialog finish its exit tween with readable content.
+ * [prompt] is non-null and deliberately outlives [show]: keeping the last prompt's text composed lets the dialog finish
+ * its exit tween with readable content.
  */
 @Composable
 internal fun WifiPermissionDialog(

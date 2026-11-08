@@ -25,6 +25,7 @@ package com.github.yumeyucca.yumebox.data.store
 import android.content.Context
 import com.github.yumeyucca.yumebox.data.model.MetadataIndex
 import com.github.yumeyucca.yumebox.data.model.ProfileBinding
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.io.File
 
 class ProfileBindingStore(context: Context) : ProfileBindingProvider {
     private val metadataFile = File(context.filesDir, "overrides/metadata.yaml")
@@ -54,7 +54,8 @@ class ProfileBindingStore(context: Context) : ProfileBindingProvider {
             synchronized(OverrideMetadataFileLock.monitor) {
                 val index = loadMetadataIndexForMutation()
                 val next =
-                    index.copy(profileChains = index.profileChains + (binding.profileId to binding))
+                    index
+                        .copy(profileChains = index.profileChains + (binding.profileId to binding))
                         .withSanitizedBindings()
                 saveMetadataIndex(next)
                 bindingsStateFlow.value = next.profileChains
@@ -79,16 +80,11 @@ class ProfileBindingStore(context: Context) : ProfileBindingProvider {
 
     override suspend fun getProfilesUsingOverride(overrideId: String): List<String> =
         withContext(Dispatchers.IO) {
-            loadBindings()
-                .values
-                .filter { binding -> isOverrideApplied(binding, overrideId) }
-                .map { it.profileId }
+            loadBindings().values.filter { binding -> isOverrideApplied(binding, overrideId) }.map { it.profileId }
         }
 
     override suspend fun isOverrideInUse(overrideId: String): Boolean =
-        withContext(Dispatchers.IO) {
-            loadBindings().values.any { binding -> isOverrideApplied(binding, overrideId) }
-        }
+        withContext(Dispatchers.IO) { loadBindings().values.any { binding -> isOverrideApplied(binding, overrideId) } }
 
     override suspend fun getOverrideUsageCount(overrideId: String): Int =
         withContext(Dispatchers.IO) {
@@ -100,8 +96,7 @@ class ProfileBindingStore(context: Context) : ProfileBindingProvider {
         withContext(Dispatchers.IO) {
             synchronized(OverrideMetadataFileLock.monitor) {
                 mutateProfileBinding(profileId) { existing ->
-                    existing?.addOverride(overrideId, index)
-                        ?: ProfileBinding.withOverride(profileId, overrideId)
+                    existing?.addOverride(overrideId, index) ?: ProfileBinding.withOverride(profileId, overrideId)
                 }
             }
         }
@@ -109,9 +104,7 @@ class ProfileBindingStore(context: Context) : ProfileBindingProvider {
     override suspend fun removeOverride(profileId: String, overrideId: String) =
         withContext(Dispatchers.IO) {
             synchronized(OverrideMetadataFileLock.monitor) {
-                mutateProfileBinding(profileId) { existing ->
-                    existing?.removeOverride(overrideId)
-                }
+                mutateProfileBinding(profileId) { existing -> existing?.removeOverride(overrideId) }
             }
         }
 
@@ -142,9 +135,7 @@ class ProfileBindingStore(context: Context) : ProfileBindingProvider {
         val index = loadMetadataIndexForMutation()
         val existing = index.profileChains[profileId]
         val transformed = transform(existing) ?: return
-        val next =
-            index.copy(profileChains = index.profileChains + (profileId to transformed))
-                .withSanitizedBindings()
+        val next = index.copy(profileChains = index.profileChains + (profileId to transformed)).withSanitizedBindings()
         saveMetadataIndex(next)
         bindingsStateFlow.value = next.profileChains
     }
@@ -154,9 +145,7 @@ class ProfileBindingStore(context: Context) : ProfileBindingProvider {
         try {
             // Read-only path: corrupt metadata degrades to empty without wiping the file.
             loadMetadataIndexForRead().profileChains
-        } catch (
-            error: Exception
-        ) { // fault barrier: any metadata read/decode failure degrades to empty
+        } catch (error: Exception) { // fault barrier: any metadata read/decode failure degrades to empty
             Timber.w(error, "Failed to load bindings from metadata.yaml, returning empty map")
             emptyMap()
         }
@@ -190,9 +179,7 @@ class ProfileBindingStore(context: Context) : ProfileBindingProvider {
         }
 
     private fun saveMetadataIndex(index: MetadataIndex) {
-        synchronized(OverrideMetadataFileLock.monitor) {
-            OverrideMetadataIO.save(metadataFile, index)
-        }
+        synchronized(OverrideMetadataFileLock.monitor) { OverrideMetadataIO.save(metadataFile, index) }
     }
 
     private fun sanitizeMetadataIndex(index: MetadataIndex): MetadataIndex {
@@ -205,8 +192,7 @@ class ProfileBindingStore(context: Context) : ProfileBindingProvider {
                 configs = normalizedConfigs,
                 profileChains =
                     index.profileChains.mapValues { (profileId, binding) ->
-                        if (binding.profileId.isBlank()) binding.copy(profileId = profileId)
-                        else binding
+                        if (binding.profileId.isBlank()) binding.copy(profileId = profileId) else binding
                     },
             )
         return normalizedIndex.withSanitizedBindings()

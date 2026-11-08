@@ -43,9 +43,7 @@ internal fun ProfilesDialogHost(
 
     // Declared before the sheet so it consumes the message that signalled `Completed` after the
     // sheet's own completion effect ran; clearing it can never cancel a finish.
-    LaunchedEffect(uiState.message) {
-        if (uiState.message != null) profilesViewModel.clearMessage()
-    }
+    LaunchedEffect(uiState.message) { if (uiState.message != null) profilesViewModel.clearMessage() }
     LaunchedEffect(uiState.error) {
         uiState.error?.let { errorMessage ->
             // Import failures only toast; do not dump the long core message into the sheet form.

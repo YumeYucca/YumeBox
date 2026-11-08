@@ -24,11 +24,13 @@ import com.github.yumeyucca.yumebox.core.model.ProxyGroup
 import java.util.concurrent.ConcurrentHashMap
 
 fun membersByGroup(entries: Iterable<Pair<String, List<Proxy>>>): Map<String, Set<String>> =
-    entries.associate { (name, proxies) -> name to proxies.mapTo(HashSet(), Proxy::name) }
+    entries.associate { (name, proxies) ->
+        name to proxies.mapTo(HashSet(), Proxy::name)
+    }
 
 /**
- * Keeps direct delay and selector writes authoritative until the aggregate controller snapshot
- * catches up, or a short grace window expires.
+ * Keeps direct delay and selector writes authoritative until the aggregate controller snapshot catches up, or a short
+ * grace window expires.
  */
 class ProxyGroupOverlay(
     private val nowNanos: () -> Long = System::nanoTime,
@@ -50,8 +52,8 @@ class ProxyGroupOverlay(
     private val directNow = ConcurrentHashMap<String, DirectNow>()
 
     /**
-     * Records direct results for every displayed group that contains the measured proxy.
-     * A zero is not a valid direct measurement and must not displace a prior result.
+     * Records direct results for every displayed group that contains the measured proxy. A zero is not a valid direct
+     * measurement and must not displace a prior result.
      */
     fun recordDelays(
         measuredDelays: Map<String, Int>,
@@ -87,8 +89,8 @@ class ProxyGroupOverlay(
     }
 
     /**
-     * Merges one aggregate delay with a direct measurement, if it is still authoritative.
-     * An aggregate value equal to the direct response confirms the controller has caught up.
+     * Merges one aggregate delay with a direct measurement, if it is still authoritative. An aggregate value equal to
+     * the direct response confirms the controller has caught up.
      */
     fun mergeDelay(
         groupName: String,
@@ -131,8 +133,7 @@ class ProxyGroupOverlay(
                 now = paintedNow(group.name, group.now),
                 proxies =
                     group.proxies.map { proxy ->
-                        paintedDelay(group.name, proxy.name)?.let { delay -> proxy.copy(delay = delay) }
-                            ?: proxy
+                        paintedDelay(group.name, proxy.name)?.let { delay -> proxy.copy(delay = delay) } ?: proxy
                     },
             )
         }
@@ -145,9 +146,8 @@ class ProxyGroupOverlay(
             group.copy(
                 proxies =
                     group.proxies.map { proxy ->
-                        paintedDelay(group.name, proxy.name)?.let { delay -> proxy.copy(delay = delay) }
-                            ?: proxy
-                    },
+                        paintedDelay(group.name, proxy.name)?.let { delay -> proxy.copy(delay = delay) } ?: proxy
+                    }
             )
         }
     }
@@ -156,10 +156,7 @@ class ProxyGroupOverlay(
     fun prune(members: Map<String, Set<String>>) {
         val now = nowNanos()
         directDelays.forEach { (key, directDelay) ->
-            if (
-                directDelay.expiresAtNanos <= now ||
-                    members[key.groupName]?.let { key.proxyName !in it } == true
-            ) {
+            if (directDelay.expiresAtNanos <= now || members[key.groupName]?.let { key.proxyName !in it } == true) {
                 directDelays.remove(key, directDelay)
             }
         }

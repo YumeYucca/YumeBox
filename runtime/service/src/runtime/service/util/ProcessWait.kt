@@ -25,9 +25,9 @@ import android.os.SystemClock
 /**
  * Blocks until [isAlive] reports `false` or [timeoutMs] elapses, polling every [pollMs].
  *
- * The core and preview children are stopped from a lifecycle lock, so these waits are
- * deliberately blocking: the caller must not return control while a child is still holding
- * the TUN interface or the port. Returns `true` when the child is gone.
+ * The core and preview children are stopped from a lifecycle lock, so these waits are deliberately blocking: the caller
+ * must not return control while a child is still holding the TUN interface or the port. Returns `true` when the child
+ * is gone.
  */
 internal inline fun awaitProcessGone(
     timeoutMs: Long,

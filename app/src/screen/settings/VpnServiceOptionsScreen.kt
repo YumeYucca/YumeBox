@@ -22,19 +22,18 @@
 
 package com.github.yumeyucca.yumebox.screen.settings
 
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.model.TunStack
 import com.github.yumeyucca.yumebox.presentation.component.*
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 /**
- * The VpnService "service config" sub-page (reached from the network-settings Advanced section).
- * Holds every knob the userspace VpnService path exposes, including the gVisor/MIPS stack picker.
- * Shares [NetworkSettingsViewModel] with the picker screen.
+ * The VpnService "service config" sub-page (reached from the network-settings Advanced section). Holds every knob the
+ * userspace VpnService path exposes, including the gVisor/MIPS stack picker. Shares [NetworkSettingsViewModel] with the
+ * picker screen.
  */
 @Composable
 fun VpnServiceOptionsScreen() {

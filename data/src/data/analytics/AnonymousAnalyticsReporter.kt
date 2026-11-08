@@ -43,8 +43,8 @@ import timber.log.Timber
 /**
  * Sends one best-effort anonymous launch event per app process.
  *
- * The random UUID is generated locally and HMAC-hashed by the Worker. No hardware identifier,
- * profile, subscription, traffic, or region data is included.
+ * The random UUID is generated locally and HMAC-hashed by the Worker. No hardware identifier, profile, subscription,
+ * traffic, or region data is included.
  */
 class AnonymousAnalyticsReporter(
     private val mmkv: MMKV,
@@ -56,9 +56,7 @@ class AnonymousAnalyticsReporter(
     private val client by lazy {
         HttpClient(OkHttp) {
             expectSuccess = false
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
             install(HttpTimeout) {
                 connectTimeoutMillis = 5_000
                 requestTimeoutMillis = 10_000
@@ -71,8 +69,7 @@ class AnonymousAnalyticsReporter(
         if (baseUrl.isBlank()) return
         withContext(Dispatchers.IO) {
             val deviceId =
-                mmkv.decodeString(KEY_DEVICE_ID)
-                    ?: UUID.randomUUID().toString().also { mmkv.encode(KEY_DEVICE_ID, it) }
+                mmkv.decodeString(KEY_DEVICE_ID) ?: UUID.randomUUID().toString().also { mmkv.encode(KEY_DEVICE_ID, it) }
             val payload =
                 LaunchEvent(
                     schemaVersion = 1,
@@ -115,4 +112,3 @@ private data class LaunchEvent(
     val versionCode: Int,
     val event: String,
 )
-

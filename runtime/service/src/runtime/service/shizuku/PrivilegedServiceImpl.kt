@@ -33,13 +33,12 @@ class PrivilegedServiceImpl : IPrivilegedService.Stub() {
     }
 
     override fun setPackageNetworkingEnabled(uid: Int, enabled: Boolean): Boolean {
-        val connectivity =
-            runCatching {
-                Class
-                    .forName("android.os.ServiceManager")
-                    .getMethod("getService", String::class.java)
-                    .invoke(null, "connectivity") as? IBinder
-            }.getOrNull()
+        val connectivity = runCatching {
+            Class.forName("android.os.ServiceManager")
+                .getMethod("getService", String::class.java)
+                .invoke(null, "connectivity") as? IBinder
+        }
+            .getOrNull()
         if (connectivity == null) {
             Log.e(TAG, "Connectivity service is not available")
             return false
@@ -55,7 +54,8 @@ class PrivilegedServiceImpl : IPrivilegedService.Stub() {
             } finally {
                 latch.countDown()
             }
-        }.start()
+        }
+            .start()
 
         if (!latch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
             Log.w(TAG, "Firewall update timed out")

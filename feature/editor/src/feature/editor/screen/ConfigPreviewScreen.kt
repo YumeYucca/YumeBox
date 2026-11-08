@@ -36,13 +36,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.feature.editor.component.EditorExitGuard
 import com.github.yumeyucca.yumebox.feature.editor.component.editorBodyInsets
 import com.github.yumeyucca.yumebox.feature.editor.editor.CodeEditor
 import com.github.yumeyucca.yumebox.feature.editor.editor.DefaultEditorFontSizeSp
 import com.github.yumeyucca.yumebox.feature.editor.editor.rememberConfiguredCodeEditorState
 import com.github.yumeyucca.yumebox.feature.editor.format.CodeFormatter
-import com.github.yumeyucca.yumebox.core.model.LanguageScope
 import com.github.yumeyucca.yumebox.presentation.component.GlassScaffold
 import com.github.yumeyucca.yumebox.presentation.component.GlassTopAction
 import com.github.yumeyucca.yumebox.presentation.component.GlassTopActionDefaults
@@ -136,9 +136,7 @@ fun ConfigPreviewScreen(
                                         if (onSave != null && !isSaving) {
                                             Color.Unspecified
                                         } else {
-                                            MiuixTheme.colorScheme.onSurface.copy(
-                                                alpha = AppTheme.opacity.muted,
-                                            )
+                                            MiuixTheme.colorScheme.onSurface.copy(alpha = AppTheme.opacity.muted)
                                         },
                                 ),
                                 GlassTopAction(
@@ -155,10 +153,7 @@ fun ConfigPreviewScreen(
                                                 Icon(
                                                     imageVector = Yume.ListChevronsUpDown,
                                                     contentDescription = null,
-                                                    modifier =
-                                                        Modifier.size(
-                                                            GlassTopActionDefaults.IconSize
-                                                        ),
+                                                    modifier = Modifier.size(GlassTopActionDefaults.IconSize),
                                                     tint = MiuixTheme.colorScheme.onSurface,
                                                 )
                                             },
@@ -169,13 +164,9 @@ fun ConfigPreviewScreen(
                                             onRedo = { editorState.redo() },
                                             onFormat = {
                                                 if (editorState.format()) {
-                                                    context.toast(
-                                                        YumeTxt.Editor.Message.FormatSuccess
-                                                    )
+                                                    context.toast(YumeTxt.Editor.Message.FormatSuccess)
                                                 } else {
-                                                    context.toast(
-                                                        YumeTxt.Editor.Message.FormatSkipped
-                                                    )
+                                                    context.toast(YumeTxt.Editor.Message.FormatSkipped)
                                                 }
                                             },
                                             onFontSizeSelected = { fontSizeSp = it },
@@ -187,18 +178,14 @@ fun ConfigPreviewScreen(
                     )
                 },
             )
-        },
+        }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier.editorBodyInsets(paddingValues),
-        ) {
+        Column(modifier = Modifier.editorBodyInsets(paddingValues)) {
             CodeEditor(
                 state = editorState,
                 modifier = Modifier.weight(1f),
                 fontSizeSp = fontSizeSp,
-                onScroll = { scroll ->
-                    scrollBehavior.state.contentOffset = -scroll.toFloat()
-                },
+                onScroll = { scroll -> scrollBehavior.state.contentOffset = -scroll.toFloat() },
             )
             EditorSymbolBar(
                 onSymbol = { action ->
@@ -208,7 +195,7 @@ fun ConfigPreviewScreen(
                             is EditorSymbolAction.Insert -> editor.insertText(action.text, 1)
                         }
                     }
-                },
+                }
             )
         }
 

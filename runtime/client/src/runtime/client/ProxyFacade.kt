@@ -46,21 +46,19 @@ import timber.log.Timber
 enum class ProxyGroupSyncPriority {
     OFF,
     SLOW,
-    FAST,
-    ;
+    FAST;
 
     /**
-     * The more urgent of the two. The constants are declared in ascending urgency, so the ordering
-     * lives here instead of in a call-site `ordinal` comparison that a reordering would silently flip.
+     * The more urgent of the two. The constants are declared in ascending urgency, so the ordering lives here instead
+     * of in a call-site `ordinal` comparison that a reordering would silently flip.
      */
-    fun max(other: ProxyGroupSyncPriority): ProxyGroupSyncPriority =
-        if (ordinal >= other.ordinal) this else other
+    fun max(other: ProxyGroupSyncPriority): ProxyGroupSyncPriority = if (ordinal >= other.ordinal) this else other
 }
 
 /**
  * Who currently wants proxy groups synced. Requests are merged per source: the highest requested
- * [ProxyGroupSyncPriority] wins, and OFF drops that source's entry so a screen that went away
- * cannot leave a stale FAST behind.
+ * [ProxyGroupSyncPriority] wins, and OFF drops that source's entry so a screen that went away cannot leave a stale FAST
+ * behind.
  */
 enum class ProxyGroupSyncSource {
     /** The app-wide subscription (home screen). */
@@ -92,8 +90,8 @@ data class NodeSessionState(
 )
 
 /**
- * UI-facing runtime facade. Runtime lifecycle/state live in [RuntimeSession]; proxy-group ops live
- * in [RuntimeGroupHub].
+ * UI-facing runtime facade. Runtime lifecycle/state live in [RuntimeSession]; proxy-group ops live in
+ * [RuntimeGroupHub].
  */
 class ProxyFacade(
     context: Context,
@@ -116,8 +114,7 @@ class ProxyFacade(
     private val _nodeSession = MutableStateFlow(NodeSessionState())
 
     private var previewWarmupJob: Job? = null
-    private val syncPriorityRequests =
-        MutableStateFlow<Map<ProxyGroupSyncSource, ProxyGroupSyncPriority>>(emptyMap())
+    private val syncPriorityRequests = MutableStateFlow<Map<ProxyGroupSyncSource, ProxyGroupSyncPriority>>(emptyMap())
 
     val runtimeSnapshot: StateFlow<RuntimeSnapshot>
     val isRunning: StateFlow<Boolean>
@@ -173,17 +170,12 @@ class ProxyFacade(
             )
         runtimeSnapshot = session.runtimeSnapshot
         isRunning =
-            session.runtimeSnapshot
-                .map { snapshot -> snapshot.running }
-                .stateIn(scope, SharingStarted.Eagerly, false)
+            session.runtimeSnapshot.map { snapshot -> snapshot.running }.stateIn(scope, SharingStarted.Eagerly, false)
         isConfigReloading = session.isConfigReloading
         currentProfile = session.currentProfile
         trafficNow = session.trafficNow
         trafficTotal = session.trafficTotal
-        proxyGroups =
-            nodeSession
-                .map { state -> state.groups }
-                .stateIn(scope, SharingStarted.Eagerly, emptyList())
+        proxyGroups = nodeSession.map { state -> state.groups }.stateIn(scope, SharingStarted.Eagerly, emptyList())
         resolvedPrimaryNode = groups.resolvedPrimaryNode
         session.bootstrap()
         observeNodeSession()
@@ -264,17 +256,19 @@ class ProxyFacade(
     suspend fun healthCheck(
         group: String,
         onProgress: ProxyDelayTestProgressCallback? = null,
-    ) = onNodeOwner(
-        onActive = { groups.healthCheck(group, onProgress) },
-        onPreview = { preview.healthCheck(group, onProgress) },
-        onNone = {},
-    )
+    ) =
+        onNodeOwner(
+            onActive = { groups.healthCheck(group, onProgress) },
+            onPreview = { preview.healthCheck(group, onProgress) },
+            onNone = {},
+        )
 
-    suspend fun healthCheckAll(onProgress: ProxyDelayTestProgressCallback? = null) = onNodeOwner(
-        onActive = { groups.healthCheckAll(onProgress) },
-        onPreview = { preview.healthCheckAll(onProgress) },
-        onNone = {},
-    )
+    suspend fun healthCheckAll(onProgress: ProxyDelayTestProgressCallback? = null) =
+        onNodeOwner(
+            onActive = { groups.healthCheckAll(onProgress) },
+            onPreview = { preview.healthCheckAll(onProgress) },
+            onNone = {},
+        )
 
     suspend fun healthCheckProxy(proxyName: String): Int =
         onNodeOwner(
@@ -284,8 +278,8 @@ class ProxyFacade(
         )
 
     /**
-     * Sends a node operation to whichever backend currently publishes the node list: the real
-     * runtime, or the preview runtime that stands in while the real one is down.
+     * Sends a node operation to whichever backend currently publishes the node list: the real runtime, or the preview
+     * runtime that stands in while the real one is down.
      */
     private inline fun <T> onNodeOwner(
         onActive: () -> T,
@@ -305,9 +299,7 @@ class ProxyFacade(
         return coreOps.queryConnections()
     }
 
-    suspend fun queryTrafficTotal(): Long = session.queryTrafficTotal {
-        coreOps.queryTrafficTotal()
-    }
+    suspend fun queryTrafficTotal(): Long = session.queryTrafficTotal { coreOps.queryTrafficTotal() }
 
     suspend fun queryTrafficNow(): Long = session.queryTrafficNow { coreOps.queryTrafficNow() }
 
@@ -364,10 +356,10 @@ class ProxyFacade(
     private fun observeProxyGroupSyncPriority() {
         scope.launch {
             combine(
-                session.runtimeSnapshot,
-                syncPriorityRequests,
-                AppVisibilityTracker.isForeground,
-            ) { snapshot, requests, isForeground ->
+                    session.runtimeSnapshot,
+                    syncPriorityRequests,
+                    AppVisibilityTracker.isForeground,
+                ) { snapshot, requests, isForeground ->
                     resolveEffectiveProxyGroupSyncPriority(snapshot, requests, isForeground)
                 }
                 .distinctUntilChanged()
@@ -376,8 +368,8 @@ class ProxyFacade(
     }
 
     /**
-     * Runs a best-effort runtime step. Cancellation always propagates; every other failure is logged
-     * with [message] and dropped, because the next tick or the next visibility change retries it.
+     * Runs a best-effort runtime step. Cancellation always propagates; every other failure is logged with [message] and
+     * dropped, because the next tick or the next visibility change retries it.
      */
     private inline fun bestEffort(message: String, block: () -> Unit) {
         runCatching(block).onFailure { error ->
@@ -388,14 +380,13 @@ class ProxyFacade(
 
     private fun observeAppVisibility() {
         scope.launch {
-            AppVisibilityTracker.isForeground
-                .collect { isForeground ->
-                    if (isForeground) {
-                        session.reconcile()
-                    } else {
-                        session.stopTrafficPolling()
-                    }
+            AppVisibilityTracker.isForeground.collect { isForeground ->
+                if (isForeground) {
+                    session.reconcile()
+                } else {
+                    session.stopTrafficPolling()
                 }
+            }
         }
     }
 
@@ -409,8 +400,7 @@ class ProxyFacade(
                 }
                 .collectLatest { (foreground, snapshot) ->
                     val realCoreOwnsRuntime =
-                        snapshot.phase.isActiveOrStopping ||
-                            snapshot.owner == RuntimeOwner.RemoteController
+                        snapshot.phase.isActiveOrStopping || snapshot.owner == RuntimeOwner.RemoteController
                     // The profile probe is a SQLite read; keep it off whatever thread published the
                     // snapshot, since this loop also runs while the node page is on screen.
                     val hasActiveProfile = withContext(Dispatchers.IO) { preview.hasActiveProfile() }
@@ -442,8 +432,7 @@ class ProxyFacade(
                             publishNodeSession(NodeDataSource.Preview, previewGroups)
                         !input.hasProfile && input.snapshot.owner != RuntimeOwner.RemoteController ->
                             _nodeSession.value = NodeSessionState()
-                        _nodeSession.value.everReady ->
-                            _nodeSession.value = _nodeSession.value.copy(available = false)
+                        _nodeSession.value.everReady -> _nodeSession.value = _nodeSession.value.copy(available = false)
                     }
                 }
         }
@@ -458,8 +447,8 @@ class ProxyFacade(
     /**
      * Whether the node list should be served by the inspect-only process.
      *
-     * The profile check is a SQLite read, and every caller is a UI coroutine, so it hops to IO
-     * instead of trusting the caller's dispatcher.
+     * The profile check is a SQLite read, and every caller is a UI coroutine, so it hops to IO instead of trusting the
+     * caller's dispatcher.
      */
     private suspend fun shouldUsePreviewRuntime(): Boolean =
         !session.snapshotValue().phase.isActiveOrStopping &&
@@ -473,8 +462,7 @@ class ProxyFacade(
         if (source != _nodeSession.value.source) {
             delayStore.publish(nodeGroups)
         }
-        _nodeSession.value =
-            NodeSessionState(source = source, groups = nodeGroups, available = true, everReady = true)
+        _nodeSession.value = NodeSessionState(source = source, groups = nodeGroups, available = true, everReady = true)
     }
 
     private data class NodeInputs(

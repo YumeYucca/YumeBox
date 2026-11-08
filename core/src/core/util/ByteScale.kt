@@ -20,15 +20,12 @@
 
 package com.github.yumeyucca.yumebox.core.util
 
-/**
- * A byte count scaled down the shared 1024 ladder: [value] in the unit at [rank] (0 = bytes, 1 =
- * K…, 5 = P…).
- */
+/** A byte count scaled down the shared 1024 ladder: [value] in the unit at [rank] (0 = bytes, 1 = K…, 5 = P…). */
 data class ScaledBytes(val value: Double, val rank: Int)
 
 /**
- * Walks the 1024 ladder shared by every byte formatter (SI-labelled "KB" UI text and IEC-labelled
- * "KiB" core traffic text). [maxRank] caps the unit range, e.g. 3 keeps everything at GB and below.
+ * Walks the 1024 ladder shared by every byte formatter (SI-labelled "KB" UI text and IEC-labelled "KiB" core traffic
+ * text). [maxRank] caps the unit range, e.g. 3 keeps everything at GB and below.
  */
 fun scaleBytes(bytes: Long, maxRank: Int = 5): ScaledBytes {
     var value = bytes.coerceAtLeast(0L).toDouble()

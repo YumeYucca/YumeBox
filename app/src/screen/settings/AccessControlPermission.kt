@@ -31,8 +31,8 @@ internal const val GET_INSTALLED_APPS_PERMISSION = "com.android.permission.GET_I
 /**
  * Requests [GET_INSTALLED_APPS_PERMISSION] whenever [needsPermission] becomes true.
  *
- * Both access-control screens render the same app list and therefore need the same request; owning
- * it here keeps the launcher, its effect key and the permission name in exactly one place.
+ * Both access-control screens render the same app list and therefore need the same request; owning it here keeps the
+ * launcher, its effect key and the permission name in exactly one place.
  */
 @Composable
 internal fun InstalledAppsPermissionRequest(
@@ -45,7 +45,5 @@ internal fun InstalledAppsPermissionRequest(
             onResult = { granted -> if (granted) onGranted() },
         )
 
-    LaunchedEffect(needsPermission) {
-        if (needsPermission) launcher.launch(GET_INSTALLED_APPS_PERMISSION)
-    }
+    LaunchedEffect(needsPermission) { if (needsPermission) launcher.launch(GET_INSTALLED_APPS_PERMISSION) }
 }

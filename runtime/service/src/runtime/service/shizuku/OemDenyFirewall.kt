@@ -24,10 +24,11 @@ import android.os.IBinder
 import android.util.Log
 
 /**
- * Adds or removes the OEM deny firewall rule of a uid through the hidden connectivity API; the caller
- * brings a connectivity binder obtained in its own process.
+ * Adds or removes the OEM deny firewall rule of a uid through the hidden connectivity API; the caller brings a
+ * connectivity binder obtained in its own process.
  *
- * `com.github.yumeyucca.yumebox.loader.ShizukuUserService` (:pack) keeps its own copy: it has to live in the loader DEX.
+ * `com.github.yumeyucca.yumebox.loader.ShizukuUserService` (:pack) keeps its own copy: it has to live in the loader
+ * DEX.
  */
 internal object OemDenyFirewall {
     private const val TAG = "YumeBoxFirewall"
@@ -41,35 +42,30 @@ internal object OemDenyFirewall {
         connectivity: IBinder,
         uid: Int,
         denied: Boolean,
-    ): Boolean =
-        runCatching {
-            val manager =
-                Class
-                    .forName("android.net.IConnectivityManager\$Stub")
-                    .getMethod("asInterface", IBinder::class.java)
-                    .invoke(null, connectivity)
-                    ?: error("connectivity service binder is not available")
+    ): Boolean = runCatching {
+        val manager =
+            Class.forName("android.net.IConnectivityManager\$Stub")
+                .getMethod("asInterface", IBinder::class.java)
+                .invoke(null, connectivity) ?: error("connectivity service binder is not available")
 
-            manager.javaClass
-                .getMethod(
-                    "setFirewallChainEnabled",
-                    Int::class.javaPrimitiveType,
-                    Boolean::class.javaPrimitiveType,
-                )
-                .invoke(manager, CHAIN_OEM_DENY, true)
+        manager.javaClass
+            .getMethod(
+                "setFirewallChainEnabled",
+                Int::class.javaPrimitiveType,
+                Boolean::class.javaPrimitiveType,
+            )
+            .invoke(manager, CHAIN_OEM_DENY, true)
 
-            manager.javaClass
-                .getMethod(
-                    "setUidFirewallRule",
-                    Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType,
-                )
-                .invoke(manager, CHAIN_OEM_DENY, uid, if (denied) RULE_DENY else RULE_ALLOW)
-            true
-        }
-            .onFailure { error ->
-                Log.e(TAG, "Failed to update the OEM deny rule of uid $uid", error)
-            }
-            .getOrDefault(false)
+        manager.javaClass
+            .getMethod(
+                "setUidFirewallRule",
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+            )
+            .invoke(manager, CHAIN_OEM_DENY, uid, if (denied) RULE_DENY else RULE_ALLOW)
+        true
+    }
+        .onFailure { error -> Log.e(TAG, "Failed to update the OEM deny rule of uid $uid", error) }
+        .getOrDefault(false)
 }

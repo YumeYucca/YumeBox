@@ -26,8 +26,8 @@ import com.github.yumeyucca.yumebox.data.model.RemoteBackend
 import com.tencent.mmkv.MMKV
 
 /**
- * Local runtime that was paused so the app could attach to an external controller. Names are stored
- * as strings so this store stays independent of runtime-api types.
+ * Local runtime that was paused so the app could attach to an external controller. Names are stored as strings so this
+ * store stays independent of runtime-api types.
  */
 data class PausedLocalRuntime(
     val ownerName: String,
@@ -35,28 +35,29 @@ data class PausedLocalRuntime(
 )
 
 /**
- * Persists external-controller mode state: whether the app should act as a pure remote controller,
- * the list of saved backends, and which backend is active.
+ * Persists external-controller mode state: whether the app should act as a pure remote controller, the list of saved
+ * backends, and which backend is active.
  *
- * Stored in its own MMKV file (`remote_controller`) using [MMKV.MULTI_PROCESS_MODE] so both the UI
- * and service processes observe the same configuration.
+ * Stored in its own MMKV file (`remote_controller`) using [MMKV.MULTI_PROCESS_MODE] so both the UI and service
+ * processes observe the same configuration.
  *
- * [controllerEnabled] is the user preference. The app only takes over as a remote controller when
- * [isActive] is true (preference on, backend selected, and the backend is currently attached).
+ * [controllerEnabled] is the user preference. The app only takes over as a remote controller when [isActive] is true
+ * (preference on, backend selected, and the backend is currently attached).
  */
-class RemoteControllerStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = externalMmkv) {
+class RemoteControllerStore(
+    externalMmkv: MMKV,
+) : MMKVPreference(externalMmkv = externalMmkv) {
     private val backendCodec = RemoteBackendStorageCodec()
 
     /**
-     * Master switch — when on (and an active backend exists) the app *wants* remote-controller
-     * mode. Takeover still requires a reachable backend; see [isActive].
+     * Master switch — when on (and an active backend exists) the app *wants* remote-controller mode. Takeover still
+     * requires a reachable backend; see [isActive].
      */
     val controllerEnabled by boolFlow(false)
 
     /**
-     * True only while the session is actually attached to a reachable remote backend. Service
-     * processes read this via [isActive] so they do not skip local start when the preference is on
-     * but the controller is down.
+     * True only while the session is actually attached to a reachable remote backend. Service processes read this via
+     * [isActive] so they do not skip local start when the preference is on but the controller is down.
      */
     val controllerAttached by boolFlow(false)
 
@@ -65,11 +66,11 @@ class RemoteControllerStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = 
 
     /** All saved backends. Secrets are encrypted at this persistence boundary. */
     val backends by
-    jsonListFlow(
-        default = emptyList<RemoteBackend>(),
-        decode = { str -> backendCodec.decode(this, str) },
-        encode = { value -> backendCodec.encode(this, value) },
-    )
+        jsonListFlow(
+            default = emptyList<RemoteBackend>(),
+            decode = { str -> backendCodec.decode(this, str) },
+            encode = { value -> backendCodec.encode(this, value) },
+        )
 
     init {
         val persisted = mmkv.decodeString("backends").orEmpty()

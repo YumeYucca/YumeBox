@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.base
 
-
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
@@ -32,9 +31,9 @@ import kotlinx.coroutines.flow.*
 /**
  * State and one-shot effect machinery for the contract ViewModels.
  *
- * [ContractStateViewModel] and [AndroidContractStateViewModel] cannot share a superclass — an
- * [AndroidViewModel] subclass needs the Application at construction — so the behaviour lives here
- * once and both bases expose it as protected members.
+ * [ContractStateViewModel] and [AndroidContractStateViewModel] cannot share a superclass — an [AndroidViewModel]
+ * subclass needs the Application at construction — so the behaviour lives here once and both bases expose it as
+ * protected members.
  */
 private class ContractStateHolder<State : LoadableState<State>, Effect : Any>(initialState: State) {
     val state = MutableStateFlow(initialState)
@@ -80,9 +79,7 @@ private class ContractStateHolder<State : LoadableState<State>, Effect : Any>(in
 }
 
 /** Contract base with strongly-typed state and one-shot effect channel. */
-abstract class ContractStateViewModel<State : LoadableState<State>, Effect : Any>(
-    initialState: State
-) : ViewModel() {
+abstract class ContractStateViewModel<State : LoadableState<State>, Effect : Any>(initialState: State) : ViewModel() {
     private val contract = ContractStateHolder<State, Effect>(initialState)
 
     protected val _uiState: MutableStateFlow<State> = contract.state
@@ -95,8 +92,7 @@ abstract class ContractStateViewModel<State : LoadableState<State>, Effect : Any
 
     protected fun postError(error: String, effect: Effect? = null) = contract.postError(error, effect)
 
-    protected fun postMessage(message: String, effect: Effect? = null) =
-        contract.postMessage(message, effect)
+    protected fun postMessage(message: String, effect: Effect? = null) = contract.postMessage(message, effect)
 
     protected fun clearErrorState() = contract.clearError()
 
@@ -120,8 +116,7 @@ abstract class AndroidContractStateViewModel<State : LoadableState<State>, Effec
 
     protected fun postError(error: String, effect: Effect? = null) = contract.postError(error, effect)
 
-    protected fun postMessage(message: String, effect: Effect? = null) =
-        contract.postMessage(message, effect)
+    protected fun postMessage(message: String, effect: Effect? = null) = contract.postMessage(message, effect)
 
     protected fun clearErrorState() = contract.clearError()
 
@@ -131,8 +126,7 @@ abstract class AndroidContractStateViewModel<State : LoadableState<State>, Effec
 /**
  * Interface for state classes that support loading, error, and message states.
  *
- * Implement this interface in a state data class to use [ContractStateViewModel] or
- * [AndroidContractStateViewModel].
+ * Implement this interface in a state data class to use [ContractStateViewModel] or [AndroidContractStateViewModel].
  */
 interface LoadableState<T : LoadableState<T>> {
     val isLoading: Boolean

@@ -29,11 +29,11 @@ import androidx.compose.runtime.setValue
 import com.github.yumeyucca.yumebox.data.model.ProfileBinding
 
 /**
- * The override selection of the profile being edited, together with the gate that keeps an early
- * toggle from overwriting the persisted list before the binding has been read.
+ * The override selection of the profile being edited, together with the gate that keeps an early toggle from
+ * overwriting the persisted list before the binding has been read.
  *
- * The page owns the I/O: [attach], [detach], [setEnabled] and [reorder] only report a change when
- * they actually changed the selection, so a no-op never reaches persistence.
+ * The page owns the I/O: [attach], [detach], [setEnabled] and [reorder] only report a change when they actually changed
+ * the selection, so a no-op never reaches persistence.
  */
 @Stable
 internal class ProfileOverrideSelection internal constructor() {
@@ -56,8 +56,7 @@ internal class ProfileOverrideSelection internal constructor() {
         isLoaded = true
     }
 
-    fun isEnabled(overrideId: String): Boolean =
-        overrideId in ids && overrideId !in disabledIds
+    fun isEnabled(overrideId: String): Boolean = overrideId in ids && overrideId !in disabledIds
 
     /** Attaches a row without applying it. */
     fun attach(overrideId: String): Boolean {
@@ -122,10 +121,7 @@ internal class ProfileOverrideSelection internal constructor() {
 internal fun rememberProfileOverrideSelection(profileId: String): ProfileOverrideSelection =
     remember(profileId) { ProfileOverrideSelection() }
 
-/**
- * Re-applies the order the user dragged onto [visibleIds] while the ids hidden by the filter keep
- * their slot.
- */
+/** Re-applies the order the user dragged onto [visibleIds] while the ids hidden by the filter keep their slot. */
 internal fun reorderVisibleOverrideIds(
     allIds: List<String>,
     visibleIds: List<String>,

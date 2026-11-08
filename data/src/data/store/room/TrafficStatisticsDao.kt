@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.data.store.room
 
-
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -35,12 +34,12 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Room DAO for traffic statistics.
  *
- * Declared as an `abstract class` (not an interface) so the accumulate-then-persist logic can live
- * in concrete `@Transaction` methods that call the generated query/insert primitives.
+ * Declared as an `abstract class` (not an interface) so the accumulate-then-persist logic can live in concrete
+ * `@Transaction` methods that call the generated query/insert primitives.
  *
- * Write model — pre-UPSERT accumulate (minSdk 26 ships SQLite < 3.24, so SQLite `UPSERT` `INSERT
- * ... ON CONFLICT ... DO UPDATE` is unavailable): each row is first `UPDATE`d in place (`total +=
- * :delta`); if the `UPDATE` affects 0 rows the row does not exist yet and is `INSERT`ed.
+ * Write model — pre-UPSERT accumulate (minSdk 26 ships SQLite < 3.24, so SQLite `UPSERT` `INSERT ... ON CONFLICT ... DO
+ * UPDATE` is unavailable): each row is first `UPDATE`d in place (`total += :delta`); if the `UPDATE` affects 0 rows the
+ * row does not exist yet and is `INSERT`ed.
  */
 @Dao
 abstract class TrafficStatisticsDao {
@@ -50,15 +49,14 @@ abstract class TrafficStatisticsDao {
     /**
      * Records a batch of app + route deltas and applies 90-day retention, all in one transaction.
      *
-     * Per (date, app) / (date, app, route): `total_upload += upDelta`, `total_download +=
-     * downDelta`, `last_active_at = lastActiveAt`; `app_name`/`route_label` are overwritten only
-     * when the incoming value is non-blank, and `package_name` is `COALESCE`d (new value wins only
-     * when non-null). Records with both deltas `<= 0` are skipped (the caller already filters, but
-     * we keep the guard).
+     * Per (date, app) / (date, app, route): `total_upload += upDelta`, `total_download += downDelta`, `last_active_at =
+     * lastActiveAt`; `app_name`/`route_label` are overwritten only when the incoming value is non-blank, and
+     * `package_name` is `COALESCE`d (new value wins only when non-null). Records with both deltas `<= 0` are skipped
+     * (the caller already filters, but we keep the guard).
      *
-     * @param retentionCutoffMillis rows with `date_millis < retentionCutoffMillis` are deleted
-     *   after the writes. Pass `0L` (or any non-positive value) to skip retention — all real day
-     *   buckets are positive, so `date_millis < 0` matches nothing.
+     * @param retentionCutoffMillis rows with `date_millis < retentionCutoffMillis` are deleted after the writes. Pass
+     *   `0L` (or any non-positive value) to skip retention — all real day buckets are positive, so `date_millis < 0`
+     *   matches nothing.
      */
     @Transaction
     open suspend fun recordBatch(
@@ -160,8 +158,7 @@ abstract class TrafficStatisticsDao {
         downloadDelta: Long,
     ): Int
 
-    @Insert
-    protected abstract suspend fun insertHourly(entity: TrafficHourlyEntity)
+    @Insert protected abstract suspend fun insertHourly(entity: TrafficHourlyEntity)
 
     @Query(
         """
@@ -184,8 +181,7 @@ abstract class TrafficStatisticsDao {
         lastActiveAt: Long,
     ): Int
 
-    @Insert
-    protected abstract suspend fun insertApp(entity: AppTrafficDailyEntity)
+    @Insert protected abstract suspend fun insertApp(entity: AppTrafficDailyEntity)
 
     @Query(
         """
@@ -207,8 +203,7 @@ abstract class TrafficStatisticsDao {
         lastActiveAt: Long,
     ): Int
 
-    @Insert
-    protected abstract suspend fun insertRoute(entity: RouteTrafficDailyEntity)
+    @Insert protected abstract suspend fun insertRoute(entity: RouteTrafficDailyEntity)
 
     // endregion
 
@@ -218,10 +213,10 @@ abstract class TrafficStatisticsDao {
      * Reactive per-app aggregation over `[cutoffMillis, +inf)`, summed and sorted.
      *
      * The unattributed bucket (`app_key = 'system:unattributed'`,
-     * [com.github.yumeyucca.yumebox.data.model.TrafficStatisticsBuckets.UNATTRIBUTED_APP_KEY])
-     * always sorts LAST regardless of its total; every other app is ordered by total bytes
-     * descending. `app_name`/`package_name` are taken from the most-recent row via the SQLite
-     * single-`max()` bare-column rule (`MAX(last_active_at)` picks the winning row's bare columns).
+     * [com.github.yumeyucca.yumebox.data.model.TrafficStatisticsBuckets.UNATTRIBUTED_APP_KEY]) always sorts LAST
+     * regardless of its total; every other app is ordered by total bytes descending. `app_name`/`package_name` are
+     * taken from the most-recent row via the SQLite single-`max()` bare-column rule (`MAX(last_active_at)` picks the
+     * winning row's bare columns).
      */
     @Query(
         """
@@ -241,8 +236,8 @@ abstract class TrafficStatisticsDao {
     abstract fun getAppUsagesFlow(cutoffMillis: Long): Flow<List<AppTrafficUsage>>
 
     /**
-     * Daily totals over `[cutoffMillis, +inf)`, one row per day, oldest first. Used by the week bar
-     * chart (screen-time style).
+     * Daily totals over `[cutoffMillis, +inf)`, one row per day, oldest first. Used by the week bar chart (screen-time
+     * style).
      */
     @Query(
         """
@@ -289,14 +284,11 @@ abstract class TrafficStatisticsDao {
         clearAllHourly()
     }
 
-    @Query("DELETE FROM app_traffic_daily")
-    protected abstract suspend fun clearAllApp()
+    @Query("DELETE FROM app_traffic_daily") protected abstract suspend fun clearAllApp()
 
-    @Query("DELETE FROM route_traffic_daily")
-    protected abstract suspend fun clearAllRoute()
+    @Query("DELETE FROM route_traffic_daily") protected abstract suspend fun clearAllRoute()
 
-    @Query("DELETE FROM traffic_hourly")
-    protected abstract suspend fun clearAllHourly()
+    @Query("DELETE FROM traffic_hourly") protected abstract suspend fun clearAllHourly()
 
     // endregion
 }

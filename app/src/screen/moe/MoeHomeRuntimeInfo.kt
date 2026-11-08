@@ -13,7 +13,6 @@
 
 package com.github.yumeyucca.yumebox.screen.moe
 
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -24,10 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.common.util.ByteFormatter
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.CountryFlagCircle
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.util.extractFlaggedName
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -38,12 +37,8 @@ internal fun MoeTrafficStrip(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier, Arrangement.spacedBy(MoeUi.Hero.trafficRowGap), Alignment.CenterVertically) {
-        Box(Modifier.weight(1f), Alignment.CenterStart) {
-            MoeTrafficItem(YumeTxt.Home.Traffic.UpShort, uploadSpeed)
-        }
-        Box(Modifier.weight(1f), Alignment.CenterEnd) {
-            MoeTrafficItem(YumeTxt.Home.Traffic.DownShort, downloadSpeed)
-        }
+        Box(Modifier.weight(1f), Alignment.CenterStart) { MoeTrafficItem(YumeTxt.Home.Traffic.UpShort, uploadSpeed) }
+        Box(Modifier.weight(1f), Alignment.CenterEnd) { MoeTrafficItem(YumeTxt.Home.Traffic.DownShort, downloadSpeed) }
     }
 }
 
@@ -89,23 +84,16 @@ internal fun MoeHomeInfoPanel(
 ) {
     val node = remember(serverName) { serverName?.let(::extractFlaggedName) }
     val name = node?.displayName ?: serverName.orEmpty()
-    val ping =
-        serverPing
-            ?.takeIf { it in 1..1000 }
-            ?.let { value -> YumeTxt.Home.NodeInfo.DelayValue.format(value) }
+    val ping = serverPing?.takeIf { it in 1..1000 }?.let { value -> YumeTxt.Home.NodeInfo.DelayValue.format(value) }
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = MoeUi.Hero.infoRowMinHeight),
+        modifier = modifier.fillMaxWidth().heightIn(min = MoeUi.Hero.infoRowMinHeight),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (name.isNotBlank()) {
             MoeInfoBlock(
                 value = name,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = MoeUi.Info.trailingPadding),
+                modifier = Modifier.weight(1f).padding(end = MoeUi.Info.trailingPadding),
                 leading = {
                     CountryFlagCircle(
                         countryCode = node?.countryCode,
@@ -113,16 +101,13 @@ internal fun MoeHomeInfoPanel(
                     )
                 },
             )
-        } else Spacer(Modifier
-            .weight(1f)
-            .padding(end = MoeUi.Info.trailingPadding))
+        } else Spacer(Modifier.weight(1f).padding(end = MoeUi.Info.trailingPadding))
         if (ping != null) {
             MoeInfoBlock(
                 value = ping,
                 modifier = Modifier.width(MoeUi.Hero.delayWidth),
                 valueColor =
-                    if (serverPing < 500) AppTheme.colors.moe.pingExcellent
-                    else AppTheme.colors.moe.pingWarning,
+                    if (serverPing < 500) AppTheme.colors.moe.pingExcellent else AppTheme.colors.moe.pingWarning,
                 alignEnd = true,
             )
         }

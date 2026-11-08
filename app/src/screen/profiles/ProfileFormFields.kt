@@ -65,7 +65,7 @@ internal fun ProfileSourceField(
     hint: String? = null,
 ) {
     when (sourceType) {
-        Profile.Type.Url ->
+        Profile.Type.Url -> {
             AppTextFieldRow(
                 label = YumeTxt.ProfilesPage.Input.SubscriptionUrl,
                 value = urlValue,
@@ -74,7 +74,9 @@ internal fun ProfileSourceField(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 hint = hint,
             )
-        Profile.Type.File ->
+        }
+
+        Profile.Type.File -> {
             PreferenceArrowItem(
                 title = YumeTxt.ProfilesPage.Input.SelectFile,
                 enabled = enabled,
@@ -90,8 +92,14 @@ internal fun ProfileSourceField(
                 },
                 onClick = onPickFile,
             )
+        }
+
         // External profiles carry their own source: no URL row, no file picker.
-        Profile.Type.External, null -> Unit
+        Profile.Type.External,
+        null,
+        -> {
+            Unit
+        }
     }
 }
 
@@ -110,10 +118,7 @@ internal fun ProfileAgeSecretField(
         onValueChange = onValueChange,
         enabled = enabled,
         hint = hint,
-        keyboardOptions =
-            KeyboardOptions(
-                keyboardType = if (visible) KeyboardType.Text else KeyboardType.Password,
-            ),
+        keyboardOptions = KeyboardOptions(keyboardType = if (visible) KeyboardType.Text else KeyboardType.Password),
         trailingIcon = {
             AppTextFieldRowIcon(
                 icon = Yume.Eye,

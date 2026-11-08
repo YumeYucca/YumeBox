@@ -27,18 +27,18 @@ import android.content.pm.PackageManager
 import android.os.IBinder
 import android.util.Log
 import com.github.yumeyucca.yumebox.common.util.startActivitySafely
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import rikka.shizuku.Shizuku
 import rikka.shizuku.ShizukuBinderWrapper
 import rikka.shizuku.SystemServiceHelper
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 /**
  * Access to the Shizuku / Sui privileged service. Sui needs no explicit initialization here:
- * `rikka.shizuku.ShizukuProvider` (declared in the app manifest) initializes it in its `onCreate`,
- * which runs before `Application.onCreate`.
+ * `rikka.shizuku.ShizukuProvider` (declared in the app manifest) initializes it in its `onCreate`, which runs before
+ * `Application.onCreate`.
  */
 object ShizukuManager {
     private const val TAG = "YumeBoxShizuku"
@@ -49,8 +49,8 @@ object ShizukuManager {
     private const val BIND_TIMEOUT_SECONDS = 3L
 
     /**
-     * Packed builds keep this class in the APK's loader DEX (see :pack), because the packed payload
-     * below /data/user/0/<pkg> is not readable for the shell user Shizuku runs as.
+     * Packed builds keep this class in the APK's loader DEX (see :pack), because the packed payload below
+     * /data/user/0/<pkg> is not readable for the shell user Shizuku runs as.
      */
     private const val LOADER_USER_SERVICE_CLASS = "com.github.yumeyucca.yumebox.loader.ShizukuUserService"
 
@@ -112,16 +112,16 @@ object ShizukuManager {
     }
 
     private fun resolveUserServiceArgs(context: Context): Shizuku.UserServiceArgs =
-        userServiceArgs ?: synchronized(this) {
-            userServiceArgs ?: Shizuku
-                .UserServiceArgs(
-                    ComponentName(context.applicationContext.packageName, userServiceClass),
-                ).daemon(false)
-                .processNameSuffix("privileged")
-                .debuggable(false)
-                .version(USER_SERVICE_VERSION)
-                .also { userServiceArgs = it }
-        }
+        userServiceArgs
+            ?: synchronized(this) {
+                userServiceArgs
+                    ?: Shizuku.UserServiceArgs(ComponentName(context.applicationContext.packageName, userServiceClass))
+                        .daemon(false)
+                        .processNameSuffix("privileged")
+                        .debuggable(false)
+                        .version(USER_SERVICE_VERSION)
+                        .also { userServiceArgs = it }
+            }
 
     /** Removes the user service record and lets its process exit instead of keeping it cached. */
     private fun releasePrivilegedService() {
@@ -139,10 +139,9 @@ object ShizukuManager {
 
     fun isRunning(): Boolean = runCatching { Shizuku.pingBinder() }.getOrDefault(false)
 
-    fun hasPermission(): Boolean =
-        runCatching { Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED }
-            .onFailure { error -> Log.w(TAG, "Shizuku permission check failed", error) }
-            .getOrDefault(false)
+    fun hasPermission(): Boolean = runCatching {
+        Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+    }.onFailure { error -> Log.w(TAG, "Shizuku permission check failed", error) }.getOrDefault(false)
 
     fun requestPermission(callback: (Boolean) -> Unit) {
         if (!isRunning()) {
@@ -183,51 +182,48 @@ object ShizukuManager {
     }
 
     /**
-     * Takes one hold on the XMSF bypass. HyperOS only keeps an unofficial island while that network
-     * stays down, so the firewall changes when the first holder arrives and when the last one leaves.
+     * Takes one hold on the XMSF bypass. HyperOS only keeps an unofficial island while that network stays down, so the
+     * firewall changes when the first holder arrives and when the last one leaves.
      *
      * Returns false when the firewall could not be changed. A later call retries.
      */
-    suspend fun acquireXmsfBypass(context: Context): Boolean =
-        bypassMutex.withLock {
-            if (restorePending) {
-                restorePending = false
-                return@withLock true
-            }
-            if (bypassHolders > 0) {
-                bypassHolders += 1
-                return@withLock true
-            }
-            if (!isAvailable()) return@withLock false
-            if (!setXmsfNetworkingBlocked(context, blocked = true)) return@withLock false
-            bypassHolders = 1
-            true
+    suspend fun acquireXmsfBypass(context: Context): Boolean = bypassMutex.withLock {
+        if (restorePending) {
+            restorePending = false
+            return@withLock true
         }
+        if (bypassHolders > 0) {
+            bypassHolders += 1
+            return@withLock true
+        }
+        if (!isAvailable()) return@withLock false
+        if (!setXmsfNetworkingBlocked(context, blocked = true)) return@withLock false
+        bypassHolders = 1
+        true
+    }
 
     /**
-     * Drops one hold. Returns false when this hold is still the last one and the firewall restore
-     * failed; the count stays at one so the next release can retry.
+     * Drops one hold. Returns false when this hold is still the last one and the firewall restore failed; the count
+     * stays at one so the next release can retry.
      */
-    suspend fun releaseXmsfBypass(context: Context): Boolean =
-        bypassMutex.withLock {
-            when {
-                bypassHolders > 1 -> {
-                    bypassHolders -= 1
-                    true
-                }
-                bypassHolders == 1 &&
-                    setXmsfNetworkingBlocked(context, blocked = false) -> {
-                    bypassHolders = 0
-                    restorePending = false
-                    true
-                }
-                bypassHolders == 1 -> {
-                    restorePending = true
-                    false
-                }
-                else -> true
+    suspend fun releaseXmsfBypass(context: Context): Boolean = bypassMutex.withLock {
+        when {
+            bypassHolders > 1 -> {
+                bypassHolders -= 1
+                true
             }
+            bypassHolders == 1 && setXmsfNetworkingBlocked(context, blocked = false) -> {
+                bypassHolders = 0
+                restorePending = false
+                true
+            }
+            bypassHolders == 1 -> {
+                restorePending = true
+                false
+            }
+            else -> true
         }
+    }
 
     private fun setXmsfNetworkingBlocked(
         context: Context,
@@ -236,8 +232,7 @@ object ShizukuManager {
         val xmsfUid =
             runCatching { context.packageManager.getPackageUid(XMSF_PACKAGE, 0) }
                 .onFailure { error -> Log.w(TAG, "$XMSF_PACKAGE is not installed", error) }
-                .getOrNull()
-                ?: return false
+                .getOrNull() ?: return false
 
         val service = getPrivilegedService(context)
         try {
@@ -263,7 +258,11 @@ object ShizukuManager {
     }
 
     private fun getPrivilegedService(context: Context): IPrivilegedService? {
-        privilegedService?.takeIf { serviceConnected }?.let { return it }
+        privilegedService
+            ?.takeIf { serviceConnected }
+            ?.let {
+                return it
+            }
 
         return runCatching {
             awaitingService = true

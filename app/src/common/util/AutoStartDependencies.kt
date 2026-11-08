@@ -28,8 +28,8 @@ import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
 import com.tencent.mmkv.MMKV
 
 /**
- * DI-resolved collaborators for [ProxyAutoStartHelper.checkAndAutoStart], bundled so the call site
- * resolves them once and provides them as a single context value.
+ * DI-resolved collaborators for [ProxyAutoStartHelper.checkAndAutoStart], bundled so the call site resolves them once
+ * and provides them as a single context value.
  */
 class AutoStartDependencies(
     val featureStore: FeatureStore,

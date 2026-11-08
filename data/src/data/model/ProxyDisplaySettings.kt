@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.data.model
 
-
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 
 const val PROXY_SHEET_HEIGHT_FRACTION_MIN = 0.5f

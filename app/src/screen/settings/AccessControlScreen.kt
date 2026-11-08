@@ -38,8 +38,8 @@ import com.github.yumeyucca.yumebox.presentation.component.Navigator
 import com.github.yumeyucca.yumebox.presentation.component.PreferenceArrowItem
 import com.github.yumeyucca.yumebox.presentation.component.PreferenceEnumItem
 import com.github.yumeyucca.yumebox.presentation.component.PreferenceSwitchItem
-import com.github.yumeyucca.yumebox.presentation.component.StandalonePageList
 import com.github.yumeyucca.yumebox.presentation.component.SectionSummary
+import com.github.yumeyucca.yumebox.presentation.component.StandalonePageList
 import com.github.yumeyucca.yumebox.presentation.component.Title
 import com.github.yumeyucca.yumebox.presentation.component.TopBar
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
@@ -73,7 +73,6 @@ fun AccessControlScreen(navigator: Navigator) {
             )
         }
     ) { innerPadding ->
-
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
@@ -86,8 +85,7 @@ fun AccessControlScreen(navigator: Navigator) {
                         checked = accessControlMode != AccessControlMode.ALLOW_ALL,
                         onCheckedChange = { enabled ->
                             viewModel.onAccessControlModeChange(
-                                if (enabled) AccessControlMode.ALLOW_SPECIFIC
-                                else AccessControlMode.ALLOW_ALL
+                                if (enabled) AccessControlMode.ALLOW_SPECIFIC else AccessControlMode.ALLOW_ALL
                             )
                         },
                     )
@@ -98,12 +96,9 @@ fun AccessControlScreen(navigator: Navigator) {
                         onValueChange = viewModel::onAccessControlModeChange,
                         label = { mode ->
                             when (mode) {
-                                AccessControlMode.ALLOW_ALL ->
-                                    YumeTxt.NetworkSettings.ProxyOptions.AllowAll
-                                AccessControlMode.ALLOW_SPECIFIC ->
-                                    YumeTxt.NetworkSettings.ProxyOptions.AllowSelected
-                                AccessControlMode.DENY_SPECIFIC ->
-                                    YumeTxt.NetworkSettings.ProxyOptions.RejectSelected
+                                AccessControlMode.ALLOW_ALL -> YumeTxt.NetworkSettings.ProxyOptions.AllowAll
+                                AccessControlMode.ALLOW_SPECIFIC -> YumeTxt.NetworkSettings.ProxyOptions.AllowSelected
+                                AccessControlMode.DENY_SPECIFIC -> YumeTxt.NetworkSettings.ProxyOptions.RejectSelected
                             }
                         },
                     )

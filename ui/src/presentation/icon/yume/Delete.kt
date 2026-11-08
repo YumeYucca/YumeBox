@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -39,12 +38,12 @@ val Yume.Delete: ImageVector
         }
         deleteVector =
             ImageVector.Builder(
-                name = "Trash",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            )
+                    name = "Trash",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                )
                 .apply {
                     path(
                         stroke = SolidColor(Color.Black),
@@ -119,5 +118,4 @@ val Yume.Delete: ImageVector
         return deleteVector!!
     }
 
-@Suppress("ObjectPropertyName")
-private var deleteVector: ImageVector? = null
+@Suppress("ObjectPropertyName") private var deleteVector: ImageVector? = null

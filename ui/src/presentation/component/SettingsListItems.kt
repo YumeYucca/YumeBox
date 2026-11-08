@@ -31,9 +31,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -46,20 +48,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private val LocalSettingsItemShape =
-    compositionLocalOf<Shape> { RoundedCornerShape(24.dp) }
+private val LocalSettingsItemShape = compositionLocalOf<Shape> { RoundedCornerShape(24.dp) }
 
 private val SettingsSegmentOuterRadius = 24.dp
 private val SettingsSegmentInnerRadius = 4.dp
 private val SettingsSegmentGap = 2.dp
 
 /**
- * KSU-style Material 3 settings group. The separation between rows is intentional whitespace,
- * not a divider: outer rows use 24dp corners and inner rows use 4dp corners.
+ * KSU-style Material 3 settings group. The separation between rows is intentional whitespace, not a divider: outer rows
+ * use 24dp corners and inner rows use 4dp corners.
  */
 @Composable
 fun SettingsSegmentedColumn(
@@ -77,12 +76,12 @@ fun SettingsSegmentedColumn(
                 RoundedCornerShape(
                     topStart = if (index == 0) SettingsSegmentOuterRadius else SettingsSegmentInnerRadius,
                     topEnd = if (index == 0) SettingsSegmentOuterRadius else SettingsSegmentInnerRadius,
-                    bottomStart = if (index == content.lastIndex) SettingsSegmentOuterRadius else SettingsSegmentInnerRadius,
-                    bottomEnd = if (index == content.lastIndex) SettingsSegmentOuterRadius else SettingsSegmentInnerRadius,
+                    bottomStart =
+                        if (index == content.lastIndex) SettingsSegmentOuterRadius else SettingsSegmentInnerRadius,
+                    bottomEnd =
+                        if (index == content.lastIndex) SettingsSegmentOuterRadius else SettingsSegmentInnerRadius,
                 )
-            CompositionLocalProvider(LocalSettingsItemShape provides shape) {
-                itemContent()
-            }
+            CompositionLocalProvider(LocalSettingsItemShape provides shape) { itemContent() }
         }
     }
 }
@@ -90,8 +89,8 @@ fun SettingsSegmentedColumn(
 /**
  * One-line Material 3 settings item with a leading icon and trailing chevron.
  *
- * The item intentionally has no independent card. Its background and shape are supplied by the
- * surrounding segmented group, matching KernelSU's `SegmentedListItem` layout.
+ * The item intentionally has no independent card. Its background and shape are supplied by the surrounding segmented
+ * group, matching KernelSU's `SegmentedListItem` layout.
  */
 @Composable
 fun SettingsListItem(

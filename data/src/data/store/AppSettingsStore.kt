@@ -83,9 +83,9 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     }
 
     /**
-     * One-time rename migration: pre-rename builds persisted the home/wallpaper preferences under
-     * `acg*` keys. Copy any legacy value onto the new `moe*` key when the new key is still absent,
-     * so upgrading users keep their saved quote, author, wallpaper and crop framing.
+     * One-time rename migration: pre-rename builds persisted the home/wallpaper preferences under `acg*` keys. Copy any
+     * legacy value onto the new `moe*` key when the new key is still absent, so upgrading users keep their saved quote,
+     * author, wallpaper and crop framing.
      */
     private fun migrateLegacyHomeKeys() {
         fun moveString(old: String, new: String) {

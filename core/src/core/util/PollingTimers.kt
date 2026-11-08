@@ -23,10 +23,10 @@
 package com.github.yumeyucca.yumebox.core.util
 
 import android.os.SystemClock
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 
 data class PollingTimerSpec(
     val name: String,
@@ -68,8 +68,7 @@ object PollingTimers {
     private const val STOP_TIMEOUT_MILLIS = 5_000L
 
     // One lightweight scheduler lane for all periodic tick emission in this process.
-    private val schedulerScope =
-        CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
+    private val schedulerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
     private val tickerCache = ConcurrentHashMap<PollingTimerSpec, SharedFlow<Long>>()
 
     fun ticks(spec: PollingTimerSpec): Flow<Long> =
@@ -77,18 +76,17 @@ object PollingTimers {
         // each build (and subscribe to) their own shared flow for the same spec.
         tickerCache.computeIfAbsent(spec) {
             flow {
-                if (spec.initialDelayMillis > 0L) {
-                    delay(spec.initialDelayMillis.milliseconds)
+                    if (spec.initialDelayMillis > 0L) {
+                        delay(spec.initialDelayMillis.milliseconds)
+                    }
+                    while (currentCoroutineContext().isActive) {
+                        emit(SystemClock.elapsedRealtime())
+                        delay(spec.intervalMillis.milliseconds)
+                    }
                 }
-                while (currentCoroutineContext().isActive) {
-                    emit(SystemClock.elapsedRealtime())
-                    delay(spec.intervalMillis.milliseconds)
-                }
-            }
                 .shareIn(
                     scope = schedulerScope,
-                    started =
-                        SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS.milliseconds),
+                    started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS.milliseconds),
                     replay = 0,
                 )
         }

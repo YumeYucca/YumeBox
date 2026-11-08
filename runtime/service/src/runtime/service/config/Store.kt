@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.runtime.service.config
 
-
 import kotlin.reflect.KProperty
 
 class Store(val provider: StoreProvider) {

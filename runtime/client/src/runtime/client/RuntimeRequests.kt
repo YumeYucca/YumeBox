@@ -28,6 +28,4 @@ data class RuntimeStartRequest(
     val profile: Profile? = null,
 )
 
-data class RuntimeStopRequest(
-    val reason: String? = null,
-)
+data class RuntimeStopRequest(val reason: String? = null)

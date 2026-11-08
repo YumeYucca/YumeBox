@@ -22,20 +22,18 @@
 
 package com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel
 
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.controller.AppIdentityResolver
 import com.github.yumeyucca.yumebox.data.model.*
 import com.github.yumeyucca.yumebox.data.store.TrafficStatisticsStore
 import com.github.yumeyucca.yumebox.presentation.component.BarChartItem
+import java.util.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
-import java.util.*
 
-class TrafficStatisticsViewModel(private val trafficStatisticsStore: TrafficStatisticsStore) :
-    ViewModel() {
+class TrafficStatisticsViewModel(private val trafficStatisticsStore: TrafficStatisticsStore) : ViewModel() {
     private val selectedTimeRange = MutableStateFlow(StatisticsTimeRange.TODAY)
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -108,8 +106,7 @@ class TrafficStatisticsViewModel(private val trafficStatisticsStore: TrafficStat
     }
 
     private fun AppTrafficUsage.isSystemTraffic(): Boolean =
-        appKey == AppIdentityResolver.UNKNOWN_APP_KEY ||
-            appKey == TrafficStatisticsBuckets.UNATTRIBUTED_APP_KEY
+        appKey == AppIdentityResolver.UNKNOWN_APP_KEY || appKey == TrafficStatisticsBuckets.UNATTRIBUTED_APP_KEY
 
     private fun buildTodayBars(hourlyTotals: List<HourlyTrafficSummary>): List<BarChartItem> {
         val totalsByHour = hourlyTotals.associateBy { it.hourStartMillis }
@@ -127,8 +124,7 @@ class TrafficStatisticsViewModel(private val trafficStatisticsStore: TrafficStat
     /** Always emit 7 day slots ending today, filling missing days with 0. */
     private fun buildWeekBars(dailyTotals: List<DailyTrafficSummary>): List<BarChartItem> {
         val byDay = dailyTotals.associateBy { it.dateMillis }
-        val today =
-            Calendar.getInstance().apply { timeInMillis = startOfDay(System.currentTimeMillis()) }
+        val today = Calendar.getInstance().apply { timeInMillis = startOfDay(System.currentTimeMillis()) }
         return (6 downTo 0).map { daysAgo ->
             val day = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -daysAgo) }
             val dayStart = day.timeInMillis
@@ -180,8 +176,8 @@ data class TrafficStatisticsUiState(
 )
 
 /**
- * Transfer totals of the selected [StatisticsTimeRange]. The range is the period, so this type
- * carries no timestamp at all: a millis-named field must never hold a day count.
+ * Transfer totals of the selected [StatisticsTimeRange]. The range is the period, so this type carries no timestamp at
+ * all: a millis-named field must never hold a day count.
  */
 data class TrafficTotals(
     val totalUpload: Long = 0L,

@@ -29,10 +29,10 @@ import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 /**
  * Backdrop that samples its own content on top of [containerColor].
  *
- * Glass controls need something to sample. A sheet passes `backdrop = null` to the library (the panel
- * paints opaque colour, it does not blur the page) and a page body may be translucent, so both would
- * leave their glass empty at rest and only pick up the effect once content scrolled in. Painting the
- * container colour first gives them a base layer; keying on the colour re-records on a theme switch.
+ * Glass controls need something to sample. A sheet passes `backdrop = null` to the library (the panel paints opaque
+ * colour, it does not blur the page) and a page body may be translucent, so both would leave their glass empty at rest
+ * and only pick up the effect once content scrolled in. Painting the container colour first gives them a base layer;
+ * keying on the colour re-records on a theme switch.
  */
 @Composable
 fun rememberSurfaceBackdrop(containerColor: Color): LayerBackdrop =

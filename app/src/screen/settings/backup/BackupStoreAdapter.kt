@@ -19,8 +19,8 @@
 
 package com.github.yumeyucca.yumebox.screen.settings.backup
 
-import com.github.yumeyucca.yumebox.data.store.*
 import com.github.yumeyucca.yumebox.data.model.RemoteBackend
+import com.github.yumeyucca.yumebox.data.store.*
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
 import com.github.yumeyucca.yumebox.runtime.service.config.ServiceStore
 import com.github.yumeyucca.yumebox.runtime.service.profile.ProfileStore
@@ -47,8 +47,7 @@ internal class BackupStoreAdapter(
                     invertOnPrimaryColors = appSettings.invertOnPrimaryColors.value,
                     homePreviewGuideShown = appSettings.homePreviewGuideShown.value,
                     automaticRestart = appSettings.automaticRestart.value,
-                    autoUpdateCurrentProfileOnStart =
-                        appSettings.autoUpdateCurrentProfileOnStart.value,
+                    autoUpdateCurrentProfileOnStart = appSettings.autoUpdateCurrentProfileOnStart.value,
                     excludeFromRecents = appSettings.excludeFromRecents.value,
                     showTrafficNotification = appSettings.showTrafficNotification.value,
                     bottomBarAutoHide = appSettings.bottomBarAutoHide.value,
@@ -146,16 +145,17 @@ internal class BackupStoreAdapter(
 
     private fun clearConfigurationStores() {
         listOf(
-            "settings",
-            "network_settings",
-            "substore",
-            "proxy_display",
-            "profile_links",
-            "remote_controller",
-            "profiles",
-            "service",
-            "override_bindings",
-        ).forEach { id -> mmkvProvider.getMMKV(id).clearAll() }
+                "settings",
+                "network_settings",
+                "substore",
+                "proxy_display",
+                "profile_links",
+                "remote_controller",
+                "profiles",
+                "service",
+                "override_bindings",
+            )
+            .forEach { id -> mmkvProvider.getMMKV(id).clearAll() }
         refreshPreferenceCachesAfterRawClear()
     }
 
@@ -347,8 +347,7 @@ internal fun mergeBackupPayload(local: BackupPayload, backup: BackupPayload): Ba
                         backup.networkSettings.tunIncludeAndroidUser,
                     ),
                 accessControlPackages =
-                    local.networkSettings.accessControlPackages +
-                        backup.networkSettings.accessControlPackages,
+                    local.networkSettings.accessControlPackages + backup.networkSettings.accessControlPackages,
             ),
         profileLinks =
             local.profileLinks.copy(
@@ -358,10 +357,7 @@ internal fun mergeBackupPayload(local: BackupPayload, backup: BackupPayload): Ba
                         backup.profileLinks.links,
                         ProfileLink::id,
                     ),
-                defaultLinkId =
-                    local.profileLinks.defaultLinkId.ifBlank {
-                        backup.profileLinks.defaultLinkId
-                    },
+                defaultLinkId = local.profileLinks.defaultLinkId.ifBlank { backup.profileLinks.defaultLinkId },
             ),
         remoteController =
             local.remoteController.copy(
@@ -372,9 +368,7 @@ internal fun mergeBackupPayload(local: BackupPayload, backup: BackupPayload): Ba
                         RemoteBackend::id,
                     ),
                 activeBackendId =
-                    local.remoteController.activeBackendId.ifBlank {
-                        backup.remoteController.activeBackendId
-                    },
+                    local.remoteController.activeBackendId.ifBlank { backup.remoteController.activeBackendId },
             ),
         profiles =
             local.profiles.copy(
@@ -384,24 +378,18 @@ internal fun mergeBackupPayload(local: BackupPayload, backup: BackupPayload): Ba
                         backup.profiles.imported,
                         ImportedBackup::uuid,
                     ),
-                profileOrder =
-                    mergeLocalFirst(local.profiles.profileOrder, backup.profiles.profileOrder),
+                profileOrder = mergeLocalFirst(local.profiles.profileOrder, backup.profiles.profileOrder),
             ),
-        service =
-            local.service.copy(
-                activeProfile = local.service.activeProfile ?: backup.service.activeProfile
-            ),
+        service = local.service.copy(activeProfile = local.service.activeProfile ?: backup.service.activeProfile),
     )
 
-private fun <T> mergeLocalFirst(local: List<T>, backup: List<T>): List<T> =
-    (local + backup).distinct()
+private fun <T> mergeLocalFirst(local: List<T>, backup: List<T>): List<T> = (local + backup).distinct()
 
 private fun <T, K> mergeLocalFirst(
     local: List<T>,
     backup: List<T>,
     key: (T) -> K,
-): List<T> =
-    (local + backup).distinctBy(key)
+): List<T> = (local + backup).distinctBy(key)
 
 internal fun refreshAfterRawStoreClear(vararg preferences: Preference<*>) {
     preferences.forEach { it.refresh() }

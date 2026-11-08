@@ -22,12 +22,12 @@
 
 package com.github.yumeyucca.yumebox.feature.meta.presentation.screen
 
-
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.feature.meta.presentation.util.*
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.CustomRoutingViewModel
 import com.github.yumeyucca.yumebox.presentation.component.*
@@ -36,7 +36,6 @@ import com.github.yumeyucca.yumebox.presentation.icon.yume.Edit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -79,8 +78,8 @@ fun CustomRoutingScreen(
     LaunchedEffect(presetSelection) { selection = presetSelection }
 
     /**
-     * The single "leave with the right draft" policy: run [then] as is when clean, drop edits the
-     * YAML cannot carry when a manual edit made the preset unrepresentable, otherwise persist first.
+     * The single "leave with the right draft" policy: run [then] as is when clean, drop edits the YAML cannot carry
+     * when a manual edit made the preset unrepresentable, otherwise persist first.
      */
     fun saveThen(then: () -> Unit) {
         if (isSaving) return
@@ -125,7 +124,6 @@ fun CustomRoutingScreen(
             )
         }
     ) { paddingValues ->
-
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = paddingValues,
@@ -142,11 +140,10 @@ fun CustomRoutingScreen(
 }
 
 /**
- * One card of the routing editor: its title, its items, and the slice of the edited preset those
- * items toggle.
+ * One card of the routing editor: its title, its items, and the slice of the edited preset those items toggle.
  *
- * The toggle is a pure `(draft, item, checked) -> draft` function, so all five cards are one list
- * and one loop instead of five near-identical [RoutingSwitchCard] call sites.
+ * The toggle is a pure `(draft, item, checked) -> draft` function, so all five cards are one list and one loop instead
+ * of five near-identical [RoutingSwitchCard] call sites.
  */
 @Immutable
 private class SwitchCardSpec<T>(
@@ -162,8 +159,8 @@ private class SwitchCardSpec<T>(
 /**
  * The cards in display order.
  *
- * Titles and labels are lambdas: [YumeTxt] values are getters over the active locale, so reading
- * them while building this list would freeze whichever language happened to be active then.
+ * Titles and labels are lambdas: [YumeTxt] values are getters over the active locale, so reading them while building
+ * this list would freeze whichever language happened to be active then.
  */
 private val switchCardSpecs: List<SwitchCardSpec<*>> =
     listOf(
@@ -238,11 +235,8 @@ private fun <T> SwitchCard(
         iconUrl = spec.iconUrl,
         itemTitle = spec.label,
         isChecked = { item -> spec.isChecked(selection, item) },
-        onCheckedChange = { item, checked ->
-            onSelectionChange(spec.toggle(selection, item, checked))
-        },
+        onCheckedChange = { item, checked -> onSelectionChange(spec.toggle(selection, item, checked)) },
     )
 }
 
-private fun <T> Set<T>.withToggled(item: T, checked: Boolean): Set<T> =
-    if (checked) this + item else this - item
+private fun <T> Set<T>.withToggled(item: T, checked: Boolean): Set<T> = if (checked) this + item else this - item

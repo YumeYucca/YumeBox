@@ -23,11 +23,11 @@ package com.github.yumeyucca.yumebox.presentation.navigation
 import com.github.yumeyucca.yumebox.screen.rules.RulesProvidersTab
 
 /**
- * Navigation keys for the whole app, replacing compose-destinations' generated `*Destination`
- * objects. The arg-carrying screens are data classes, the rest are objects.
+ * Navigation keys for the whole app, replacing compose-destinations' generated `*Destination` objects. The arg-carrying
+ * screens are data classes, the rest are objects.
  *
- * Routes are never serialised — the shell keeps them in a retained component and builds the stack
- * with `serializer = null` — so they may carry arguments a serialiser would reject.
+ * Routes are never serialised — the shell keeps them in a retained component and builds the stack with `serializer =
+ * null` — so they may carry arguments a serialiser would reject.
  */
 sealed interface Route {
     data object Main : Route
@@ -71,7 +71,9 @@ sealed interface Route {
     data object Log : Route
 
     /** Routing rules and outbound providers: runtime rules from GET /rules (not custom routing). */
-    data class RulesAndProviders(val tab: RulesProvidersTab = RulesProvidersTab.Rules) : Route
+    data class RulesAndProviders(
+        val tab: RulesProvidersTab = RulesProvidersTab.Rules,
+    ) : Route
 
     data object About : Route
 
@@ -82,17 +84,23 @@ sealed interface Route {
     /**
      * The config editor, showing the handoff [previewId] from the stack's config-preview slot.
      *
-     * The id is what makes two consecutive openings two different routes: as a singleton route the
-     * second opening was indistinguishable from the first and could be dropped, leaving the editor
-     * unopenable until its page was left and re-entered.
+     * The id is what makes two consecutive openings two different routes: as a singleton route the second opening was
+     * indistinguishable from the first and could be dropped, leaving the editor unopenable until its page was left and
+     * re-entered.
      */
-    data class OverrideConfigPreview(val previewId: Long) : Route
+    data class OverrideConfigPreview(
+        val previewId: Long,
+    ) : Route
 
     /** "编辑配置" page for one profile: profile fields and config-file facts. */
-    data class ProfileEdit(val profileId: String) : Route
+    data class ProfileEdit(
+        val profileId: String,
+    ) : Route
 
     /** "覆写" page for one profile: custom routing and override selection. */
-    data class ProfileOverride(val profileId: String) : Route
+    data class ProfileOverride(
+        val profileId: String,
+    ) : Route
 
     data object Feature : Route
 

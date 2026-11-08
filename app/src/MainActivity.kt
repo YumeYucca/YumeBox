@@ -23,8 +23,8 @@ package com.github.yumeyucca.yumebox
 import android.Manifest
 import android.app.ActivityManager
 import android.content.Context
-import android.content.pm.PackageManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -42,8 +42,8 @@ import com.arkivanov.decompose.retainedComponent
 import com.github.yumeyucca.yumebox.common.util.AppLanguageManager
 import com.github.yumeyucca.yumebox.common.util.AutoStartDependencies
 import com.github.yumeyucca.yumebox.common.util.IntentController
-import com.github.yumeyucca.yumebox.common.util.startActivitySafely
 import com.github.yumeyucca.yumebox.common.util.ProxyAutoStartHelper
+import com.github.yumeyucca.yumebox.common.util.startActivitySafely
 import com.github.yumeyucca.yumebox.core.util.AutoStartSessionGate
 import com.github.yumeyucca.yumebox.core.util.StartupTaskCoordinator
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
@@ -51,10 +51,10 @@ import com.github.yumeyucca.yumebox.data.store.FeatureStore
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
 import com.github.yumeyucca.yumebox.di.APPLICATION_SCOPE_NAME
 import com.github.yumeyucca.yumebox.presentation.component.YumeAppShell
-import com.github.yumeyucca.yumebox.presentation.navigation.DeepLink
-import com.github.yumeyucca.yumebox.presentation.navigation.deepLinkOf
 import com.github.yumeyucca.yumebox.presentation.navigation.AppNavContainer
 import com.github.yumeyucca.yumebox.presentation.navigation.AppNavigationComponent
+import com.github.yumeyucca.yumebox.presentation.navigation.DeepLink
+import com.github.yumeyucca.yumebox.presentation.navigation.deepLinkOf
 import com.github.yumeyucca.yumebox.runtime.api.appContextOrSelf
 import com.github.yumeyucca.yumebox.runtime.client.ProfilesRepository
 import com.github.yumeyucca.yumebox.runtime.client.ProxyFacade
@@ -69,10 +69,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.qualifier.named
+import timber.log.Timber
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -146,8 +146,7 @@ class MainActivity : FragmentActivity() {
             WifiAutomationService.start(this)
         }
 
-        val showHomeGuideInitially =
-            savedInstanceState == null && !appSettingsStore.homePreviewGuideShown.value
+        val showHomeGuideInitially = savedInstanceState == null && !appSettingsStore.homePreviewGuideShown.value
 
         showAppContent(showHomeGuideInitially)
 
@@ -170,9 +169,8 @@ class MainActivity : FragmentActivity() {
     /**
      * Starts the proxy if auto start is due, after the startup warm-up gate opens.
      *
-     * [applicationScope] outlives this Activity, so nothing here may read instance members that
-     * point at it — the dependencies are resolved into [AutoStartDependencies] first and only the
-     * application context is captured.
+     * [applicationScope] outlives this Activity, so nothing here may read instance members that point at it — the
+     * dependencies are resolved into [AutoStartDependencies] first and only the application context is captured.
      */
     private fun launchAutoStart() {
         val autoStartDependencies =
@@ -192,9 +190,7 @@ class MainActivity : FragmentActivity() {
             var handled = false
             try {
                 StartupTaskCoordinator.awaitWarmup()
-                with(autoStartDependencies) {
-                    ProxyAutoStartHelper.checkAndAutoStart(autoStartContext)
-                }
+                with(autoStartDependencies) { ProxyAutoStartHelper.checkAndAutoStart(autoStartContext) }
                 handled = true
             } catch (error: CancellationException) {
                 throw error
@@ -247,8 +243,7 @@ class MainActivity : FragmentActivity() {
     private fun handleDeepLinkUri(uri: Uri) {
         when (uri.scheme) {
             "clash",
-            "clashmeta",
-            -> {
+            "clashmeta" -> {
                 if (uri.host != "install-config") return
                 val configUrl = uri.getQueryParameter("url")
                 if (!configUrl.isNullOrBlank()) {
@@ -264,16 +259,14 @@ class MainActivity : FragmentActivity() {
 
     /** Requests only the notification permission that is relevant during application startup. */
     private fun requestStartupPermissions(): Boolean {
-        val permissions =
-            buildList {
-                if (
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-                    PackageManager.PERMISSION_GRANTED
-                ) {
-                    add(Manifest.permission.POST_NOTIFICATIONS)
-                }
+        val permissions = buildList {
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
             }
+        }
         if (permissions.isNotEmpty()) {
             requestPermissions(permissions.toTypedArray(), REQUEST_STARTUP_PERMISSIONS)
         }
@@ -317,8 +310,8 @@ class MainActivity : FragmentActivity() {
 }
 
 /**
- * The Activity's whole UI tree: theme shell, density scaling and the one dialog that outlives
- * navigation. Kept out of `onCreate` so the Activity method stays a lifecycle body.
+ * The Activity's whole UI tree: theme shell, density scaling and the one dialog that outlives navigation. Kept out of
+ * `onCreate` so the Activity method stays a lifecycle body.
  */
 @Composable
 private fun MainActivityContent(
@@ -337,9 +330,7 @@ private fun MainActivityContent(
     YumeAppShell {
         val systemDensity = LocalDensity.current
         val scaledDensity =
-            remember(systemDensity, pageScale) {
-                Density(systemDensity.density * pageScale, systemDensity.fontScale)
-            }
+            remember(systemDensity, pageScale) { Density(systemDensity.density * pageScale, systemDensity.fontScale) }
         CompositionLocalProvider(LocalDensity provides scaledDensity) {
             Surface(
                 modifier = Modifier.fillMaxSize(),

@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.Proxy
 import com.github.yumeyucca.yumebox.presentation.component.CountryFlagCircle
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
@@ -58,7 +59,6 @@ import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.presentation.theme.inactiveSurfaceColor
 import com.github.yumeyucca.yumebox.presentation.util.extractNodeTags
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleBorder
@@ -67,8 +67,7 @@ import top.yukonga.miuix.kmp.utils.SinkFeedback
 import top.yukonga.miuix.kmp.utils.pressable
 
 /** Measured delay rendered as a chip label plus the colour its bucket resolves to. */
-@Immutable
-internal data class NodeLatency(val text: String, val color: Color)
+@Immutable internal data class NodeLatency(val text: String, val color: Color)
 
 /** "Ping" reads the same in every shipped language, so it stays out of the generated locale files. */
 private const val UntestedLatencyText = "Ping"
@@ -76,8 +75,7 @@ private const val UntestedLatencyText = "Ping"
 @Composable
 internal fun nodeLatencyLabel(delay: Int?): NodeLatency =
     when {
-        delay == null || delay == 0 ->
-            NodeLatency(UntestedLatencyText, MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        delay == null || delay == 0 -> NodeLatency(UntestedLatencyText, MiuixTheme.colorScheme.onSurfaceVariantSummary)
         delay < 0 -> NodeLatency(YumeTxt.Proxy.Node.Timeout, AppTheme.colors.latency.timeout)
         delay in 1..300 -> NodeLatency(YumeTxt.Home.NodeInfo.DelayValue.format(delay), AppTheme.colors.latency.fast)
         delay in 301..1000 ->
@@ -95,10 +93,7 @@ internal fun rememberLiveNodeDelay(proxyName: String, fallbackDelay: Int): Int {
     return liveDelay ?: fallbackDelay
 }
 
-/**
- * 每种协议只在这张表里描述一次:[badge] 是卡片角标,[name] 是给人看的协议名,为空就显示原始类型串。
- * 以前角标和显示名是两张各三十多行的 when,改一种协议要记得同时改两处。
- */
+/** 每种协议只在这张表里描述一次:[badge] 是卡片角标,[name] 是给人看的协议名,为空就显示原始类型串。 以前角标和显示名是两张各三十多行的 when,改一种协议要记得同时改两处。 */
 private data class NodeTypeLabel(val badge: String, val name: String? = null)
 
 private val nodeTypeLabels =
@@ -153,13 +148,12 @@ internal fun RotatingCircleGauge(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "circle_gauge_rotation")
     val rotation by
-    infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec =
-            infiniteRepeatable(animation = tween(durationMillis = 1000, easing = LinearEasing)),
-        label = "circle_gauge_rotation_value",
-    )
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(animation = tween(durationMillis = 1000, easing = LinearEasing)),
+            label = "circle_gauge_rotation_value",
+        )
 
     Icon(
         imageVector = Yume.CircleGauge,
@@ -183,21 +177,23 @@ internal fun NodeSelectableCard(
     val hapticFeedback = LocalHapticFeedback.current
     val shape = RoundedCornerShape(cornerRadius)
     val backgroundColor = MiuixTheme.colorScheme.background
-    val selectionProgress by animateFloatAsState(
-        targetValue = if (isSelected) 1f else 0f,
-        animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
-        label = "node_card_selection",
-    )
-    val selectionBorderColor by animateColorAsState(
-        targetValue =
-            if (isSelected) {
-                MiuixTheme.colorScheme.primary
-            } else {
-                MiuixTheme.colorScheme.primary.copy(alpha = 0f)
-            },
-        animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
-        label = "node_card_selection_border",
-    )
+    val selectionProgress by
+        animateFloatAsState(
+            targetValue = if (isSelected) 1f else 0f,
+            animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
+            label = "node_card_selection",
+        )
+    val selectionBorderColor by
+        animateColorAsState(
+            targetValue =
+                if (isSelected) {
+                    MiuixTheme.colorScheme.primary
+                } else {
+                    MiuixTheme.colorScheme.primary.copy(alpha = 0f)
+                },
+            animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
+            label = "node_card_selection_border",
+        )
 
     // Selection ring mirrors ProfileCard: the ring is a later sibling at the card's own bounds,
     // OUTSIDE the card body's clip — inside it, the RoundedCornerShape clip shaves the squircle
@@ -205,8 +201,7 @@ internal fun NodeSelectableCard(
     Box(modifier = modifier.fillMaxWidth()) {
         Box(
             modifier =
-                Modifier
-                    .fillMaxWidth()
+                Modifier.fillMaxWidth()
                     .let {
                         if (onClick != null) {
                             it.pressable(
@@ -226,9 +221,7 @@ internal fun NodeSelectableCard(
                                 indication = null,
                                 onClick = {
                                     if (!isSelected) {
-                                        hapticFeedback.performHapticFeedback(
-                                            HapticFeedbackType.VirtualKey
-                                        )
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.VirtualKey)
                                     }
                                     onClick()
                                 },
@@ -237,17 +230,18 @@ internal fun NodeSelectableCard(
                             it
                         }
                     }
-                    .padding(horizontal = paddingHorizontal, vertical = paddingVertical),
+                    .padding(horizontal = paddingHorizontal, vertical = paddingVertical)
         ) {
             content(isSelected, selectionProgress)
         }
         Box(
             modifier =
-                Modifier.matchParentSize().squircleBorder(
-                    width = 1.5.dp,
-                    color = selectionBorderColor,
-                    cornerRadius = cornerRadius,
-                ),
+                Modifier.matchParentSize()
+                    .squircleBorder(
+                        width = 1.5.dp,
+                        color = selectionBorderColor,
+                        cornerRadius = cornerRadius,
+                    )
         )
     }
 }
@@ -311,8 +305,7 @@ internal fun NodeCard(
 
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement =
-                            Arrangement.spacedBy(AppTheme.sizes.listItemVerticalMinimal),
+                        horizontalArrangement = Arrangement.spacedBy(AppTheme.sizes.listItemVerticalMinimal),
                         verticalArrangement = Arrangement.spacedBy(spacing.space4),
                     ) {
                         NodeTagChip(label = typeLabel)
@@ -470,9 +463,7 @@ private fun NodeChipLabel(text: String, color: Color) {
 private fun NodeTagChip(label: String) {
     val opacity = AppTheme.opacity
     val primary = MiuixTheme.colorScheme.primary
-    NodeChip(backgroundColor = primary.copy(alpha = opacity.subtle)) {
-        NodeChipLabel(text = label, color = primary)
-    }
+    NodeChip(backgroundColor = primary.copy(alpha = opacity.subtle)) { NodeChipLabel(text = label, color = primary) }
 }
 
 @Composable
@@ -482,8 +473,7 @@ private fun NodeMultiplierChip(multiplier: Float) {
     val sizes = AppTheme.sizes
     val isHigh = multiplier >= 2.0f
     val primary = MiuixTheme.colorScheme.primary
-    val chipBg =
-        if (isHigh) appColors.status.destructiveContainer else primary.copy(alpha = opacity.subtle)
+    val chipBg = if (isHigh) appColors.status.destructiveContainer else primary.copy(alpha = opacity.subtle)
     val chipColor = if (isHigh) appColors.status.destructive else primary
     val label =
         if (multiplier == multiplier.toLong().toFloat()) {
@@ -595,11 +585,9 @@ private fun NodeSelectionTag(isSelected: Boolean, modifier: Modifier = Modifier)
         contentDescription = null,
         tint = MiuixTheme.colorScheme.primary,
         modifier =
-            modifier
-                .size(UiDp.dp24)
-                .graphicsLayer {
-                    scaleX = scale.value
-                    scaleY = scale.value
-                },
+            modifier.size(UiDp.dp24).graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            },
     )
 }

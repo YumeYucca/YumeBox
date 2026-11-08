@@ -41,9 +41,8 @@ import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
 /**
  * What the card's menu may offer right now.
  *
- * These three always travel together — they describe one profile's state of affairs — and keeping
- * them in one type means the menu decides nothing about the profile and the card derives nothing
- * about the menu.
+ * These three always travel together — they describe one profile's state of affairs — and keeping them in one type
+ * means the menu decides nothing about the profile and the card derives nothing about the menu.
  */
 @Immutable
 internal data class ProfileActionsAvailability(
@@ -52,16 +51,17 @@ internal data class ProfileActionsAvailability(
     val canUpdate: Boolean,
 ) {
     /** Rows that mutate the profile wait for an import to finish: it owns the same files. */
-    val rowsEnabled: Boolean get() = !isDownloading
+    val rowsEnabled: Boolean
+        get() = !isDownloading
 }
 
 /**
- * One row the card's menu can run. Sealed rather than a lambda per row so the card hands the
- * whole menu back through a single exhaustive `when`, and the menu owns nothing but presentation.
+ * One row the card's menu can run. Sealed rather than a lambda per row so the card hands the whole menu back through a
+ * single exhaustive `when`, and the menu owns nothing but presentation.
  *
- * Enabling and disabling is deliberately not a row here: it is the only action whose caller-
- * visible effect is a state (`enabled`) rather than a command, so it travels on its own callback
- * instead of as a payload-less case the caller would have to re-derive.
+ * Enabling and disabling is deliberately not a row here: it is the only action whose caller- visible effect is a state
+ * (`enabled`) rather than a command, so it travels on its own callback instead of as a payload-less case the caller
+ * would have to re-derive.
  */
 sealed interface ProfileAction {
     data object Edit : ProfileAction

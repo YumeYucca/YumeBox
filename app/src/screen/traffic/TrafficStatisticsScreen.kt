@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import com.github.yumeyucca.yumebox.common.util.ByteFormatter
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.data.controller.AppIdentityResolver
 import com.github.yumeyucca.yumebox.data.model.AppTrafficUsage
 import com.github.yumeyucca.yumebox.data.model.StatisticsTimeRange
@@ -47,13 +48,12 @@ import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
+import java.text.Collator
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import java.text.Collator
 
 private enum class AppTrafficSortMode {
     NAME,
@@ -72,8 +72,8 @@ private val AppTrafficSortMode.label: String
 private const val MinTrafficBarFraction = 0.02f
 
 /**
- * Everything today and this week differ in — wording and chart geometry — so the differences live
- * in one place instead of scattered boolean ternaries.
+ * Everything today and this week differ in — wording and chart geometry — so the differences live in one place instead
+ * of scattered boolean ternaries.
  */
 private data class TrafficRangePresentation(
     val appsSectionTitle: String,
@@ -100,16 +100,14 @@ private fun trafficRangePresentation(range: StatisticsTimeRange): TrafficRangePr
             } else {
                 YumeTxt.TrafficStatistics.Summary.WeekTraffic
             },
-        chartHeight =
-            if (today) componentSizes.trafficChartHeight else componentSizes.trafficBarChartHeight,
+        chartHeight = if (today) componentSizes.trafficChartHeight else componentSizes.trafficBarChartHeight,
         barWidth = if (today) UiDp.dp8 else componentSizes.trafficBarWidth,
         isToday = today,
     )
 }
 
 /**
- * Screen-time-style traffic statistics with day/week charts and one app-usage list. Large TopBar
- * title is left as-is.
+ * Screen-time-style traffic statistics with day/week charts and one app-usage list. Large TopBar title is left as-is.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -125,12 +123,9 @@ fun TrafficStatisticsScreen() {
         remember(uiState.topApps, appSortMode, appNameCollator) {
             when (appSortMode) {
                 AppTrafficSortMode.NAME ->
-                    uiState.topApps.sortedWith { left, right ->
-                        appNameCollator.compare(left.appName, right.appName)
-                    }
+                    uiState.topApps.sortedWith { left, right -> appNameCollator.compare(left.appName, right.appName) }
 
-                AppTrafficSortMode.USAGE ->
-                    uiState.topApps.sortedByDescending(AppTrafficUsage::totalBytes)
+                AppTrafficSortMode.USAGE -> uiState.topApps.sortedByDescending(AppTrafficUsage::totalBytes)
             }
         }
     val timeRanges = StatisticsTimeRange.entries
@@ -147,7 +142,6 @@ fun TrafficStatisticsScreen() {
             )
         }
     ) { innerPadding ->
-
         StandalonePageList(
             scrollBehavior = scrollBehavior,
             scaffoldPadding = innerPadding,
@@ -205,9 +199,7 @@ private fun TrafficSummaryCard(
                 averageValue = chartAverage,
                 averageLabel = YumeTxt.TrafficStatistics.Summary.Average.takeIf { chartAverage != null },
                 showSelectionTip = !presentation.isToday,
-                tipTitleFor = { bar ->
-                    YumeTxt.TrafficStatistics.Summary.DayTrafficTip.format(bar.label)
-                },
+                tipTitleFor = { bar -> YumeTxt.TrafficStatistics.Summary.DayTrafficTip.format(bar.label) },
                 chartHeight = presentation.chartHeight,
                 barWidth = presentation.barWidth,
             )
@@ -235,10 +227,7 @@ private fun TrafficAppsCard(
 
         if (apps.isEmpty()) {
             Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.space16, vertical = spacing.space24),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space16, vertical = spacing.space24),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -256,8 +245,8 @@ private fun TrafficAppsCard(
 /**
  * The today-header above the chart: one big total plus a download/upload/delta caption.
  *
- * Kept separate from [TrafficStatisticsScreen] because it renders nothing the screen decides — it
- * only formats [totals] against [caption].
+ * Kept separate from [TrafficStatisticsScreen] because it renders nothing the screen decides — it only formats [totals]
+ * against [caption].
  */
 @Composable
 private fun TrafficTodaySummary(caption: String, totals: TrafficTotals) {
@@ -275,7 +264,8 @@ private fun TrafficTodaySummary(caption: String, totals: TrafficTotals) {
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "$caption · ${YumeTxt.TrafficStatistics.Metric.Download} $download · ${YumeTxt.TrafficStatistics.Metric.Upload} $upload",
+            text =
+                "$caption · ${YumeTxt.TrafficStatistics.Metric.Download} $download · ${YumeTxt.TrafficStatistics.Metric.Upload} $upload",
             style = MiuixTheme.textStyles.footnote1,
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
@@ -285,9 +275,8 @@ private fun TrafficTodaySummary(caption: String, totals: TrafficTotals) {
 /**
  * The per-app usage list below the sort dropdown.
  *
- * The bar length is relative to the busiest *attributed* app: unattributed and unknown buckets carry
- * the aggregate of everything the resolver could not name, which would otherwise pin every real app
- * to a sliver of the track.
+ * The bar length is relative to the busiest *attributed* app: unattributed and unknown buckets carry the aggregate of
+ * everything the resolver could not name, which would otherwise pin every real app to a sliver of the track.
  */
 @Composable
 private fun TrafficAppsContent(apps: List<AppTrafficUsage>) {
@@ -326,10 +315,7 @@ private fun AppTrafficProgressRow(
     val radii = AppTheme.radii
 
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.space16, vertical = spacing.space12),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space16, vertical = spacing.space12),
         horizontalArrangement = Arrangement.spacedBy(spacing.space12),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -363,16 +349,14 @@ private fun AppTrafficProgressRow(
             // Track + fill (screen-time progress bar)
             Box(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
+                    Modifier.fillMaxWidth()
                         .height(UiDp.dp6)
                         .clip(RoundedCornerShape(radii.full))
                         .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
             ) {
                 Box(
                     modifier =
-                        Modifier
-                            .fillMaxWidth(progress.coerceAtLeast(MinTrafficBarFraction))
+                        Modifier.fillMaxWidth(progress.coerceAtLeast(MinTrafficBarFraction))
                             .height(UiDp.dp6)
                             .clip(RoundedCornerShape(radii.full))
                             .background(MiuixTheme.colorScheme.primary)
@@ -395,18 +379,14 @@ private fun AppIconBadge(packageName: String?, appName: String) {
         Image(
             bitmap = bitmap,
             contentDescription = appName,
-            modifier =
-                Modifier
-                    .size(componentSizes.iconBadgeMedium)
-                    .clip(RoundedCornerShape(radii.radius12)),
+            modifier = Modifier.size(componentSizes.iconBadgeMedium).clip(RoundedCornerShape(radii.radius12)),
         )
         return
     }
 
     Box(
         modifier =
-            Modifier
-                .size(componentSizes.iconBadgeMedium)
+            Modifier.size(componentSizes.iconBadgeMedium)
                 .clip(RoundedCornerShape(radii.radius12))
                 .background(MiuixTheme.colorScheme.primary.copy(alpha = opacity.subtleStrong)),
         contentAlignment = Alignment.Center,

@@ -29,10 +29,8 @@ internal object OfficialMrs {
     val urlTestIntervalSeconds = 300
     val urlTestUrl = "https://www.gstatic.com/generate_204"
     val nodeExcludeFilter = "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
-    val geositeUrlTemplate =
-        "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/%s.mrs"
-    val geoipUrlTemplate =
-        "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/%s.mrs"
+    val geositeUrlTemplate = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/%s.mrs"
+    val geoipUrlTemplate = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/%s.mrs"
     val autoGroupName = "Auto"
     val fallbackGroupName = "Fallback"
     val proxyPolicy = "Proxy"
@@ -41,8 +39,7 @@ internal object OfficialMrs {
     val matchRule = "MATCH,Proxy"
 
     private val catalogIconBaseUrl = "https://raw.githubusercontent.com/Orz-3/mini/master/Color"
-    private val appIconBaseUrl =
-        "https://raw.githubusercontent.com/fmz200/wool_scripts/main/icons/apps"
+    private val appIconBaseUrl = "https://raw.githubusercontent.com/fmz200/wool_scripts/main/icons/apps"
 
     fun ruleProviderPath(providerId: String): String = "./providers/rules/$providerId.mrs"
 
@@ -62,8 +59,7 @@ data class OverridePresetTemplateSelection(
     val urlTestRegions: Set<OverridePresetRegion> = emptySet(),
     val fallbackRegions: Set<OverridePresetRegion> = emptySet(),
     val enabledItems: Set<OverridePresetItem> = defaultEnabledPresetItems(),
-    val healthCheckGroups: Set<OfficialMrsHealthCheckGroupType> =
-        setOf(OfficialMrsHealthCheckGroupType.UrlTest),
+    val healthCheckGroups: Set<OfficialMrsHealthCheckGroupType> = setOf(OfficialMrsHealthCheckGroupType.UrlTest),
 )
 
 data class OverridePresetTemplateContentAnalysis(
@@ -82,19 +78,19 @@ enum class OverridePresetRegion(definition: RegionDefinition) {
             label = "Other",
             iconName = "XD",
         )
-    ),
-    ;
+    );
 
     val groupName: String = definition.groupName
     val fallbackGroupName: String = definition.fallbackGroupName
     val filter: String? = definition.keywords?.let(::regionFilter)
     val excludeFilter: String?
         get() = if (this == Other) popularExclude else null
+
     val icon: String = OfficialMrs.catalogIconUrl(definition.iconName).orEmpty()
 
     /**
-     * Human label. A lambda, not a string: [YumeTxt] values read the locale that is active right
-     * now, so evaluating one while this enum initialises would freeze that language for good.
+     * Human label. A lambda, not a string: [YumeTxt] values read the locale that is active right now, so evaluating one
+     * while this enum initialises would freeze that language for good.
      */
     val label: () -> String = {
         when (this) {
@@ -214,8 +210,7 @@ enum class OverridePresetItem(definition: PresetItemDefinition) {
             icon = catalogIcon("Final"),
             fixedRule = OfficialMrs.matchRule,
         )
-    ),
-    ;
+    );
 
     val id: String = definition.id
     val title: String = definition.title
@@ -227,8 +222,8 @@ enum class OverridePresetItem(definition: PresetItemDefinition) {
     val detectionRules: List<String> = definition.detectionRules
 
     /**
-     * Human label, same lambda rule as [OverridePresetRegion.label]. The routing entries are
-     * localized; a service item keeps its brand title, which reads the same in every locale.
+     * Human label, same lambda rule as [OverridePresetRegion.label]. The routing entries are localized; a service item
+     * keeps its brand title, which reads the same in every locale.
      */
     val label: () -> String = {
         when (this) {
@@ -248,8 +243,7 @@ enum class OfficialMrsHealthCheckGroupType(
     private val iconName: String,
 ) {
     UrlTest("url-test", OfficialMrs.autoGroupName, "Urltest"),
-    Fallback("fallback", OfficialMrs.fallbackGroupName, "Available"),
-    ;
+    Fallback("fallback", OfficialMrs.fallbackGroupName, "Available");
 
     val icon: String = OfficialMrs.catalogIconUrl(iconName).orEmpty()
 
@@ -279,8 +273,7 @@ internal val orderedServiceItems = orderedItems.filter(OverridePresetItem::isSer
 internal val orderedBaseItems = orderedItems.filterNot(OverridePresetItem::isService)
 internal val templateProviderIds =
     orderedItems.flatMap(OverridePresetItem::providers).map(OfficialMrsProviderSpec::id).toSet()
-internal val serviceGroupNames =
-    orderedServiceItems.mapNotNull(OverridePresetItem::groupName).toSet()
+internal val serviceGroupNames = orderedServiceItems.mapNotNull(OverridePresetItem::groupName).toSet()
 internal val regionGroupNames =
     orderedRegions.flatMap { region -> listOf(region.groupName, region.fallbackGroupName) }.toSet()
 
@@ -312,13 +305,11 @@ private val deferredRuleItems =
         OverridePresetItem.Match,
     )
 
-internal val ruleOrder: List<OverridePresetItem> =
-    (orderedItems - deferredRuleItems.toSet()) + deferredRuleItems
+internal val ruleOrder: List<OverridePresetItem> = (orderedItems - deferredRuleItems.toSet()) + deferredRuleItems
 
 internal val templateRules = orderedItems.flatMap(OverridePresetItem::detectionRules).toSet()
 
-fun defaultEnabledPresetItems(): Set<OverridePresetItem> =
-    defaultEnabledItems.toCollection(linkedSetOf())
+fun defaultEnabledPresetItems(): Set<OverridePresetItem> = defaultEnabledItems.toCollection(linkedSetOf())
 
 fun defaultOverridePresetTemplateSelection(): OverridePresetTemplateSelection =
     OverridePresetTemplateSelection(enabledItems = defaultEnabledPresetItems())
@@ -384,20 +375,18 @@ private class PresetItemDefinition(
     sources: List<RuleSource>,
     fixedRule: String?,
 ) {
-    val providers: List<OfficialMrsProviderSpec> =
-        sources.map { source ->
-            OfficialMrsProviderSpec(
-                id = source.providerId(id),
-                remoteName = source.remoteName,
-                behavior = source.behavior,
-            )
-        }
+    val providers: List<OfficialMrsProviderSpec> = sources.map { source ->
+        OfficialMrsProviderSpec(
+            id = source.providerId(id),
+            remoteName = source.remoteName,
+            behavior = source.behavior,
+        )
+    }
 
-    val detectionRules: List<String> =
-        buildList {
-            sources.forEach { source -> add(source.detectionRule(id)) }
-            fixedRule?.let(::add)
-        }
+    val detectionRules: List<String> = buildList {
+        sources.forEach { source -> add(source.detectionRule(id)) }
+        fixedRule?.let(::add)
+    }
 }
 
 private fun RuleSource.providerId(itemId: String): String {
@@ -422,13 +411,12 @@ private fun service(
     remoteName: String = id,
     includeIp: Boolean = false,
 ): PresetItemDefinition {
-    val sources =
-        buildList {
-            add(RuleSource(remoteName, OfficialMrsRuleBehavior.Domain, groupName))
-            if (includeIp) {
-                add(RuleSource(remoteName, OfficialMrsRuleBehavior.IpCidr, groupName))
-            }
+    val sources = buildList {
+        add(RuleSource(remoteName, OfficialMrsRuleBehavior.Domain, groupName))
+        if (includeIp) {
+            add(RuleSource(remoteName, OfficialMrsRuleBehavior.IpCidr, groupName))
         }
+    }
     return PresetItemDefinition(
         id = id,
         title = title,

@@ -22,8 +22,8 @@ package com.github.yumeyucca.yumebox.substore.util
 
 import com.github.yumeyucca.yumebox.core.Global
 import com.github.yumeyucca.yumebox.substore.SubStorePaths
-import timber.log.Timber
 import java.io.File
+import timber.log.Timber
 
 object AppUtil {
     fun initFirstOpen() {

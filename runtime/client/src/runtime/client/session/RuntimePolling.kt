@@ -27,10 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-/**
- * Owns traffic + proxy-group polling loops for the runtime client. Keeps timer policy out of the
- * facade body.
- */
+/** Owns traffic + proxy-group polling loops for the runtime client. Keeps timer policy out of the facade body. */
 internal class RuntimePolling(
     private val scope: CoroutineScope,
     private val isRunning: () -> Boolean,
@@ -71,8 +68,6 @@ internal class RuntimePolling(
                 ProxyGroupSyncPriority.SLOW -> PollingTimerSpecs.RuntimeProxyGroupSyncSlow
                 ProxyGroupSyncPriority.OFF -> return
             }
-        groupJob = scope.launch {
-            PollingTimers.ticks(timerSpec).collect { onGroupTick() }
-        }
+        groupJob = scope.launch { PollingTimers.ticks(timerSpec).collect { onGroupTick() } }
     }
 }

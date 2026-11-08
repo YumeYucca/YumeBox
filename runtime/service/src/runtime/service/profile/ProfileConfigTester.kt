@@ -24,14 +24,13 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.github.yumeyucca.yumebox.core.util.runtimeHomeDir
 import com.github.yumeyucca.yumebox.runtime.service.core.CoreArtifacts
-import timber.log.Timber
 import java.io.File
 import java.util.concurrent.TimeUnit
+import timber.log.Timber
 
 /**
- * Validates a profile's main `config.yaml` with the packaged mihomo shell (`libmihomo.so --test`),
- * without applying overrides or runtime patches. Used on first import so a broken main config is
- * rejected before commit.
+ * Validates a profile's main `config.yaml` with the packaged mihomo shell (`libmihomo.so --test`), without applying
+ * overrides or runtime patches. Used on first import so a broken main config is rejected before commit.
  *
  * This test is the gate that decides whether a subscription is importable at all.
  */
@@ -61,9 +60,7 @@ internal object ProfileConfigTester {
 
         val binary =
             resolveCoreBinary(context)
-                ?: return reject(
-                    IllegalStateException("mihomo core binary unavailable for config test"),
-                )
+                ?: return reject(IllegalStateException("mihomo core binary unavailable for config test"))
         // Match runtime: GEOIP/GEOSITE resolution keys off the core home, not the staging cwd.
         // Desktop `mihomo -t` always has a home; without --home the parser builds an empty MMDB
         // path and false-fails valid subscriptions on rules like GEOIP,CN.
@@ -86,25 +83,19 @@ internal object ProfileConfigTester {
                         val nativeLibDir = context.applicationInfo.nativeLibraryDir
                         val env = builder.environment()
                         val existing = env["LD_LIBRARY_PATH"].orEmpty()
-                        env["LD_LIBRARY_PATH"] =
-                            if (existing.isBlank()) nativeLibDir
-                            else "$nativeLibDir:$existing"
+                        env["LD_LIBRARY_PATH"] = if (existing.isBlank()) nativeLibDir else "$nativeLibDir:$existing"
                     }
                     .start()
             val output = process.inputStream.bufferedReader().use { it.readText() }
             val finished = process.waitFor(TIMEOUT_MS, TimeUnit.MILLISECONDS)
             if (!finished) {
                 process.destroyForcibly()
-                return reject(
-                    IllegalStateException("mihomo config test timed out after ${TIMEOUT_MS}ms"),
-                )
+                return reject(IllegalStateException("mihomo config test timed out after ${TIMEOUT_MS}ms"))
             }
             if (process.exitValue() == 0) {
                 Result.success(Unit)
             } else {
-                reject(
-                    IllegalArgumentException(readableError(output)),
-                )
+                reject(IllegalArgumentException(readableError(output)))
             }
         } catch (error: Exception) {
             Timber.tag(TAG).e(error, "mihomo config test failed to run")
@@ -112,7 +103,7 @@ internal object ProfileConfigTester {
                 IllegalStateException(
                     error.message?.takeIf { it.isNotBlank() } ?: "mihomo config test failed to run",
                     error,
-                ),
+                )
             )
         }
     }
@@ -126,8 +117,7 @@ internal object ProfileConfigTester {
                 val read = input.read(buffer)
                 if (read <= 0) "" else buffer.decodeToString(0, read)
             }
-        return header.startsWith("age-encryption.org/v1") ||
-            header.startsWith("-----BEGIN AGE ENCRYPTED FILE-----")
+        return header.startsWith("age-encryption.org/v1") || header.startsWith("-----BEGIN AGE ENCRYPTED FILE-----")
     }
 
     private fun resolveCoreBinary(context: Context): File? {
@@ -152,27 +142,16 @@ internal object ProfileConfigTester {
     }
 
     /**
-     * The condensed, user-facing reason. The native entry point reports a failed parse as
-     * `mihomo: configuration file <path> test failed: <cause>`; only `<cause>` is actionable, the
-     * rest is an app-private path.
+     * The condensed, user-facing reason. The native entry point reports a failed parse as `mihomo: configuration file
+     * <path> test failed: <cause>`; only `<cause>` is actionable, the rest is an app-private path.
      */
     private fun readableError(output: String): String {
-        val lines =
-            output
-                .lineSequence()
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-                .toList()
-        val fatal =
-            lines
-                .lastOrNull { it.startsWith(CORE_FATAL_PREFIX) }
-                ?.removePrefix(CORE_FATAL_PREFIX)
-                ?.trim()
-        val cause =
-            fatal?.let { line ->
-                val marker = line.indexOf(TEST_FAILED_MARKER, ignoreCase = true)
-                if (marker < 0) line else line.substring(marker + TEST_FAILED_MARKER.length).trim()
-            }
+        val lines = output.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
+        val fatal = lines.lastOrNull { it.startsWith(CORE_FATAL_PREFIX) }?.removePrefix(CORE_FATAL_PREFIX)?.trim()
+        val cause = fatal?.let { line ->
+            val marker = line.indexOf(TEST_FAILED_MARKER, ignoreCase = true)
+            if (marker < 0) line else line.substring(marker + TEST_FAILED_MARKER.length).trim()
+        }
         val message =
             cause?.takeIf(String::isNotBlank)
                 ?: lines.lastOrNull { it.contains("error", ignoreCase = true) }

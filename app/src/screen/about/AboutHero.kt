@@ -115,15 +115,17 @@ private fun heroStageProgress(offset: Float, stageStart: Float, stageSize: Float
     ((offset - stageStart) / stageSize.coerceAtLeast(MinimumHeroStagePx)).coerceIn(0f, 1f)
 
 /**
- * Measurements the hero reports back while it scrolls away; the screen derives the fade stages from
- * them. Shared by [AboutHero] (writes) and the About list (reads).
+ * Measurements the hero reports back while it scrolls away; the screen derives the fade stages from them. Shared by
+ * [AboutHero] (writes) and the About list (reads).
  */
 @Stable
 internal class AboutHeroMetrics {
     var heroHeight by mutableStateOf(AboutHeroDefaultHeight)
         private set
+
     var spacerHeightPx by mutableIntStateOf(0)
         private set
+
     private var bounds by mutableStateOf(AboutHeroBounds())
 
     fun updateHeroHeight(height: Dp) {
@@ -136,13 +138,13 @@ internal class AboutHeroMetrics {
 
     fun updateSpacerBottom(bottom: Float, captureInitial: Boolean) {
         val initial = bounds.initialSpacerBottom
-        val nextInitial =
-            if (captureInitial && initial == 0f && bottom > 0f) bottom else initial
+        val nextInitial = if (captureInitial && initial == 0f && bottom > 0f) bottom else initial
         if (bounds.spacerBottom != bottom || nextInitial != initial) {
-            bounds = bounds.copy(
-                spacerBottom = bottom,
-                initialSpacerBottom = nextInitial,
-            )
+            bounds =
+                bounds.copy(
+                    spacerBottom = bottom,
+                    initialSpacerBottom = nextInitial,
+                )
         }
     }
 
@@ -164,18 +166,16 @@ internal class AboutHeroMetrics {
         }
     }
 
-    fun progressAt(index: Int, offset: Int): AboutHeroProgress =
-        bounds.progressAt(index = index, offset = offset)
+    fun progressAt(index: Int, offset: Int): AboutHeroProgress = bounds.progressAt(index = index, offset = offset)
 }
 
 /** One hero stage dissolving while it shrinks by [HeroStageShrinkFraction]. */
-private fun Modifier.heroStage(progress: Float): Modifier =
-    graphicsLayer {
-        alpha = 1f - progress
-        val scale = 1f - progress * HeroStageShrinkFraction
-        scaleX = scale
-        scaleY = scale
-    }
+private fun Modifier.heroStage(progress: Float): Modifier = graphicsLayer {
+    alpha = 1f - progress
+    val scale = 1f - progress * HeroStageShrinkFraction
+    scaleX = scale
+    scaleY = scale
+}
 
 @Composable
 internal fun AboutHero(
@@ -203,18 +203,15 @@ internal fun AboutHero(
             )
         }
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = topPadding + HeroTopInset)
-            .onSizeChanged { size -> metrics.updateHeroHeight(with(density) { size.height.toDp() }) },
+        modifier =
+            Modifier.fillMaxWidth().padding(top = topPadding + HeroTopInset).onSizeChanged { size ->
+                metrics.updateHeroHeight(with(density) { size.height.toDp() })
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .size(HeroLogoSize)
-                .clipToBounds()
-                .heroStage(progress.icon)
-                .onGloballyPositioned { coords ->
+            modifier =
+                Modifier.size(HeroLogoSize).clipToBounds().heroStage(progress.icon).onGloballyPositioned { coords ->
                     metrics.updateIconBottom(coords.positionInWindow().y + coords.size.height)
                 },
             contentAlignment = Alignment.Center,
@@ -228,30 +225,30 @@ internal fun AboutHero(
         }
         Text(
             text = name,
-            modifier = Modifier
-                .padding(top = UiDp.dp12, bottom = UiDp.dp5)
-                .onGloballyPositioned { coords ->
-                    metrics.updateNameBottom(coords.positionInWindow().y + coords.size.height)
-                }
-                .heroStage(progress.name)
-                .then(blur),
+            modifier =
+                Modifier.padding(top = UiDp.dp12, bottom = UiDp.dp5)
+                    .onGloballyPositioned { coords ->
+                        metrics.updateNameBottom(coords.positionInWindow().y + coords.size.height)
+                    }
+                    .heroStage(progress.name)
+                    .then(blur),
             fontSize = HeroNameFontSizeSp.sp,
             fontWeight = FontWeight.ExtraBold,
             color = colors.onBackground,
         )
         Text(
             text = version,
-            modifier = Modifier
-                .fillMaxWidth()
-                .onGloballyPositioned { coords ->
-                    metrics.updateVersionBottom(coords.positionInWindow().y + coords.size.height)
-                }
-                .heroStage(progress.version)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onVersionClick,
-                ),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .onGloballyPositioned { coords ->
+                        metrics.updateVersionBottom(coords.positionInWindow().y + coords.size.height)
+                    }
+                    .heroStage(progress.version)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onVersionClick,
+                    ),
             textAlign = TextAlign.Center,
             fontSize = 14.sp,
             color = colors.onSurfaceVariantSummary,

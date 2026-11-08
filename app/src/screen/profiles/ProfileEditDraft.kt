@@ -46,12 +46,11 @@ internal data class PickedConfigFile(
 )
 
 /**
- * The edit-in-progress copy of one profile: the fields the 编辑配置 page renders, the two loads that
- * fill them, and the patch a save sends.
+ * The edit-in-progress copy of one profile: the fields the 编辑配置 page renders, the two loads that fill them, and the
+ * patch a save sends.
  *
- * The page never assigns these fields — every write goes through a named operation ([seedFrom],
- * [setReplacementFile], [beginSave], [endSave]) so a save cannot be half-applied and a list refresh
- * cannot overwrite edits.
+ * The page never assigns these fields — every write goes through a named operation ([seedFrom], [setReplacementFile],
+ * [beginSave], [endSave]) so a save cannot be half-applied and a list refresh cannot overwrite edits.
  */
 @Stable
 internal class ProfileEditDraft internal constructor() {
@@ -114,7 +113,10 @@ internal class ProfileEditDraft internal constructor() {
         }
     }
 
-    fun setReplacementFile(uri: Uri, sizeBytes: Long) {
+    fun setReplacementFile(
+        uri: Uri,
+        sizeBytes: Long,
+    ) {
         replacementFile = PickedConfigFile(uri = uri, sizeBytes = sizeBytes)
     }
 
@@ -128,8 +130,8 @@ internal class ProfileEditDraft internal constructor() {
     }
 
     /**
-     * Reads the imported config file's length off the main thread. A profile that is not there (yet,
-     * or any more) clears the size instead of leaving the previous profile's number on screen.
+     * Reads the imported config file's length off the main thread. A profile that is not there (yet, or any more)
+     * clears the size instead of leaving the previous profile's number on screen.
      */
     suspend fun loadConfigFileSize(profile: Profile?) {
         if (profile == null) {
@@ -149,8 +151,8 @@ internal class ProfileEditDraft internal constructor() {
     }
 
     /**
-     * The patch to send, or null when the form holds nothing worth persisting: an empty name or
-     * source, or no edit at all compared with [target].
+     * The patch to send, or null when the form holds nothing worth persisting: an empty name or source, or no edit at
+     * all compared with [target].
      */
     fun patchFor(target: Profile): ProfilePatch? {
         val trimmedName = name.text.trim()
@@ -162,10 +164,7 @@ internal class ProfileEditDraft internal constructor() {
                 target.type == Profile.Type.File && picked != null -> picked.uri.toString()
                 else -> target.source
             }
-        val hasMetaChanges =
-            trimmedName != target.name ||
-                targetSource != target.source ||
-                ageSecretEdited
+        val hasMetaChanges = trimmedName != target.name || targetSource != target.source || ageSecretEdited
         if (trimmedName.isEmpty() || targetSource.isEmpty() || !hasMetaChanges) return null
         return ProfilePatch(
             name = trimmedName,
@@ -180,18 +179,17 @@ internal class ProfileEditDraft internal constructor() {
 /**
  * Remembers the [ProfileEditDraft] of [profileId] and keeps it fed from [profile].
  *
- * Both loads keep the keys the page used to hold inline: the seed runs once per profile id, so a
- * list refresh emitting an equal profile cannot wipe edits in progress, while the config-file size
- * also re-reads after a re-import ([Profile.updatedAt]).
+ * Both loads keep the keys the page used to hold inline: the seed runs once per profile id, so a list refresh emitting
+ * an equal profile cannot wipe edits in progress, while the config-file size also re-reads after a re-import
+ * ([Profile.updatedAt]).
  */
 @Composable
-internal fun rememberProfileEditDraft(profileId: String, profile: Profile?): ProfileEditDraft {
+internal fun rememberProfileEditDraft(
+    profileId: String,
+    profile: Profile?,
+): ProfileEditDraft {
     val draft = remember(profileId) { ProfileEditDraft() }
-    LaunchedEffect(profile?.uuid) {
-        profile?.let(draft::seedFrom)
-    }
-    LaunchedEffect(profile?.uuid, profile?.updatedAt) {
-        draft.loadConfigFileSize(profile)
-    }
+    LaunchedEffect(profile?.uuid) { profile?.let(draft::seedFrom) }
+    LaunchedEffect(profile?.uuid, profile?.updatedAt) { draft.loadConfigFileSize(profile) }
     return draft
 }

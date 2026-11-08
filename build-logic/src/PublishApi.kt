@@ -20,22 +20,49 @@ fun publishApi(root: File, options: Map<String, String>, remote: Boolean) {
     val credentials = if (remote) Files.createTempFile(state.toPath(), "publishing-", ".properties").toFile() else null
     try {
         if (credentials != null) {
-            val values = Properties().apply {
-                setProperty("username", requireNotNull(System.getenv("GITHUB_ACTOR")) { "GITHUB_ACTOR is required" })
-                setProperty("password", requireNotNull(System.getenv("GITHUB_TOKEN")) { "GITHUB_TOKEN is required" })
-            }
+            val values =
+                Properties().apply {
+                    setProperty(
+                        "username",
+                        requireNotNull(System.getenv("GITHUB_ACTOR")) { "GITHUB_ACTOR is required" },
+                    )
+                    setProperty(
+                        "password",
+                        requireNotNull(System.getenv("GITHUB_TOKEN")) { "GITHUB_TOKEN is required" },
+                    )
+                }
             credentials.writer().use { values.store(it, null) }
         }
         val staging = root.resolve("build/api-publication").apply { mkdirs() }
-        var configured = versionLine.replace(original, "    version: $version")
-            .replace("    group: io.github.yumeyucca.yumebox", "    group: $group")
-            .replace("https://maven.pkg.github.com/YumeYucca/YumeBox", "https://maven.pkg.github.com/$repository")
-        if (credentials != null) configured = configured.replace("../.kotlin/yumebox/publishing.properties", "../.kotlin/yumebox/${credentials.name}")
+        var configured =
+            versionLine
+                .replace(original, "    version: $version")
+                .replace("    group: io.github.yumeyucca.yumebox", "    group: $group")
+                .replace("https://maven.pkg.github.com/YumeYucca/YumeBox", "https://maven.pkg.github.com/$repository")
+        if (credentials != null)
+            configured =
+                configured.replace("../.kotlin/yumebox/publishing.properties", "../.kotlin/yumebox/${credentials.name}")
         module.writeText(configured)
         try {
-            val environment = if (remote) emptyMap() else mapOf("KOTLIN_CLI_JAVA_OPTIONS" to
-                (System.getenv("KOTLIN_CLI_JAVA_OPTIONS").orEmpty() + " \"-Dmaven.repo.local=${staging.invariantSeparatorsPath}\"").trim())
-            toolchain(root, listOf("publish", "--module=api", "--build-dir=${root.resolve("build/api-publish-build").path}", if (remote) "GitHubPackages" else "localStaging"), environment)
+            val environment =
+                if (remote) emptyMap()
+                else
+                    mapOf(
+                        "KOTLIN_CLI_JAVA_OPTIONS" to
+                            (System.getenv("KOTLIN_CLI_JAVA_OPTIONS").orEmpty() +
+                                    " \"-Dmaven.repo.local=${staging.invariantSeparatorsPath}\"")
+                                .trim()
+                    )
+            toolchain(
+                root,
+                listOf(
+                    "publish",
+                    "--module=api",
+                    "--build-dir=${root.resolve("build/api-publish-build").path}",
+                    if (remote) "GitHubPackages" else "localStaging",
+                ),
+                environment,
+            )
             if (!remote && !version.endsWith("-SNAPSHOT")) {
                 val directory = staging.resolve("${group.replace('.', '/')}/api/$version")
                 listOf(".jar", "-sources.jar", "-javadoc.jar", ".pom").forEach { suffix ->
@@ -43,7 +70,9 @@ fun publishApi(root: File, options: Map<String, String>, remote: Boolean) {
                 }
             }
         } finally {
-            check(module.readText() == configured) { "API module changed during publishing; refusing to overwrite concurrent edits" }
+            check(module.readText() == configured) {
+                "API module changed during publishing; refusing to overwrite concurrent edits"
+            }
             module.writeText(original)
         }
     } finally {

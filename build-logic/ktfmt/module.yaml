@@ -1,0 +1,11 @@
+product: jvm/amper-plugin
+
+apply:
+  - //common.module-template.yaml
+
+settings:
+  jvm:
+    release: 25
+
+dependencies:
+  - com.facebook:ktfmt:0.64

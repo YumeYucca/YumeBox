@@ -1,201 +1,212 @@
 package com.github.yumeyucca.yumebox.core.locale
 
-internal val ZhHansYumeStrings_Settings: YumeStrings_Settings = YumeStrings_Settings(
-    Title = "设置",
-    Section = YumeStrings_Settings_Section(
-        UiSettings = "常规选项",
-        Extensions = "扩展功能",
-        BackupRestore = "备份与恢复",
-        More = "更多",
-        About = "关于",
-    ),
-    UiSettings = YumeStrings_Settings_UiSettings(
-        App = "应用",
-        AppSummary = "主题、语言与行为",
-        Network = "网络设置",
-        NetworkSummary = "代理模式、DNS 与内核",
-        Override = "覆写",
-        OverrideSummary = "YAML、JS 与规则覆写",
-        MetaFeatures = "扩展资源",
-        MetaFeaturesSummary = "分流、Geo 文件更新、日志与 Age 密钥",
-        AppSettingsEntry = "应用设置",
-        OverrideScript = "覆写脚本",
-        RemoteControl = "外部控制器",
-        RemoteControlSummary = "外部面板与控制器",
-    ),
-    More = YumeStrings_Settings_More(
-        Lab = "实验室",
-        LabSummary = "访问实验性或开发中的新功能",
-        Logs = "日志",
-        LogsSummary = "运行日志",
-        Onboarding = "新手引导",
-        OnboardingSummary = "重新查看欢迎引导",
-        BackupRestore = "备份与恢复",
-        BackupRestoreSummary = "备份或恢复设置、订阅、覆写及 Sub-Store 数据",
-        About = "关于",
-        AboutSummary = "版本与许可",
-    ),
-    Error = YumeStrings_Settings_Error(
-        WebviewFailed = "无法打开 WebView：%s",
-    ),
-)
+internal val ZhHansYumeStrings_Settings: YumeStrings_Settings =
+    YumeStrings_Settings(
+        Title = "设置",
+        Section =
+            YumeStrings_Settings_Section(
+                UiSettings = "常规选项",
+                Extensions = "扩展功能",
+                BackupRestore = "备份与恢复",
+                More = "更多",
+                About = "关于",
+            ),
+        UiSettings =
+            YumeStrings_Settings_UiSettings(
+                App = "应用",
+                AppSummary = "主题、语言与行为",
+                Network = "网络设置",
+                NetworkSummary = "代理模式、DNS 与内核",
+                Override = "覆写",
+                OverrideSummary = "YAML、JS 与规则覆写",
+                MetaFeatures = "扩展资源",
+                MetaFeaturesSummary = "分流、Geo 文件更新、日志与 Age 密钥",
+                AppSettingsEntry = "应用设置",
+                OverrideScript = "覆写脚本",
+                RemoteControl = "外部控制器",
+                RemoteControlSummary = "接管软路由、局域网设备等远端内核",
+            ),
+        More =
+            YumeStrings_Settings_More(
+                Lab = "实验室",
+                LabSummary = "访问实验性或开发中的新功能",
+                Logs = "日志",
+                LogsSummary = "运行日志",
+                Onboarding = "新手引导",
+                OnboardingSummary = "重新查看欢迎引导",
+                BackupRestore = "备份与恢复",
+                BackupRestoreSummary = "备份或恢复设置、订阅、覆写及 Sub-Store 数据",
+                About = "关于",
+                AboutSummary = "版本与许可",
+            ),
+        Error = YumeStrings_Settings_Error(WebviewFailed = "无法打开 WebView：%s"),
+    )
 
-internal val ZhYumeStrings_Settings: YumeStrings_Settings = YumeStrings_Settings(
-    Title = "設定",
-    Section = YumeStrings_Settings_Section(
-        UiSettings = "常規選項",
-        Extensions = "擴展功能",
-        BackupRestore = "備份與還原",
-        More = "更多",
-        About = "關於",
-    ),
-    UiSettings = YumeStrings_Settings_UiSettings(
-        App = "應用",
-        AppSummary = "主題、語言與行為",
-        Network = "網路設定",
-        NetworkSummary = "代理模式、DNS 與內核",
-        Override = "覆寫",
-        OverrideSummary = "YAML、JS 與規則覆寫",
-        MetaFeatures = "擴展資源",
-        MetaFeaturesSummary = "分流、Geo 檔案更新、日誌與 Age 金鑰",
-        AppSettingsEntry = "應用設定",
-        OverrideScript = "覆寫腳本",
-        RemoteControl = "外部控制器",
-        RemoteControlSummary = "外部面板與控制器",
-    ),
-    More = YumeStrings_Settings_More(
-        Lab = "實驗室",
-        LabSummary = "存取實驗性或開發中的新功能",
-        Logs = "日誌",
-        LogsSummary = "執行日誌",
-        Onboarding = "新手引導",
-        OnboardingSummary = "重新查看歡迎引導",
-        BackupRestore = "備份與還原",
-        BackupRestoreSummary = "備份或還原設定、訂閱、覆寫及 Sub-Store 資料",
-        About = "關於",
-        AboutSummary = "版本與授權",
-    ),
-    Error = YumeStrings_Settings_Error(
-        WebviewFailed = "無法開啟 WebView：%s",
-    ),
-)
+internal val ZhYumeStrings_Settings: YumeStrings_Settings =
+    YumeStrings_Settings(
+        Title = "設定",
+        Section =
+            YumeStrings_Settings_Section(
+                UiSettings = "常規選項",
+                Extensions = "擴展功能",
+                BackupRestore = "備份與還原",
+                More = "更多",
+                About = "關於",
+            ),
+        UiSettings =
+            YumeStrings_Settings_UiSettings(
+                App = "應用",
+                AppSummary = "主題、語言與行為",
+                Network = "網路設定",
+                NetworkSummary = "代理模式、DNS 與內核",
+                Override = "覆寫",
+                OverrideSummary = "YAML、JS 與規則覆寫",
+                MetaFeatures = "擴展資源",
+                MetaFeaturesSummary = "分流、Geo 檔案更新、日誌與 Age 金鑰",
+                AppSettingsEntry = "應用設定",
+                OverrideScript = "覆寫腳本",
+                RemoteControl = "外部控制器",
+                RemoteControlSummary = "接管軟路由、區域網路裝置等遠端核心",
+            ),
+        More =
+            YumeStrings_Settings_More(
+                Lab = "實驗室",
+                LabSummary = "存取實驗性或開發中的新功能",
+                Logs = "日誌",
+                LogsSummary = "執行日誌",
+                Onboarding = "新手引導",
+                OnboardingSummary = "重新查看歡迎引導",
+                BackupRestore = "備份與還原",
+                BackupRestoreSummary = "備份或還原設定、訂閱、覆寫及 Sub-Store 資料",
+                About = "關於",
+                AboutSummary = "版本與授權",
+            ),
+        Error = YumeStrings_Settings_Error(WebviewFailed = "無法開啟 WebView：%s"),
+    )
 
-internal val EnYumeStrings_Settings: YumeStrings_Settings = YumeStrings_Settings(
-    Title = "Settings",
-    Section = YumeStrings_Settings_Section(
-        UiSettings = "General Options",
-        Extensions = "Extensions",
-        BackupRestore = "Backup & Restore",
-        More = "More",
-        About = "About",
-    ),
-    UiSettings = YumeStrings_Settings_UiSettings(
-        App = "App",
-        AppSummary = "Theme, language, and behavior",
-        Network = "Network Settings",
-        NetworkSummary = "Proxy mode, DNS, and kernel",
-        Override = "Override",
-        OverrideSummary = "YAML, JS, and rule overrides",
-        MetaFeatures = "Extension Resources",
-        MetaFeaturesSummary = "Routing, Geo file updates, logs, and Age keys",
-        AppSettingsEntry = "App Settings",
-        OverrideScript = "Override Scripts",
-        RemoteControl = "External Controller",
-        RemoteControlSummary = "External panels and controllers",
-    ),
-    More = YumeStrings_Settings_More(
-        Lab = "Lab",
-        LabSummary = "Try experimental features in development",
-        Logs = "Logs",
-        LogsSummary = "Runtime Logs",
-        Onboarding = "Setup Guide",
-        OnboardingSummary = "Replay the welcome guide",
-        BackupRestore = "Backup & Restore",
-        BackupRestoreSummary = "Back up or restore settings, profiles, overrides, and Sub-Store data",
-        About = "About",
-        AboutSummary = "Version & License",
-    ),
-    Error = YumeStrings_Settings_Error(
-        WebviewFailed = "Unable to open WebView: %s",
-    ),
-)
+internal val EnYumeStrings_Settings: YumeStrings_Settings =
+    YumeStrings_Settings(
+        Title = "Settings",
+        Section =
+            YumeStrings_Settings_Section(
+                UiSettings = "General Options",
+                Extensions = "Extensions",
+                BackupRestore = "Backup & Restore",
+                More = "More",
+                About = "About",
+            ),
+        UiSettings =
+            YumeStrings_Settings_UiSettings(
+                App = "App",
+                AppSummary = "Theme, language, and behavior",
+                Network = "Network Settings",
+                NetworkSummary = "Proxy mode, DNS, and kernel",
+                Override = "Override",
+                OverrideSummary = "YAML, JS, and rule overrides",
+                MetaFeatures = "Extension Resources",
+                MetaFeaturesSummary = "Routing, Geo file updates, logs, and Age keys",
+                AppSettingsEntry = "App Settings",
+                OverrideScript = "Override Scripts",
+                RemoteControl = "External Controller",
+                RemoteControlSummary = "Take over remote cores such as soft routers and LAN devices",
+            ),
+        More =
+            YumeStrings_Settings_More(
+                Lab = "Lab",
+                LabSummary = "Try experimental features in development",
+                Logs = "Logs",
+                LogsSummary = "Runtime Logs",
+                Onboarding = "Setup Guide",
+                OnboardingSummary = "Replay the welcome guide",
+                BackupRestore = "Backup & Restore",
+                BackupRestoreSummary = "Back up or restore settings, profiles, overrides, and Sub-Store data",
+                About = "About",
+                AboutSummary = "Version & License",
+            ),
+        Error = YumeStrings_Settings_Error(WebviewFailed = "Unable to open WebView: %s"),
+    )
 
-internal val JaYumeStrings_Settings: YumeStrings_Settings = YumeStrings_Settings(
-    Title = "設定",
-    Section = YumeStrings_Settings_Section(
-        UiSettings = "一般設定",
-        Extensions = "拡張機能",
-        BackupRestore = "バックアップと復元",
-        More = "その他",
-        About = "情報",
-    ),
-    UiSettings = YumeStrings_Settings_UiSettings(
-        App = "アプリ",
-        AppSummary = "テーマ、言語、動作",
-        Network = "ネットワーク設定",
-        NetworkSummary = "プロキシモード、DNS、カーネル",
-        Override = "上書き",
-        OverrideSummary = "YAML / JS / ルールの上書き",
-        MetaFeatures = "拡張リソース",
-        MetaFeaturesSummary = "ルーティング、Geo ファイル更新、ログ、Age キー",
-        AppSettingsEntry = "アプリ設定",
-        OverrideScript = "オーバーライドスクリプト",
-        RemoteControl = "外部コントローラー",
-        RemoteControlSummary = "外部パネルとコントローラー",
-    ),
-    More = YumeStrings_Settings_More(
-        Lab = "ラボ",
-        LabSummary = "実験的・開発中の新機能を試す",
-        Logs = "ログ",
-        LogsSummary = "実行ログ",
-        Onboarding = "セットアップガイド",
-        OnboardingSummary = "ようこそガイドを再表示",
-        BackupRestore = "バックアップと復元",
-        BackupRestoreSummary = "設定、プロファイル、上書き、Sub-Store データのバックアップと復元",
-        About = "情報",
-        AboutSummary = "バージョンとライセンス",
-    ),
-    Error = YumeStrings_Settings_Error(
-        WebviewFailed = "WebView を開けません: %s",
-    ),
-)
+internal val JaYumeStrings_Settings: YumeStrings_Settings =
+    YumeStrings_Settings(
+        Title = "設定",
+        Section =
+            YumeStrings_Settings_Section(
+                UiSettings = "一般設定",
+                Extensions = "拡張機能",
+                BackupRestore = "バックアップと復元",
+                More = "その他",
+                About = "情報",
+            ),
+        UiSettings =
+            YumeStrings_Settings_UiSettings(
+                App = "アプリ",
+                AppSummary = "テーマ、言語、動作",
+                Network = "ネットワーク設定",
+                NetworkSummary = "プロキシモード、DNS、カーネル",
+                Override = "上書き",
+                OverrideSummary = "YAML / JS / ルールの上書き",
+                MetaFeatures = "拡張リソース",
+                MetaFeaturesSummary = "ルーティング、Geo ファイル更新、ログ、Age キー",
+                AppSettingsEntry = "アプリ設定",
+                OverrideScript = "オーバーライドスクリプト",
+                RemoteControl = "外部コントローラー",
+                RemoteControlSummary = "ソフトルーターや LAN 上のデバイスなど外部コアの制御",
+            ),
+        More =
+            YumeStrings_Settings_More(
+                Lab = "ラボ",
+                LabSummary = "実験的・開発中の新機能を試す",
+                Logs = "ログ",
+                LogsSummary = "実行ログ",
+                Onboarding = "セットアップガイド",
+                OnboardingSummary = "ようこそガイドを再表示",
+                BackupRestore = "バックアップと復元",
+                BackupRestoreSummary = "設定、プロファイル、上書き、Sub-Store データのバックアップと復元",
+                About = "情報",
+                AboutSummary = "バージョンとライセンス",
+            ),
+        Error = YumeStrings_Settings_Error(WebviewFailed = "WebView を開けません: %s"),
+    )
 
-internal val RuYumeStrings_Settings: YumeStrings_Settings = YumeStrings_Settings(
-    Title = "Настройки",
-    Section = YumeStrings_Settings_Section(
-        UiSettings = "Общие параметры",
-        Extensions = "Расширения",
-        BackupRestore = "Резервное копирование",
-        More = "Ещё",
-        About = "О приложении",
-    ),
-    UiSettings = YumeStrings_Settings_UiSettings(
-        App = "Приложение",
-        AppSummary = "Тема, язык и поведение",
-        Network = "Настройки сети",
-        NetworkSummary = "Режим прокси, DNS и ядро",
-        Override = "Переопределения",
-        OverrideSummary = "YAML, JS и переопределение правил",
-        MetaFeatures = "Ресурсы расширений",
-        MetaFeaturesSummary = "Маршрутизация, обновление Geo-файлов, журналы и ключи Age",
-        AppSettingsEntry = "Настройки приложения",
-        OverrideScript = "Скрипты переопределения",
-        RemoteControl = "Внешний контроллер",
-        RemoteControlSummary = "Внешние панели и контроллеры",
-    ),
-    More = YumeStrings_Settings_More(
-        Lab = "Лаборатория",
-        LabSummary = "Экспериментальные и разрабатываемые функции",
-        Logs = "Журналы",
-        LogsSummary = "Журналы выполнения",
-        Onboarding = "Мастер настройки",
-        OnboardingSummary = "Показать приветственный гид снова",
-        BackupRestore = "Резервное копирование",
-        BackupRestoreSummary = "Резервное копирование и восстановление настроек, профилей, переопределений и данных Sub-Store",
-        About = "О приложении",
-        AboutSummary = "Версия и лицензия",
-    ),
-    Error = YumeStrings_Settings_Error(
-        WebviewFailed = "Не удалось открыть WebView: %s",
-    ),
-)
+internal val RuYumeStrings_Settings: YumeStrings_Settings =
+    YumeStrings_Settings(
+        Title = "Настройки",
+        Section =
+            YumeStrings_Settings_Section(
+                UiSettings = "Общие параметры",
+                Extensions = "Расширения",
+                BackupRestore = "Резервное копирование",
+                More = "Ещё",
+                About = "О приложении",
+            ),
+        UiSettings =
+            YumeStrings_Settings_UiSettings(
+                App = "Приложение",
+                AppSummary = "Тема, язык и поведение",
+                Network = "Настройки сети",
+                NetworkSummary = "Режим прокси, DNS и ядро",
+                Override = "Переопределения",
+                OverrideSummary = "YAML, JS и переопределение правил",
+                MetaFeatures = "Ресурсы расширений",
+                MetaFeaturesSummary = "Маршрутизация, обновление Geo-файлов, журналы и ключи Age",
+                AppSettingsEntry = "Настройки приложения",
+                OverrideScript = "Скрипты переопределения",
+                RemoteControl = "Внешний контроллер",
+                RemoteControlSummary = "Управление внешними ядрами: soft-роутеры и устройства локальной сети",
+            ),
+        More =
+            YumeStrings_Settings_More(
+                Lab = "Лаборатория",
+                LabSummary = "Экспериментальные и разрабатываемые функции",
+                Logs = "Журналы",
+                LogsSummary = "Журналы выполнения",
+                Onboarding = "Мастер настройки",
+                OnboardingSummary = "Показать приветственный гид снова",
+                BackupRestore = "Резервное копирование",
+                BackupRestoreSummary =
+                    "Резервное копирование и восстановление настроек, профилей, переопределений и данных Sub-Store",
+                About = "О приложении",
+                AboutSummary = "Версия и лицензия",
+            ),
+        Error = YumeStrings_Settings_Error(WebviewFailed = "Не удалось открыть WebView: %s"),
+    )

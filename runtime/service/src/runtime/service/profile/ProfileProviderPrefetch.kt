@@ -30,13 +30,13 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.utils.io.jvm.javaio.*
-import timber.log.Timber
 import java.io.File
 import java.util.*
+import timber.log.Timber
 
 /**
- * Pre-fetches HTTP providers into the same profile-private paths that liboverride emits into the
- * runtime config. Best-effort: one failed provider must never reject an import.
+ * Pre-fetches HTTP providers into the same profile-private paths that liboverride emits into the runtime config.
+ * Best-effort: one failed provider must never reject an import.
  */
 internal suspend fun fetchExternalProviders(
     context: Context,
@@ -56,9 +56,7 @@ internal suspend fun fetchExternalProviders(
                 onStatus = onStatus,
             )
         }
-        .onFailure { error ->
-            Timber.e(error, "External provider prefetch crashed; continuing import")
-        }
+        .onFailure { error -> Timber.e(error, "External provider prefetch crashed; continuing import") }
         .getOrDefault(ProviderPrefetchReport())
 }
 
@@ -111,8 +109,7 @@ private suspend fun fetchExternalProvidersInner(
     val providers = discovery.providers
 
     if (providers.isEmpty()) {
-        val declaresProviders =
-            configText.contains("proxy-providers") || configText.contains("rule-providers")
+        val declaresProviders = configText.contains("proxy-providers") || configText.contains("rule-providers")
         val hasHttpUrl = HTTP_URL_IN_TEXT.containsMatchIn(configText)
         val anomaly = declaresProviders && hasHttpUrl
         if (anomaly) {

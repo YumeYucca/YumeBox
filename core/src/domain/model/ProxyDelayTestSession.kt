@@ -21,6 +21,7 @@
 package com.github.yumeyucca.yumebox.domain.model
 
 import com.github.yumeyucca.yumebox.core.model.Proxy
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -29,7 +30,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
-import java.util.concurrent.atomic.AtomicInteger
 
 const val PROXY_DELAY_TEST_PARALLELISM = 5
 
@@ -50,8 +50,8 @@ sealed interface ProxyDelayTarget {
 }
 
 /**
- * Flattens [groupNames] into one probe plan: every reachable leaf is probed once, no matter how
- * many requested groups contain it. A group with no reachable leaf falls back to a group probe.
+ * Flattens [groupNames] into one probe plan: every reachable leaf is probed once, no matter how many requested groups
+ * contain it. A group with no reachable leaf falls back to a group probe.
  */
 fun planProxyDelayTests(
     groupNames: List<String>,
@@ -101,10 +101,10 @@ private fun resolveLeafProxyNames(
 /**
  * One batch delay test.
  *
- * [run] probes the plan with bounded parallelism, hands every measurement to [onResult] as soon as
- * it lands, and returns the complete result set once the run finishes. Callers reconcile their
- * group snapshot from that return value, so the final state never depends on how long per-node
- * values were cached. Returns null when the run was abandoned (inactive generation, empty plan).
+ * [run] probes the plan with bounded parallelism, hands every measurement to [onResult] as soon as it lands, and
+ * returns the complete result set once the run finishes. Callers reconcile their group snapshot from that return value,
+ * so the final state never depends on how long per-node values were cached. Returns null when the run was abandoned
+ * (inactive generation, empty plan).
  */
 class ProxyDelayTestSession(
     targets: List<ProxyDelayTarget>,
@@ -154,9 +154,7 @@ class ProxyDelayTestSession(
             }
 
             is ProxyDelayTarget.Group ->
-                measureSafely { measureGroup(target.name) }
-                    .orEmpty()
-                    .filterValues { delay -> delay != 0 }
+                measureSafely { measureGroup(target.name) }.orEmpty().filterValues { delay -> delay != 0 }
         }
 
     private suspend fun <T> measureSafely(block: suspend () -> T): T? =

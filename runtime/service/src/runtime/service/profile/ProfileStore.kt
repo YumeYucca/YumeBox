@@ -25,17 +25,16 @@ package com.github.yumeyucca.yumebox.runtime.service.profile
 import com.github.yumeyucca.yumebox.core.util.PersistedJson
 import com.github.yumeyucca.yumebox.runtime.api.UUIDSerializer
 import com.tencent.mmkv.MMKV
+import java.util.*
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.builtins.ListSerializer
-import java.util.*
 
 object ProfileStore {
     private const val IMPORTED_KEY = "imported"
     private const val PROFILE_ORDER_KEY = "profile_order"
 
     private val mmkv by lazy { MMKV.mmkvWithID("profiles", MMKV.MULTI_PROCESS_MODE) }
-
 
     fun saveImported(list: List<Imported>) {
         val jsonString = PersistedJson.encodeToString(ListSerializer(Imported.serializer()), list)

@@ -21,8 +21,8 @@
 package com.github.yumeyucca.yumebox.runtime.api
 
 /**
- * Best-effort summary of external proxy/rule provider prefetch during profile update.
- * Failures here must never fail the main subscription import.
+ * Best-effort summary of external proxy/rule provider prefetch during profile update. Failures here must never fail the
+ * main subscription import.
  */
 data class ProviderPrefetchReport(
     val attempted: Int = 0,
@@ -34,9 +34,7 @@ data class ProviderPrefetchReport(
 )
 
 /** Result of a successful profile update (main config committed). */
-data class ProfileUpdateReport(
-    val providers: ProviderPrefetchReport = ProviderPrefetchReport(),
-) {
+data class ProfileUpdateReport(val providers: ProviderPrefetchReport = ProviderPrefetchReport()) {
     companion object {
         val Empty = ProfileUpdateReport()
     }

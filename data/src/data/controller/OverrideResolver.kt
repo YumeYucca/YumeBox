@@ -30,8 +30,7 @@ class OverrideResolver(
     private val configStore: OverrideConfigStore,
     private val bindingProvider: ProfileBindingProvider,
 ) {
-    suspend fun resolveIds(profileId: String): List<String> =
-        resolveBindingIds(bindingProvider.getBinding(profileId))
+    suspend fun resolveIds(profileId: String): List<String> = resolveBindingIds(bindingProvider.getBinding(profileId))
 
     suspend fun resolveSpecs(overrideIds: List<String>): List<OverrideSpec> {
         // Plain loop rather than mapNotNull: resolving a spec reads the override's file path off
@@ -45,8 +44,7 @@ class OverrideResolver(
         return specs
     }
 
-    suspend fun getOverrideUsageCount(overrideId: String): Int =
-        bindingProvider.getOverrideUsageCount(overrideId)
+    suspend fun getOverrideUsageCount(overrideId: String): Int = bindingProvider.getOverrideUsageCount(overrideId)
 
     private fun resolveBindingIds(binding: ProfileBinding?): List<String> {
         if (binding == null) {
@@ -58,8 +56,7 @@ class OverrideResolver(
         return binding.enabledOverrideIds
             .asSequence()
             .filterNot { overrideId ->
-                OverrideMetadata.isLegacyPresetId(overrideId) ||
-                        OverrideConfigStore.isInternalRuntimeConfig(overrideId)
+                OverrideMetadata.isLegacyPresetId(overrideId) || OverrideConfigStore.isInternalRuntimeConfig(overrideId)
             }
             .distinct()
             .toList()

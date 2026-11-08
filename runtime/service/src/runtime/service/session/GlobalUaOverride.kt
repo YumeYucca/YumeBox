@@ -25,20 +25,15 @@ import com.github.yumeyucca.yumebox.runtime.service.profile.SubscriptionUserAgen
 import java.io.File
 
 /**
- * Injects app-level `global-ua` into the compile override chain so core provider refresh uses the
- * same User-Agent as Kotlin subscription downloads. Always appended last so it beats subscription
- * and user override values; not gated by disable-all.
+ * Injects app-level `global-ua` into the compile override chain so core provider refresh uses the same User-Agent as
+ * Kotlin subscription downloads. Always appended last so it beats subscription and user override values; not gated by
+ * disable-all.
  */
 object GlobalUaOverride {
     const val FILE_NAME = "__global_ua_override__.yaml"
 
     fun buildYaml(userAgent: String = SubscriptionUserAgent.resolve()): String {
-        val escaped =
-            userAgent
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
+        val escaped = userAgent.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
         return "global-ua: \"$escaped\"\n"
     }
 

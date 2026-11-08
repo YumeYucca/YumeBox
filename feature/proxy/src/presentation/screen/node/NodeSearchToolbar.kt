@@ -37,8 +37,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -47,9 +47,8 @@ import top.yukonga.miuix.kmp.icon.basic.SearchCleanup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * Node page search field. The delay-test / sort / locate actions used to live beside it; they now
- * sit in the top bar's glass pill+circle chrome (see [com.github.yumeyucca.yumebox.presentation.screen.ProxyNodePage]
- * and ProxyTopBar).
+ * Node page search field. The delay-test / sort / locate actions used to live beside it; they now sit in the top bar's
+ * glass pill+circle chrome (see [com.github.yumeyucca.yumebox.presentation.screen.ProxyNodePage] and ProxyTopBar).
  */
 @Composable
 internal fun NodeSearchToolbar(
@@ -95,10 +94,7 @@ internal fun NodeSearchToolbar(
                     Icon(
                         imageVector = MiuixIcons.Basic.Search,
                         contentDescription = YumeTxt.Component.Editor.Action.Search,
-                        modifier =
-                            Modifier
-                                .size(UiDp.dp44)
-                                .padding(start = UiDp.dp16, end = UiDp.dp8),
+                        modifier = Modifier.size(UiDp.dp44).padding(start = UiDp.dp16, end = UiDp.dp8),
                     )
                 },
                 trailingIcon = {
@@ -107,23 +103,21 @@ internal fun NodeSearchToolbar(
                             imageVector = MiuixIcons.Basic.SearchCleanup,
                             contentDescription = YumeTxt.Component.Button.Clear,
                             modifier =
-                                Modifier
-                                    .size(UiDp.dp44)
-                                    .padding(start = UiDp.dp8, end = UiDp.dp16)
-                                    .clickable { onQueryChange("") },
+                                Modifier.size(UiDp.dp44).padding(start = UiDp.dp8, end = UiDp.dp16).clickable {
+                                    onQueryChange("")
+                                },
                         )
                     }
                 },
                 modifier =
-                    Modifier
-                        .weight(1f)
+                    Modifier.weight(1f)
                         .shadow(
                             elevation = UiDp.dp6,
                             shape = CircleShape,
                             clip = false,
                             ambientColor = Color.Black.copy(alpha = 0.06f),
                             spotColor = Color.Black.copy(alpha = 0.12f),
-                            ),
+                        ),
             )
         }
     }

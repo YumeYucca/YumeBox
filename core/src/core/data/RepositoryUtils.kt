@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.core.data
 
-
 import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 

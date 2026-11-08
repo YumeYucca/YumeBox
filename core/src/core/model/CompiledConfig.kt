@@ -20,7 +20,6 @@
 
 package com.github.yumeyucca.yumebox.core.model
 
-
 import kotlinx.serialization.Serializable
 
 @Serializable

@@ -22,17 +22,14 @@
 
 package com.github.yumeyucca.yumebox.screen.profiles
 
-
 import java.io.File
 
 /**
- * Reads a profile's config file for the editor, or reports why it cannot be read — [missingMessage]
- * when the file is gone, the I/O error otherwise. Blocking: call it from an IO dispatcher.
+ * Reads a profile's config file for the editor, or reports why it cannot be read — [missingMessage] when the file is
+ * gone, the I/O error otherwise. Blocking: call it from an IO dispatcher.
  */
 internal fun readProfileConfigFile(targetFile: File, missingMessage: String): Result<String> {
     if (!targetFile.exists()) return Result.failure(IllegalStateException(missingMessage))
     return runCatching { targetFile.readText() }
-        .recoverCatching { error ->
-            throw IllegalStateException(error.message ?: "Failed to read profile", error)
-        }
+        .recoverCatching { error -> throw IllegalStateException(error.message ?: "Failed to read profile", error) }
 }

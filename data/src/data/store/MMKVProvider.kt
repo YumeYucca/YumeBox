@@ -20,7 +20,6 @@
 
 package com.github.yumeyucca.yumebox.data.store
 
-
 import com.tencent.mmkv.MMKV
 
 class MMKVProvider {

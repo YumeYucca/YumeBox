@@ -35,8 +35,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /** What the panel-shortcut dialog is being opened for. */
-@Immutable
-private data class PanelShortcutRequest(val url: String, val label: String)
+@Immutable private data class PanelShortcutRequest(val url: String, val label: String)
 
 @Composable
 fun FeatureScreen(navigator: Navigator) {
@@ -52,8 +51,7 @@ fun FeatureScreen(navigator: Navigator) {
     FeatureContent(
         onOpenInAppUrl = { url -> WebViewActivity.start(context, url) },
         onCreatePanelShortcut = { url, label ->
-            val targetUrl =
-                remoteControllerStore.activeBackend()?.let { buildRemotePanelUrl(url, it) } ?: url
+            val targetUrl = remoteControllerStore.activeBackend()?.let { buildRemotePanelUrl(url, it) } ?: url
             shortcutRequest = PanelShortcutRequest(url = targetUrl, label = label)
             shortcutDialogVisible = true
         },

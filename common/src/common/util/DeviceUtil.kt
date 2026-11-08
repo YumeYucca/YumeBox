@@ -23,6 +23,5 @@ package com.github.yumeyucca.yumebox.common.util
 import android.os.Build
 
 object DeviceUtil {
-    fun is32BitDevice(): Boolean =
-        Build.SUPPORTED_32_BIT_ABIS.isNotEmpty() && Build.SUPPORTED_64_BIT_ABIS.isEmpty()
+    fun is32BitDevice(): Boolean = Build.SUPPORTED_32_BIT_ABIS.isNotEmpty() && Build.SUPPORTED_64_BIT_ABIS.isEmpty()
 }

@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -39,12 +38,12 @@ val Yume.ShieldCheck: ImageVector
         }
         shieldCheckVector =
             ImageVector.Builder(
-                name = "IconName",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            )
+                    name = "IconName",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                )
                 .apply {
                     path(
                         stroke = SolidColor(Color.Black),
@@ -112,5 +111,4 @@ val Yume.ShieldCheck: ImageVector
         return shieldCheckVector!!
     }
 
-@Suppress("ObjectPropertyName")
-private var shieldCheckVector: ImageVector? = null
+@Suppress("ObjectPropertyName") private var shieldCheckVector: ImageVector? = null

@@ -26,17 +26,17 @@ import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.*
-import timber.log.Timber
 import androidx.compose.ui.platform.LocalContext
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.github.yumeyucca.yumebox.common.util.buildRemotePanelUrl
 import com.github.yumeyucca.yumebox.common.util.requiresLocalNetworkPermission
 import com.github.yumeyucca.yumebox.data.model.SubStorePanel
 import com.github.yumeyucca.yumebox.data.store.FeatureStore
 import com.github.yumeyucca.yumebox.data.store.RemoteControllerStore
 import com.github.yumeyucca.yumebox.presentation.component.*
+import com.github.yumeyucca.yumebox.presentation.navigation.PaneRestingRoute
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.navigation.RouteStack
 import com.github.yumeyucca.yumebox.presentation.navigation.rememberMainPageModel
@@ -50,8 +50,8 @@ import com.github.yumeyucca.yumebox.screen.rules.RulesProvidersTab
 import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+import timber.log.Timber
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import com.github.yumeyucca.yumebox.presentation.navigation.PaneRestingRoute
 
 @Composable
 internal fun MainScreen(
@@ -101,18 +101,19 @@ internal fun MainScreen(
     val openNetworkPanel: () -> Unit =
         remember(panelUrl, context, remoteControllerStore, localNetworkGate) {
             {
-                panelUrl.takeIf { it.isNotBlank() }?.let { panel ->
-                    val backend = remoteControllerStore.activeBackend()
-                    val targetUrl = backend?.let { buildRemotePanelUrl(panel, it) } ?: panel
-                    localNetworkGate.run(
-                        requiresPermission = backend?.requiresLocalNetworkPermission() == true,
-                        action = { WebViewActivity.start(context, targetUrl) },
-                    )
-                }
+                panelUrl
+                    .takeIf { it.isNotBlank() }
+                    ?.let { panel ->
+                        val backend = remoteControllerStore.activeBackend()
+                        val targetUrl = backend?.let { buildRemotePanelUrl(panel, it) } ?: panel
+                        localNetworkGate.run(
+                            requiresPermission = backend?.requiresLocalNetworkPermission() == true,
+                            action = { WebViewActivity.start(context, targetUrl) },
+                        )
+                    }
             }
         }
-    val bottomBarScrollBehavior =
-        rememberBottomBarScrollBehavior(autoHideEnabled = bottomBarAutoHideEnabled)
+    val bottomBarScrollBehavior = rememberBottomBarScrollBehavior(autoHideEnabled = bottomBarAutoHideEnabled)
     // A bound reference is a new object per recomposition, and the host compares its arguments.
     val onSplitLeftFractionChange: (Float) -> Unit =
         remember(appSettingsViewModel) { appSettingsViewModel::onSplitLeftRatioChange }
@@ -120,9 +121,7 @@ internal fun MainScreen(
     val bottomBarVisible = pageModel.bottomBarVisible
 
     val vpnPermissionLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.StartActivityForResult(),
-        ) { result ->
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) { result ->
             homeViewModel.onVpnPermissionResult(result.resultCode == Activity.RESULT_OK)
         }
 
@@ -131,10 +130,9 @@ internal fun MainScreen(
         val intent = vpnPrepareIntent ?: return@LaunchedEffect
         // A stripped build can ship without the consent activity, and an exception out of the
         // launcher would escape this effect and take the composition down with it.
-        val shown =
-            runCatching { vpnPermissionLauncher.launch(intent) }
-                .onFailure { Timber.e(it, "Could not show the VPN consent prompt") }
-                .isSuccess
+        val shown = runCatching {
+            vpnPermissionLauncher.launch(intent)
+        }.onFailure { Timber.e(it, "Could not show the VPN consent prompt") }.isSuccess
         homeViewModel.consumeVpnPrepareIntent()
         if (!shown) homeViewModel.onVpnPermissionResult(false)
     }
@@ -162,10 +160,7 @@ internal fun MainScreen(
         if (pageModel.previousSettled == settledDestination) return@LaunchedEffect
         // Read here, not in the composition body: a pane push must not recompose the shell, and the
         // question only has to be answered when the tab actually changes.
-        if (
-            settledDestination != BottomBarDestination.Proxy &&
-            detailNavigator.currentRoute != PaneRestingRoute
-        ) {
+        if (settledDestination != BottomBarDestination.Proxy && detailNavigator.currentRoute != PaneRestingRoute) {
             detailNavigator.replaceAll(listOf(PaneRestingRoute))
         }
     }
@@ -229,9 +224,8 @@ private fun MainScreenBackHandler(
 }
 
 /**
- * One frame of the Moe home's animated chrome: the wallpaper transform plus the page progress
- * that fades it in. These values always travel together, so the pager hosts forward them as a
- * single value instead of one parameter each.
+ * One frame of the Moe home's animated chrome: the wallpaper transform plus the page progress that fades it in. These
+ * values always travel together, so the pager hosts forward them as a single value instead of one parameter each.
  */
 @Immutable
 internal data class MoeHomeFrame(

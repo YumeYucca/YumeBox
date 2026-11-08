@@ -37,11 +37,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Luminous hairline rim along the inside of [shape], in the NexioSchedule bottom-bar style,
- * replacing a dark hairline border. The stroke color is derived from the panel's own background
- * color (near-neutral colors fall back to white) and is drawn with an additive blend, so it reads
- * as a light rim instead of a solid line. [blurRadius] softens the rim with a wider, fainter
- * halo stroke underneath, approximating NexioSchedule's BlurMaskFilter without framework paints.
+ * Luminous hairline rim along the inside of [shape], in the NexioSchedule bottom-bar style, replacing a dark hairline
+ * border. The stroke color is derived from the panel's own background color (near-neutral colors fall back to white)
+ * and is drawn with an additive blend, so it reads as a light rim instead of a solid line. [blurRadius] softens the rim
+ * with a wider, fainter halo stroke underneath, approximating NexioSchedule's BlurMaskFilter without framework paints.
  */
 fun Modifier.edgeLight(
     shape: Shape,
@@ -102,8 +101,7 @@ object EdgeLightDefaults {
 
     fun width(isLightTheme: Boolean): Dp = if (isLightTheme) WidthLight else WidthDark
 
-    fun blendMode(isLightTheme: Boolean): BlendMode =
-        if (isLightTheme) BlendMode.Plus else BlendMode.Screen
+    fun blendMode(isLightTheme: Boolean): BlendMode = if (isLightTheme) BlendMode.Plus else BlendMode.Screen
 
     /** Rim color = the base color with boosted saturation and capped value; neutrals go white. */
     fun tint(baseColor: Color, isLightTheme: Boolean): Color =
@@ -120,8 +118,7 @@ private fun highlightTint(baseColor: Color, alpha: Float): Color {
     val minC = minOf(baseColor.red, minOf(baseColor.green, baseColor.blue))
     val saturation = if (v > 0f) (v - minC) / v else 0f
     if (saturation < NEUTRAL_SATURATION_EPS) return Color.White.copy(alpha = alpha)
-    fun boost(channel: Float) =
-        ((v - (v - channel) * SATURATION_BOOST) / v * HIGHLIGHT_VALUE).coerceIn(0f, 1f)
+    fun boost(channel: Float) = ((v - (v - channel) * SATURATION_BOOST) / v * HIGHLIGHT_VALUE).coerceIn(0f, 1f)
     val vivid =
         Color(
             red = boost(baseColor.red),

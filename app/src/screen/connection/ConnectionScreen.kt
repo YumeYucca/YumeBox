@@ -22,32 +22,31 @@
 
 package com.github.yumeyucca.yumebox.screen.connection
 
-
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.ui.unit.Dp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.ConnectionInfo
 import com.github.yumeyucca.yumebox.feature.meta.presentation.component.ConnectionCard
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionTab
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionViewModel
 import com.github.yumeyucca.yumebox.presentation.component.*
+import com.github.yumeyucca.yumebox.presentation.component.rememberCollapsedTopPadding
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.AppTheme
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.theme.MiuixTheme
-import com.github.yumeyucca.yumebox.presentation.component.rememberCollapsedTopPadding
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** Tab label, listed in [ConnectionTab] order; the segmented row indexes tabs by ordinal. */
 private val ConnectionTab.label: String

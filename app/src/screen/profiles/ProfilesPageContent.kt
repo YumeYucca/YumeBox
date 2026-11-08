@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.ArrowDownUp
@@ -45,7 +46,6 @@ import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -67,9 +67,7 @@ internal fun ProfilesPageContent(
     val addProfile = { state.addRequest = AddProfileRequest() }
     // List actions are ignored while an import or update is in flight. Read live at click time, not
     // captured, so a click that lands after the download finished still goes through.
-    val ifIdle: (() -> Unit) -> Unit = { action ->
-        if (profilesViewModel.downloadProgress.value == null) action()
-    }
+    val ifIdle: (() -> Unit) -> Unit = { action -> if (profilesViewModel.downloadProgress.value == null) action() }
 
     GlassScaffold(
         topBar = {
@@ -96,7 +94,7 @@ internal fun ProfilesPageContent(
                     )
                 },
             )
-        }
+        },
     ) { innerPadding ->
         Box(Modifier.fillMaxSize()) {
             if (profiles.isEmpty()) {
@@ -114,19 +112,27 @@ internal fun ProfilesPageContent(
                         ifIdle {
                             when (action) {
                                 // Editing goes straight to the full 编辑配置 page; the old options dialog is gone.
-                                ProfileAction.Edit ->
+                                ProfileAction.Edit -> {
                                     navigator.push(Route.ProfileEdit(profile.uuid.toString()))
+                                }
 
-                                ProfileAction.OverrideSettings ->
+                                ProfileAction.OverrideSettings -> {
                                     navigator.push(Route.ProfileOverride(profile.uuid.toString()))
+                                }
 
                                 // The view model owns the in-flight window: it raises download
                                 // progress before its first IPC and clears it when the import ends.
-                                ProfileAction.Update -> profilesViewModel.updateProfile(profile.uuid)
+                                ProfileAction.Update -> {
+                                    profilesViewModel.updateProfile(profile.uuid)
+                                }
 
-                                ProfileAction.ShareFile -> shareProfileFile(profile)
+                                ProfileAction.ShareFile -> {
+                                    shareProfileFile(profile)
+                                }
 
-                                ProfileAction.ShareLink -> shareProfileLink(profile)
+                                ProfileAction.ShareLink -> {
+                                    shareProfileLink(profile)
+                                }
 
                                 ProfileAction.Delete -> {
                                     state.deleteTarget = profile
@@ -172,15 +178,11 @@ private fun ProfilesList(
 ) {
     val listState = rememberLazyListState()
     val reorderState =
-        rememberReorderableLazyListState(listState) { from, to ->
-            onReorderProfiles(from.index, to.index)
-        }
+        rememberReorderableLazyListState(listState) { from, to -> onReorderProfiles(from.index, to.index) }
     // Applying the sort changes the whole order, and a keyed LazyColumn keeps the previously
     // first visible item in place, which reads as "it scrolled to the bottom". Animate back to the
     // top after the commit (not a jump) so the view returns to what the sheet covered.
-    LaunchedEffect(sortCommitCount) {
-        if (sortCommitCount > 0) listState.animateScrollToItem(0)
-    }
+    LaunchedEffect(sortCommitCount) { if (sortCommitCount > 0) listState.animateScrollToItem(0) }
     ScreenLazyColumn(
         lazyListState = listState,
         scrollBehavior = scrollBehavior,

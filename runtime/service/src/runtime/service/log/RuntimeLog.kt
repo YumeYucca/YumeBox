@@ -34,23 +34,21 @@ import java.util.*
 /**
  * Runtime diagnostics for the current app process.
  *
- * Everything that explains the current VPN or root startup lands in one file: launchers, services,
- * transports, session state, and verification results. Profile operations, live logs, and raw core
- * output do not belong in this file.
+ * Everything that explains the current VPN or root startup lands in one file: launchers, services, transports, session
+ * state, and verification results. Profile operations, live logs, and raw core output do not belong in this file.
  *
- * A fresh file is created for every runtime start. Writes inside that start are append-only; the
- * previous start is discarded instead of being mixed into the new one. Lines use compact columns:
+ * A fresh file is created for every runtime start. Writes inside that start are append-only; the previous start is
+ * discarded instead of being mixed into the new one. Lines use compact columns:
  * ```
  * 07-26 09:12:33 I [LOCAL/SESSION]       started elapsedMs=812
  * 07-26 09:12:34 W [LOCAL/VERIFY]        actualGroups=0 controller=down attempt=1/10
  * 07-26 09:12:35 E [ROOT/LAUNCHER]       root start failed | IllegalStateException: no controller
  * ```
  *
- * `<month-day time> <level> [<source>/<type>] <message>[ | <cause chain>]`. The source and type are
- * declared values rather than arbitrary strings, so tags remain stable and searchable.
+ * `<month-day time> <level> [<source>/<type>] <message>[ | <cause chain>]`. The source and type are declared values
+ * rather than arbitrary strings, so tags remain stable and searchable.
  *
- * Writes are serialized and completed before returning so a process failure cannot discard queued
- * startup diagnostics.
+ * Writes are serialized and completed before returning so a process failure cannot discard queued startup diagnostics.
  */
 object RuntimeLog {
 
@@ -61,8 +59,8 @@ object RuntimeLog {
     }
 
     /**
-     * Where an entry came from. One short keyword each, so a reader can filter a whole subsystem
-     * out by eye or by `grep`.
+     * Where an entry came from. One short keyword each, so a reader can filter a whole subsystem out by eye or by
+     * `grep`.
      */
     enum class Source(val tag: String) {
         /** [RunMode.VpnService] session: launcher, service, transport, session runtime. */
@@ -95,12 +93,12 @@ object RuntimeLog {
     }
 
     /** Bound writer, so call sites don't repeat the context and source on every line. */
-    class Writer internal constructor(
+    class Writer
+    internal constructor(
         private val context: Context,
         val source: Source,
     ) {
-        fun i(type: Type, message: String) =
-            RuntimeLog.write(context, Level.Info, source, type, message)
+        fun i(type: Type, message: String) = RuntimeLog.write(context, Level.Info, source, type, message)
 
         fun w(type: Type, message: String, error: Throwable? = null) =
             RuntimeLog.write(context, Level.Warn, source, type, message, error)
@@ -113,7 +111,6 @@ object RuntimeLog {
             RuntimeLog.startNewFile(context)
             i(type, message)
         }
-
     }
 
     fun writer(context: Context, source: Source): Writer = Writer(context.appContextOrSelf, source)
@@ -145,17 +142,15 @@ object RuntimeLog {
     }
 
     /** The whole log, oldest first. Used by the About screen's export. */
-    fun snapshot(context: Context): String =
-        runCatching {
-                synchronized(lock) {
-                    val file = file(context)
-                    if (file.exists()) file.readText(StandardCharsets.UTF_8) else ""
-                }
-            }
-            .getOrDefault("")
+    fun snapshot(context: Context): String = runCatching {
+        synchronized(lock) {
+            val file = file(context)
+            if (file.exists()) file.readText(StandardCharsets.UTF_8) else ""
+        }
+    }
+        .getOrDefault("")
 
-    private fun file(context: Context): File =
-        File(context.appContextOrSelf.filesDir, FILE_NAME)
+    private fun file(context: Context): File = File(context.appContextOrSelf.filesDir, FILE_NAME)
 
     private fun format(
         level: Level,
@@ -179,8 +174,8 @@ object RuntimeLog {
     }
 
     /**
-     * Full cause chain, because the outermost message is routinely the least informative one — a
-     * generic "runtime start failed" wrapping the actual parse error reported by the core.
+     * Full cause chain, because the outermost message is routinely the least informative one — a generic "runtime start
+     * failed" wrapping the actual parse error reported by the core.
      */
     private fun describe(error: Throwable): String {
         val chain = StringBuilder()
@@ -214,14 +209,10 @@ object RuntimeLog {
     private fun clearPreviousLogs(context: Context) {
         context.filesDir
             .listFiles { file ->
-                file.isFile &&
-                    file.name.startsWith(OLD_FILE_PREFIX) &&
-                    file.extension == FILE_EXTENSION
+                file.isFile && file.name.startsWith(OLD_FILE_PREFIX) && file.extension == FILE_EXTENSION
             }
             ?.forEach { runCatching { it.delete() } }
-        LEGACY_FILE_NAMES.forEach { name ->
-            runCatching { File(context.filesDir, name).delete() }
-        }
+        LEGACY_FILE_NAMES.forEach { name -> runCatching { File(context.filesDir, name).delete() } }
     }
 
     const val FILE_NAME = "runtime.log"
@@ -233,12 +224,10 @@ object RuntimeLog {
     // Fits the widest current tag plus two spaces; longer tags simply extend the message column.
     private const val TYPE_COLUMN_WIDTH = 22
 
-    private val LEGACY_FILE_NAMES =
-        listOf(FILE_NAME, "local_tun_startup.log", "root_tun_startup.log")
+    private val LEGACY_FILE_NAMES = listOf(FILE_NAME, "local_tun_startup.log", "root_tun_startup.log")
 
     // Local wall-clock, seconds precision: enough to order a startup, and what a person actually
     // reads. Sub-second churn and a zone suffix on every line were noise.
-    private val TIMESTAMP: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("MM-dd HH:mm:ss", Locale.ROOT)
+    private val TIMESTAMP: DateTimeFormatter = DateTimeFormatter.ofPattern("MM-dd HH:mm:ss", Locale.ROOT)
     private val lock = Any()
 }

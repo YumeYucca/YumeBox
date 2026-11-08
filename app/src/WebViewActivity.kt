@@ -35,8 +35,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowCompat
 import com.github.yumeyucca.yumebox.common.util.AppLanguageManager
-import com.github.yumeyucca.yumebox.presentation.webview.WebViewScreen
 import com.github.yumeyucca.yumebox.core.locale.ProvideYumeStrings
+import com.github.yumeyucca.yumebox.presentation.webview.WebViewScreen
 import timber.log.Timber
 
 class WebViewActivity : ComponentActivity() {
@@ -92,8 +92,7 @@ class WebViewActivity : ComponentActivity() {
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val isDarkMode =
-            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-                    Configuration.UI_MODE_NIGHT_YES
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         val useLightNavigationBarIcons = !isDarkMode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.setSystemBarsAppearance(
@@ -106,13 +105,12 @@ class WebViewActivity : ComponentActivity() {
             )
         } else {
             @Suppress("DEPRECATION")
-            WindowCompat.getInsetsController(window, window.decorView)
-                .isAppearanceLightNavigationBars = useLightNavigationBarIcons
+            WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars =
+                useLightNavigationBarIcons
         }
 
         val initialUrl =
-            intent.getStringExtra(EXTRA_INITIAL_URL).toLoadableUrl()
-                ?: "file://$filesDir/frontend/index.html"
+            intent.getStringExtra(EXTRA_INITIAL_URL).toLoadableUrl() ?: "file://$filesDir/frontend/index.html"
 
         setContent { ProvideYumeStrings { WebViewScreen(initialUrl = initialUrl) } }
     }
@@ -132,7 +130,8 @@ class WebViewActivity : ComponentActivity() {
             val insideFrontend = runCatching {
                 val root = java.io.File(filesDir, "frontend").canonicalFile.toPath()
                 java.io.File(path).canonicalFile.toPath().startsWith(root)
-            }.getOrDefault(false)
+            }
+                .getOrDefault(false)
             if (uri.authority.isNullOrEmpty() && insideFrontend) return url
         }
         Timber.w("Refusing to load unsupported URL from an external intent: %s", url)

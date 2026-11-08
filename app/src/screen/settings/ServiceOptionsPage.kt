@@ -32,9 +32,9 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 /**
  * The shared shell of the per-run-mode "service config" sub-pages.
  *
- * Tun, VpnService and eBPF each push the same page: one titled top bar over a scrollable list
- * whose padding already accounts for the floating bottom bar. Only the rows differ, so the shell
- * lives here instead of three times in the screens.
+ * Tun, VpnService and eBPF each push the same page: one titled top bar over a scrollable list whose padding already
+ * accounts for the floating bottom bar. Only the rows differ, so the shell lives here instead of three times in the
+ * screens.
  */
 @Composable
 internal fun ServiceOptionsPage(

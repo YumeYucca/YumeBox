@@ -23,9 +23,9 @@
 package com.github.yumeyucca.yumebox.screen.profiles
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -69,7 +69,7 @@ internal fun DownloadProgressContent(
                         downloadCompleteSheetContentHeight
                     } else {
                         stableSheetHeight ?: downloadSheetContentHeight
-                    }
+                    },
                 ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(UiDp.dp16, Alignment.CenterVertically),
@@ -78,9 +78,7 @@ internal fun DownloadProgressContent(
             targetState = isCompleted,
             modifier = Modifier.size(UiDp.dp48),
             contentAlignment = Alignment.Center,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
-            },
+            transitionSpec = { fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300)) },
             label = "ProgressIcon",
         ) { complete ->
             if (complete) {

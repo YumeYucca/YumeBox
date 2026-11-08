@@ -38,9 +38,13 @@ import com.github.yumeyucca.yumebox.screen.settings.backup.BackupRestoreScreen
 import com.github.yumeyucca.yumebox.screen.traffic.TrafficStatisticsScreen
 
 @Composable
-internal fun RouteContent(route: Route, navigator: Navigator) {
+internal fun RouteContent(
+    route: Route,
+    navigator: Navigator,
+) {
     // TEMPORARY DIAGNOSTIC: names the page being composed when a crash happens.
-    com.github.yumeyucca.yumebox.presentation.component.NavTrace.record("compose $route")
+    com.github.yumeyucca.yumebox.presentation.component.NavTrace
+        .record("compose $route")
     when (route) {
         Route.Main -> {
             val args = LocalMainRouteArgs.current
@@ -53,7 +57,7 @@ internal fun RouteContent(route: Route, navigator: Navigator) {
             )
         }
 
-        is Route.MoeWallpaperCrop ->
+        is Route.MoeWallpaperCrop -> {
             MoeWallpaperCropScreen(
                 navigator,
                 route.wallpaperUri,
@@ -61,35 +65,106 @@ internal fun RouteContent(route: Route, navigator: Navigator) {
                 route.initialBiasX,
                 route.initialBiasY,
             )
+        }
 
-        Route.Settings -> SettingPager()
-        Route.AppSettings -> AppSettingsScreen(navigator)
-        Route.NotificationSettings -> NotificationSettingsScreen()
-        Route.NetworkSettings -> NetworkSettingsScreen(navigator)
-        Route.VpnServiceOptions -> VpnServiceOptionsScreen()
-        Route.TunServiceOptions -> TunServiceOptionsScreen()
-        Route.AccessControl -> AccessControlScreen(navigator)
-        Route.AccessControlAppList -> AccessControlAppListScreen()
-        Route.MetaFeature -> MetaFeatureScreen(navigator)
-        Route.Connection -> ConnectionScreen(navigator)
-        is Route.ConnectionDetail ->
+        Route.Settings -> {
+            SettingPager()
+        }
+
+        Route.AppSettings -> {
+            AppSettingsScreen(navigator)
+        }
+
+        Route.NotificationSettings -> {
+            NotificationSettingsScreen()
+        }
+
+        Route.NetworkSettings -> {
+            NetworkSettingsScreen(navigator)
+        }
+
+        Route.VpnServiceOptions -> {
+            VpnServiceOptionsScreen()
+        }
+
+        Route.TunServiceOptions -> {
+            TunServiceOptionsScreen()
+        }
+
+        Route.AccessControl -> {
+            AccessControlScreen(navigator)
+        }
+
+        Route.AccessControlAppList -> {
+            AccessControlAppListScreen()
+        }
+
+        Route.MetaFeature -> {
+            MetaFeatureScreen(navigator)
+        }
+
+        Route.Connection -> {
+            ConnectionScreen(navigator)
+        }
+
+        is Route.ConnectionDetail -> {
             ConnectionDetailScreen(
                 navigator = navigator,
                 connectionId = route.connectionId,
                 canInterrupt = route.canInterrupt,
             )
-        Route.TrafficStatistics -> TrafficStatisticsScreen()
-        Route.Log -> LogScreen(navigator)
-        Route.About -> AboutScreen(navigator)
-        Route.OpenSourceLicenses -> OpenSourceLicensesScreen(navigator)
-        Route.Override -> OverrideScreen(navigator)
-        is Route.OverrideConfigPreview -> OverrideConfigPreviewRoute(navigator, route.previewId)
-        is Route.ProfileEdit -> ProfileEditScreen(navigator, route.profileId)
-        is Route.ProfileOverride -> ProfileOverrideScreen(navigator, route.profileId)
-        is Route.RulesAndProviders -> RulesAndProvidersScreen(navigator, route.tab)
-        Route.Feature -> FeatureScreen(navigator)
-        Route.Extensions -> ExtensionsScreen()
-        Route.BackupRestore -> BackupRestoreScreen()
-        Route.CustomRouting -> CustomRoutingRoute(navigator)
+        }
+
+        Route.TrafficStatistics -> {
+            TrafficStatisticsScreen()
+        }
+
+        Route.Log -> {
+            LogScreen(navigator)
+        }
+
+        Route.About -> {
+            AboutScreen(navigator)
+        }
+
+        Route.OpenSourceLicenses -> {
+            OpenSourceLicensesScreen(navigator)
+        }
+
+        Route.Override -> {
+            OverrideScreen(navigator)
+        }
+
+        is Route.OverrideConfigPreview -> {
+            OverrideConfigPreviewRoute(navigator, route.previewId)
+        }
+
+        is Route.ProfileEdit -> {
+            ProfileEditScreen(navigator, route.profileId)
+        }
+
+        is Route.ProfileOverride -> {
+            ProfileOverrideScreen(navigator, route.profileId)
+        }
+
+        is Route.RulesAndProviders -> {
+            RulesAndProvidersScreen(navigator, route.tab)
+        }
+
+        Route.Feature -> {
+            FeatureScreen(navigator)
+        }
+
+        Route.Extensions -> {
+            ExtensionsScreen()
+        }
+
+        Route.BackupRestore -> {
+            BackupRestoreScreen()
+        }
+
+        Route.CustomRouting -> {
+            CustomRoutingRoute(navigator)
+        }
     }
 }

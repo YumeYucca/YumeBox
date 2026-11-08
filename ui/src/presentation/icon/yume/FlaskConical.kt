@@ -22,7 +22,6 @@
 
 package com.github.yumeyucca.yumebox.presentation.icon.yume
 
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -39,12 +38,12 @@ val Yume.FlaskConical: ImageVector
         }
         flaskConicalVector =
             ImageVector.Builder(
-                name = "FlaskConical",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            )
+                    name = "FlaskConical",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                )
                 .apply {
                     path(
                         stroke = SolidColor(Color.Black),
@@ -103,5 +102,4 @@ val Yume.FlaskConical: ImageVector
         return flaskConicalVector!!
     }
 
-@Suppress("ObjectPropertyName")
-private var flaskConicalVector: ImageVector? = null
+@Suppress("ObjectPropertyName") private var flaskConicalVector: ImageVector? = null

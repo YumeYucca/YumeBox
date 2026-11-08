@@ -75,10 +75,10 @@ import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * The single owner of the local core lifecycle, in-process for every caller (UI, tile, boot,
- * Wi-Fi automation, config changes). Operations run one at a time under [mutex] on [scope], so a
- * caller that goes away never leaves a half-started core behind, and [state] is the only source
- * of truth — nothing is inferred from service liveness or persisted phase slots.
+ * The single owner of the local core lifecycle, in-process for every caller (UI, tile, boot, Wi-Fi automation, config
+ * changes). Operations run one at a time under [mutex] on [scope], so a caller that goes away never leaves a
+ * half-started core behind, and [state] is the only source of truth — nothing is inferred from service liveness or
+ * persisted phase slots.
  */
 object RuntimeCoordinator : RuntimeControl {
     private const val TAG = "RuntimeCoordinator"
@@ -100,13 +100,18 @@ object RuntimeCoordinator : RuntimeControl {
 
     /** The started TunService instance, from onStartCommand until onDestroy. */
     @Volatile private var vpnService: TunService? = null
+
     /** The instance whose session currently carries the VPN core. */
     @Volatile private var activeVpn: TunService? = null
+
     @Volatile private var vpnAttach: CompletableDeferred<TunService>? = null
+
     @Volatile private var vpnDestroy: CompletableDeferred<Unit>? = null
+
     @Volatile private var startJob: Job? = null
     private var reloadJob: Job? = null
     private var watchJob: Job? = null
+
     /** elapsedRealtime right before the running owner last read its spec. */
     @Volatile private var specReadAt = 0L
     private val connectionTracker by lazy { ConnectionTracker(context, scope) }
@@ -121,7 +126,10 @@ object RuntimeCoordinator : RuntimeControl {
             return publicState
         }
 
-    override suspend fun start(mode: RunMode, source: RuntimeStartSource) {
+    override suspend fun start(
+        mode: RunMode,
+        source: RuntimeStartSource,
+    ) {
         try {
             runOp { startLocked(mode, source) }
         } catch (error: CancellationException) {
@@ -146,8 +154,7 @@ object RuntimeCoordinator : RuntimeControl {
                     bootstrapLocked()
                     block()
                 }
-            }
-            .await()
+            }.await()
 
     // ---- TunService callbacks (main thread) ----
 
@@ -223,10 +230,8 @@ object RuntimeCoordinator : RuntimeControl {
                         // publish RuntimePhase.Failed for the whole service on a plain cancellation.
                         if (error is CancellationException) throw error
                         Timber.tag(TAG).w(error, "Root daemon reconnect probe failed")
-                    }
-                    .getOrNull()
-            }
-            ?.let(RunMode::fromCoreArg)
+                    }.getOrNull()
+            }?.let(RunMode::fromCoreArg)
         if (rootMode != null) {
             val launchedAt = RootDaemonState.load()?.launchedAt?.takeIf { it > 0L }
             publish(RuntimeOwner.RootDaemon, rootMode, RuntimePhase.Running, startedAt = launchedAt)
@@ -244,11 +249,15 @@ object RuntimeCoordinator : RuntimeControl {
         }
     }
 
-    private suspend fun startLocked(mode: RunMode, source: RuntimeStartSource) {
+    private suspend fun startLocked(
+        mode: RunMode,
+        source: RuntimeStartSource,
+    ) {
         val previous = _state.value
         if (previous.phase == RuntimePhase.Running && previous.mode == mode) return
         if (RemoteControllerStore.isActive()) {
-            RuntimeLog.writer(context, mode)
+            RuntimeLog
+                .writer(context, mode)
                 .i(RuntimeLog.Type.Launcher, "skipped: remote controller active source=$source")
             return
         }
@@ -287,11 +296,14 @@ object RuntimeCoordinator : RuntimeControl {
                 phase = RuntimePhase.Starting,
                 startedAt = startedAt,
                 reloading = reloading,
-            )
+            ),
         )
         try {
             when (owner) {
-                RuntimeOwner.VpnService -> startVpnLocked(source)
+                RuntimeOwner.VpnService -> {
+                    startVpnLocked(source)
+                }
+
                 else -> {
                     RootForegroundService.start(context)
                     withContext(Dispatchers.IO) { RootRuntime.start(context, mode) }
@@ -307,7 +319,9 @@ object RuntimeCoordinator : RuntimeControl {
                 }
             }
             throw error
-        } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+        } catch (
+            @Suppress("TooGenericExceptionCaught") error: Exception,
+        ) {
             val message = error.message?.takeIf(String::isNotBlank) ?: "runtime start failed"
             if (!keepServingRoot(swapsRoot, previous, lastError = message)) {
                 teardownQuietly(owner)
@@ -340,7 +354,8 @@ object RuntimeCoordinator : RuntimeControl {
     }
 
     private suspend fun startVpnLocked(source: RuntimeStartSource) {
-        RuntimeLog.writer(context, RuntimeLog.Source.LocalTun)
+        RuntimeLog
+            .writer(context, RuntimeLog.Source.LocalTun)
             .beginSession(RuntimeLog.Type.Launcher, "request start source=$source mode=VpnService")
         val service = vpnService ?: awaitVpnService()
         activeVpn = service
@@ -379,7 +394,9 @@ object RuntimeCoordinator : RuntimeControl {
             // would claim a disconnect that did not happen. Propagate and leave the phase at
             // Stopping — the caller that cancelled is the only one who can still observe it.
             throw error
-        } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+        } catch (
+            @Suppress("TooGenericExceptionCaught") error: Exception,
+        ) {
             // The core is still serving. Idle here would claim a disconnect that never happened,
             // so the failure channel owns the terminal phase and the caller sees the error.
             val message = STOP_FAILED + ": " + (error.message ?: error.javaClass.simpleName)
@@ -403,8 +420,11 @@ object RuntimeCoordinator : RuntimeControl {
         // The running spec was read after that change arrived, so it already carries it.
         if (changedAt != null && changedAt < specReadAt) return
         when (current.owner) {
-            RuntimeOwner.VpnService -> reloadVpnLocked(current, mode)
-            RuntimeOwner.RootDaemon ->
+            RuntimeOwner.VpnService -> {
+                reloadVpnLocked(current, mode)
+            }
+
+            RuntimeOwner.RootDaemon -> {
                 try {
                     launchLocked(
                         RuntimeOwner.RootDaemon,
@@ -416,7 +436,9 @@ object RuntimeCoordinator : RuntimeControl {
                     )
                 } catch (error: CancellationException) {
                     throw error
-                } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") error: Exception,
+                ) {
                     Timber.tag(TAG).w(error, "Root reload failed")
                 } finally {
                     // launchLocked raises the flag with its Starting publish and lowers it again when
@@ -426,17 +448,23 @@ object RuntimeCoordinator : RuntimeControl {
                     val latest = _state.value
                     if (latest.reloading) publish(latest.copy(reloading = false))
                 }
-            else -> Unit
+            }
+
+            else -> {
+                Unit
+            }
         }
     }
 
-    private suspend fun reloadVpnLocked(current: RuntimeState, mode: RunMode) {
+    private suspend fun reloadVpnLocked(
+        current: RuntimeState,
+        mode: RunMode,
+    ) {
         val service = activeVpn ?: return
         publish(current.copy(reloading = true))
         specReadAt = SystemClock.elapsedRealtime()
         try {
-            val spec =
-                withContext(Dispatchers.IO) { SessionRuntimeSpecFactory(context).createVpnSpec() }
+            val spec = withContext(Dispatchers.IO) { SessionRuntimeSpecFactory(context).createVpnSpec() }
             service.session.reload(spec)
             StatusProvider.currentProfile = spec.profileName
             publish(current.copy(reloading = false, lastError = null))
@@ -446,7 +474,9 @@ object RuntimeCoordinator : RuntimeControl {
             publish(current.copy(reloading = false, lastError = error.message))
         } catch (error: CancellationException) {
             throw error
-        } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+        } catch (
+            @Suppress("TooGenericExceptionCaught") error: Exception,
+        ) {
             Timber.tag(TAG).e(error, "VPN reload failed and nothing is serving")
             teardownQuietly(RuntimeOwner.VpnService)
             fail(mode, error.message ?: "runtime reload failed")
@@ -464,8 +494,7 @@ object RuntimeCoordinator : RuntimeControl {
         val alive =
             when (current.owner) {
                 RuntimeOwner.VpnService -> CoreProcess.isLocalCoreAlive()
-                RuntimeOwner.RootDaemon ->
-                    withContext(Dispatchers.IO) { RootDaemonProbe.isAlive() }
+                RuntimeOwner.RootDaemon -> withContext(Dispatchers.IO) { RootDaemonProbe.isAlive() }
                 else -> true
             }
         if (alive) return
@@ -487,8 +516,7 @@ object RuntimeCoordinator : RuntimeControl {
                 delay(CORE_WATCH_INTERVAL_MS)
                 if (CoreProcess.isLocalCoreAlive()) continue
                 val reason =
-                    "core process exited unexpectedly" +
-                        (CoreProcess.coreLogTail(context)?.let { ": $it" }.orEmpty())
+                    "core process exited unexpectedly" + (CoreProcess.coreLogTail(context)?.let { ": $it" }.orEmpty())
                 scope.launch { runOp { failIfVpnCoreDead(reason) } }
                 return@launch
             }
@@ -513,7 +541,10 @@ object RuntimeCoordinator : RuntimeControl {
         watchJob = null
         connectionTracker.stop()
         when (owner) {
-            RuntimeOwner.VpnService -> stopVpnLocked()
+            RuntimeOwner.VpnService -> {
+                stopVpnLocked()
+            }
+
             RuntimeOwner.RootDaemon -> {
                 // A daemon that refuses to die still holds the tun interface, the routes and the
                 // controller socket, so a failure here has to reach the caller instead of a log.
@@ -526,21 +557,26 @@ object RuntimeCoordinator : RuntimeControl {
                     RootForegroundService.stop(context)
                 }
             }
-            else -> Unit
+
+            else -> {
+                Unit
+            }
         }
     }
 
     /**
-     * [teardownLocked] reports a core it could not stop. Every caller except [stopLocked] has
-     * already chosen the phase that follows, so a failure is logged and the caller's phase wins:
-     * a teardown error must never strand the state machine above it.
+     * [teardownLocked] reports a core it could not stop. Every caller except [stopLocked] has already chosen the phase
+     * that follows, so a failure is logged and the caller's phase wins: a teardown error must never strand the state
+     * machine above it.
      */
     private suspend fun teardownQuietly(owner: RuntimeOwner) {
         try {
             withContext(NonCancellable) { teardownLocked(owner) }
         } catch (error: CancellationException) {
             throw error
-        } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+        } catch (
+            @Suppress("TooGenericExceptionCaught") error: Exception,
+        ) {
             Timber.tag(TAG).e(error, "Teardown of %s failed", owner)
         }
     }
@@ -566,7 +602,10 @@ object RuntimeCoordinator : RuntimeControl {
         }
     }
 
-    private fun fail(mode: RunMode, message: String) {
+    private fun fail(
+        mode: RunMode,
+        message: String,
+    ) {
         Timber.tag(TAG).e("%s runtime failed: %s", mode, message)
         RuntimeFailureRecord.save(mode, message)
         publish(RuntimeOwner.None, mode, RuntimePhase.Failed, lastError = message)
@@ -586,7 +625,7 @@ object RuntimeCoordinator : RuntimeControl {
                 phase = phase,
                 startedAt = startedAt,
                 lastError = lastError,
-            )
+            ),
         )
     }
 
@@ -602,8 +641,10 @@ object RuntimeCoordinator : RuntimeControl {
     private fun ownerOf(mode: RunMode): RuntimeOwner =
         when (mode) {
             RunMode.VpnService -> RuntimeOwner.VpnService
+
             RunMode.Tun,
-            RunMode.Ebpf -> RuntimeOwner.RootDaemon
+            RunMode.Ebpf,
+            -> RuntimeOwner.RootDaemon
         }
 
     // ---- config changes ----
@@ -617,7 +658,10 @@ object RuntimeCoordinator : RuntimeControl {
         ContextCompat.registerReceiver(
             context,
             object : BroadcastReceiver() {
-                override fun onReceive(context: Context?, intent: Intent?) {
+                override fun onReceive(
+                    context: Context?,
+                    intent: Intent?,
+                ) {
                     val affectsRuntime =
                         intent?.action != Intents.ACTION_PROFILE_CHANGED ||
                             intent.getBooleanExtra(Intents.EXTRA_AFFECTS_RUNTIME, true)

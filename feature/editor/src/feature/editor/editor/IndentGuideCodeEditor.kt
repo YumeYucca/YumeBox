@@ -29,10 +29,7 @@ internal class IndentGuideCodeEditor(context: Context) : CodeEditor(context) {
     var indentGuideColor: Int = 0
     var activeIndentGuideColor: Int = 0
 
-    private val guidePaint =
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            strokeWidth = 1f
-        }
+    private val guidePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth = 1f }
 
     override fun onCreateRenderer(): EditorRenderer =
         object : EditorRenderer(this@IndentGuideCodeEditor) {

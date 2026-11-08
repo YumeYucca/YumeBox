@@ -21,9 +21,9 @@ package com.github.yumeyucca.yumebox.screen.profiles
 
 import android.net.Uri
 import androidx.core.net.toUri
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.util.ProfileImportType
 import com.github.yumeyucca.yumebox.runtime.api.Profile
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import java.util.*
 
 internal typealias AddProfile = (String, String, Profile.Type, Long, Uri?, String) -> Unit
@@ -43,7 +43,10 @@ internal class ProfileSubmissionActions(
     val addProfile: AddProfile,
 )
 
-internal fun submitProfile(actions: ProfileSubmissionActions, draft: ProfileDraft) {
+internal fun submitProfile(
+    actions: ProfileSubmissionActions,
+    draft: ProfileDraft,
+) {
     if (draft.importType == ProfileImportType.Qr) return
     actions.hideKeyboard()
     if (draft.importType == ProfileImportType.Url && draft.url.isBlank()) {

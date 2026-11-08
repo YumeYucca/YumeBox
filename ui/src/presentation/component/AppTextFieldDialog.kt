@@ -45,9 +45,7 @@ fun AppTextFieldDialog(
     trailingIcon: @Composable (() -> Unit)? = null,
 ) {
     var localTextFieldValue by
-    remember(show) {
-        mutableStateOf(TextFieldValue(text = value, selection = TextRange(value.length)))
-    }
+        remember(show) { mutableStateOf(TextFieldValue(text = value, selection = TextRange(value.length))) }
     // The caller's [value] is authoritative whenever it stops matching what is on screen: that covers
     // both the echo of an edit and a rewrite the caller made to it.
     LaunchedEffect(value, show) {

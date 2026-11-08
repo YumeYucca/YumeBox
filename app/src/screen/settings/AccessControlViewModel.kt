@@ -22,20 +22,19 @@
 
 package com.github.yumeyucca.yumebox.screen.settings
 
-
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewModelScope
 import com.github.yumeyucca.yumebox.common.util.stateInWhileSubscribed
-import com.github.yumeyucca.yumebox.presentation.base.AndroidContractStateViewModel
-import com.github.yumeyucca.yumebox.presentation.base.LoadableState
 import com.github.yumeyucca.yumebox.data.controller.AccessControlController
 import com.github.yumeyucca.yumebox.data.model.AccessControlImportStrategy
 import com.github.yumeyucca.yumebox.data.model.AccessControlMode
 import com.github.yumeyucca.yumebox.data.model.AccessControlSortMode
 import com.github.yumeyucca.yumebox.data.store.NetworkSettingsStore
+import com.github.yumeyucca.yumebox.presentation.base.AndroidContractStateViewModel
+import com.github.yumeyucca.yumebox.presentation.base.LoadableState
 import com.github.yumeyucca.yumebox.runtime.service.root.RootPackageShell
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -51,9 +50,9 @@ class AccessControlViewModel(
     private val controller: AccessControlController,
 ) :
     AndroidContractStateViewModel<
-            AccessControlViewModel.UiState,
-            AccessControlViewModel.AccessControlUiEffect,
-            >(
+        AccessControlViewModel.UiState,
+        AccessControlViewModel.AccessControlUiEffect,
+    >(
         application,
         UiState(
             showSystemApps = settings.accessControlShowSystemApps.value,
@@ -75,8 +74,8 @@ class AccessControlViewModel(
         val apps: List<AppInfo> = emptyList(),
         val selectedPackages: Set<String> = emptySet(),
         /**
-         * Selection snapshot used for ordering the currently visible list. It is refreshed when
-         * the screen is entered, so changing a checkbox does not immediately move that row.
+         * Selection snapshot used for ordering the currently visible list. It is refreshed when the screen is entered,
+         * so changing a checkbox does not immediately move that row.
          */
         val initialSelectedPackages: Set<String> = emptySet(),
         val searchQuery: String = "",
@@ -125,18 +124,16 @@ class AccessControlViewModel(
     /** Ask for MIUI/HyperOS's extra app-list permission as soon as the screen is opened. */
     private fun checkInstalledAppsPermission() {
         val context = getApplication<Application>()
-        val supported =
-            runCatching {
-                context.packageManager
-                    .getPermissionInfo(GET_INSTALLED_APPS_PERMISSION, 0)
-                    .packageName == "com.lbe.security.miui"
-            }
-                .getOrDefault(false)
+        val supported = runCatching {
+            context.packageManager.getPermissionInfo(GET_INSTALLED_APPS_PERMISSION, 0).packageName ==
+                "com.lbe.security.miui"
+        }
+            .getOrDefault(false)
         if (!supported) return
 
         val granted =
             ContextCompat.checkSelfPermission(context, GET_INSTALLED_APPS_PERMISSION) ==
-                    PackageManager.PERMISSION_GRANTED
+                PackageManager.PERMISSION_GRANTED
         if (granted) {
             if (_uiState.value.needsMiuiPermission) {
                 _uiState.update { it.copy(needsMiuiPermission = false) }
@@ -181,8 +178,8 @@ class AccessControlViewModel(
     }
 
     /**
-     * Synchronize selection-related state when the screen becomes visible again. The ViewModel is
-     * activity-scoped by the Compose Koin owner, so navigating away does not recreate it.
+     * Synchronize selection-related state when the screen becomes visible again. The ViewModel is activity-scoped by
+     * the Compose Koin owner, so navigating away does not recreate it.
      */
     fun refreshSelection() {
         checkInstalledAppsPermission()
@@ -221,17 +218,16 @@ class AccessControlViewModel(
                 loadInstalledAppsFromRoot(pm, selfPackageName)
             }
 
-        return resolvedPackages
-            .map { appInfo ->
-                val pkgInfo = runCatching { pm.getPackageInfo(appInfo.packageName, 0) }.getOrNull()
-                AppInfo(
-                    packageName = appInfo.packageName,
-                    label = appInfo.loadLabel(pm).toString(),
-                    isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
-                    installTime = pkgInfo?.firstInstallTime ?: 0L,
-                    updateTime = pkgInfo?.lastUpdateTime ?: 0L,
-                )
-            }
+        return resolvedPackages.map { appInfo ->
+            val pkgInfo = runCatching { pm.getPackageInfo(appInfo.packageName, 0) }.getOrNull()
+            AppInfo(
+                packageName = appInfo.packageName,
+                label = appInfo.loadLabel(pm).toString(),
+                isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
+                installTime = pkgInfo?.firstInstallTime ?: 0L,
+                updateTime = pkgInfo?.lastUpdateTime ?: 0L,
+            )
+        }
     }
 
     private fun loadInstalledAppsFromRoot(
@@ -246,8 +242,7 @@ class AccessControlViewModel(
             .asSequence()
             .filterNot { it == selfPackageName }
             .mapNotNull { packageName ->
-                runCatching { pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA) }
-                    .getOrNull()
+                runCatching { pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA) }.getOrNull()
             }
             .toList()
     }
@@ -263,15 +258,14 @@ class AccessControlViewModel(
         val filtered = apps.filter { app ->
             val matchesQuery =
                 query.isEmpty() ||
-                        app.label.contains(query, ignoreCase = true) ||
-                        app.packageName.contains(query, ignoreCase = true)
+                    app.label.contains(query, ignoreCase = true) ||
+                    app.packageName.contains(query, ignoreCase = true)
             val matchesSystemFilter = showSystemApps || !app.isSystemApp
             matchesQuery && matchesSystemFilter
         }
         val comparator =
             when (sortMode) {
-                AccessControlSortMode.PACKAGE_NAME ->
-                    compareBy<AppInfo> { it.packageName.lowercase() }
+                AccessControlSortMode.PACKAGE_NAME -> compareBy<AppInfo> { it.packageName.lowercase() }
 
                 AccessControlSortMode.LABEL -> compareBy { it.label.lowercase() }
                 AccessControlSortMode.INSTALL_TIME -> compareBy { it.installTime }
@@ -325,17 +319,13 @@ class AccessControlViewModel(
 
     fun selectAll() {
         val currentFilteredPackages = filteredApps.value.mapTo(linkedSetOf()) { it.packageName }
-        _uiState.update { state ->
-            state.copy(selectedPackages = state.selectedPackages + currentFilteredPackages)
-        }
+        _uiState.update { state -> state.copy(selectedPackages = state.selectedPackages + currentFilteredPackages) }
         persistSelectionAndApply()
     }
 
     fun deselectAll() {
         val currentFilteredPackages = filteredApps.value.mapTo(linkedSetOf()) { it.packageName }
-        _uiState.update { state ->
-            state.copy(selectedPackages = state.selectedPackages - currentFilteredPackages)
-        }
+        _uiState.update { state -> state.copy(selectedPackages = state.selectedPackages - currentFilteredPackages) }
         persistSelectionAndApply()
     }
 
@@ -358,9 +348,8 @@ class AccessControlViewModel(
     fun selectNonChinaAppsInCurrentList() = applyRegionalSelectionInCurrentList(selectChina = false)
 
     /**
-     * China-app membership is computed on demand (FlClash-style deep scan behind
-     * [ChinaAppDetector]'s cache): the first run dex-scans undecided APKs and can take a while, so
-     * the list's loading state is raised for the duration.
+     * China-app membership is computed on demand (FlClash-style deep scan behind [ChinaAppDetector]'s cache): the first
+     * run dex-scans undecided APKs and can take a while, so the list's loading state is raised for the duration.
      */
     private fun applyRegionalSelectionInCurrentList(selectChina: Boolean) {
         val currentFiltered = filteredApps.value
@@ -369,9 +358,7 @@ class AccessControlViewModel(
             _uiState.update { it.copy(isLoading = true) }
             val chinaPackages = runCatching {
                 chinaAppDetector.detectChinaPackages(
-                    currentFiltered.map {
-                        ChinaAppDetector.Candidate(it.packageName, it.updateTime)
-                    }
+                    currentFiltered.map { ChinaAppDetector.Candidate(it.packageName, it.updateTime) }
                 )
             }
                 .getOrElse { error ->
@@ -387,8 +374,7 @@ class AccessControlViewModel(
                         .mapTo(linkedSetOf()) { it.packageName }
                 state.copy(
                     isLoading = false,
-                    selectedPackages =
-                        state.selectedPackages.minus(currentPackages).plus(targetPackages),
+                    selectedPackages = state.selectedPackages.minus(currentPackages).plus(targetPackages),
                 )
             }
             persistSelectionAndApply()
@@ -399,8 +385,7 @@ class AccessControlViewModel(
 
     fun importPackages(text: String): Int {
         val packages = text.lines().map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-        val validPackages =
-            packages.intersect(_uiState.value.apps.mapTo(linkedSetOf()) { it.packageName })
+        val validPackages = packages.intersect(_uiState.value.apps.mapTo(linkedSetOf()) { it.packageName })
 
         _uiState.update { state ->
             state.copy(

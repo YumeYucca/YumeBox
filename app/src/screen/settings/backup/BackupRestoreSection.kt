@@ -29,11 +29,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.AppCard
 import com.github.yumeyucca.yumebox.presentation.component.AppConfirmDialog
 import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownOption
 import com.github.yumeyucca.yumebox.presentation.component.GlassDropdownPreference
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.presentation.component.PreferenceArrowItem
 import com.github.yumeyucca.yumebox.presentation.component.SectionSummary
 import com.github.yumeyucca.yumebox.presentation.component.Title
@@ -47,22 +47,15 @@ fun BackupRestoreSection() {
     val context = LocalContext.current
 
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
-    var restoreStrategy by rememberSaveable {
-        mutableStateOf(BackupRestoreStrategy.Overwrite)
-    }
+    var restoreStrategy by rememberSaveable { mutableStateOf(BackupRestoreStrategy.Overwrite) }
 
     val exportLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.CreateDocument("application/zip")
-        ) { uri ->
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.CreateDocument("application/zip")) { uri ->
             uri?.let(viewModel::exportBackup)
         }
 
     val restoreLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri
-            ->
-            restoreUri = uri
-        }
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri -> restoreUri = uri }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -76,19 +69,13 @@ fun BackupRestoreSection() {
         isBusy = uiState.isBusy,
         onExport = {
             runCatching { exportLauncher.launch(viewModel.defaultBackupFileName()) }
-                .onFailure {
-                    context.toast(YumeTxt.Feature.BackupRestore.Error.OpenOutputFailed)
-                }
+                .onFailure { context.toast(YumeTxt.Feature.BackupRestore.Error.OpenOutputFailed) }
         },
         onRestore = {
             runCatching {
-                restoreLauncher.launch(
-                    arrayOf("application/zip", "application/octet-stream", "*/*")
-                )
+                restoreLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
             }
-                .onFailure {
-                    context.toast(YumeTxt.Feature.BackupRestore.Error.OpenInputFailed)
-                }
+                .onFailure { context.toast(YumeTxt.Feature.BackupRestore.Error.OpenInputFailed) }
         },
     )
 
@@ -109,8 +96,8 @@ fun BackupRestoreSection() {
 }
 
 /**
- * Asks before a picked archive replaces local state. [pick] doubles as the dialog's visibility, so
- * every exit path clears it: cancel, confirm and the back gesture all leave nothing to restore.
+ * Asks before a picked archive replaces local state. [pick] doubles as the dialog's visibility, so every exit path
+ * clears it: cancel, confirm and the back gesture all leave nothing to restore.
  */
 @Composable
 private fun RestoreConfirmDialog(
@@ -168,10 +155,8 @@ private fun RestoreStrategyCard(
                     GlassDropdownOption(
                         option,
                         when (option) {
-                            BackupRestoreStrategy.Overwrite ->
-                                YumeTxt.Feature.BackupRestore.RestoreOverwrite
-                            BackupRestoreStrategy.Merge ->
-                                YumeTxt.Feature.BackupRestore.RestoreMerge
+                            BackupRestoreStrategy.Overwrite -> YumeTxt.Feature.BackupRestore.RestoreOverwrite
+                            BackupRestoreStrategy.Merge -> YumeTxt.Feature.BackupRestore.RestoreMerge
                         },
                     )
                 },
@@ -184,8 +169,7 @@ private fun RestoreStrategyCard(
     }
     SectionSummary(
         when (strategy) {
-            BackupRestoreStrategy.Overwrite ->
-                YumeTxt.Feature.BackupRestore.RestoreOverwriteSummary
+            BackupRestoreStrategy.Overwrite -> YumeTxt.Feature.BackupRestore.RestoreOverwriteSummary
             BackupRestoreStrategy.Merge -> YumeTxt.Feature.BackupRestore.RestoreMergeSummary
         }
     )

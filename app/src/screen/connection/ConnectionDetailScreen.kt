@@ -22,23 +22,22 @@
 
 package com.github.yumeyucca.yumebox.screen.connection
 
-
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import com.github.yumeyucca.yumebox.core.model.ConnectionInfo
 import com.github.yumeyucca.yumebox.feature.meta.presentation.component.ConnectionDetailContent
 import com.github.yumeyucca.yumebox.feature.meta.presentation.viewmodel.ConnectionDetailViewModel
 import com.github.yumeyucca.yumebox.presentation.component.*
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumeyucca.yumebox.core.locale.YumeTxt
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 
 /**
- * Full-page connection detail. Replaces the old bottom sheet so search expand / sheet open no
- * longer fight for the same gesture layer.
+ * Full-page connection detail. Replaces the old bottom sheet so search expand / sheet open no longer fight for the same
+ * gesture layer.
  */
 @Composable
 fun ConnectionDetailScreen(
@@ -50,15 +49,11 @@ fun ConnectionDetailScreen(
     val state by viewModel.state.collectAsState()
     val scrollBehavior = MiuixScrollBehavior()
     // Read once per id: the staged copy only exists to fill the first frame.
-    val staged = remember(connectionId) {
-        ConnectionDetailHolder.connection?.takeIf { it.id == connectionId }
-    }
+    val staged = remember(connectionId) { ConnectionDetailHolder.connection?.takeIf { it.id == connectionId } }
 
     LaunchedEffect(connectionId, canInterrupt) { viewModel.start(connectionId, canInterrupt, staged) }
 
-    LaunchedEffect(Unit) {
-        viewModel.closed.collect { navigator.pop() }
-    }
+    LaunchedEffect(Unit) { viewModel.closed.collect { navigator.pop() } }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -107,8 +102,8 @@ fun ConnectionDetailScreen(
 }
 
 /**
- * Stages the selected `ConnectionInfo` across the navigation boundary. Route only carries the id
- * (serializable); the full snapshot lives here.
+ * Stages the selected `ConnectionInfo` across the navigation boundary. Route only carries the id (serializable); the
+ * full snapshot lives here.
  */
 object ConnectionDetailHolder {
     var connection: ConnectionInfo? = null

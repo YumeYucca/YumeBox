@@ -31,8 +31,8 @@ import com.github.yumeyucca.yumebox.runtime.api.initializeServiceGlobal
 import com.tencent.mmkv.MMKV
 
 /**
- * Runs before `Application.onCreate`: initializes MMKV and pre-creates the stores the root daemon
- * shares with the app. Runtime state itself lives in [RuntimeCoordinator].
+ * Runs before `Application.onCreate`: initializes MMKV and pre-creates the stores the root daemon shares with the app.
+ * Runtime state itself lives in [RuntimeCoordinator].
  */
 class StatusProvider : ContentProvider() {
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? =
@@ -47,8 +47,7 @@ class StatusProvider : ContentProvider() {
             else -> super.call(method, arg, extras)
         }
 
-    override fun insert(uri: Uri, values: ContentValues?): Uri? =
-        throw IllegalArgumentException("Stub!")
+    override fun insert(uri: Uri, values: ContentValues?): Uri? = throw IllegalArgumentException("Stub!")
 
     override fun query(
         uri: Uri,
@@ -79,9 +78,7 @@ class StatusProvider : ContentProvider() {
             listOf("service", "network_settings", "profiles", "root_tun_state").forEach { id ->
                 runCatching { MMKV.mmkvWithID(id, MMKV.MULTI_PROCESS_MODE) }
             }
-            legacyRuntimeFiles.forEach { name ->
-                runCatching { app.filesDir.resolve(name).delete() }
-            }
+            legacyRuntimeFiles.forEach { name -> runCatching { app.filesDir.resolve(name).delete() } }
         }
         return true
     }
@@ -95,4 +92,3 @@ class StatusProvider : ContentProvider() {
         @Volatile var currentProfile: String? = null
     }
 }
-

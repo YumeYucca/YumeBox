@@ -33,15 +33,18 @@ import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 
 /** The Wi-Fi automation action that is waiting for location access. */
-internal enum class WifiPermissionAction { Enable, Scan }
+internal enum class WifiPermissionAction {
+    Enable,
+    Scan,
+}
 
 /**
- * The whole permission choreography of the Wi-Fi automation section: which action is waiting, which
- * dialog is on screen, and the one ladder that turns a permission outcome into either "run the
- * action" or "explain what is still missing".
+ * The whole permission choreography of the Wi-Fi automation section: which action is waiting, which dialog is on
+ * screen, and the one ladder that turns a permission outcome into either "run the action" or "explain what is still
+ * missing".
  *
- * The section composable collects state and renders; every branch that used to sit in five sibling
- * locals and three launcher callbacks lives here instead.
+ * The section composable collects state and renders; every branch that used to sit in five sibling locals and three
+ * launcher callbacks lives here instead.
  */
 @Stable
 internal class WifiPermissionFlow(
@@ -56,16 +59,16 @@ internal class WifiPermissionFlow(
     private var pendingAction by mutableStateOf<WifiPermissionAction?>(null)
 
     /**
-     * `show` of the permission dialog. Only [showPrompt] raises it; it is lowered before the next
-     * step starts, so every transition out of the dialog is animated.
+     * `show` of the permission dialog. Only [showPrompt] raises it; it is lowered before the next step starts, so every
+     * transition out of the dialog is animated.
      */
     var promptVisible by mutableStateOf(false)
         private set
 
     /**
-     * The prompt last shown. It deliberately outlives [promptVisible] so the dialog still has text
-     * to render during its 260ms exit tween; the initial placeholder is never rendered, because
-     * [promptVisible] only becomes true through [showPrompt].
+     * The prompt last shown. It deliberately outlives [promptVisible] so the dialog still has text to render during its
+     * 260ms exit tween; the initial placeholder is never rendered, because [promptVisible] only becomes true through
+     * [showPrompt].
      */
     var prompt by mutableStateOf(WifiPermissionPrompt.Explanation)
         private set
@@ -77,10 +80,9 @@ internal class WifiPermissionFlow(
     private lateinit var locationSettingsLauncher: ManagedActivityResultLauncher<Intent, ActivityResult>
 
     /**
-     * Takes the launchers [rememberWifiPermissionFlow] created. They cannot be constructor arguments
-     * because each result callback dispatches back into this holder, so they can only exist once it
-     * does. Re-attaching on recomposition is a no-op: the launchers are remembered, so the same
-     * three instances are assigned again.
+     * Takes the launchers [rememberWifiPermissionFlow] created. They cannot be constructor arguments because each
+     * result callback dispatches back into this holder, so they can only exist once it does. Re-attaching on
+     * recomposition is a no-op: the launchers are remembered, so the same three instances are assigned again.
      */
     fun attachLaunchers(
         permissions: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>,
@@ -93,9 +95,8 @@ internal class WifiPermissionFlow(
     }
 
     /**
-     * Asks for whatever [action] is still missing. Location comes first because reading SSIDs needs
-     * it on every version that ships runtime location permissions; after that the action either
-     * runs or the user is told why it cannot.
+     * Asks for whatever [action] is still missing. Location comes first because reading SSIDs needs it on every version
+     * that ships runtime location permissions; after that the action either runs or the user is told why it cannot.
      */
     fun request(action: WifiPermissionAction) {
         pendingAction = action
@@ -140,9 +141,7 @@ internal class WifiPermissionFlow(
 
             WifiPermissionPrompt.Location -> {
                 promptVisible = false
-                locationSettingsLauncher.launch(
-                    Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                )
+                locationSettingsLauncher.launch(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
             }
         }
     }
@@ -161,9 +160,9 @@ internal class WifiPermissionFlow(
     }
 
     /**
-     * Back from the app-settings screen, where the permission can only have been granted by hand.
-     * A denial stays silent: the user is already on the screen that explains it, and re-prompting
-     * from there would loop, so the guard is also the whole decision.
+     * Back from the app-settings screen, where the permission can only have been granted by hand. A denial stays
+     * silent: the user is already on the screen that explains it, and re-prompting from there would loop, so the guard
+     * is also the whole decision.
      */
     fun onAppSettingsResult() {
         if (pendingAction != null && hasSsidPermission() && systemLocationEnabled()) {
@@ -188,11 +187,10 @@ internal class WifiPermissionFlow(
     }
 
     /**
-     * The one ladder this class exists for: once [prerequisite] holds, run the action that was
-     * waiting; until then, show [blockedPrompt]. Each return path contributes only the prerequisite
-     * it can prove and the prompt that fits where the user just came from, instead of repeating the
-     * two-branch ladder in every launcher. [blockedPrompt] stays lazy because picking it queries the
-     * OS.
+     * The one ladder this class exists for: once [prerequisite] holds, run the action that was waiting; until then,
+     * show [blockedPrompt]. Each return path contributes only the prerequisite it can prove and the prompt that fits
+     * where the user just came from, instead of repeating the two-branch ladder in every launcher. [blockedPrompt]
+     * stays lazy because picking it queries the OS.
      */
     private fun resumePending(prerequisite: Boolean, blockedPrompt: () -> WifiPermissionPrompt) {
         if (prerequisite) completePendingAction() else showPrompt(blockedPrompt())
@@ -215,19 +213,18 @@ internal class WifiPermissionFlow(
     private fun hasSsidPermission(): Boolean =
         when {
             Build.VERSION.SDK_INT <= Build.VERSION_CODES.O -> true
-            Build.VERSION.SDK_INT <= Build.VERSION_CODES.P -> hasPermission(
-                context,
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-            ) || hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+            Build.VERSION.SDK_INT <= Build.VERSION_CODES.P ->
+                hasPermission(
+                    context,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ) || hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
 
             else -> hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
     private fun systemLocationEnabled(): Boolean =
         Build.VERSION.SDK_INT <= Build.VERSION_CODES.O ||
-            LocationManagerCompat.isLocationEnabled(
-                context.getSystemService(LocationManager::class.java)
-            )
+            LocationManagerCompat.isLocationEnabled(context.getSystemService(LocationManager::class.java))
 
     /** True once the OS stopped explaining the request, i.e. the user denied it for good. */
     private fun rationaleSuppressed(): Boolean =
@@ -235,9 +232,9 @@ internal class WifiPermissionFlow(
 }
 
 /**
- * Remembers the section's permission flow. The callbacks are read through [rememberUpdatedState] so
- * a lambda that captures composition values cannot go stale behind [remember], and a new lambda
- * instance on recomposition cannot reset a pending action.
+ * Remembers the section's permission flow. The callbacks are read through [rememberUpdatedState] so a lambda that
+ * captures composition values cannot go stale behind [remember], and a new lambda instance on recomposition cannot
+ * reset a pending action.
  */
 @Composable
 internal fun rememberWifiPermissionFlow(

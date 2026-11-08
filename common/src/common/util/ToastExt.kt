@@ -28,8 +28,8 @@ import android.widget.Toast
 private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
 /**
- * The app's only toast: a system toast. Anything longer than a sentence belongs in a dialog the
- * screen owns, so there is no second, dialog-shaped toast path to keep alive.
+ * The app's only toast: a system toast. Anything longer than a sentence belongs in a dialog the screen owns, so there
+ * is no second, dialog-shaped toast path to keep alive.
  */
 fun Context.toast(message: String, duration: Int = Toast.LENGTH_SHORT) {
     if (message.isBlank()) return

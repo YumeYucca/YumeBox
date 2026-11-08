@@ -25,14 +25,14 @@ import android.security.keystore.KeyProperties
 import android.util.Base64
 import com.github.yumeyucca.yumebox.data.model.RemoteBackend
 import com.github.yumeyucca.yumebox.data.model.RemoteProtocol
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import timber.log.Timber
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import timber.log.Timber
 
 /** Persistence boundary that keeps controller secrets out of MMKV plaintext. */
 internal class RemoteBackendStorageCodec {
@@ -57,7 +57,8 @@ internal class RemoteBackendStorageCodec {
                                         "Failed to decrypt remote controller secret for %s",
                                         stored.id,
                                     )
-                                }.getOrDefault("")
+                                }
+                                .getOrDefault("")
                         }
 
                         else -> {
@@ -80,12 +81,9 @@ internal class RemoteBackendStorageCodec {
                     port = backend.port,
                     protocol = backend.protocol,
                     secretCiphertext =
-                        backend.secret
-                            .takeIf(String::isNotBlank)
-                            ?.let(RemoteBackendSecretCipher::encrypt)
-                            .orEmpty(),
+                        backend.secret.takeIf(String::isNotBlank)?.let(RemoteBackendSecretCipher::encrypt).orEmpty(),
                 )
-            },
+            }
         )
 
     @Serializable
@@ -141,22 +139,22 @@ internal object RemoteBackendSecretCipher {
         runCatching {
             KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE).apply {
                 init(
-                    KeyGenParameterSpec
-                        .Builder(
+                    KeyGenParameterSpec.Builder(
                             KEY_ALIAS,
                             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-                        ).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                        )
+                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                         .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                         .setKeySize(256)
-                        .build(),
+                        .build()
                 )
                 generateKey()
             }
-        }.getOrElse { generationError ->
-            // Another process may have created the alias between getKey and generateKey.
-            (keyStore.getKey(KEY_ALIAS, null) as? SecretKey) ?: throw generationError
         }
-        return (keyStore.getKey(KEY_ALIAS, null) as? SecretKey)
-            ?: error("Android Keystore did not retain $KEY_ALIAS")
+            .getOrElse { generationError ->
+                // Another process may have created the alias between getKey and generateKey.
+                (keyStore.getKey(KEY_ALIAS, null) as? SecretKey) ?: throw generationError
+            }
+        return (keyStore.getKey(KEY_ALIAS, null) as? SecretKey) ?: error("Android Keystore did not retain $KEY_ALIAS")
     }
 }

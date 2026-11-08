@@ -39,9 +39,9 @@ import androidx.compose.ui.unit.dp
 import com.github.yumeyucca.yumebox.domain.model.TrafficData
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
 import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
+import top.yukonga.miuix.kmp.basic.VerticalDivider
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.getRoundedCorner
@@ -89,9 +89,17 @@ internal enum class MoeHomeLayoutMode {
 }
 
 /** Where the hero card sits and how big it is; both layouts share the one derived value. */
-internal data class MoeHeroGeometry(val top: Dp, val height: Dp, val radius: Dp)
+internal data class MoeHeroGeometry(
+    val top: Dp,
+    val height: Dp,
+    val radius: Dp,
+)
 
-private fun moeHeroGeometry(statusBarTop: Dp, maxHeight: Dp, deviceCorner: Dp): MoeHeroGeometry =
+private fun moeHeroGeometry(
+    statusBarTop: Dp,
+    maxHeight: Dp,
+    deviceCorner: Dp,
+): MoeHeroGeometry =
     MoeHeroGeometry(
         top = statusBarTop,
         height = (maxHeight - statusBarTop).coerceAtLeast(UiDp.dp0) * MoeUi.Hero.heightFraction,
@@ -100,7 +108,10 @@ private fun moeHeroGeometry(statusBarTop: Dp, maxHeight: Dp, deviceCorner: Dp): 
 
 @Composable
 context(actions: MoeHomeActions)
-internal fun MoeHomeLayout(state: MoeHomeLayoutState, layout: MoeHomeLayoutMode) {
+internal fun MoeHomeLayout(
+    state: MoeHomeLayoutState,
+    layout: MoeHomeLayoutMode,
+) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val greetingColor =
             rememberMoeWallpaperAccentColor(
@@ -119,10 +130,13 @@ internal fun MoeHomeLayout(state: MoeHomeLayoutState, layout: MoeHomeLayoutMode)
                 deviceCorner = deviceCorner,
             )
         when (layout) {
-            MoeHomeLayoutMode.Phone ->
+            MoeHomeLayoutMode.Phone -> {
                 MoePhoneHomeLayout(state, greetingColor, maxWidth, maxHeight, hero, deviceCorner)
-            MoeHomeLayoutMode.Tablet ->
+            }
+
+            MoeHomeLayoutMode.Tablet -> {
                 MoeTabletHomeLayout(state, greetingColor, maxWidth, maxHeight, hero)
+            }
         }
     }
 }
@@ -155,23 +169,17 @@ private fun BoxScope.MoePhoneHomeLayout(
         wallpaperBiasX = state.wallpaperBiasX,
         wallpaperBiasY = state.wallpaperBiasY,
         qualityMode = MoeWallpaperQualityMode.BackgroundBlur,
-        modifier = Modifier
-            .matchParentSize()
-            .layerBackdrop(sidebarBackdrop),
+        modifier = Modifier.matchParentSize().layerBackdrop(sidebarBackdrop),
     )
     MoeSidebarDecoration(
         backdrop = sidebarBackdrop,
         blurEnabled = blurEnabled,
         blurProgress = sidebar,
         modifier =
-            Modifier
-                .align(Alignment.CenterStart)
-                .width(sidebarDecorationWidth)
-                .fillMaxHeight()
-                .graphicsLayer {
-                    translationX = with(density) { lerpDp((-56).dp, UiDp.dp0, sidebar).toPx() }
-                    alpha = lerpFloat(0.78f, 1f, sidebar) * state.pageProgress.value.coerceIn(0f, 1f)
-                },
+            Modifier.align(Alignment.CenterStart).width(sidebarDecorationWidth).fillMaxHeight().graphicsLayer {
+                translationX = with(density) { lerpDp((-56).dp, UiDp.dp0, sidebar).toPx() }
+                alpha = lerpFloat(0.78f, 1f, sidebar) * state.pageProgress.value.coerceIn(0f, 1f)
+            },
     ) {
         MoeSidebarContent(
             topValue = state.duration.top,
@@ -232,8 +240,8 @@ private fun MoeHomePanel(
 }
 
 /**
- * Hero card shell shared by both layouts: [MoeHeroOverlay] owns wallpaper, scrim and runtime info;
- * this only owns the card frame, its gestures and the page-turn transform.
+ * Hero card shell shared by both layouts: [MoeHeroOverlay] owns wallpaper, scrim and runtime info; this only owns the
+ * card frame, its gestures and the page-turn transform.
  */
 @Composable
 context(actions: MoeHomeActions)
@@ -253,26 +261,22 @@ private fun MoeHeroCard(
                 start = MoeUi.Hero.containerHorizontalInset,
                 end = MoeUi.Hero.containerHorizontalInset,
                 top = geometry.top,
-            )
-            .height(geometry.height)
+            ).height(geometry.height)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = { doubleTap.value?.invoke() },
                     onLongPress = { pickWallpaper() },
                 )
-            }
-            .graphicsLayer {
+            }.graphicsLayer {
                 transformOrigin = TransformOrigin(0.5f, 0f)
                 // At rest the eased term is exactly 0, so the hero sits at scale 1 without a
                 // special case. Derived here rather than in the caller so a page turn only
                 // re-runs this layer block instead of recomposing the card.
-                val pageTurn =
-                    FastOutSlowInEasing.transform(1f - state.pageProgress.value.coerceIn(0f, 1f))
+                val pageTurn = FastOutSlowInEasing.transform(1f - state.pageProgress.value.coerceIn(0f, 1f))
                 val scale = lerpFloat(1f, MoeUi.Hero.pageTurnScale, pageTurn)
                 scaleX = scale
                 scaleY = scale
-            }
-            .squircleClip(geometry.radius),
+            }.squircleClip(geometry.radius),
     ) {
         MoeHeroOverlay(state, headerContent)
     }
@@ -304,8 +308,8 @@ private fun BoxScope.MoeHeroOverlay(
                     0.82f to state.contentSurface.copy(alpha = 0.88f),
                     0.92f to state.contentSurface,
                     1f to state.contentSurface,
-                )
-            )
+                ),
+            ),
     )
     headerContent()
     AnimatedVisibility(
@@ -342,8 +346,7 @@ private fun MoeHomeCopySection(
     topPadding: Dp,
     bottomPadding: Dp = UiDp.dp0,
 ) {
-    val horizontalPadding =
-        MoeUi.Hero.containerHorizontalInset + MoeUi.Hero.contentHorizontalInset
+    val horizontalPadding = MoeUi.Hero.containerHorizontalInset + MoeUi.Hero.contentHorizontalInset
     Column(
         modifier =
             modifier.padding(
@@ -390,22 +393,23 @@ private val TabletPanelMaxWidth = UiDp.dp560
 // Below this height the pane can no longer pin the hero above a weighted copy block.
 private val TabletShortWindow = UiDp.dp560
 
+// The split shell only ever hands the home a narrow pane, so the tablet layout pins the rail open
+// as a fixed control column instead of fading it in on a toggle the pane cannot reach.
+private val TabletSidebarWidth = 76.dp
+
 private fun moeTabletPanelModifier(
     flow: MoeTabletFlow,
     horizontalGutter: Dp,
     scrollState: ScrollState,
 ): Modifier =
     when (flow) {
-        MoeTabletFlow.Scrolling ->
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = horizontalGutter)
-                .verticalScroll(scrollState)
-        MoeTabletFlow.Filling ->
-            Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
-                .padding(horizontal = horizontalGutter)
+        MoeTabletFlow.Scrolling -> {
+            Modifier.fillMaxWidth().padding(horizontal = horizontalGutter).verticalScroll(scrollState)
+        }
+
+        MoeTabletFlow.Filling -> {
+            Modifier.fillMaxWidth().fillMaxHeight().padding(horizontal = horizontalGutter)
+        }
     }
 
 private fun ColumnScope.moeTabletCopyModifier(flow: MoeTabletFlow): Modifier =
@@ -423,57 +427,65 @@ private fun MoeTabletHomeLayout(
     maxHeight: Dp,
     hero: MoeHeroGeometry,
 ) {
+    val flow = if (maxHeight < TabletShortWindow) MoeTabletFlow.Scrolling else MoeTabletFlow.Filling
+    val scrollState = rememberScrollState()
+
+    Row(modifier = Modifier.fillMaxSize().background(state.contentSurface)) {
+        MoeSidebarDecoration(
+            backdrop = null,
+            blurEnabled = false,
+            blurProgress = 0f,
+            modifier = Modifier.width(TabletSidebarWidth).fillMaxHeight(),
+        ) {
+            MoeSidebarContent(
+                topValue = state.duration.top,
+                bottomValue = state.duration.bottom,
+                batteryPercent = state.batteryPercent,
+                icons = state.sidebarIcons,
+                visibleWidth = TabletSidebarWidth,
+            )
+        }
+        // No wallpaper sits behind this pane, so the glass has nothing to separate the rail from
+        // the panel with; a hairline draws the boundary instead.
+        VerticalDivider()
+        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            MoeTabletHomePanel(
+                state = state,
+                greetingColor = greetingColor,
+                maxWidth = maxWidth,
+                hero = hero,
+                flow = flow,
+                scrollState = scrollState,
+            )
+        }
+    }
+}
+
+@Composable
+context(actions: MoeHomeActions)
+private fun MoeTabletHomePanel(
+    state: MoeHomeLayoutState,
+    greetingColor: Color,
+    maxWidth: Dp,
+    hero: MoeHeroGeometry,
+    flow: MoeTabletFlow,
+    scrollState: ScrollState,
+) {
     val contentMaxWidth = minOf(maxWidth, TabletPanelMaxWidth)
     // Phone-landscape panes are barely wider than the content itself; a floor keeps the launch
     // controls clear of the divider and screen edges instead of pressing against them.
     val horizontalGutter = ((maxWidth - contentMaxWidth) / 2f).coerceIn(UiDp.dp16, maxWidth / 2f)
-    val flow =
-        if (maxHeight < TabletShortWindow) MoeTabletFlow.Scrolling else MoeTabletFlow.Filling
-    val scrollState = rememberScrollState()
 
-    Box(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(state.contentSurface),
-    ) {
-        Column(moeTabletPanelModifier(flow, horizontalGutter, scrollState)) {
-            MoeHeroCard(state = state, geometry = hero) {
-                Row(
-                    modifier =
-                        Modifier
-                            .align(Alignment.TopStart)
-                            .fillMaxWidth()
-                            .padding(
-                                start = MoeUi.Hero.contentHorizontalInset,
-                                end = MoeUi.Hero.contentHorizontalInset,
-                                top = UiDp.dp14,
-                            ),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "${state.duration.top}:${state.duration.bottom}",
-                        color = Color.White.copy(alpha = 0.94f),
-                        style = MiuixTheme.textStyles.title3,
-                    )
-                    state.batteryPercent?.let { percent ->
-                        Text(
-                            text = "$percent%",
-                            color = Color.White.copy(alpha = 0.86f),
-                            style = MiuixTheme.textStyles.body2,
-                        )
-                    }
-                }
-            }
+    Column(moeTabletPanelModifier(flow, horizontalGutter, scrollState)) {
+        // The rail already carries the clock and battery, so the hero stays a pure wallpaper card.
+        MoeHeroCard(state = state, geometry = hero)
 
-            MoeHomeCopySection(
-                state = state,
-                greetingColor = greetingColor,
-                modifier = moeTabletCopyModifier(flow),
-                topPadding = MoeUi.Hero.belowHeroTopGap,
-                bottomPadding = UiDp.dp12,
-            )
-        }
+        MoeHomeCopySection(
+            state = state,
+            greetingColor = greetingColor,
+            modifier = moeTabletCopyModifier(flow),
+            topPadding = MoeUi.Hero.belowHeroTopGap,
+            bottomPadding = UiDp.dp12,
+        )
     }
 }

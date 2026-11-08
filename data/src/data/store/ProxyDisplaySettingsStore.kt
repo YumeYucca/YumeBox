@@ -26,9 +26,18 @@ import com.github.yumeyucca.yumebox.data.model.ProxyDisplayMode
 import com.github.yumeyucca.yumebox.data.model.ProxySortMode
 import com.tencent.mmkv.MMKV
 
-class ProxyDisplaySettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = externalMmkv) {
+class ProxyDisplaySettingsStore(
+    externalMmkv: MMKV,
+) : MMKVPreference(externalMmkv = externalMmkv) {
     val sortMode by enumFlow(ProxySortMode.DEFAULT)
     val nodeSearchVisible by boolFlow(false)
+
+    /** 手机单页默认单列,分栏更宽默认双列。 */
+    val compactTwoColumnNodes by boolFlow(false)
+    val splitTwoColumnNodes by boolFlow(true)
+
+    /** 用一条可横滑的分组条取代分组下钻。 */
+    val groupTabsMode by boolFlow(false)
     val displayMode by enumFlow(ProxyDisplayMode.SINGLE_DETAILED)
     val proxyMode by enumFlow(TunnelState.Mode.Rule)
     val sheetHeightFraction by floatFlow(PROXY_SHEET_HEIGHT_FRACTION_DEFAULT)

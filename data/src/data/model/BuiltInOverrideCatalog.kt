@@ -20,13 +20,12 @@
 
 package com.github.yumeyucca.yumebox.data.model
 
-import com.github.yumeyucca.yumebox.core.model.OverrideInternalConstants
 import com.github.yumeyucca.yumebox.core.locale.YumeTxt
+import com.github.yumeyucca.yumebox.core.model.OverrideInternalConstants
 
 /**
- * APK-bundled override templates (from override-hub). Content lives under
- * `assets/overrides/builtin/` and is materialized into the configs dir on demand so the runtime
- * override chain can resolve a real file path.
+ * APK-bundled override templates (from override-hub). Content lives under `assets/overrides/builtin/` and is
+ * materialized into the configs dir on demand so the runtime override chain can resolve a real file path.
  */
 class BuiltInOverrideDefinition(
     val id: String,

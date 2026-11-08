@@ -22,28 +22,24 @@
 
 package com.github.yumeyucca.yumebox.core.bridge
 
-
 import androidx.annotation.Keep
 import java.io.Closeable
 
 /**
- * The socketpair control channel to the core child process ([NativeProcess.channelFd]). It is a
- * SOCK_SEQPACKET socket, so one write is one read (no framing needed), and each message can carry
- * a single file descriptor via SCM_RIGHTS — this is how the TUN fd is handed to the core in the
- * non-root VpnService path.
+ * The socketpair control channel to the core child process ([NativeProcess.channelFd]). It is a SOCK_SEQPACKET socket,
+ * so one write is one read (no framing needed), and each message can carry a single file descriptor via SCM_RIGHTS —
+ * this is how the TUN fd is handed to the core in the non-root VpnService path.
  *
- * YumeBox's equivalent of CFA's `AndroidChannel`. This is a thin fd wrapper; message framing and
- * the command vocabulary live in the Kotlin layer above it.
+ * YumeBox's equivalent of CFA's `AndroidChannel`. This is a thin fd wrapper; message framing and the command vocabulary
+ * live in the Kotlin layer above it.
  */
 @Keep
 class Channel(private val fd: Int) : Closeable {
-    @Volatile
-    private var closed = false
+    @Volatile private var closed = false
 
     /**
-     * Read one datagram into [buffer] at [offset]/[length]. Returns the number of bytes read (0
-     * means the peer closed the channel). If the peer attached a descriptor, it is returned;
-     * otherwise the returned fd is -1.
+     * Read one datagram into [buffer] at [offset]/[length]. Returns the number of bytes read (0 means the peer closed
+     * the channel). If the peer attached a descriptor, it is returned; otherwise the returned fd is -1.
      */
     @Synchronized
     fun readMessage(buffer: ByteArray, offset: Int, length: Int): ReadResult {
@@ -55,8 +51,8 @@ class Channel(private val fd: Int) : Closeable {
     }
 
     /**
-     * Write one datagram from [buffer] at [offset]/[length], optionally attaching [attachFd] via
-     * SCM_RIGHTS (pass -1 for no descriptor). Returns the number of bytes written.
+     * Write one datagram from [buffer] at [offset]/[length], optionally attaching [attachFd] via SCM_RIGHTS (pass -1
+     * for no descriptor). Returns the number of bytes written.
      */
     @Synchronized
     fun writeMessage(buffer: ByteArray, offset: Int, length: Int, attachFd: Int = -1): Int {
