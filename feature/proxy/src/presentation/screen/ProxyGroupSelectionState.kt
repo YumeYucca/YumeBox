@@ -24,12 +24,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
 
 /**
@@ -40,29 +40,34 @@ import com.github.yumeyucca.yumebox.domain.model.ProxyGroupInfo
  */
 @Stable
 class SelectedGroupController
-internal constructor(
-    val name: String?,
-    private val onSelect: (String?) -> Unit,
-) {
-    /** 选中 [name];传 `null` 表示清空选中。 */
-    fun select(name: String?) {
-        onSelect(name)
-    }
+    internal constructor(
+        private val nameState: State<String?>,
+        private val onSelect: (String?) -> Unit,
+    ) {
+        val name: String?
+            get() = nameState.value
 
-    fun selectGroup(group: ProxyGroupInfo) {
-        select(group.name)
-    }
+        /** 选中 [name];传 `null` 表示清空选中。 */
+        fun select(name: String?) {
+            onSelect(name)
+        }
 
-    fun clear() {
-        select(null)
+        fun selectGroup(group: ProxyGroupInfo) {
+            select(group.name)
+        }
+
+        fun clear() {
+            select(null)
+        }
     }
-}
 
 /** 页面自己保存选中项(手机分栏、sheet)。 */
 @Composable
 fun rememberSelectedGroupController(): SelectedGroupController {
-    var name by rememberSaveable { mutableStateOf<String?>(null) }
-    return rememberSelectedGroupController(name = name, onSelect = { name = it })
+    val nameState = rememberSaveable { mutableStateOf<String?>(null) }
+    return remember(nameState) {
+        SelectedGroupController(nameState) { next -> nameState.value = next }
+    }
 }
 
 /** 选中项由调用方托管(分栏 shell 共享 ViewModel)。 */
@@ -71,9 +76,9 @@ fun rememberSelectedGroupController(
     name: String?,
     onSelect: (String?) -> Unit,
 ): SelectedGroupController {
-    // 回调每次重组都会换实例,用 rememberUpdatedState 兜住,holder 才能只随 name 重建。
     val latestOnSelect by rememberUpdatedState(onSelect)
-    return remember(name) { SelectedGroupController(name) { next -> latestOnSelect(next) } }
+    val nameState = rememberUpdatedState(name)
+    return remember { SelectedGroupController(nameState) { next -> latestOnSelect(next) } }
 }
 
 /** [SelectedGroupController.name] 在 [proxyGroups] 里解析出的分组;纯值,不含回调。 */

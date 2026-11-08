@@ -74,7 +74,10 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 private const val SheetTransitionTrimMillis = 20
 
 @Composable
-fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
+fun ProxySheetContent(
+    onDismiss: () -> Unit,
+    proxyViewModel: ProxyViewModel = koinViewModel(),
+) {
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsState()
     val delayTests by proxyViewModel.delayTests.collectAsState()
     val sortMode by proxyViewModel.sortMode.collectAsState()
@@ -87,11 +90,10 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
         rememberProxyGroupSelectionState(
             proxyGroups = proxyGroups,
             onRefreshGroup = proxyViewModel::refreshGroup,
-            retainLastKnownGroup = false,
+            retainLastKnownGroup = true,
             controller = selectionController,
         )
     val selectedGroupName = groupSelection.selectedGroupName
-    val selectedGroup = groupSelection.selectedGroup
     val groupListState = rememberLazyListState()
     val nodeListState = rememberSavedListState(selectedGroupName)
     val sheetColor = MiuixTheme.colorScheme.surface
@@ -109,6 +111,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
             ProxySheetPanes(
                 selection = selectionController,
                 proxyGroups = proxyGroups,
+                retainedGroup = groupSelection.displayGroup,
                 delayTests = delayTests,
                 groupListState = groupListState,
                 nodeListState = nodeListState,
@@ -117,11 +120,11 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
         }
         ProxySheetHeaderRow(
             backdrop = sheetContentBackdrop,
-            selectedGroup = selectedGroup,
+            selectedGroup = proxyGroups.groupNamed(selectionController.name),
             sheetColor = sheetColor,
             startAction = {
                 SheetSortAction(
-                    hasGroup = selectedGroup != null,
+                    hasGroup = selectionController.name != null,
                     showSortPopup = showSortPopup,
                     anchor = sortPopupAnchor,
                     backdrop = sheetContentBackdrop,
@@ -130,7 +133,11 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                     onClearSelection = selectionController::clear,
                 )
             },
-            endAction = { SheetTestAction(onTest = { proxyViewModel.testDelay(selectedGroup?.name) }) },
+            endAction = {
+                SheetTestAction(
+                    onTest = { proxyViewModel.testDelay(selectionController.name) },
+                )
+            },
         )
     }
 }
@@ -150,12 +157,13 @@ private fun ProxySheetHost(
         onDispose { proxyViewModel.ensureCoreLoaded(false, source = ProxyGroupSyncSource.Sheet) }
     }
 
-    val dismissSheet = remember {
-        {
-            showSortPopup.value = false
-            showSheet.value = false
+    val dismissSheet =
+        remember {
+            {
+                showSortPopup.value = false
+                showSheet.value = false
+            }
         }
-    }
     GlassBottomSheet(
         show = showSheet.value,
         // The panel never samples the page (solid fill). The library's title row is left empty
@@ -182,6 +190,7 @@ private fun ProxySheetHost(
 private fun ProxySheetPanes(
     selection: SelectedGroupController,
     proxyGroups: List<ProxyGroupInfo>,
+    retainedGroup: ProxyGroupInfo?,
     delayTests: DelayTestState,
     groupListState: LazyListState,
     nodeListState: LazyListState,
@@ -193,7 +202,9 @@ private fun ProxySheetPanes(
             transitionSpec = { proxySheetContentTransform(selection.name != null) },
             label = "notification_node_sheet_content",
         ) { targetGroupName ->
-            val targetGroup = targetGroupName?.let { name -> proxyGroups.firstOrNull { group -> group.name == name } }
+            val targetGroup =
+                proxyGroups.groupNamed(targetGroupName)
+                    ?: retainedGroup?.takeIf { it.name == targetGroupName }
             if (targetGroup == null) {
                 SheetGroupPane(
                     groups = proxyGroups,
@@ -240,14 +251,18 @@ private fun proxySheetTransition(
     exitOffsetX: (Int) -> Int,
     enterFadeMillis: Int = AnimationSpecs.Proxy.SheetFadeInDuration,
 ): ContentTransform =
-    (slideInHorizontally(
-        animationSpec = tween(durationMillis = enterSlideMillis, easing = AnimationSpecs.Legacy),
-        initialOffsetX = enterOffsetX,
-    ) + fadeIn(animationSpec = tween(durationMillis = enterFadeMillis))) togetherWith
-        (slideOutHorizontally(
-            animationSpec = tween(durationMillis = exitSlideMillis, easing = AnimationSpecs.Legacy),
-            targetOffsetX = exitOffsetX,
-        ) + fadeOut(animationSpec = tween(durationMillis = AnimationSpecs.Proxy.SheetFadeOutDuration)))
+    (
+        slideInHorizontally(
+            animationSpec = tween(durationMillis = enterSlideMillis, easing = AnimationSpecs.Legacy),
+            initialOffsetX = enterOffsetX,
+        ) + fadeIn(animationSpec = tween(durationMillis = enterFadeMillis))
+    ) togetherWith
+        (
+            slideOutHorizontally(
+                animationSpec = tween(durationMillis = exitSlideMillis, easing = AnimationSpecs.Legacy),
+                targetOffsetX = exitOffsetX,
+            ) + fadeOut(animationSpec = tween(durationMillis = AnimationSpecs.Proxy.SheetFadeOutDuration))
+        )
 
 /** Sort button of the sheet header, together with the popup it opens. */
 @Composable
@@ -292,15 +307,15 @@ private fun SheetSortAction(
                     contentDescription = YumeTxt.Proxy.Action.Sort,
                     onClick = { showSortPopup.value = true },
                     iconModifier =
-                        Modifier.glassPopupAnchor(
+                        Modifier
+                            .glassPopupAnchor(
                                 anchor = anchor,
                                 cornerRadius = GlassTopActionDefaults.IconSize / 2,
                                 // This icon sits in the sheet header, not over the page like
                                 // the top-bar pill. Non-floating anchors fade the panel with
                                 // the icon instead of keeping it alive until geometry reaches 0.
                                 floating = false,
-                            )
-                            .glassPopupAnchorContent(anchor),
+                            ).glassPopupAnchorContent(anchor),
                 )
                 NodeSortPopupOverlay(
                     show = showSortPopup.value,
@@ -366,6 +381,9 @@ private fun SheetNodePane(
         listState = listState,
     )
 }
+
+private fun List<ProxyGroupInfo>.groupNamed(name: String?): ProxyGroupInfo? =
+    name?.let { wanted -> firstOrNull { group -> group.name == wanted } }
 
 /** Slide and fade for the sheet's group/node pager, in both directions. */
 private fun proxySheetContentTransform(forward: Boolean): ContentTransform {
