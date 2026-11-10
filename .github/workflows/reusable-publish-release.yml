@@ -113,7 +113,7 @@ jobs:
             }
 
       - name: Publish release assets
-        uses: softprops/action-gh-release@v3.0.3 # v3.0.3
+        uses: softprops/action-gh-release@v3.0.4 # v3.0.3
         with:
           tag_name: ${{ inputs.release_tag }}
           name: ${{ inputs.release_name }}
