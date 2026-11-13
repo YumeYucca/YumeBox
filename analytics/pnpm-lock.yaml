@@ -14,13 +14,13 @@ importers:
     dependencies:
       '@hono/zod-validator':
         specifier: ^0.9.1
-        version: 0.9.1(hono@4.13.14)(zod@4.6.7)
+        version: 0.9.1(hono@4.13.16)(zod@4.6.7)
       '@mintlify/components':
         specifier: 1.0.16
         version: 1.0.16(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       hono:
-        specifier: ^4.13.14
-        version: 4.13.14
+        specifier: ^4.13.16
+        version: 4.13.16
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -1620,8 +1620,8 @@ packages:
     resolution: {integrity: sha512-vFUqlRV5C+xqP76Wwq2SrM0kipnmpxJm7OfvVXpB35Fp+Fn4MV+ozr+JZr5qFvyR1q/U+Foim2x+3P+x9S1PLA==}
     deprecated: Renamed to rehype
 
-  hono@4.13.14:
-    resolution: {integrity: sha512-yhRLQ21U6qa9Hsu2N7Qcbh8tE+WKEcoErjIo56LeSGiGXGp9sA7UpE86Ui9uexb61KakiGwuHMn2QdV7w6i6kQ==}
+  hono@4.13.16:
+    resolution: {integrity: sha512-AOLOEhvrV+iH92xXCnFr/5+3KjPKcI3xP63XJtX5spAnkznPdHijlIsUTpi7/9EhWqrTCekw5c5zh1K+YsVw7A==}
     engines: {node: '>=16.9.0'}
 
   html-void-elements@3.0.0:
@@ -2419,9 +2419,9 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@hono/zod-validator@0.9.1(hono@4.13.14)(zod@4.6.7)':
+  '@hono/zod-validator@0.9.1(hono@4.13.16)(zod@4.6.7)':
     dependencies:
-      hono: 4.13.14
+      hono: 4.13.16
       zod: 4.6.7
 
   '@iconify/types@2.0.0': {}
@@ -3502,7 +3502,7 @@ snapshots:
 
   hast@1.0.0: {}
 
-  hono@4.13.14: {}
+  hono@4.13.16: {}
 
   html-void-elements@3.0.0: {}
 
