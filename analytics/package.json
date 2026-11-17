@@ -15,7 +15,7 @@
   "dependencies": {
     "@hono/zod-validator": "^0.9.1",
     "@mintlify/components": "1.0.16",
-    "hono": "^4.13.14",
+    "hono": "^4.13.16",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zod": "^4.6.7"
