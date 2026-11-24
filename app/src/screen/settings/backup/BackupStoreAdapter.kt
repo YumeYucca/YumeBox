@@ -45,6 +45,7 @@ internal class BackupStoreAdapter(
                     colorTheme = appSettings.colorTheme.value,
                     themeAccentColorArgb = appSettings.themeAccentColorArgb.value,
                     invertOnPrimaryColors = appSettings.invertOnPrimaryColors.value,
+                    monetAdaptiveEnabled = appSettings.monetAdaptiveEnabled.value,
                     homePreviewGuideShown = appSettings.homePreviewGuideShown.value,
                     automaticRestart = appSettings.automaticRestart.value,
                     autoUpdateCurrentProfileOnStart = appSettings.autoUpdateCurrentProfileOnStart.value,
@@ -166,6 +167,7 @@ internal class BackupStoreAdapter(
             appSettings.colorTheme,
             appSettings.themeAccentColorArgb,
             appSettings.invertOnPrimaryColors,
+            appSettings.monetAdaptiveEnabled,
             appSettings.homePreviewGuideShown,
             appSettings.automaticRestart,
             appSettings.autoUpdateCurrentProfileOnStart,
@@ -246,6 +248,7 @@ internal class BackupStoreAdapter(
         appSettings.colorTheme.set(value.colorTheme)
         appSettings.themeAccentColorArgb.set(value.themeAccentColorArgb)
         appSettings.invertOnPrimaryColors.set(value.invertOnPrimaryColors)
+        appSettings.monetAdaptiveEnabled.set(value.monetAdaptiveEnabled)
         appSettings.homePreviewGuideShown.set(value.homePreviewGuideShown)
         appSettings.automaticRestart.set(value.automaticRestart)
         appSettings.autoUpdateCurrentProfileOnStart.set(value.autoUpdateCurrentProfileOnStart)

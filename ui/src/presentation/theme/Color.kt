@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import top.yukonga.miuix.kmp.theme.Colors
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.darkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme
@@ -225,14 +226,78 @@ private val basePalette =
             ),
     )
 
-fun colorSchemeFromSeed(seed: Color, isDark: Boolean, invertOnPrimaryColors: Boolean = false) =
+/**
+ * Builds the miuix colour scheme for [seed].
+ *
+ * With [monetAdaptive] off this is exactly the historical seed theme: only primary and its family move, every neutral
+ * surface keeps the miuix default. With it on, the surfaces, outlines and neutral text roles are replaced by the
+ * tokens [generateMonetTokens] derives from the same seed, while primary keeps the seed theme's derivation (inverted
+ * primary foregrounds included).
+ */
+fun colorSchemeFromSeed(
+    seed: Color,
+    isDark: Boolean,
+    invertOnPrimaryColors: Boolean = false,
+    monetAdaptive: Boolean = false,
+): Colors =
+    if (monetAdaptive) {
+        val monetTokens = generateMonetTokens(seed, isDark)
+        schemeFromSeed(seed, isDark, invertOnPrimaryColors, monetTokens).withMonetTokens(monetTokens)
+    } else {
+        schemeFromSeed(seed, isDark, invertOnPrimaryColors, monetTokens = null)
+    }
+
+private fun schemeFromSeed(
+    seed: Color,
+    isDark: Boolean,
+    invertOnPrimaryColors: Boolean,
+    monetTokens: MonetSurfaceTokens?,
+): Colors =
     deriveThemeColors(
             base = if (isDark) basePalette.dark else basePalette.light,
             seed = seed,
             dark = isDark,
             invertOnPrimaryColors = invertOnPrimaryColors,
+            monetTokens = monetTokens,
         )
         .toColorScheme(isDark)
+
+/**
+ * Overrides the surface, outline and neutral text roles of this scheme with [tokens].
+ *
+ * Only roles that describe a surface, a border or neutral text are replaced: primary and its whole derived family are
+ * already built from the generated primary in [deriveThemeColors], and the semantic error roles plus the slider and
+ * window-dimming roles stay untouched so status colours keep their fixed meaning.
+ */
+private fun Colors.withMonetTokens(tokens: MonetSurfaceTokens): Colors =
+    copy(
+        background = tokens.canvas,
+        onBackground = tokens.onSurface,
+        surface = tokens.surface,
+        onSurface = tokens.onSurface,
+        surfaceVariant = tokens.surface,
+        onSurfaceSecondary = tokens.onSurface.copy(alpha = 0.8f),
+        onSurfaceVariantSummary = tokens.onSurfaceVariant,
+        onSurfaceVariantActions = tokens.onSurfaceVariant,
+        onSurfaceContainerVariant = tokens.mutedText,
+        disabledOnSurface = tokens.disabledText,
+        surfaceContainer = tokens.surfaceContainer,
+        onSurfaceContainer = tokens.onSurface,
+        surfaceContainerHigh = tokens.surfaceContainerHigh,
+        onSurfaceContainerHigh = tokens.onSurface,
+        surfaceContainerHighest = tokens.surfaceContainerHighest,
+        onSurfaceContainerHighest = tokens.onSurface,
+        outline = tokens.outline,
+        dividerLine = tokens.outlineSoft,
+        secondary = tokens.outlineSoft,
+        onSecondary = tokens.onSurface,
+        secondaryVariant = tokens.surfaceContainerHigh,
+        onSecondaryVariant = tokens.onSurface,
+        secondaryContainer = tokens.surfaceContainer,
+        onSecondaryContainer = tokens.onSurfaceVariant,
+        secondaryContainerVariant = tokens.surfaceContainerHighest,
+        onSecondaryContainerVariant = tokens.onSurfaceVariant,
+    )
 
 fun colorFromArgb(argb: Long): Color = Color(argb.toInt())
 
@@ -243,66 +308,72 @@ private fun deriveThemeColors(
     seed: Color,
     dark: Boolean,
     invertOnPrimaryColors: Boolean,
+    monetTokens: MonetSurfaceTokens? = null,
 ): ThemeColors {
-    val primary = if (dark) seed else seed.mix(Color.Black, 0.05f)
-    val primaryVariant = if (dark) seed.mix(Color.White, 0.36f) else seed.mix(Color.White, 0.25f)
+    // Adaptive mode re-bases the whole primary family on the contrast-corrected fill, so the derived variants keep
+    // matching the primary the user actually sees instead of the raw seed.
+    val mixSeed = monetTokens?.primary ?: seed
+    val primary = monetTokens?.primary ?: if (dark) seed else seed.mix(Color.Black, 0.05f)
+    val primaryVariant = if (dark) mixSeed.mix(Color.White, 0.36f) else mixSeed.mix(Color.White, 0.25f)
 
-    val defaultOnPrimary = primary.autoOnColor(threshold = if (dark) 0.72f else 0.52f)
+    val defaultOnPrimary =
+        monetTokens?.onPrimary ?: primary.autoOnColor(threshold = if (dark) 0.72f else 0.52f)
     val defaultOnPrimaryVariant = primaryVariant.autoOnColor(threshold = if (dark) 0.68f else 0.52f)
 
     val disabledPrimary =
         if (dark) {
-            base.disabledPrimary.mix(seed, 0.18f)
+            base.disabledPrimary.mix(mixSeed, 0.18f)
         } else {
-            base.disabledPrimary.mix(seed, 0.14f)
+            base.disabledPrimary.mix(mixSeed, 0.14f)
         }
     val disabledOnPrimary =
         if (dark) {
-            base.disabledOnPrimary.mix(seed, 0.08f)
+            base.disabledOnPrimary.mix(mixSeed, 0.08f)
         } else {
-            base.disabledOnPrimary.mix(seed, 0.06f)
+            base.disabledOnPrimary.mix(mixSeed, 0.06f)
         }
     val disabledPrimaryButton =
         if (dark) {
-            base.disabledPrimaryButton.mix(seed, 0.16f)
+            base.disabledPrimaryButton.mix(mixSeed, 0.16f)
         } else {
-            base.disabledPrimaryButton.mix(seed, 0.12f)
+            base.disabledPrimaryButton.mix(mixSeed, 0.12f)
         }
     val disabledOnPrimaryButton =
         if (dark) {
-            base.disabledOnPrimaryButton.mix(seed, 0.06f)
+            base.disabledOnPrimaryButton.mix(mixSeed, 0.06f)
         } else {
-            base.disabledOnPrimaryButton.mix(seed, 0.05f)
+            base.disabledOnPrimaryButton.mix(mixSeed, 0.05f)
         }
     val disabledPrimarySlider =
         if (dark) {
-            base.disabledPrimarySlider.mix(seed, 0.14f)
+            base.disabledPrimarySlider.mix(mixSeed, 0.14f)
         } else {
-            base.disabledPrimarySlider.mix(seed, 0.10f)
+            base.disabledPrimarySlider.mix(mixSeed, 0.10f)
         }
 
     val primaryContainer =
-        if (dark) {
-            base.primaryContainer.mix(seed, 0.18f)
-        } else {
-            base.primaryContainer.mix(seed, 0.14f)
-        }
+        monetTokens?.primaryContainer
+            ?: if (dark) {
+                base.primaryContainer.mix(mixSeed, 0.18f)
+            } else {
+                base.primaryContainer.mix(mixSeed, 0.14f)
+            }
 
     val tertiaryContainer =
         if (dark) {
-            base.tertiaryContainer.mix(seed, 0.13f)
+            base.tertiaryContainer.mix(mixSeed, 0.13f)
         } else {
-            base.tertiaryContainer.mix(seed, 0.16f)
+            base.tertiaryContainer.mix(mixSeed, 0.16f)
         }
 
     val tertiaryContainerVariant =
         if (dark) {
-            base.tertiaryContainerVariant.mix(seed, 0.15f)
+            base.tertiaryContainerVariant.mix(mixSeed, 0.15f)
         } else {
-            base.tertiaryContainerVariant.mix(seed, 0.13f)
+            base.tertiaryContainerVariant.mix(mixSeed, 0.13f)
         }
 
-    val defaultOnPrimaryContainer = primaryContainer.autoOnColor()
+    val defaultOnPrimaryContainer = monetTokens?.onPrimaryContainer ?: primaryContainer.autoOnColor()
     val onTertiaryContainer = tertiaryContainer.autoOnColor()
 
     val onPrimary = if (invertOnPrimaryColors) defaultOnPrimary.invertBlackWhite() else defaultOnPrimary
@@ -360,7 +431,7 @@ private fun Color.mix(other: Color, ratio: Float): Color {
     )
 }
 
-private fun Color.autoOnColor(threshold: Float = 0.52f): Color =
+internal fun Color.autoOnColor(threshold: Float = 0.52f): Color =
     if (luminance() > threshold) Color.Black else Color.White
 
 private fun Color.invertBlackWhite(): Color = if (this == Color.Black) Color.White else Color.Black

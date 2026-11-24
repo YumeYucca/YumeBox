@@ -179,6 +179,8 @@ public data class YumeStrings_AppSettings_Interface(
     public val ColorThemeCodeLabel: String,
     public val ColorThemeCustomSummary: String,
     public val ThemeColorPolarityInvertTitle: String,
+    public val MonetAdaptiveTitle: String,
+    public val MonetAdaptiveSummary: String,
     public val TopBarBlurTitle: String,
     public val AutoHideNavbarTitle: String,
     public val PageScaleTitle: String,

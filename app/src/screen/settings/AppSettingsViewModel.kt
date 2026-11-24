@@ -62,6 +62,7 @@ class AppSettingsViewModel(
     val colorTheme: Preference<AppColorTheme> = settings.colorTheme
     val themeSeedColorArgb: Preference<Long> = settings.themeAccentColorArgb
     val invertOnPrimaryColors: Preference<Boolean> = settings.invertOnPrimaryColors
+    val monetAdaptiveEnabled: Preference<Boolean> = settings.monetAdaptiveEnabled
     val automaticRestart: Preference<Boolean> = settings.automaticRestart
     val autoUpdateCurrentProfileOnStart: Preference<Boolean> = settings.autoUpdateCurrentProfileOnStart
     val excludeFromRecents: Preference<Boolean> = settings.excludeFromRecents
@@ -119,6 +120,7 @@ class AppSettingsViewModel(
         val appLanguage: AppLanguage = AppLanguage.System,
         val themeSeedColorArgb: Long = 0L,
         val invertOnPrimaryColors: Boolean = false,
+        val monetAdaptiveEnabled: Boolean = false,
         val bottomBarAutoHide: Boolean = false,
         val topBarBlurEnabled: Boolean = false,
         val pageScale: Float = 1f,
@@ -148,12 +150,14 @@ class AppSettingsViewModel(
                 pageScale.state,
                 classicHomeEnabled.state,
                 useSystemWallpaper.state,
-            ) { blur, scale, classic, systemWallpaper ->
+                monetAdaptiveEnabled.state,
+            ) { blur, scale, classic, systemWallpaper, monetAdaptive ->
                 InterfaceSectionExtras(
                     topBarBlurEnabled = blur,
                     pageScale = scale,
                     classicHomeEnabled = classic,
                     useSystemWallpaper = systemWallpaper,
+                    monetAdaptiveEnabled = monetAdaptive,
                 )
             },
         ) { base, extra ->
@@ -162,6 +166,7 @@ class AppSettingsViewModel(
                 pageScale = extra.pageScale,
                 classicHomeEnabled = extra.classicHomeEnabled,
                 useSystemWallpaper = extra.useSystemWallpaper,
+                monetAdaptiveEnabled = extra.monetAdaptiveEnabled,
             )
         }.stateInWhileSubscribed(
             viewModelScope,
@@ -170,6 +175,7 @@ class AppSettingsViewModel(
                 appLanguage = appLanguage.value,
                 themeSeedColorArgb = themeSeedColorArgb.value,
                 invertOnPrimaryColors = invertOnPrimaryColors.value,
+                monetAdaptiveEnabled = monetAdaptiveEnabled.value,
                 bottomBarAutoHide = bottomBarAutoHide.value,
                 topBarBlurEnabled = topBarBlurEnabled.value,
                 pageScale = pageScale.value,
@@ -183,6 +189,7 @@ class AppSettingsViewModel(
         val pageScale: Float,
         val classicHomeEnabled: Boolean,
         val useSystemWallpaper: Boolean,
+        val monetAdaptiveEnabled: Boolean,
     )
 
     /** Live Shizuku / Super Island access for the service section. */
@@ -327,6 +334,8 @@ class AppSettingsViewModel(
     fun onThemeSeedColorChange(argb: Long) = themeSeedColorArgb.set(argb)
 
     fun onInvertOnPrimaryColorsChange(enabled: Boolean) = invertOnPrimaryColors.set(enabled)
+
+    fun onMonetAdaptiveEnabledChange(enabled: Boolean) = monetAdaptiveEnabled.set(enabled)
 
     fun onBottomBarAutoHideChange(enabled: Boolean) = bottomBarAutoHide.set(enabled)
 

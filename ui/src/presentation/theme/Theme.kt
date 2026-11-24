@@ -57,24 +57,35 @@ val ThemeMode.label: String
             ThemeMode.Dark -> YumeTxt.AppSettings.Interface.ThemeModeDark
         }
 
+/**
+ * Installs the YumeBox theme.
+ *
+ * [monetAdaptiveEnabled] opts into the Monet Adaptive Canvas: the surface, outline and neutral text roles are then
+ * generated from [themeSeedColorArgb] instead of using the miuix defaults. The switch is off by default so the seed
+ * theme behaves exactly as before. Every colour change, whether it comes from the mode, the seed or this switch, is
+ * cross-faded through [rememberAnimatedThemeColors].
+ */
 @Composable
 fun YumeTheme(
     themeMode: ThemeMode? = null,
     themeSeedColorArgb: Long = DEFAULT_THEME_SEED_ARGB,
     invertOnPrimaryColors: Boolean = false,
+    monetAdaptiveEnabled: Boolean = false,
     content: @Composable () -> Unit,
 ) = ProvideYumeStrings {
     val isDark = (themeMode ?: ThemeMode.Auto).isDark()
     val systemUiEffect = LocalPlatformSystemUiEffect.current
     systemUiEffect(isDark)
     val colorScheme =
-        remember(isDark, themeSeedColorArgb, invertOnPrimaryColors) {
+        remember(isDark, themeSeedColorArgb, invertOnPrimaryColors, monetAdaptiveEnabled) {
             colorSchemeFromSeed(
                 seed = colorFromArgb(themeSeedColorArgb),
                 isDark = isDark,
                 invertOnPrimaryColors = invertOnPrimaryColors,
+                monetAdaptive = monetAdaptiveEnabled,
             )
         }
+    val animatedColorScheme = rememberAnimatedThemeColors(colorScheme)
 
-    MiuixTheme(colors = colorScheme) { content() }
+    MiuixTheme(colors = animatedColorScheme) { content() }
 }

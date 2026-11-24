@@ -122,6 +122,12 @@ private fun AppThemeColorSettingsSection(viewModel: AppSettingsViewModel) {
     Title(YumeTxt.AppSettings.Interface.ColorThemeTitle)
     AppCard {
         PreferenceSwitchItem(
+            title = YumeTxt.AppSettings.Interface.MonetAdaptiveTitle,
+            summary = YumeTxt.AppSettings.Interface.MonetAdaptiveSummary,
+            checked = section.monetAdaptiveEnabled,
+            onCheckedChange = viewModel::onMonetAdaptiveEnabledChange,
+        )
+        PreferenceSwitchItem(
             title = YumeTxt.AppSettings.Interface.ThemeColorPolarityInvertTitle,
             checked = section.invertOnPrimaryColors,
             onCheckedChange = viewModel::onInvertOnPrimaryColorsChange,

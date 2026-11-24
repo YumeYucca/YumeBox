@@ -32,6 +32,7 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     val colorTheme by enumFlow(AppColorTheme.ClassicMonochrome)
     val themeAccentColorArgb by longFlow(0xFF016888)
     val invertOnPrimaryColors by boolFlow(false)
+    val monetAdaptiveEnabled by boolFlow(false)
     val homePreviewGuideShown by boolFlow(false)
     val automaticRestart by boolFlow(false)
     val autoUpdateCurrentProfileOnStart by boolFlow(true)

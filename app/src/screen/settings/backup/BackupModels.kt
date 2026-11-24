@@ -67,6 +67,7 @@ data class AppSettingsBackup(
     val colorTheme: AppColorTheme = AppColorTheme.ClassicMonochrome,
     val themeAccentColorArgb: Long = 0xFF016888L,
     val invertOnPrimaryColors: Boolean = false,
+    val monetAdaptiveEnabled: Boolean = false,
     val homePreviewGuideShown: Boolean = false,
     val automaticRestart: Boolean = false,
     val autoUpdateCurrentProfileOnStart: Boolean = true,

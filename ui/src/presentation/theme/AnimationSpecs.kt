@@ -35,6 +35,14 @@ object AnimationSpecs {
     // for that same curve under an older name, so alias it rather than build a second instance.
     val Legacy = StandardEasing
 
+    /** Symmetric slow-in/slow-out curve; the documented easing for theme colour cross-fades. */
+    val EaseInOutCubic = CubicBezierEasing(0.65f, 0.0f, 0.35f, 1.0f)
+
+    object Theme {
+        /** Duration of the global colour cross-fade when the theme changes. */
+        const val ColorTransitionDuration = 200
+    }
+
     object Proxy {
         const val SheetSlideInDuration = 340
         const val SheetSlideOutDuration = 300

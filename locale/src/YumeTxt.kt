@@ -1250,6 +1250,32 @@ public object YumeTxt {
                         *args,
                     )
 
+            public val MonetAdaptiveTitle: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Interface.MonetAdaptiveTitle
+
+            @androidx.compose.runtime.Composable
+            public fun MonetAdaptiveTitle(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.MonetAdaptiveTitle
+                else
+                    String.format(
+                        java.util.Locale.getDefault(),
+                        YumeLocaleManager.activeStrings.AppSettings.Interface.MonetAdaptiveTitle,
+                        *args,
+                    )
+
+            public val MonetAdaptiveSummary: String
+                get() = YumeLocaleManager.activeStrings.AppSettings.Interface.MonetAdaptiveSummary
+
+            @androidx.compose.runtime.Composable
+            public fun MonetAdaptiveSummary(vararg args: Any?): String =
+                if (args.isEmpty()) YumeLocaleManager.activeStrings.AppSettings.Interface.MonetAdaptiveSummary
+                else
+                    String.format(
+                        java.util.Locale.getDefault(),
+                        YumeLocaleManager.activeStrings.AppSettings.Interface.MonetAdaptiveSummary,
+                        *args,
+                    )
+
             public val TopBarBlurTitle: String
                 get() = YumeLocaleManager.activeStrings.AppSettings.Interface.TopBarBlurTitle
 
