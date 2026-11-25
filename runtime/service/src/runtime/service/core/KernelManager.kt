@@ -106,7 +106,10 @@ object KernelManager {
     suspend fun install(context: Context, kernel: Kernel): File = installMutex.withLock {
         withContext(Dispatchers.IO) {
             validateKernel(kernel)
-            val archive = File(libraryDirectory(context), "$CORE_FILE_PREFIX${kernel.id}.so.xz.download")
+            val directory = libraryDirectory(context).apply {
+                check(isDirectory || mkdirs()) { "Unable to create kernel directory: $this" }
+            }
+            val archive = File(directory, "$CORE_FILE_PREFIX${kernel.id}.so.xz.download")
             try {
                 download(kernel, archive)
                 installArchive(context, kernel, archive)
