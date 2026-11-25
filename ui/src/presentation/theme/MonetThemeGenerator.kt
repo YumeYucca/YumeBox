@@ -21,6 +21,7 @@
 package com.github.yumeyucca.yumebox.presentation.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isUnspecified
 
 /**
  * The surface system generated from one seed colour, in the vocabulary of the Monet design document.
@@ -54,11 +55,11 @@ private const val MIN_PRIMARY_CONTRAST = 4.5f
 /** Chroma cap for the primary fill: a seed may be far more saturated than an interactive colour should be. */
 private const val MAX_PRIMARY_CHROMA = 0.18f
 
-/** Lightness the primary search walks towards on a light scheme; darkening the seed raises contrast against white. */
-private const val LIGHT_PRIMARY_TARGET_LIGHTNESS = 0f
+/** Lightness the primary search walks towards when the on-colour is light; darkening raises contrast against white. */
+private const val DARKENING_TARGET_LIGHTNESS = 0f
 
-/** Lightness the primary search walks towards on a dark scheme; lightening raises contrast against the slate. */
-private const val DARK_PRIMARY_TARGET_LIGHTNESS = 1f
+/** Lightness the primary search walks towards when the on-colour is dark; lightening raises contrast against it. */
+private const val LIGHTENING_TARGET_LIGHTNESS = 1f
 
 /** Coarse scan resolution of the primary lightness search. */
 private const val CONTRAST_SEARCH_STEPS = 64
@@ -128,15 +129,27 @@ private object DarkSurfaceRules {
  * Light and dark are generated independently from the same hue rather than being inverses of each other: the light
  * canvas is a near-white carrying a tenth of the seed chroma, the dark canvas a low-chroma deep tone. A seed without
  * usable colour information ([Color.Unspecified] or fully transparent) falls back to [DEFAULT_THEME_SEED_ARGB].
+ *
+ * [invertOnPrimaryColors] is resolved here rather than in the scheme, because the primary fill is contrast-corrected
+ * against the foreground it will actually carry: inverting white to black (light) or the slate to white (dark) flips
+ * the direction the lightness search has to walk, so the generator must know about it before it searches.
  */
-fun generateMonetTokens(seed: Color, isDark: Boolean): MonetSurfaceTokens {
+fun generateMonetTokens(seed: Color, isDark: Boolean, invertOnPrimaryColors: Boolean = false): MonetSurfaceTokens {
     val safeSeed = if (seed.isUnspecified || seed.alpha <= 0f) colorFromArgb(DEFAULT_THEME_SEED_ARGB) else seed
     val seedOklch = oklchFromSrgb(safeSeed.red, safeSeed.green, safeSeed.blue)
-    return if (isDark) darkTokens(seedOklch) else lightTokens(seedOklch)
+    val baseOnPrimary = if (isDark) DarkOnPrimary else LightOnPrimary
+    // Inversion is a plain black/white swap of the foreground, so the effective on-colour is the black or white end of
+    // the scale — never a mix of the base slate.
+    val onPrimary =
+        if (invertOnPrimaryColors) {
+            if (isDark) Color.White else Color.Black
+        } else {
+            baseOnPrimary
+        }
+    return if (isDark) darkTokens(seedOklch, onPrimary) else lightTokens(seedOklch, onPrimary)
 }
 
-private fun lightTokens(seed: Oklch): MonetSurfaceTokens {
-    val onPrimary = LightOnPrimary
+private fun lightTokens(seed: Oklch, onPrimary: Color): MonetSurfaceTokens {
     val primaryContainer = LightSurfaceRules.PrimaryContainer.resolve(seed.c, seed.h)
     return MonetSurfaceTokens(
         canvas = LightSurfaceRules.Canvas.resolve(seed.c, seed.h),
@@ -148,7 +161,7 @@ private fun lightTokens(seed: Oklch): MonetSurfaceTokens {
         outlineSoft = LightSurfaceRules.OutlineSoft.resolve(seed.c, seed.h),
         outline = LightSurfaceRules.Outline.resolve(seed.c, seed.h),
         outlineStrong = LightSurfaceRules.OutlineStrong.resolve(seed.c, seed.h),
-        primary = primaryFor(seed, onPrimary, isDark = false),
+        primary = primaryFor(seed, onPrimary),
         onPrimary = onPrimary,
         primaryContainer = primaryContainer,
         onPrimaryContainer = primaryContainer.autoOnColor(),
@@ -159,8 +172,7 @@ private fun lightTokens(seed: Oklch): MonetSurfaceTokens {
     )
 }
 
-private fun darkTokens(seed: Oklch): MonetSurfaceTokens {
-    val onPrimary = DarkOnPrimary
+private fun darkTokens(seed: Oklch, onPrimary: Color): MonetSurfaceTokens {
     val primaryContainer = DarkSurfaceRules.PrimaryContainer.resolve(seed.c, seed.h)
     return MonetSurfaceTokens(
         canvas = DarkSurfaceRules.Canvas.resolve(seed.c, seed.h),
@@ -171,7 +183,7 @@ private fun darkTokens(seed: Oklch): MonetSurfaceTokens {
         outlineSoft = DarkSurfaceRules.OutlineSoft.resolve(seed.c, seed.h),
         outline = DarkSurfaceRules.Outline.resolve(seed.c, seed.h),
         outlineStrong = DarkSurfaceRules.OutlineStrong.resolve(seed.c, seed.h),
-        primary = primaryFor(seed, onPrimary, isDark = true),
+        primary = primaryFor(seed, onPrimary),
         onPrimary = onPrimary,
         primaryContainer = primaryContainer,
         onPrimaryContainer = primaryContainer.autoOnColor(),
@@ -183,27 +195,22 @@ private fun darkTokens(seed: Oklch): MonetSurfaceTokens {
 }
 
 /** Primary fill for [seed]: same hue, chroma capped at [MAX_PRIMARY_CHROMA], lightness corrected for contrast. */
-private fun primaryFor(seed: Oklch, onPrimary: Color, isDark: Boolean): Color {
+private fun primaryFor(seed: Oklch, onPrimary: Color): Color {
     val chroma = minOf(seed.c, MAX_PRIMARY_CHROMA)
-    val lightness = readablePrimaryLightness(seed.l, chroma, seed.h, onPrimary, isDark)
+    val lightness = readablePrimaryLightness(seed.l, chroma, seed.h, onPrimary)
     return oklchColor(lightness, chroma, seed.h)
 }
 
 /**
- * Keeps the seed lightness when the pair already reaches [MIN_PRIMARY_CONTRAST], and otherwise walks the lightness
- * towards black (light scheme) or white (dark scheme) until it does.
+ * Keeps the seed lightness when the pair already reaches [MIN_PRIMARY_CONTRAST], and otherwise walks the lightness away
+ * from [onPrimary] — towards black under a light foreground, towards white under a dark one — until it does.
  *
  * The walk only moves in the direction that increases contrast against [onPrimary], which is what makes the coarse scan
  * plus the bisection sound, and it never touches the chroma or the hue: the resulting fill is still recognisably the
- * seed rather than a generic dark grey.
+ * seed rather than a generic dark grey. The direction follows the on-colour rather than the scheme, because an inverted
+ * foreground puts a dark on-colour in a light scheme and vice versa.
  */
-private fun readablePrimaryLightness(
-    seedLightness: Float,
-    chroma: Float,
-    hue: Float,
-    onPrimary: Color,
-    isDark: Boolean,
-): Float {
+private fun readablePrimaryLightness(seedLightness: Float, chroma: Float, hue: Float, onPrimary: Color): Float {
     val onPrimaryLuminance = wcagLuminance(onPrimary.red, onPrimary.green, onPrimary.blue)
 
     fun contrastAt(lightness: Float): Float {
@@ -211,7 +218,7 @@ private fun readablePrimaryLightness(
         return contrastRatio(wcagLuminance(rgb[0], rgb[1], rgb[2]), onPrimaryLuminance)
     }
 
-    val target = if (isDark) DARK_PRIMARY_TARGET_LIGHTNESS else LIGHT_PRIMARY_TARGET_LIGHTNESS
+    val target = if (onPrimaryLuminance >= 0.5f) DARKENING_TARGET_LIGHTNESS else LIGHTENING_TARGET_LIGHTNESS
     fun lightnessAt(step: Float): Float = seedLightness + step * (target - seedLightness)
 
     if (contrastAt(seedLightness) >= MIN_PRIMARY_CONTRAST) return seedLightness

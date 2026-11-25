@@ -231,8 +231,9 @@ private val basePalette =
  *
  * With [monetAdaptive] off this is exactly the historical seed theme: only primary and its family move, every neutral
  * surface keeps the miuix default. With it on, the surfaces, outlines and neutral text roles are replaced by the
- * tokens [generateMonetTokens] derives from the same seed, while primary keeps the seed theme's derivation (inverted
- * primary foregrounds included).
+ * tokens [generateMonetTokens] derives from the same seed. Primary keeps the seed theme's derivation, but the generator
+ * picks its foreground: it contrast-corrects the fill against the on-colour it will actually carry, including the
+ * black/white swap of [invertOnPrimaryColors].
  */
 fun colorSchemeFromSeed(
     seed: Color,
@@ -241,11 +242,23 @@ fun colorSchemeFromSeed(
     monetAdaptive: Boolean = false,
 ): Colors =
     if (monetAdaptive) {
-        val monetTokens = generateMonetTokens(seed, isDark)
+        // The generator has to know about the inversion before it searches, otherwise it balances the fill against the
+        // foreground the scheme later throws away.
+        val monetTokens = generateMonetTokens(seed, isDark, invertOnPrimaryColors)
         schemeFromSeed(seed, isDark, invertOnPrimaryColors, monetTokens).withMonetTokens(monetTokens)
     } else {
         schemeFromSeed(seed, isDark, invertOnPrimaryColors, monetTokens = null)
     }
+
+/**
+ * Pre-[monetAdaptive] entry point, kept so already-compiled callers still link.
+ *
+ * [DeprecationLevel.HIDDEN] keeps it out of source resolution — a three-argument call site resolves to the default
+ * argument of the current function, so there is no ambiguity — while its descriptor stays in the bytecode.
+ */
+@Deprecated("Binary compatibility", level = DeprecationLevel.HIDDEN)
+fun colorSchemeFromSeed(seed: Color, isDark: Boolean, invertOnPrimaryColors: Boolean): Colors =
+    colorSchemeFromSeed(seed, isDark, invertOnPrimaryColors, monetAdaptive = false)
 
 private fun schemeFromSeed(
     seed: Color,
@@ -273,6 +286,8 @@ private fun Colors.withMonetTokens(tokens: MonetSurfaceTokens): Colors =
     copy(
         background = tokens.canvas,
         onBackground = tokens.onSurface,
+        // The accent-coloured label role is neutral text in the design document (§7), not a seeded accent.
+        onBackgroundVariant = tokens.onSurfaceVariant,
         surface = tokens.surface,
         onSurface = tokens.onSurface,
         surfaceVariant = tokens.surface,
@@ -318,7 +333,14 @@ private fun deriveThemeColors(
 
     val defaultOnPrimary =
         monetTokens?.onPrimary ?: primary.autoOnColor(threshold = if (dark) 0.72f else 0.52f)
-    val defaultOnPrimaryVariant = primaryVariant.autoOnColor(threshold = if (dark) 0.68f else 0.52f)
+    // The variants mixed off the fill are light enough that a luminance threshold can hand back a white label with
+    // less than 4.5:1 on them, so the adaptive path picks the label by measured contrast instead.
+    val defaultOnPrimaryVariant =
+        if (monetTokens != null) {
+            primaryVariant.contrastOnColor()
+        } else {
+            primaryVariant.autoOnColor(threshold = if (dark) 0.68f else 0.52f)
+        }
 
     val disabledPrimary =
         if (dark) {
@@ -373,18 +395,39 @@ private fun deriveThemeColors(
             base.tertiaryContainerVariant.mix(mixSeed, 0.13f)
         }
 
-    val defaultOnPrimaryContainer = monetTokens?.onPrimaryContainer ?: primaryContainer.autoOnColor()
+    // Same crossover as the primary variant: the light container sits near the white end, where a luminance threshold
+    // can still hand back a white label, so the adaptive path picks it by measured contrast instead.
+    val defaultOnPrimaryContainer =
+        if (monetTokens != null) {
+            primaryContainer.contrastOnColor()
+        } else {
+            primaryContainer.autoOnColor()
+        }
     val onTertiaryContainer = tertiaryContainer.autoOnColor()
 
-    val onPrimary = if (invertOnPrimaryColors) defaultOnPrimary.invertBlackWhite() else defaultOnPrimary
+    val onPrimary =
+        if (monetTokens != null) {
+            // Already the effective foreground: the generator inverted it before correcting the fill against it.
+            defaultOnPrimary
+        } else if (invertOnPrimaryColors) {
+            defaultOnPrimary.invertBlackWhite()
+        } else {
+            defaultOnPrimary
+        }
     val onPrimaryVariant =
-        if (invertOnPrimaryColors) {
+        if (monetTokens != null) {
+            // Picked by contrast against the fill, so inverting it would only walk away from the readable end.
+            defaultOnPrimaryVariant
+        } else if (invertOnPrimaryColors) {
             defaultOnPrimaryVariant.invertBlackWhite()
         } else {
             defaultOnPrimaryVariant
         }
     val onPrimaryContainer =
-        if (invertOnPrimaryColors) {
+        if (monetTokens != null) {
+            // Picked by contrast against the fill, so inverting it would only walk away from the readable end.
+            defaultOnPrimaryContainer
+        } else if (invertOnPrimaryColors) {
             defaultOnPrimaryContainer.invertBlackWhite()
         } else {
             defaultOnPrimaryContainer
@@ -433,6 +476,17 @@ private fun Color.mix(other: Color, ratio: Float): Color {
 
 internal fun Color.autoOnColor(threshold: Float = 0.52f): Color =
     if (luminance() > threshold) Color.Black else Color.White
+
+/**
+ * Black or white, whichever reaches the higher WCAG contrast ratio against this fill.
+ *
+ * Contrast derived from measured luminance, unlike [autoOnColor]'s threshold on Compose's perceptual luminance: the two
+ * agree on most colours but not near the crossover, which is exactly where a variant fill sits.
+ */
+private fun Color.contrastOnColor(): Color {
+    val fillLuminance = wcagLuminance(red, green, blue)
+    return if (contrastRatio(fillLuminance, 1f) >= contrastRatio(fillLuminance, 0f)) Color.White else Color.Black
+}
 
 private fun Color.invertBlackWhite(): Color = if (this == Color.Black) Color.White else Color.Black
 

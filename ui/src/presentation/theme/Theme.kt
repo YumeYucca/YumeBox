@@ -89,3 +89,24 @@ fun YumeTheme(
 
     MiuixTheme(colors = animatedColorScheme) { content() }
 }
+
+/**
+ * Pre-[monetAdaptiveEnabled] entry point, kept so already-compiled callers still link.
+ *
+ * [DeprecationLevel.HIDDEN] keeps it out of source resolution — a call that stops at [invertOnPrimaryColors] fills in
+ * the current function's default — while its descriptor stays in the bytecode.
+ */
+@Deprecated("Binary compatibility", level = DeprecationLevel.HIDDEN)
+@Composable
+fun YumeTheme(
+    themeMode: ThemeMode? = null,
+    themeSeedColorArgb: Long = DEFAULT_THEME_SEED_ARGB,
+    invertOnPrimaryColors: Boolean = false,
+    content: @Composable () -> Unit,
+) = YumeTheme(
+    themeMode = themeMode,
+    themeSeedColorArgb = themeSeedColorArgb,
+    invertOnPrimaryColors = invertOnPrimaryColors,
+    monetAdaptiveEnabled = false,
+    content = content,
+)
