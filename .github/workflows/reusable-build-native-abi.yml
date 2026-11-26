@@ -35,7 +35,7 @@ jobs:
         run: test "${{ inputs.abi }}" = "arm64-v8a"
 
       - name: Setup Go
-        uses: actions/setup-go@v7.0.0
+        uses: actions/setup-go@v7.1.0
         with:
           go-download-base-url: 'https://github.com/MetaCubeX/go/releases/download/build'
           go-version: '1.27'

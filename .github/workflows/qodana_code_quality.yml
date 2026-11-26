@@ -26,7 +26,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Setup Java
-        uses: actions/setup-java@v6.1.0
+        uses: actions/setup-java@v6.3.0
         with:
           distribution: zulu
           java-version: "25"
@@ -57,7 +57,7 @@ jobs:
           sh kotlin build --module=locale
           find build -path '*ksp*' -name Strings.kt -size +0c -print -quit | grep -q .
       - name: 'Qodana Scan'
-        uses: JetBrains/qodana-action@v2026.2.2 # v2026.2.2
+        uses: JetBrains/qodana-action@v2026.3.1 # v2026.2.2
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
         with:
